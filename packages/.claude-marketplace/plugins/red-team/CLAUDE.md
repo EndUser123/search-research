@@ -37,3 +37,31 @@ Promoting this to a plugin changed invocation from `/red-team` (standalone) to `
 
 - `/code-review` — routine code review (file:line shaped).
 - `/adversarial-review` agent — parallel code review (file:line shaped). Distinct from `/red-team adversarial` mode, which dispatches to **external LLM harnesses** for B-class divergence, not internal agents.
+
+## Host applicability (read this before editing)
+
+This plugin is **host-agnostic source**. It runs unchanged under both Claude
+Code and Grok Build. The contracts above (disk-backed handoff, findings schema,
+verdict gate, telemetry/incident writers) must stay host-neutral — no
+host-specific paths, tool names, or dispatch assumptions in any file under this
+plugin.
+
+**Grok-specific overlays live in `~/.grok/AGENTS.md`**, not here. Examples of
+what belongs in the Grok overlay (NOT in this plugin):
+
+- Web-search tool preference order (`minimax-search` > `web-search-prime` >
+  built-in `web_search`). Claude Code has a different search-tool surface.
+- Async-dispatch notification handling (Grok Build's `background: true` model).
+- Host-specific CLI fallbacks.
+
+**Why this matters:** the `/wiki` skill is currently forked across Grok
+(309 lines) and Claude Code (531 lines), creating a dual-source-of-truth hazard
+(BLOCK finding WRF-001 in run 20260719-133433). `/red-team` must NOT repeat
+that pattern. One source, host-neutral; host-specific behavior overlays in the
+host's own config directory.
+
+If you find yourself wanting to add a Grok-only or Claude-only behavior to a
+file in this plugin, stop. Add it to the host's overlay instead
+(`~/.grok/AGENTS.md` for Grok; `~/.claude/CLAUDE.md` or `~/.claude/rules/` for
+Claude Code), and reference it from the plugin only as a pointer
+("see `<host-overlay-path>` for host-specific configuration").

@@ -67,6 +67,23 @@ Exactly one of (defined exhaustively — every severity combination maps to a ve
 
 ## Output format
 
+Write `critic.json` to the `run_dir` the orchestrator passed. The JSON object MUST use the field name `findings` (not `verified_findings`) for the findings array — this is the canonical schema name shared with specialist output and consumed by the telemetry parser (`__lib/telemetry.py:derive_from_critic`). Other top-level fields (`verdict`, `summary`, `self_review_notes`, `conflicts_resolved_count`, etc.) are free-form.
+
+Structure:
+```json
+{
+  "schema_version": "1.0",
+  "verdict": "PROCEED|REVISE|BLOCK",
+  "summary": "<one paragraph>",
+  "findings": [
+    {"id": "<SPEC>-<N>", "severity": "BLOCK|REVISE|NIT", "verification_status": "VERIFIED|UNVERIFIED|NON_REPRODUCIBLE|NO_LOCATION", "category": "...", "location": "...", "title": "...", "evidence": "...", "confidence": "high|medium|low", "fix": "..."}
+  ],
+  "conflicts_resolved_count": <int>
+}
+```
+
+The user-visible output also includes the sections below.
+
 ### Verdict
 PROCEED | REVISE | BLOCK
 

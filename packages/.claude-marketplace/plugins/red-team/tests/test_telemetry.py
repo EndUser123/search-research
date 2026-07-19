@@ -93,6 +93,27 @@ def test_derive_from_critic_counts_severities(tmp_path):
     assert out["top_categories"][0] == "auth"  # 3 occurrences
 
 
+def test_derive_from_critic_tolerates_verified_findings_field(tmp_path):
+    """The critic prompt's '### Verified findings' heading historically gets
+    serialized as the JSON key 'verified_findings' instead of the schema's
+    'findings'. The parser must tolerate both field names so telemetry counts
+    don't silently fall to 0/0/0. Regression for the schema-drift bug surfaced
+    in run 20260719-133433."""
+    run_dir = tmp_path / "verified_run"
+    _write_critic({
+        "verified_findings": [
+            {"severity": "BLOCK", "category": "auth"},
+            {"severity": "REVISE", "category": "perf"},
+            {"severity": "NIT"},
+        ],
+        "conflicts_resolved_count": 1,
+    }, run_dir)
+    out = derive_from_critic(run_dir)
+    assert out["counts"] == {"BLOCK": 1, "REVISE": 1, "NIT": 1, "suppressed": 0}
+    assert out["critic_conflicts_resolved"] == 1
+    assert "parse_error" not in out
+
+
 def test_derive_from_critic_missing_file_returns_parse_error(tmp_path):
     out = derive_from_critic(tmp_path / "no_such")
     assert "parse_error" in out

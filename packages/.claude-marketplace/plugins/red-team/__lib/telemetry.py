@@ -89,7 +89,13 @@ def derive_from_critic(run_dir: Path) -> dict:
 
     counts = {"BLOCK": 0, "REVISE": 0, "NIT": 0, "suppressed": 0}
     categories: dict[str, int] = {}
-    findings = critic.get("findings") if isinstance(critic.get("findings"), list) else []
+    # Tolerate both field names: the schema says "findings" (findings_schema.py),
+    # but critic.json has historically been written with "verified_findings"
+    # because the critic prompt's "### Verified findings" heading gets serialized
+    # as that key. Accept either; the canonical producer-side schema stays "findings".
+    findings = critic.get("findings") or critic.get("verified_findings") or []
+    if not isinstance(findings, list):
+        findings = []
     for f in findings:
         if not isinstance(f, dict):
             continue

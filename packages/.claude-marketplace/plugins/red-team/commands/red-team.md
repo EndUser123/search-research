@@ -141,6 +141,11 @@ The orchestrator never holds specialist findings in its own context — only fil
 ```
 Required: `id, severity, location, title, detail, evidence, fix, writer_session`. Optional: `category, confidence, claim_type, meta`. `claim_type` tags which verification branch the critic should use (saves re-classification). Schema is codified in `__lib/findings_schema.py` (unit-tested).
 
+**Output-path / write-failure contract (load-bearing):**
+- On success, the specialist's response text contains **ONLY** the file path it wrote — no prose, no findings inline.
+- On write failure (the `write`/`Write`/`Bash`-redirect tool returned an error, or the file was not created for any reason), the specialist **MUST NOT** report a path. Instead it responds with the literal token `WRITE_FAILED: <one-line reason>` and nothing else. Reporting a path that doesn't exist on disk is the single most dangerous failure mode (silent coverage gap; verdict ships without the finding). Incident category: `specialist-miss`.
+- The orchestrator verifies every specialist's claim by checking the file exists on disk before relying on it (see §"Specialist post-dispatch verification" below).
+
 ## Agent flow
 
 ### 1. Planner
@@ -163,9 +168,9 @@ Generate the `run_dir` (see Findings handoff above), create it, then dispatch th
 
 **Specialist timeout (PERF-5):** each specialist dispatch carries a wall-clock budget. If a specialist has not returned its file path within `RED_TEAM_SPECIALIST_TIMEOUT` seconds (default 300), mark it `DEFERRED — timeout` in the dispatch manifest and continue. Do not wait indefinitely; one stalled specialist must not block synthesis.
 
-Each specialist dispatch includes: the proposal under review (or pointer to it), the `run_dir`, and the instruction — *"Write your findings to `{run_dir}/<your-name>.json` per the schema in the orchestrator skill. Your response text must contain ONLY the file path — no prose, no findings inline."* If `{run_dir}/prospect.md` exists (planner fired the prospect pass), specialists Read it before attacking and weigh its priors.
+Each specialist dispatch includes: the proposal under review (or pointer to it), the `run_dir`, and the instruction — *"Write your findings to `{run_dir}/<your-name>.json` per the schema in the orchestrator skill. Your response text must contain ONLY the file path — no prose, no findings inline. If your write tool call failed, respond `WRITE_FAILED: <reason>` instead of the path — do NOT report a path that is not on disk."* If `{run_dir}/prospect.md` exists (planner fired the prospect pass), specialists Read it before attacking and weigh its priors.
 
-Project-local specialists (under `P:/.claude/agents/`). The two **always-consider** specialists are NON-OPTIONAL — they run on every /red-team invocation regardless of how narrow the proposal seems, regardless of ponytail/auto-mode/decision-phase framing. Skipping an always-consider specialist invalidates the synthesis. Dispatch the conditional specialists whenever the planner identifies their angle — and when uncertain whether an angle applies, **dispatch it** (over-dispatch is cheap; under-dispatch silently misses whole failure classes).
+Project-local specialists (under `agents/` in this plugin — `agents/red-team-<role>.md`). The two **always-consider** specialists are NON-OPTIONAL — they run on every /red-team invocation regardless of how narrow the proposal seems, regardless of ponytail/auto-mode/decision-phase framing. Skipping an always-consider specialist invalidates the synthesis. Dispatch the conditional specialists whenever the planner identifies their angle — and when uncertain whether an angle applies, **dispatch it** (over-dispatch is cheap; under-dispatch silently misses whole failure classes).
 
 - `red-team-gate-reviewer` — **always-consider (non-optional)**. Gates, hooks, matchers, guardrails, calibration.
 - `red-team-workflow-reviewer` — **always-consider (non-optional)**. CLAUDE.md, skills, commands, task-tracking, workflow quality.
@@ -182,6 +187,26 @@ Project-local specialists (under `P:/.claude/agents/`). The two **always-conside
 **Every dispatch carries the full context bundle** — no bare one-liner prompts. Each specialist prompt MUST include: (a) the **absolute** `run_dir` path (never the literal `{run_dir}` placeholder — bind it), (b) the proposal pointer (`{run_dir}/prospect.md` and/or `{run_dir}/proposal.md`), (c) the specific target under review (file paths, hook names, session evidence), (d) the specialist's concrete task, (e) the output-path instruction and the "response text = file path only" rule. A specialist that receives only an output path cannot do its job and will return empty.
 
 Collect only the path each specialist returns. Do not Read the findings files yourself — that defeats the handoff.
+
+**Specialist post-dispatch verification (FM-4 — load-bearing):** after a specialist returns its claimed file path and before invoking the critic, verify the file exists on disk. This is the proactive gate against silent no-write failures (incident category `specialist-miss`, see run 20260719-133433). The check is cheap (<100ms per specialist) and catches the failure mode that would otherwise ship a verdict with a coverage gap.
+
+For each specialist's claimed path:
+1. If the response matches `WRITE_FAILED: <reason>`: the specialist honestly reported failure. Mark it `DEFERRED — write-failed: <reason>` in the dispatch manifest. Proceed.
+2. Otherwise, check `Test-Path $claimed` (PowerShell) or equivalent for the host shell.
+   - **File exists:** mark DISPATCHED.
+   - **File missing (silent no-write):** retry the specialist **once** with an explicit instruction: *"On the previous dispatch you reported the path `<path>` but the file is not on disk. Invoke your write tool to create the file before responding. Verify the file exists (Test-Path or equivalent) after writing, and only then report the path."*
+     - If the retry succeeds: mark DISPATCHED with a note `recovered-after-retry`.
+     - If the retry also fails (file still missing, or response is `WRITE_FAILED`): mark `DEFERRED — specialist-miss (no file at <path>)` in the dispatch manifest, log an incident via `python __lib/incidents.py add --category specialist-miss --run-id <run_id> --session-id <id> --summary "<specialist> reported path but file missing after retry" --expected "specialist writes findings JSON before reporting path" --observed "<path> not present on disk" --evidence "Get-ChildItem <run_dir> after retry" --root-cause "specialist did not invoke write tool before responding"`, and continue. Do NOT abort the run.
+
+A specialist that fails twice is signal, not noise — the incident captures the failure mode for the Phase 3b improvement loop. The DEFERRED manifest entry makes the gap visible in the user-facing synthesis (the two always-consider specialists may not be DEFERRED for any other reason, but a specialist-miss after retry is a legitimate DEFERRED reason — surface it explicitly at the top of the synthesis).
+
+**Dispatch-failure handling (FM-4b):** the FM-4 retry policy above assumes the specialist dispatch succeeded and the specialist ran but didn't write. When the dispatch itself fails — the spawn/Agent tool returns an error (rate limit, agent-type-not-found, crash, immediate exit before any tool call) — the retry-once policy does NOT apply. Retrying into an environmental failure is wasteful; the policy was not designed for it. (Derived from validation run 20260719-validation, incident `inc-a5f7867e3190`: all 5 specialists failed at dispatch with 429 rate_limit_error; original FM-4 had no clause for this case.)
+
+For dispatch-level failures:
+1. Mark the specialist `DEFERRED — dispatch-failure: <one-line reason>` in the dispatch manifest.
+2. Log an incident: `python __lib/incidents.py add --category other --run-id <run_id> --session-id <id> --summary "<specialist> dispatch failed: <reason>" --expected "dispatch succeeds; specialist runs and either writes path or returns WRITE_FAILED" --observed "<error from spawn/Agent tool>" --evidence "<tool output or exit code>" --root-cause "environmental or structural dispatch failure (not a specialist-side no-write)"`. Use category `other` — `specialist-miss` is reserved for the silent no-write case where dispatch succeeded.
+3. Do NOT retry automatically. Environmental failures (rate limits, network) clear on their own cadence; structural failures (agent-type-not-found) need a fix, not a retry. The operator can re-run when the blocker clears.
+4. Continue with the remaining specialists. If all dispatched specialists fail at the dispatch layer, FM-3 (empty-input guard) applies: the verdict is **BLOCK** with reason `all specialists failed at dispatch — environmental or structural blocker, not a proposal defect`. Surface the blocker class at the top of the synthesis so the operator can distinguish "proposal rejected" from "review could not execute."
 
 ### 3. Critic
 Invoke the `red-team-critic` agent. Pass it the `run_dir` — NOT pasted findings. The critic globs `{run_dir}/*.json`, Reads each, aggregates, then runs its existing verify / severity-gate / tiebreaker / verdict logic.
@@ -215,7 +240,7 @@ Qualitative ROI is allowed. Quantitative performance attribution requires actual
 ## Final output format
 
 ### Specialist dispatch manifest
-- Lists every specialist in the skill (`gate-reviewer`, `workflow-reviewer`, `security`, `performance`, `logic`, `state`, `failure-modes`, `plugin`, `testing`) with one of: **DISPATCHED** (ran, findings in critic) or **DEFERRED — <one-line reason>**. The two always-consider specialists may not be DEFERRED; if one is, the synthesis is invalid and must say so explicitly at the top. This makes omission visible in the user-facing output instead of silent.
+- Lists every specialist in the skill (`gate-reviewer`, `workflow-reviewer`, `security`, `performance`, `logic`, `state`, `failure-modes`, `plugin`, `testing`) with one of: **DISPATCHED** (ran, findings in critic), **DISPATCHED (recovered-after-retry)** (post-dispatch verification caught a missing file, retry succeeded), or **DEFERRED — <one-line reason>** where the reason is one of: `timeout` (PERF-5), `write-failed: <reason>` (specialist honestly reported WRITE_FAILED), `specialist-miss (no file at <path>)` (FM-4: silent no-write, retry also failed), or `dispatch-failure: <reason>` (FM-4b: spawn/Agent tool returned error — rate limit, agent-type-not-found, crash). The two always-consider specialists may not be DEFERRED for any reason other than a verified specialist-miss after retry or a dispatch-failure; if one is DEFERRED for any other reason, the synthesis is invalid and must say so explicitly at the top. This makes omission visible in the user-facing output instead of silent.
 
 ### Proposal restated
 - One paragraph.
