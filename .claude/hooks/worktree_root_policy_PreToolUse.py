@@ -104,9 +104,15 @@ def _extract_target_path(command: str) -> str | None:
 
 
 def _deny(reason: str) -> None:
+    # hookSpecificOutput wrapper required — bare top-level permissionDecision
+    # is ignored by the harness (confirmed vs PreToolUse_existence_gate /
+    # PreToolUse_search_before_create, 2026-07-19).
     print(json.dumps({
-        "permissionDecision": "deny",
-        "permissionDecisionReason": reason,
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        }
     }))
 
 
