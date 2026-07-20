@@ -139,6 +139,7 @@ source-manifest.json · canonical-events.jsonl · active-timeline.json · supers
 | `SOURCE_PARTIAL` | Proceed; constrain completeness claims. |
 | `SOURCE_UNVERIFIED` | Stop unless user authorizes analysis-with-caveats. |
 | Snapshot drift detected | Proceed with captured copy; report cutoff. |
+| **Silent failure** (preprocessor exits 0 but produces no packet) | **The preprocessor MUST write a `_preprocessor_status.json` file even on failure**, with `status: "failed"`, `reason: "<specific error or 'no output produced'>"`, and `packet_path: null`. The orchestrator checks this file before deciding to fall back to LLM-only analysis. If the file is missing, the orchestrator reports "preprocessor status unknown — proceeding with LLM-only analysis with caveats" and sets `source_status: SOURCE_COMPLETE_WITH_LIMITATIONS`. Silent failure without a status file is itself a bug in the preprocessor. |
 
 ### 0.5.7 Output validation (mandatory before reporting)
 
@@ -417,6 +418,26 @@ The AAR must not rank intervention classes before the failure class is establish
 ## Verdict
 Did the work achieve the intended outcome, and what is the most important lesson?
 
+## Findings  ← always emitted; this is the headline view
+Plain-language summary of what was found, ordered by severity. The user reads this section first; if they stop here, they have the headline.
+
+For each finding:
+  - **Severity tag** (CRITICAL | HIGH | MEDIUM | LOW) — derived from the corresponding episode severity, opportunity disposition, or lesson calibration
+  - **One-line title** — concrete, not generic; rejected per the same generic-phrase blocklist as opportunities
+  - **What happened** — observed evidence in plain language, citing the canonical event_id or signal index
+  - **Why it matters** — the impact, in terms of the user's terminal outcome or downstream consequence
+  - **What to do** — the action, in plain language; if ACT_NOW, name the containment step first
+  - **Where in this report** — cross-ref to the §Material episodes, §Headline lessons, §Opportunity landscape, or §Open work section that contains the full evidence
+
+Example entry:
+  ### HIGH — Three live credentials exposed at event 118
+  - **What happened:** Reading `P:/.env` to verify API-key availability echoed SERPAPI_KEY, SERPER_KEY, GITHUB_TOKEN into tool output. They are now in `chat_history.jsonl` and `canonical-events.jsonl`.
+  - **Why it matters:** Future sessions that read this transcript inherit the exposed keys. The agent's working context also contains them this session.
+  - **What to do:** Rotate the 3 keys via each provider's console. Then decide whether to retain or delete the transcript files containing them.
+  - **Where in this report:** §Material episodes E1; §Opportunity landscape O1 (ACT_NOW).
+
+The Findings section is **synthesized from** the detailed sections below — it is not a replacement for them. Empty Findings is valid (a session with no material findings should still produce this section, with a single explicit "no material findings" entry).
+
 ## Evidence scope
 Sources, boundaries, completeness, repository/worktree, harness, shell, snapshot_cutoff.
 
@@ -520,6 +541,8 @@ Detector-specific severity caps:
 5. **Opportunity ≠ gap.** Observed evidence and interpretation must differ.
 6. **Every opportunity carries the full schema** when one is emitted. (Schema: `references/opportunity-discovery.md`.)
 7. **Generic opportunities are rejected.** Concrete target required.
+7a. **Every opportunity must declare a `prevention_mechanism`.** Valid values: `rule` (AGENTS.md/config), `hook` (runtime gate), `metric` (observability/telemetry), `skill_edit` (changes skill behavior), `config` (changes default behavior), `wiki_only` (documentation only — advisory, does not change runtime behavior). If `wiki_only`, the opportunity is `advisory_only` and MUST be separated from actionable opportunities in the report. The user should see at a glance which opportunities change behavior vs which are just documentation.
+7b. **Advisory-only validation.** Before emitting an opportunity whose `prevention_mechanism` is `wiki_only`, ask: "does this change runtime behavior?" If no, flag it as `advisory_only` in the report and explain what structural change WOULD make it actionable (e.g., "to make this actionable, add a metric field to fetch_completed that surfaces NLM path success rate"). Observations are valid; dressing them up as actionable opportunities is not.
 8. **Accounting must reconcile.** Episode counts and opportunity dispositions both.
 9. **Evidence is mandatory.** Every claim cites a canonical event_id from the packet.
 10. **Minimal sufficient intervention.** AGENTS.md rule > skill edit > new skill > hook > config. `NO_CHANGE_PRESERVE` is a valid mechanism.

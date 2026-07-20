@@ -18,6 +18,16 @@ metadata:
 
 # /refactor — Intelligent structural refactor
 
+## Developer preferences (load before recommending)
+
+The refactor plans and seam scoping this skill produces must honor the developer's governing preferences, which override any default "simplicity first" or "minimal change" framing:
+
+- **Optimal long-term over minimal-diff** — default to the solution that best meets requirements with lowest future cost and risk, even if transition effort is large. The number of seams or PRs is NOT a cost to minimize; the right number is whatever the optimal solution requires.
+- **Transition effort is not a selection criterion** — the user does not care how much work the change is.
+- **Surgical ≠ smallest** — touch only what the optimal solution requires, but "surgical" does not mean "smallest scope." A 7-seam refactor is correct if the optimal solution requires 7 seams.
+
+Source of truth: `~/.grok/AGENTS.md` § "Optimal long-term solution" and `~/.claude/Claude.md` § "Implementation Principles."
+
 You are the **refactor orchestrator**. The user describes the job in plain
 language. **You** infer target, mode, depth, isolation, and budget. Do **not**
 require flags.
@@ -307,6 +317,8 @@ P0 silent data/status loss → P1 dual policy → P2 races/promote → P3 extrac
       "evidence_kind": "tool_read",
       "characterization": "tests/test_nlm_batch.py or describe",
       "verify_commands": ["python -m pytest tests/test_nlm_batch.py -q"],
+      "end_to_end_verification": "python bin/csf-source fetch --limit 5 --workers 1",
+      "end_to_end_rationale": "Seam touches NLM source-add I/O path; unit tests verify the parser but not the live API integration.",
       "status": "pending"
     }
   ]
@@ -314,6 +326,20 @@ P0 silent data/status loss → P1 dual policy → P2 races/promote → P3 extrac
 ```
 
 `evidence_kind`: `tool_read` | `review_hint+tool_read` | `unverified`.
+
+**`end_to_end_verification` (mandatory field):** Every seam must specify how
+its behavior will be verified end-to-end, not just via unit tests. Options:
+- A concrete command that exercises the changed code path against real I/O
+- `"N/A: pure extract with zero callers"` — only valid for dead-code removal or pure refactors with no behavior change
+- `"N/A: no external I/O touched"` — only valid for seams that don't touch auth, network, filesystem, or external APIs
+
+If the seam touches auth, I/O, network, or external services and the field
+is empty or `"N/A"` without a justification in `end_to_end_rationale`, the
+seam **cannot advance to execute**. This is the structural gate that
+prevents the Phase 1 path bug (unit tests passed, end-to-end was broken).
+
+See `P:/.data/wiki/concepts/verification-before-completion-principle.md`
+for the behavioral principle this gate enforces structurally.
 
 ### 4.5 After plan
 
