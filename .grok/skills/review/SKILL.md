@@ -538,13 +538,28 @@ nits at 5.
 
 **Hard rules:**
 
-- Never label `verified` without a tool-backed re-check in this run.  
-- Never auto-approve a PR.  
-- Dedupe by (file, line band, title similarity).  
+- Never label `verified` without a tool-backed re-check in this run.
+- Never auto-approve a PR.
+- Dedupe by (file, line band, title similarity).
 - Merge with prior ledger: `confirmed | closed | new | residual`.
 
 Claim types: `existence`/`scope-completeness` → broad search; `static-shape` →
 read; `behavior` → test or honest `unverified`.
+
+**Behavior claims and control-flow tracing (mandatory for branching behavior):**
+When a finding or session claim involves conditional behavior ("after X, Y will
+happen", "workers never open browsers", "auth fails closed in noninteractive
+mode"), **do not accept static code reading as proof of runtime behavior**.
+Instrument the actual code paths with entry/exit logging and run the code:
+
+- Write a decorator or wrapper that logs entry/exit + env state for functions
+  in the claim's scope
+- Run the code path that triggers the claim
+- Observe which branches actually fired
+- Compare the trace output against the claim
+
+The trace output is evidence; the source code is a hypothesis. Use for any
+claim involving conditionals, env vars, or state transitions.
 
 ---
 

@@ -424,6 +424,32 @@ data analysis, research).
    to determine correctness. Take your time -- thoroughness matters more
    than speed.
 
+7b. CONTROL-FLOW TRACE (when claims involve branching behavior):
+   When the session makes claims about conditional behavior ("after X, Y will
+   happen", "workers never open browsers", "auth fails closed in noninteractive
+   mode", "the hook blocks all git worktree calls"), **instrument the actual
+   code paths and run the code**. Do not accept static code reading as proof
+   of runtime behavior.
+
+   Method:
+   - Write a small decorator or wrapper that logs entry/exit + env state for
+     the functions in the claim's scope
+   - Run the code path that triggers the claim (CLI command, test, function call)
+   - Observe which branches actually fired
+   - Compare the trace output against the claim
+   - The trace output is evidence; the source code is a hypothesis
+
+   Example: if the session claims "initial auth is interactive, workers are
+   non-interactive", instrument `_ensure_nlm_auth`, `_refresh_nlm_auth_session`,
+   and `refresh_source_profile`, then run the fetch and verify:
+   (a) the initial auth enters the interactive branch,
+   (b) YTIS_NLM_AUTH_NONINTERACTIVE gets set after login succeeds,
+   (c) workers never call the browser path.
+
+   When NOT to trace: pure data transforms, pure CRUD, or claims about static
+   values (no branching). Use for any claim involving conditionals, env vars,
+   or state transitions.
+
 8. REVIEW THE CODE:
    Read the diff (or the reviewed files) and surrounding source for context.
    If code was written, look for issues the agent introduced. If the agent
