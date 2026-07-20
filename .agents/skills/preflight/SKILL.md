@@ -1,9 +1,11 @@
 ---
-name: source-authority-discovery
+name: preflight
 description: Build an evidence-backed inventory of existing implementations, callers, registrations, state/default consumers, caches, tests, worktrees, and competing plans before proposing or implementing non-trivial changes.
 ---
 
-# Source Authority Discovery
+# Preflight
+
+(Formerly `source-authority-discovery`; renamed 2026-07-20 per ADR-009 follow-on. Skill identity is unchanged — same audit, same contract, same outputs.)
 
 Use this skill before planning, reviewing, or implementing work that could
 change an existing capability, hook, skill, plugin, entrypoint, default,
@@ -17,7 +19,7 @@ state format, lifecycle, worktree, or orchestration path.
    use PowerShell and the workspace Python runtime:
 
    ```powershell
-   python P:\.agents\skills\source-authority-discovery\scripts\discovery_audit.py `
+   python P:\.agents\skills\preflight\scripts\discovery_audit.py `
      --scope P:\.claude `
      --scope P:\packages\.claude-marketplace\plugins\cc-skills-sdlc `
      --scope P:\.agents `

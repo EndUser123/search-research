@@ -1,4 +1,4 @@
 interface:
-  display_name: "Source Authority Discovery"
+  display_name: "Preflight"
   short_description: "Build source and conflict inventories before planning changes."
-  default_prompt: "Use $source-authority-discovery before proposing or implementing any non-trivial change."
+  default_prompt: "Use $preflight before proposing or implementing any non-trivial change."
