@@ -382,11 +382,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/__lib/router.py Stop",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
             "timeout": 15
           }
