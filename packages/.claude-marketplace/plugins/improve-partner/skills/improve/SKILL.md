@@ -181,12 +181,11 @@ adapt the output:
   delegates return; tag every merged claim `FACT(delegated-specialist)`.
 - `mode=external-second-opinion` — read the artifacts, then route a self-contained
   external-review packet (context, questions, success criteria, falsification condition)
-  to `/red-team adversarial`, which dispatches it to N external LLM harnesses
-  (agy / glm-5.2 / MiniMax-M3 / kimi-k2.7-code) and returns a divergence synthesis.
-  Use this when the target is architectural, public-facing, or makes confident claims
-  about external systems — B-class training-blind-spot territory, not A-class
-  verification gaps. Falls back to emitting the packet inline if `/red-team adversarial`
-  is unavailable (e.g., the adv-review runner is still pending, #872/#873/#874).
+  to `/ai-cli` (preferred) or `/ai-api compare`, which dispatches it to N external
+  LLMs in parallel and returns a divergence synthesis. Use this when the target is
+  architectural, public-facing, or makes confident claims about external systems —
+  B-class training-blind-spot territory, not A-class verification gaps. Falls back
+  to emitting the packet inline if no multi-model runner is available.
 - `mode=queue-only` — read the artifacts, then write a review-request artifact
   for later execution. Tag claims by provenance; leave the Recommendation section
   empty (deferred to the later run).

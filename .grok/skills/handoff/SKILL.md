@@ -7,7 +7,7 @@ description: >
   streams if obvious from current context. Cross-session chain (thread_id,
   parent_handoff_path) is supported structurally but continuation is v0.2.
   Use for /handoff, handoff, session handoff, continuing work, work brief.
-argument-hint: "[new] <topic>  (default: the stream behind the current request)"
+argument-hint: "[new <topic> | close <path> | list]  (default: new)"
 user-invocable: true
 ---
 
@@ -24,6 +24,9 @@ evidence, status, and next steps.
 
 - `/handoff new <topic>` or just `/handoff` — write one handoff for the stream
   the user asks about. Default: the work stream behind the current request.
+- `/handoff close <path>` — close a completed handoff: prompt for wiki
+  promotion, then delete the file.
+- `/handoff list` — list all open handoffs at `P:\docs\handoffs\`.
 - Reads `compaction/segment_*.md` from the current session to recover
   pre-compaction context (within-session only).
 - Writes one file at `P:\docs\handoffs\<topic>-<YYYYMMDD>\HANDOFF.md`.
@@ -35,10 +38,9 @@ evidence, status, and next steps.
 ## v0.1 does NOT do (deferred to v0.2+)
 
 - `/handoff continue <path>` — cross-session chain traversal via `/aar`
-- `/handoff update`, `/handoff close`, `/handoff status`
+- `/handoff update`, `/handoff status`
 - Multi-stream handoff writing (only notes other streams; does not write them)
 - PLAN.md, DECISIONS.md, per-terminal status.jsonl
-- ADR promotion on close
 - Five-type templates (Investigation is the default; others are v0.2)
 
 See `ROADMAP.md` for what's planned and why each piece is deferred.
@@ -89,6 +91,44 @@ session can act on without guessing.
 6. **Verify the file persisted** by reading it back. Confirm structure.
 
 7. **Report path** to the user.
+
+## `/handoff close <path>` — complete and clean up
+
+When the work described in a handoff is done, close it. Closing a handoff
+has two steps:
+
+1. **Promote durable findings.** Ask the user: "Did this work produce a
+   durable lesson or decision worth finding later?" If yes:
+   - Promote to `P:/.data/wiki/concepts/<slug>.md` (as a Concept or ADR per
+     the `/design` Step 6d framework: Concept = lightweight; ADR = full
+     solo-ADR format with shelf life, assumptions, revert path).
+   - Write the promoted file with: decision, rationale, alternatives
+     rejected, falsifier, source citation (the handoff path + date).
+   - Confirm the wiki file was written.
+
+2. **Delete the handoff.** Remove the handoff directory
+   (`P:\docs\handoffs\<topic>-<YYYYMMDD>\`). The handoff was scaffolding;
+   if there was durable value, it's now in the wiki. If there wasn't, the
+   handoff is clutter.
+
+**Do NOT keep completed handoffs as "provenance."** That's what the wiki is
+for. A handoff that's been open for 30 days but still says "status: open"
+is clutter that a fresh session has to triage.
+
+**What if the user says "no durable findings"?** Skip promotion, delete the
+handoff. Not every work stream produces a reusable lesson.
+
+## `/handoff list` — show open handoffs
+
+List all directories under `P:\docs\handoffs\`. For each, read the YAML
+frontmatter and show:
+
+```
+<topic>-<date>  status: <open|closed>  goal: <first line of Objective>
+```
+
+This gives the user a quick view of what's outstanding without opening
+each file.
 
 ## Hard constraints (always loaded)
 

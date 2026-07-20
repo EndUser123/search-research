@@ -29,9 +29,9 @@ Promoting this to a plugin changed invocation from `/red-team` (standalone) to `
 
 - **default** (`/red-team <proposal>`) — planner → specialists → critic → PROCEED/REVISE/BLOCK. The flow documented in this file.
 - **pre-mortem** (`/red-team pre-mortem <target>`) — selects the 3-phase adaptive critique engine at `cc-skills-sdlc/skills/pre-mortem/` (Health Score + RNS + blinded consumer-contract review). The standalone `/pre-mortem` is now a deprecation stub.
-- **adversarial** (`/red-team adversarial <response>`) — **PENDING (#872/#873/#874):** the adv-review runner (`runner.py`, `calibrate.py`, `harness_registry.py`) is not yet implemented, so this mode currently routes to an unbuilt engine and emits an inline fallback rather than dispatching. When built, it will select the external-LLM harness roster at `cc-skills-ai-api/skills/adv-review/` (agy / glm-5.2 / MiniMax-M3 / kimi-k2.7-code; calibration mode `--cases <corpus>`). The standalone `/adv-review` is now a deprecation stub. Planned backend for `/improve external-second-opinion` (which already has its own fallback).
+- **adversarial** (`/red-team adversarial <response>`) — dispatches to N external models in parallel via `/ai-cli` (preferred) or `/ai-api compare`, surfaces divergences, emits per-model verdicts + divergence synthesis. Supports calibration mode (`--cases <corpus>`) against the bad-thinking corpus.
 
-`/red-team` routes; it does not vendor. The two engine directories remain the source of truth for their phase prompts / harness schema.
+`/red-team` routes; it does not vendor. The pre-mortem engine directory remains the source of truth for its phase prompts. The adversarial mode delegates to the workspace's parallel multi-LLM runners (`/ai-cli` / `/ai-api`); it does not own a separate runner.
 
 ## Adjacent systems (do not duplicate)
 
