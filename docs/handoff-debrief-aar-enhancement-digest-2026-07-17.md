@@ -79,6 +79,65 @@ Agent argued for **structural gates, not pure behavioral rules** (because “res
 
 ---
 
+## 4.5 `/tp` ground truth (for the discussion LLM — loaded 2026-07-19)
+
+### Shape
+
+One skill, three argument-routed variants: `/tp` (realign in motion, default), `/tp check` (diagnostic only — does not continue task), `/tp load` (cold activation), `/tp <mode>` (targeted realign). Host: Grok, path `C:/Users/brsth/.grok/skills/tp/SKILL.md`.
+
+### The six failure modes
+
+| # | Mode | Correction |
+|---|------|-----------|
+| 1 | **Agreeableness bias** | Restate goal; challenge premise |
+| 2 | **Premature solutioning** | No solution until problem is bound + falsifier named |
+| 3 | **False precision** | Label `[UNKNOWN]`; refuse to fabricate |
+| 4 | **Solution vending** | ≥2 options + criterion + why chosen wins |
+| 5 | **Silent reframe** | Revert; ask before reframing |
+| 6 | **Performative rigor** | Drop form; argue substance. **Meta-guard** — applies to `/tp` itself |
+
+Plus a 0th input-side check: prompt-asked dialogue vs mechanism vs execution; if last turn mismatched, that's the primary drift.
+
+### Circuit breaker (6 lines, runs every `/tp`)
+
+Goal → direct evidence this session? → what did I just do? → is that what the goal needs? → if not, stop + name mode # + correct + continue → don't perform the form.
+
+### Already wired from this thread's prior art
+
+**Post-correction disconfirmation step (conditional)** — descended directly from this session's "verified against / falsifier" work and Stream 4 deliverable #1. Fires *outside* the circuit breaker (stays fast); only when the correction makes a factual claim. Uses `minimax-search__web_search` (primary) or `web-search-prime`. **This is the Popperian analog of the recommendation-format gate, without the parser cost** — and it already exists in `/tp`.
+
+### Origin session
+
+`/tp` itself was designed 2026-07-18 across six model switches (per its own SKILL.md origin note) — *different* Grok session than this digest's source (`019f6c3b`). Treat them as companion, not same thread.
+
+---
+
+## 4.6 Mapping the debrief failures → `/tp` modes (the actual discussion topic)
+
+The debrief meta-review named **epistemic overconfidence** as the dominant session pattern. Mapping to `/tp`'s vocabulary:
+
+| Session-level pattern (from debrief) | Closest `/tp` mode | Gap |
+|---|---|---|
+| Confident structural recommendations faster than verification | **Mode 2 (premature solutioning)** | `/tp` mode 2 is scoped to *one proposal per turn*; "emit fast / verify slow" is a *session-spanning* pattern, not a single-turn event |
+| Wrong tool recommended (`/review` vs `/check`) | Mode 4 (solution vending — missing criterion) | Reasonable fit |
+| Three disproven proposals in one session | **No clean mode** | This is the gap worth discussing — does `/tp` need a session-aggregate mode, or is that `/aar`'s job? |
+| Skill upgrades marked "fixed" without read-back | Mode 6 (performative rigor — claiming done without substance) | Reasonable fit |
+| User as verification gate every time | Mode 1 weak form | `/tp` is reactive (user invokes); can't interrupt unaided |
+
+**Discussion question for the `/tp` LLM:** is "session-aggregate epistemic overconfidence" a `/tp` concern (mid-session), an `/aar` concern (post-session), or a true gap?
+
+### The three disproven proposals (concrete instances for pattern-matching)
+
+From the debrief session, named explicitly so the `/tp` LLM can test against them:
+
+1. **Block-all hook** for plan-mode bypass → disproven (race / overbroad)
+2. **Conditional hook** → disproven (race condition)
+3. **Config flag** for plan-mode auto-exit → disproven (feature didn't exist; assumed without reading docs)
+
+Pattern: *emit fast, verify slow, user pushback each time.* This is the canonical case any `/tp` enhancement should catch — or honestly concede it can't.
+
+---
+
 ## 5. What `/aar` is *for* vs what `/tp` is *for* (handoff framing)
 
 Use this separation when discussing `/tp`:
@@ -119,12 +178,22 @@ You are discussing improvements to the /tp (thought partner) skill.
 Read this handoff as prior art from a long Grok session that:
 1) ran /debrief, 2) meta-reviewed it as thought partner, 3) renamed/enhanced it into /aar.
 
-Do NOT conflate Claude Code /debrief (forensic debrief.py state machine) with Grok /aar.
-Do NOT re-propose “behavioral rules beat infrastructure” without comparison evidence.
-Optimize for: mid-session correction of epistemic overconfidence and protocol bypass,
-while leaving post-session continual-improvement to /aar.
+Three load-bearing things to NOT conflate:
+- Claude Code /debrief (forensic debrief.py state machine) ≠ Grok /aar.
+- The disconfirmation-search step is ALREADY in /tp (from this same thread's prior art). Don't re-invent.
+- The "rules > infrastructure" overclaim was rejected — calibrate any comparative claim.
+
+Concrete discussion topic: the debrief session's dominant pattern
+("emit fast, verify slow, user as verification gate every time") has
+no clean /tp mode. Three disproven proposals in one session:
+block-all hook, conditional hook, config flag. Map or honestly concede.
+
+Optimize for: mid-session correction of epistemic overconfidence and
+protocol bypass, while leaving post-session continual-improvement to /aar.
 
 Handoff path: P:/docs/handoff-debrief-aar-enhancement-digest-2026-07-17.md
+/tp source:   C:/Users/brsth/.grok/skills/tp/SKILL.md
+/aar source:  P:/.grok/skills/aar/SKILL.md
 ```
 
 ---
