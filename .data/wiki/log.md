@@ -4185,3 +4185,8 @@ Transcript: session-2026-07-19
 ## [2026-07-19] ingest | Claude Code hooks bug landscape (2026-07-19)
 Source: session
 Transcript: session-2026-07-19
+
+## [2026-07-19] ingest | /verify is a bundled Claude Code skill (slash command), not Skill-tool invocable
+Source: session
+Transcript: C:\Users\brsth\.claude\projects\P--\45504861-e019-4c69-a420-34761e7d303e.jsonl
+Path: P:/.data/wiki/concepts/claude-code-verify-builtin-skill.md
