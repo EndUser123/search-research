@@ -87,12 +87,23 @@ After the phase table, emit 1-2 lines:
 
 ## Phase 1: Verify (always on)
 
-Invoke `/verify` (Skill tool, name `verify`). Let it run to completion.
+**`/verify` is a bundled Claude Code slash command** (≥ v2.1.145), invoked by the *operator* (the human), not via the Skill tool. Trying `Skill(skill="verify")` always returns `disable-model-invocation` — that path is closed by design. See wiki `claude-code-verify-builtin-skill` and memory `verify-is-bundled-slash-command-not-skill-tool`.
 
-- If `/verify` exits with failures: STOP. Verdict=ERROR.
-- If `/verify` returns blocked (no harness): **BOTH modes stop.** Verdict=BLOCKED.
-  --apply is NOT allowed without a verify baseline.
-- If `/verify` passes: continue.
+**Verify procedure (in order — try these and stop at the first that yields a signal):**
+
+1. **Recommended: instruct the operator to run `/verify` themselves and paste the verdict.**
+   Bundle language: *"Before /check can proceed, please run `/verify` in another window or paste the prior /verify verdict and the diff it covered."* Use the operator's verdict as the Phase 1 signal.
+2. **Fallback A — auto-discovery of a local pytest harness:** if steps 1 isn't practical, look for a `tests/` or `test/` directory in the changed files' repo and run `pytest -q` on the test paths matching the changed source paths. If pytest is available AND a matching test exists → use its exit code as the Phase 1 signal. If pytest succeeds for unrelated reasons while no test covers the diff, treat as **BLOCKED** (signal is not from your change) — `--apply` is still not allowed without a real signal.
+3. **Fallback B — none of the above:** report `BLOCKED: no /verify signal obtained and no pytest harness covers the diff. Operator must run /verify before /check can pass.` Verdict=BLOCKED. `--apply` aborts.
+
+**Outcome mapping:**
+
+- **`/verify` passed (or pytest green covering the diff):** continue to next phase.
+- **`/verify` failed (or pytest red):** STOP. Verdict=ERROR.
+- **`/verify` blocked (no harness) or operator did not provide verdict:** report BLOCKED. `--apply` aborts.
+- **Operator opted out of /verify AND no pytest harness:** report BLOCKED. The blocked status is *informational* — Phase 1 happens before all other phases for a reason: don't bury an unverified diff in clean-looking later phases.
+
+> **Do NOT** call `Skill(skill="verify")`. It always returns `disable-model-invocation`. If a future Codex finds this comment still here, the SKILL.md spec was correct; the Skill-tool invocation in the original Phase 1 was wrong.
 
 ## Phase 1.2: Secret Scan (--standard+)
 
