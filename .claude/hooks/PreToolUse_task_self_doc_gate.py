@@ -75,14 +75,21 @@ def _validate_task_doc(tool_input: dict, tool_name: str = "TaskCreate") -> tuple
     description = tool_input.get("description", "")
 
     if tool_name == "TaskUpdate":
-        # For TaskUpdate, only require description when completing the task
+        # For TaskUpdate, the description field is optional — only set on
+        # completion if the caller wants to add closing notes. Block the
+        # task close with a self-doc advisory only if the caller
+        # explicitly provides a description AND it's too thin. Don't
+        # require a description just to close a task: the description
+        # was provided at TaskCreate time and is already on the record.
         status = tool_input.get("status", "")
         if status != "completed":
-            # For non-completion updates, no self-doc validation required
             return True, "Valid"
-        # Validate description for completed tasks (subject is set at creation, not update).
-        # TaskUpdate completion asks "what was accomplished?" — Problem + at least one
-        # Situation/Symptom fits the lifecycle, not full require_all.
+        if not description.strip():
+            # No closing notes provided; allow close (description already
+            # exists from TaskCreate).
+            return True, "Valid"
+        # If the caller DID add a description, validate it as a real
+        # completion note (Problem + at least one of Situation/Symptom).
         desc_result = self_documentation_check(
             "TaskUpdate completion", description,
             require_all=False,
