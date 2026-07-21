@@ -4,8 +4,21 @@ parent_handoff_path: P:/docs/handoffs/design-skill-runtime-foundation-20260720/H
 current_session_id: 019f8082-9298-7561-b03e-3c21afc43115
 current_terminal_id: console_fb11bbd2-b737-48d8-bbcc-d06b
 produced_at: 2026-07-21T01:00:00Z
-status: open
+status: superseded
+assigned_to: grok
+assigned_at: 2026-07-21T14:29:49Z
+assigned_by: 019f8507-6395-7bc0-87a9-9122e28d68c8
+assignment_note: >
+  Claimed for PGM-ENABLE-01 (enable as-is per Decision 1 Option A; smoke-test
+  an ungrounded proposal and verify the systemMessage warning appears).
+  Parent handoff is design-skill-runtime-foundation-20260720. Grok Build
+  only; Claude/Codex should not take it without explicit user direction —
+  the env vars, paths, and `~/.grok/config.toml` activation are
+  Grok/Windows-specific. If this claim is stale (>7 days from assigned_at),
+  re-claim before resuming.
 handoff_type: investigation
+accurate_as_of_head: 13f19d20c70f3e09dd26e08b414b4335154847ed
+source_transcript: C:\Users\brsth\.grok\sessions\P%3A%5C\019f8082-9298-7561-b03e-3c21afc43115\chat_history.jsonl
 ---
 
 # HANDOFF — proposal-grounding-monitor: evaluation and enable decision
@@ -16,7 +29,7 @@ Evaluate whether the orphaned `proposal-grounding-monitor` plugin solves a real 
 
 ## 2. Status
 
-**READY_FOR_REVIEW** — all source code read and evaluated. Enable decision pending user's call after reading this handoff.
+**SUPERSEDED (2026-07-21T14:55Z, session 019f8507)** — both task packets completed by v0.1.1 release and prior enable action. See §17 Supersession note. Handoff retained as a record of the decision process that preceded enablement; not actionable work.
 
 ## 3. Producing context
 
@@ -132,7 +145,22 @@ The plugin is:
 3. **Fail-closed on state corruption.** Corrupt state files are deleted, not recovered. (`state.py:120-140`)
 4. **No raw prompt/response storage.** Only bounded 200-char excerpts in repair records. (`README.md` Observability section)
 
-## 10. Pre-mortem (3 failure scenarios)
+## 10. Cross-reference couplings
+
+This handoff is coupled to:
+
+- **Parent handoff** `design-skill-runtime-foundation-20260720` — F1 (enable `proposal-grounding-monitor`) is this handoff's primary task; F2/M1/design-docs items are independent of PGM work.
+- **Validator** `P:/.grok/skills/handoff/__lib/validators.py` — `BODY_REQUIRED_SECTIONS` (line 50-62) defines the 15 mandatory body sections; `validate_assignment_fields` (line 574-625) gates claim fields; this handoff's conformance is re-checked after each edit.
+- **Plugin source** `~/.grok/plugins/proposal-grounding-monitor/scripts/relevance.py` — proposal patterns (`PROPOSAL_SIGNALS` lines 243-264), hedging suppressor (`PROVISIONAL_HEDGE_RE` lines 265-270), and categorization rules (`categorize()` lines 100-157). The AGENTS.md categorization gap (Decision 2 [INFERENCE]) lives here.
+- **Plugin state** `~/.grok/plugins/proposal-grounding-monitor/scripts/state.py` — multi-terminal isolation (`GROK_SESSION_ID` keying lines 83-87), atomic writes (`tmp + os.replace` lines 155-168), fail-closed on corruption (lines 120-140), orphan sweep on SessionStart (lines 265-289). Any coupling to per-session state requires honoring these invariants.
+- **Plugin hook wiring** `~/.grok/plugins/proposal-grounding-monitor/hooks/hooks.json` — Grok-native registration of 5 events (PostToolUse, Stop, UserPromptSubmit, SessionStart, SessionEnd).
+- **Activation point** `~/.grok/config.toml [plugins] enabled` — PGM-ENABLE-01 writes here; absence is the "orphaned" state.
+- **Test surface** `~/.grok/plugins/proposal-grounding-monitor/tests/` — 111 tests across 8 files; PGM-FIX-01 must run `python -m pytest tests/ -v` after any categorization patch.
+- **Schema evolution** `handoff-v02-aar-integration-20260720/HANDOFF.md` — documents the v0.1 → v0.1.1 transition that added `accurate_as_of_head` and `Cross-reference couplings` as mandatory. This handoff now conforms to v0.1.1.
+- **Stale-data anchor** `accurate_as_of_head: 13f19d20c70f3e09dd26e08b414b4335154847ed` (frontmatter, line 20) — git HEAD at production time per `P:/.grok/skills/handoff/SKILL.md` § drift detection. The next session comparing HEAD against this SHA knows whether the assessment in §5 is still valid.
+- **Source transcript** `C:\Users\brsth\.grok\sessions\P%3A%5C\019f8082-9298-7561-b03e-3c21afc43115\chat_history.jsonl` — full conversation that produced the §5 evidence; cite for any [INFERENCE] re-derivation.
+
+## 11. Pre-mortem (3 failure scenarios)
 
 ### Scenario 1 (most likely): Nag fatigue from broad proposal detection
 
@@ -164,14 +192,14 @@ The plugin is:
 
 **Mitigation:** upgrade to v2 blocking mode for repeat offenders (same recommendation_hash flagged twice). Requires real-session evidence first.
 
-## 11. Explicit non-goals
+## 12. Explicit non-goals
 
 - Do NOT add blocking behavior in this evaluation. v1 is observe-and-warn only.
 - Do NOT rewrite the plugin. It's tested and documented. Fix only if the live test reveals real problems.
 - Do NOT port the cc-aca-* enforcement suite. That's a separate decision (see parent handoff).
 - Do NOT modify the proposal detection patterns without running the 111-test suite first.
 
-## 12. Resumption protocol
+## 13. Resumption protocol
 
 1. Read this handoff
 2. Read `~/.grok/plugins/proposal-grounding-monitor/scripts/relevance.py` (the proposal patterns + categorization rules — the crux)
@@ -180,7 +208,7 @@ The plugin is:
 5. If Option B: patch `relevance.py:categorize()` to recognize AGENTS.md/CLAUDE.md, run `python -m pytest tests/ -v`, then enable
 6. Monitor telemetry at `$GROK_PLUGIN_DATA/../proposal-grounding-monitor/telemetry/stop.jsonl` for FP rate after 1 week
 
-## 13. Suggested next invocation
+## 14. Suggested next invocation
 
 ```
 Enable proposal-grounding-monitor. Add it to config.toml [plugins] enabled.
@@ -190,12 +218,12 @@ Check telemetry for FP rate. If AGENTS.md reads don't qualify, patch
 relevance.py:categorize().
 ```
 
-## 14. Last user message (verbatim)
+## 15. Last user message (verbatim)
 
 > "proposal-grounding-monitor: what problem, will it work, pre-mortem"
 > "- what problem is it supposed to solve? Will it efficiently and effectively? Pre-mortem?"
 
-## 15. Epistemic labels
+## 16. Epistemic labels
 
 - [FACT] Plugin source, tests, and README read in full this session
 - [FACT] Categorization rules verified against actual code (`relevance.py:100-157`)
@@ -212,3 +240,37 @@ relevance.py:categorize().
 - **/design skill improvements** — shipped (Step 4.5, 5.5, 6.0, 6d). Untested in real run. See parent handoff.
 - **Review skill consolidation** — shipped (routing table, 2 skills deprecated). See parent handoff.
 - **CCR fleet work** — parked from prior session. Not closed.
+
+## 17. Supersession note (added 2026-07-21T14:55Z)
+
+**Both task packets completed before this re-evaluation reached them.** This handoff was opened at `2026-07-21T01:00:00Z` based on a session that read `relevance.py` while the plugin was at v0.1.0; by the time of re-evaluation (session `019f8507`, ~14h later), the plugin had shipped v0.1.1 with the AGENTS.md/CLAUDE.md fix and someone had already added `proposal-grounding-monitor` to `config.toml [plugins].enabled`.
+
+**Receipts (verified 2026-07-21T14:55Z):**
+
+| Task packet | Status | Evidence |
+|---|---|---|
+| PGM-ENABLE-01 (enable plugin) | ✅ Done | `C:/Users/brsth/.grok/config.toml:88` lists `"proposal-grounding-monitor"` first in `[plugins].enabled`. Hook wiring confirmed at `C:/Users/brsth/.grok/plugins/proposal-grounding-monitor/hooks/hooks.json` (5 hook events). Disabled-hooks file lists only exec-gate; PGM not disabled. |
+| PGM-FIX-01 (AGENTS.md categorization) | ✅ Done | `C:/Users/brsth/.grok/plugins/proposal-grounding-monitor/scripts/relevance.py:147-155` adds the rule `if re.search(r"(?:^|/)(?:AGENTS|CLAUDE)\.md$", t, re.IGNORECASE): return "docs"`. Inline comment confirms intent: "Promoted to qualifying evidence 2026-07-20 after /review confirmed the prior categorization gap." Verified live: `categorize("P:/AGENTS.md") → "docs"`; `categorize("~/.grok/AGENTS.md") → "docs"`; `categorize("~/.claude/CLAUDE.md") → "docs"`. |
+| Tests | ✅ Pass | `cd ~/.grok/plugins/proposal-grounding-monitor && python -m pytest tests/ -q` → `117 passed in 1.10s`. |
+| Telemetry | ✅ Live (stale receipt) | At supersession write-time (2026-07-21T14:55Z): `C:/Users/brsth/.grok/plugin-data/proposal-grounding-monitor/telemetry/stop.jsonl` (498 bytes; 3 events: 2× `repair_opened`, 1× `repair_resolved` with outcome `RECOMMENDATION_REVISED_AFTER_INSPECTION`). **Stale as of 2026-07-21T17:57:10Z** — file was truncated to 0 bytes between supersession write and a later read. Cause unverified (likely PGM SessionStart cleanup or telemetry rotation; see §17 footnote). Per-session state files exist for sessions `019f8082` (the eval producer), `019f819a`, `019f8388`, `019f8507` (this session), `019f8523`. |
+
+**What this handoff got wrong about current state at re-evaluation time:**
+
+1. "[FACT] Plugin is not in `config.toml [plugins] enabled` list." (line 84) — false; enabled at line 88.
+2. "Plugin has never fired in production — no telemetry files, no state files." (lines 84, 88) — false; telemetry and state files exist. Notably, a `repair_opened` event fired in this very session's producer (`019f8082`) at `2026-07-21T00:55:12Z`, 5 minutes before this handoff was `produced_at`.
+3. "[INFERENCE] Reading `P:/AGENTS.md` or `~/.grok/AGENTS.md` may NOT count as qualifying evidence." (line 49) — was correct for v0.1.0; false for v0.1.1.
+
+**Irony worth noting for future cold-start sessions:** the eval handoff's producing session (`019f8082`) was itself the subject of a real PGM `repair_opened` event at the same time the handoff was being written. The session that produced "PGM has never fired" was itself being observed by PGM. The handoff's reasoning was sound for the version it read, but it was working from stale code AND describing the runtime incorrectly.
+
+**Verification-receipt note (added 2026-07-21 /tp):** the Telemetry row above initially claimed "498 bytes; 3 events" as observed at supersession write-time. A subsequent `/tp` re-evaluation (session `019f8507`) re-read the file at ~22:50Z and found it was **0 bytes, last modified 2026-07-21T17:57:10Z** — i.e., the telemetry had been truncated between the supersession write and the re-evaluation. The original observation was correct at write-time but did not survive. The Telemetry row above has been updated to reflect this staleness explicitly. This is a worked example of the `verification-receipt` failure mode (causal/state claim delivered as `[FACT]` without an enduring receipt): even correct-at-write-time claims can decay.
+
+**Why this handoff is retained (not deleted):**
+
+- Decision history is durable evidence. The eval reasoning (Decision 1 Option A: enable-as-is; pre-mortem scenarios 1-3) is the record of how the workspace decided PGM should be enabled. Future cold-start sessions can read it to understand the prior reasoning, not to redo the work.
+- The pre-mortem is a useful artifact for any future v2 (blocking mode) proposal: the FP-rate thresholds (10% tolerable, 30% auto-fix) and the named failure modes are still applicable.
+
+**Future next-action recommendations:**
+
+1. **None.** Both task packets this handoff proposed are complete. Any future work on PGM should be in a new handoff.
+2. If the operator wants to harden PGM further, candidates are: (a) tightening `PROPOSAL_SIGNALS` if telemetry shows FP rate climbing above 10%, (b) promoting specific package-level CLAUDE.md files to be more discoverable, (c) adding v2 blocking for repeat offenders (per pre-mortem scenario 3).
+3. The 117 tests should be re-run if relevance.py is modified; this handoff's verification receipts will go stale on the next plugin version bump.
