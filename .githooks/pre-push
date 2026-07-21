@@ -20,9 +20,29 @@ cd "$REPO_ROOT"
 # Stage 1: Trufflehog secret scan
 # ============================================================
 if [ "${GIT_TRUFFLEHOG_BYPASS:-0}" != "1" ]; then
-    TH_BIN="/c/tmp/trufflehog.exe"
+    # Locate trufflehog on PATH (sustainable: no hardcoded install path).
+    # Honors both the Go binary and the Python wrapper (`pip install trufflehog`).
+    # Replaces a previous hardcoded `/c/tmp/trufflehog.exe` that silently skipped
+    # on hosts where trufflehog was installed elsewhere.
+    TH_BIN="$(command -v trufflehog 2>/dev/null || which trufflehog 2>/dev/null)"
 
-    if [ -x "$TH_BIN" ]; then
+    if [ ! -x "$TH_BIN" ]; then
+        # Loud, not silent: don't block the push (don't break the workflow)
+        # but make the gap visible so the next push doesn't quietly skip the
+        # scan. Install instructions + bypass env var documented inline.
+        echo "WARNING: trufflehog not found on PATH — secret scan SKIPPED." >&2
+        echo "  Install Go binary (canonical):" >&2
+        echo "    https://github.com/trufflesecurity/trufflehog/releases" >&2
+        echo "  Bypass: GIT_TRUFFLEHOG_BYPASS=1 git push" >&2
+    elif "$TH_BIN" --help 2>&1 | grep -q "filesystem"; then
+        # Go binary interface (canonical trufflehog).
+        # Supports `filesystem --include-paths FILE --no-update`.
+        # Discriminated by help-text: only the Go binary's top-level help
+        # lists the `filesystem` subcommand. The Python wrapper's argparse
+        # doesn't have subcommands at all — it treats unknown args like
+        # `filesystem` as the `git_url` positional and exits 0, which would
+        # fool the simpler `trufflehog filesystem --help` exit-code check.
+        echo "Trufflehog found: $TH_BIN (Go binary)"
         echo "Running Trufflehog secret scan..."
         CHANGED=$(git diff --name-only HEAD~20..HEAD 2>/dev/null | grep -vE '\.(png|jpg|gif|pdf|zip|tar|gz)$' | grep -vE '(node_modules|\.venv|__pycache__|\.git/)' | head -100)
 
@@ -34,15 +54,18 @@ if [ "${GIT_TRUFFLEHOG_BYPASS:-0}" != "1" ]; then
 for line in '''$CHANGED'''.splitlines():
     line = line.strip()
     if line: print(re.escape(line))" > "$TEMP"
-            RESULT=$(timeout 60s "$TH_BIN" filesystem --include-paths "$TEMP" --no-update 2>&1)
+            RESULT=$("$TH_BIN" filesystem --include-paths "$TEMP" --no-update 2>&1)
             SCAN_EXIT=$?
             rm -f "$TEMP"
 
-            if [ $SCAN_EXIT -eq 124 ]; then
-                echo "WARNING: Trufflehog timed out (60s). Push blocked."
-                echo "Bypass: GIT_TRUFFLEHOG_BYPASS=1 git push"
-                exit 1
-            fi
+            # Note: no `timeout 60s` wrapper — on Windows Git Bash, `timeout`
+            # is the Windows interactive `timeout.exe` (not GNU coreutils),
+            # which fails with "Invalid syntax" before trufflehog runs.
+            # The scan is bounded by `head -100` (100 files) above and is
+            # local-filesystem read-only; trufflehog's own --no-update keeps
+            # it offline. If a future harness needs a real timeout, use
+            # GNU coreutils' `gtimeout` (Homebrew) or wrap with Python's
+            # subprocess.run(timeout=...) — both portable.
             if [ $SCAN_EXIT -ne 0 ]; then
                 echo "WARNING: Secrets potentially detected:"
                 echo "$RESULT" | head -30
@@ -54,7 +77,20 @@ for line in '''$CHANGED'''.splitlines():
             echo "No recent code changes to scan."
         fi
     else
-        echo "Trufflehog not found at $TH_BIN — skipping secret scan."
+        # Trufflehog found but doesn't expose the Go binary's `filesystem`
+        # subcommand. Most likely cause: only the Python wrapper is installed
+        # (`pip install trufflehog`), which requires a `git_url` positional
+        # arg and doesn't support arbitrary filesystem scans. Loud warning,
+        # don't block — the operator knows to install the Go binary for full
+        # coverage or to bypass explicitly.
+        echo "WARNING: trufflehog at $TH_BIN doesn't support filesystem-scan mode." >&2
+        echo "  This hook requires the Go binary (filesystem subcommand)." >&2
+        echo "  The Python wrapper (pip install trufflehog) requires a git_url" >&2
+        echo "  and cannot scan arbitrary changed paths." >&2
+        echo "  Secret scan SKIPPED — push will proceed." >&2
+        echo "  Install the Go binary for full coverage:" >&2
+        echo "    https://github.com/trufflesecurity/trufflehog/releases" >&2
+        echo "  Bypass: GIT_TRUFFLEHOG_BYPASS=1 git push" >&2
     fi
 else
     echo "Trufflehog bypass requested."
