@@ -165,6 +165,25 @@ light to act.
 This workspace rule is the always-on version; `/tp` is the explicit
 invocation path when the user wants the full critical-friend protocol.
 
+## Scope drift re-anchor
+
+When the current work is in a **different subsystem** than the original
+user request, emit a one-line note at the end of the turn:
+
+> Note: session started on `<original task>`; current work is `<current task>`.
+
+**When to emit:** once per drift event — when the files being edited don't
+match the original task's subsystem. Not every turn. Not if the user
+explicitly redirected.
+
+**When NOT to emit:** the user said "do X" and you're doing X. The user
+explicitly pivoted ("now let's do Y"). The current turn is a direct
+follow-up to the prior turn's work within the same subsystem.
+
+**What this is NOT:** not a question, not a gate, not a permission
+request. The model surfaces the drift; the user decides whether to
+redirect. If the user says nothing, continue — the note was informational.
+
 ## Proactive verification suggestions
 
 When you complete or ship work that crosses a verification threshold,

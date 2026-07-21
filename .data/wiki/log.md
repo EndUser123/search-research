@@ -1,5 +1,107 @@
 # Vault Log
 
+## [2026-07-20] update | Plausible narratives substitute for verification
+Source: session-2026-07-20
+Agent: grok
+Notes: added disguise variants section (4 disguises); merge from session-2026-07-20
+Page: wiki/concepts/plausible-narratives-substitute-for-verification.md
+
+## [2026-07-20] ingest | Grok permission deny rules as cross-host protection
+Source: session-2026-07-20
+Agent: grok
+Notes: grok permission deny rules as cross-host protection; config pattern for protecting .claude/ from .grok/
+Page: wiki/concepts/grok-permission-deny-rules-cross-host-protection.md
+
+## [2026-07-20] ingest | Evidence-first default: empowerment over prohibition for needless-confirmation
+Source: session-2026-07-20
+Agent: grok
+Notes: evidence-first default: empowerment over prohibition; research synthesis (dev.to + arxiv + Anthropic)
+Page: wiki/concepts/evidence-first-default-and-needless-confirmation.md
+
+## [2026-07-20] ingest | Handoff skill v0.1.1: scope-bounds, falsifier-strength, assignment fields
+Source: session-2026-07-20
+Agent: grok
+Notes: handoff skill v0.1.1: 4 validators (scope-bounds, falsifier-strength, assignment-fields, heading-match), fleet-coordination frontmatter
+Page: wiki/concepts/handoff-skill-v011-validators.md
+
+## [2026-07-20] ingest | Host-surface boundary: which trees are mine to edit
+Source: session-2026-07-20
+Agent: grok
+Notes: host-surface boundary: which trees are mine to edit; permission deny rules as mechanical guard
+Page: wiki/concepts/host-surface-boundary.md
+
+## [2026-07-20] ingest | Wiki Lifecycle State File: Design, Tests, and Gaps
+Source: session-2026-07-20
+Agent: grok
+Notes: lifecycle design + honest gap list
+Page: wiki/concepts/wiki-lifecycle-state-file.md
+
+## [2026-07-20] ingest | Verification-Before-Completion: Cross-Host Operator Principle
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest (cross-host content)
+Page: wiki/concepts/verification-before-completion-principle.md
+
+## [2026-07-20] ingest | Plan-Then-Execute and Other LLM Agent Design Patterns (Beurer-Kellner et al., 2025)
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest (cross-host content)
+Page: wiki/concepts/plan-then-execute-pattern.md
+
+## [2026-07-20] ingest | AI Agent Oversight Without Explainability Is a Rubber Stamp
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest (cross-host content)
+Page: wiki/concepts/agent-oversight-rubber-stamping.md
+
+## [2026-07-20] ingest | AI Agent Failure Modes Beyond Hallucination (Saplin, 2026)
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest (cross-host content)
+Page: wiki/concepts/agent-failure-modes-2026.md
+
+## [2026-07-20] ingest | Web and Social Research State in 2026: Free Tiers, Maintained Tools
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest
+Page: wiki/concepts/web-research-state-2026.md
+
+## [2026-07-20] ingest | Grok Build Compat Layer Does Not Surface Marketplace Plugin-Bundled Skills
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest
+Page: wiki/concepts/grok-build-compat-layer-marketplace-plugin-skills.md
+
+## [2026-07-20] ingest | Grok Build's `~/.grok/disabled-hooks` Per-Hook Disable Layer
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest
+Page: wiki/concepts/grok-build-disabled-hooks-per-hook-layer.md
+
+## [2026-07-20] ingest | Grok Build cc-aca-* Enforcement Suite IS Active — Verified via Inspect
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest
+Page: wiki/concepts/grok-build-cc-aca-actually-enabled.md
+
+## [2026-07-20] ingest | Plan Mode in Grok Build is Structured-Thinking, Not a Security Sandbox
+Source: session-2026-07-20
+Agent: grok
+Notes: session-2026-07-20 ingest
+Page: wiki/concepts/grok-build-plan-mode-structured-thinking.md
+
+## [2026-07-19] ingest | Multi-agent review: attack correlated errors, not persona diversity
+Source: session-2026-07-19
+Agent: grok
+Notes: Correlated-errors lens for multi-agent review; frame-diversity + falsifier-gating + orthogonal-model critic
+Page: wiki/concepts/multi-agent-correlated-errors.md
+
+## [2026-07-19] ingest | Examples over rules — escape hatch for tacit knowledge that resists encoding
+Source: session-2026-07-19
+Agent: grok
+Notes: Examples-over-rules escape hatch; tacit knowledge technique from Hormozi video review
+Page: wiki/concepts/examples-over-rules-escape-hatch.md
+
 ## [2026-07-19] ingest | ADR (2026-05-12): Prompt Clarification & Context Augmentation Plugin (Two-Tier)
 Source: session-2026-07-19
 Agent: grok
@@ -4190,3 +4292,13 @@ Transcript: session-2026-07-19
 Source: session
 Transcript: C:\Users\brsth\.claude\projects\P--\45504861-e019-4c69-a420-34761e7d303e.jsonl
 Path: P:/.data/wiki/concepts/claude-code-verify-builtin-skill.md
+
+## 2026-07-20
+
+### Added
+- concepts/plausible-narratives-substitute-for-verification.md — cognitive pattern where plausible narratives override verification. 5 observed instances from 2026-07-20 session. Structural fix: treat narrative as signal to read docs, not as answer.
+- concepts/exemption-logic-as-conflict-signal.md — architectural principle: don't gate what the layer above already gates. Worked example: CCR proxy ceiling (6 commits of failed exemptions → removed). Discriminating test for when upstream gates are justified.
+- concepts/grok-build-runtime-docs-divergence.md — the workspace's Claude-Code-flavored docs describe enforcement that doesn't fire under Grok Build (compat.claude.hooks=false, cc-aca-* disabled). Active-surface snapshot bridges the gap. Resolution options tracked.
+
+### Added (late session)
+- concepts/qmd-semantic-search-requires-llm-backend.md — root cause of QMD's broken semantic search: CLI didn't pass llm_backend (BM25-only), auto-link timeout too short, default model weak. 3-layer fix documented.

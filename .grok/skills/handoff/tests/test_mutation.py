@@ -247,6 +247,38 @@ def test_body_section_match_strips_numbered_prefix():
     )
 
 
+def test_body_section_match_accepts_descriptive_suffixes():
+    """Headings with parenthetical/colon suffixes still match.
+
+    E.g., '## 1. Objective (one sentence)' must match the required section
+    'objective'. This catches the false-positive bug (2026-07-20) where
+    the ytis-nlm handoff used descriptive headings and the validator
+    reported 4 false 'missing section' errors.
+    """
+    from validators import extract_headings
+    # Simulate headings with descriptive suffixes like the ytis-nlm handoff uses.
+    descriptive_headings = [
+        "objective (one sentence)",
+        "status",
+        "producing context",
+        "read-first list (ordered, with reasons)",
+        "verified facts (with source paths)",
+        "current state",
+        "task packets",
+        "open decisions",
+        "hard constraints",
+        "cross-reference couplings",
+        "explicit non-goals",
+        "resumption protocol",
+        "suggested next invocation",
+        "last user message (verbatim)",
+        "epistemic labels per claim",
+    ]
+    issues = validate_body_sections(descriptive_headings)
+    errors = [i for i in issues if i["severity"] == "error"]
+    assert errors == [], f"descriptive headings should match but got errors: {errors}"
+
+
 # ---------------------------------------------------------------------------
 # validate_task_packets mutations
 # ---------------------------------------------------------------------------
@@ -569,3 +601,192 @@ def test_integration_removing_packet_subfield_is_caught():
         issues = validate_handoff_text(mutated)
         errors = [i for i in issues if i["severity"] == "error"]
         assert errors, f"packet subfield removal not caught: {subfield!r}"
+
+
+# ---------------------------------------------------------------------------
+# validate_assignment_fields mutations (v0.1.1)
+# ---------------------------------------------------------------------------
+
+def test_assignment_all_absent_is_silent():
+    """Sanity: no assignment fields present -> no issues (normal v0.1 state)."""
+    from validators import validate_assignment_fields
+    fm = {}  # no assignment fields
+    assert validate_assignment_fields(fm) == []
+
+
+def test_assignment_assigned_to_present_but_at_missing_warns():
+    """Mutate: assigned_to set but assigned_at missing."""
+    from validators import validate_assignment_fields
+    fm = {"assigned_to": "grok", "assigned_by": "session-123"}
+    issues = validate_assignment_fields(fm)
+    warnings = [i for i in issues if i["severity"] == "warn"]
+    assert any(i["field"] == "assigned_at" for i in warnings), (
+        f"expected assigned_at warning, got: {issues}"
+    )
+
+
+def test_assignment_assigned_to_present_but_by_missing_warns():
+    """Mutate: assigned_to set but assigned_by missing."""
+    from validators import validate_assignment_fields
+    fm = {"assigned_to": "grok", "assigned_at": "2026-07-20T12:00:00Z"}
+    issues = validate_assignment_fields(fm)
+    warnings = [i for i in issues if i["severity"] == "warn"]
+    assert any(i["field"] == "assigned_by" for i in warnings), (
+        f"expected assigned_by warning, got: {issues}"
+    )
+
+
+def test_assignment_bad_timestamp_warns():
+    """Mutate: assigned_at is not ISO 8601."""
+    from validators import validate_assignment_fields
+    fm = {
+        "assigned_to": "grok",
+        "assigned_at": "yesterday",
+        "assigned_by": "session-123",
+    }
+    issues = validate_assignment_fields(fm)
+    warnings = [i for i in issues if i["severity"] == "warn"]
+    assert any("ISO" in i["message"] for i in warnings)
+
+
+def test_assignment_complete_triple_passes():
+    """Sanity: all three fields present and well-formed -> no issues."""
+    from validators import validate_assignment_fields
+    fm = {
+        "assigned_to": "grok",
+        "assigned_at": "2026-07-20T12:00:00Z",
+        "assigned_by": "019f81b3-4a76-76f3-baf7-b87184b44b7b",
+    }
+    assert validate_assignment_fields(fm) == []
+
+
+def test_assignment_at_without_to_warns():
+    """Mutate: assigned_at present but assigned_to missing (inconsistent)."""
+    from validators import validate_assignment_fields
+    fm = {"assigned_at": "2026-07-20T12:00:00Z", "assigned_by": "session-1"}
+    issues = validate_assignment_fields(fm)
+    warnings = [i for i in issues if i["severity"] == "warn"]
+    assert any("assigned_to" in i["field"] for i in warnings)
+
+
+# ---------------------------------------------------------------------------
+# validate_scope_bounds mutations (v0.1.1)
+# ---------------------------------------------------------------------------
+
+def test_scope_bounds_no_numbers_is_silent():
+    """Sanity: Objective with no large numbers -> no scope warning."""
+    from validators import validate_scope_bounds
+    body = "## Objective\n\nDo the thing.\n\n## Verified facts\n\n[FACT] done"
+    fm = {}
+    assert validate_scope_bounds(fm, body) == []
+
+
+def test_scope_bounds_large_discrepancy_warns():
+    """Mutate: Objective says 7000, fact says 51337, no subset label."""
+    from validators import validate_scope_bounds
+    body = (
+        "## Objective\n\n"
+        "Process 7000 videos at production scale.\n\n"
+        "## Verified facts\n\n"
+        "- [FACT] 51337 videos have has_captions=0"
+    )
+    fm = {}
+    issues = validate_scope_bounds(fm, body)
+    warnings = [i for i in issues if i["severity"] == "warn"]
+    assert any("scope_bounds" in i["field"] for i in warnings), (
+        f"expected scope-bounds warning for 7000-vs-51337, got: {issues}"
+    )
+
+
+def test_scope_bounds_suppressed_by_subset_label():
+    """Sanity: when 'scope bounds' or 'of these' is present, no warning."""
+    from validators import validate_scope_bounds
+    body = (
+        "## Objective\n\n"
+        "Process 7000 videos.\n"
+        "**Scope bounds:** Work scope is 7000 of 51337 total.\n\n"
+        "## Verified facts\n\n"
+        "- [FACT] 51337 videos have has_captions=0"
+    )
+    fm = {}
+    issues = validate_scope_bounds(fm, body)
+    warnings = [i for i in issues if i["severity"] == "warn" and "scope_bounds" in i["field"]]
+    assert warnings == [], f"subset-label should suppress scope warning, got: {warnings}"
+
+
+def test_scope_bounds_small_discrepancy_is_silent():
+    """Sanity: fact number < 3x objective number -> no warning."""
+    from validators import validate_scope_bounds
+    body = (
+        "## Objective\n\n"
+        "Process 10000 items.\n\n"
+        "## Verified facts\n\n"
+        "- [FACT] 15000 total items exist"
+    )
+    fm = {}
+    issues = validate_scope_bounds(fm, body)
+    warnings = [i for i in issues if i["severity"] == "warn" and "scope_bounds" in i["field"]]
+    assert warnings == [], f"1.5x discrepancy should not warn, got: {warnings}"
+
+
+# ---------------------------------------------------------------------------
+# validate_falsifier_strength mutations (v0.1.1)
+# ---------------------------------------------------------------------------
+
+def test_falsifier_strength_bulk_with_catastrophe_only_warns():
+    """Mutate: bulk task with falsifier 'produces 0 transcripts'."""
+    from validators import validate_falsifier_strength
+    pkt = {
+        "id": "T-1",
+        "goal": "fetch 7000 transcripts at production scale",
+        "in scope": "the backlog",
+        "falsifier": "produces 0 transcripts or crashes",
+    }
+    issues = validate_falsifier_strength([pkt])
+    warnings = [i for i in issues if i["severity"] == "warn"]
+    assert any("bulk operation" in i["message"] for i in warnings), (
+        f"expected falsifier-strength warning, got: {issues}"
+    )
+
+
+def test_falsifier_strength_bulk_with_rate_passes():
+    """Sanity: bulk task with rate-threshold falsifier -> no warning."""
+    from validators import validate_falsifier_strength
+    pkt = {
+        "id": "T-1",
+        "goal": "fetch 7000 transcripts at production scale",
+        "in scope": "the backlog",
+        "falsifier": "success rate < 90% on first pass",
+    }
+    issues = validate_falsifier_strength([pkt])
+    warnings = [i for i in issues if i["severity"] == "warn"]
+    assert warnings == [], f"rate-threshold falsifier should not warn, got: {warnings}"
+
+
+def test_falsifier_strength_non_bulk_is_silent():
+    """Sanity: non-bulk task with any falsifier -> no warning."""
+    from validators import validate_falsifier_strength
+    pkt = {
+        "id": "T-2",
+        "goal": "refactor the widget dispatcher",
+        "in scope": "widget.py",
+        "falsifier": "if tests fail",
+    }
+    issues = validate_falsifier_strength([pkt])
+    assert issues == []
+
+
+def test_falsifier_strength_integration_via_validate_handoff_text():
+    """End-to-end: a handoff with a weak bulk falsifier triggers the warning."""
+    handoff = _INTEGRATION_BASE.replace(
+        "- goal: do it\n- in scope: x",
+        "- goal: fetch 5000 records from the backlog\n- in scope: batch processing",
+    ).replace(
+        "- falsifier: if fail\n",
+        "- falsifier: produces 0 records or crashes\n",
+    )
+    issues = validate_handoff_text(handoff)
+    warnings = [i for i in issues if i["severity"] == "warn" and "falsifier" in i["field"]]
+    assert any("bulk operation" in i["message"] for i in warnings), (
+        f"expected falsifier-strength warning in integration test, got: {warnings}"
+    )

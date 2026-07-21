@@ -45,21 +45,130 @@ the evidence supports them.
 
 ### 0.1 Terminal-scoped run directory
 
-```powershell
-$psVersion = $PSVersionTable.PSVersion.ToString()
-$ts = Get-Date -Format "yyyyMMdd-HHmmss"
-$term = $env:CLAUDE_TERMINAL_ID
-if (-not $term) { $term = $env:WT_SESSION }
-if (-not $term) { $term = $env:TERMINAL_ID }
-if (-not $term) { $term = "noterm" }
-$termClean = ($term -replace '[^a-zA-Z0-9_-]','')
-$termSafe = if ($termClean.Length -le 36) { $termClean } else { $termClean.Substring(0, 36) }
-$runDir = "P:\.artifacts\$termSafe\grok-aar\$ts"
-New-Item -ItemType Directory -Force -Path "$runDir\packets" | Out-Null
-$runDir
+**Use Python, not PowerShell.** The PowerShell snippet below was the
+original spec but proved fragile in practice: when invoked through
+`run_terminal_command`, short PowerShell variable names (e.g. `$term`)
+get stripped by shell tokenization, leaving empty values. The fix is
+to call the preprocessor directly via Python — it creates the run dir
+itself.
+
+**Recommended pattern** — one Python call that does Step 0.1 + Step 0.5
+together. Write to a file first to avoid heredoc tokenization:
+
+```python
+# P:/tmp/aar_step0.py
+import sys, os, json
+from datetime import datetime
+from pathlib import Path
+
+session_id = sys.argv[1]                       # e.g. "019f8148-..."
+workspace_encoded = sys.argv[2]               # e.g. "P%3A%5C"
+out_dir_arg = sys.argv[3]                       # e.g. "P:/.artifacts/.../grok-aar"
+
+# Terminal isolation: pick a stable per-terminal id without PowerShell
+term = (
+    os.environ.get("CLAUDE_TERMINAL_ID")
+    or os.environ.get("WT_SESSION")
+    or os.environ.get("TERMINAL_ID")
+    or "noterm"
+)
+term_clean = "".join(c for c in term if c.isalnum() or c in "_-")[:36]
+out_dir = Path(out_dir_arg)
+run_dir = out_dir.parent / f"console_{term_clean}" / out_dir.name
+run_dir.mkdir(parents=True, exist_ok=True)
+(run_dir / "packets").mkdir(exist_ok=True)
+
+(run_dir / "_run.json").write_text(json.dumps({
+    "status": "started",
+    "started_at": datetime.now().isoformat(),
+    "skill": "aar",
+    "terminal_id": term_clean,
+    "session_id": session_id,
+    "head": "session-AAR",
+}, indent=2))
+
+# Run the preprocessor immediately; it reads _run.json + writes the
+# full packet to run_dir/preprocess/
+sys.path.insert(0, "P:/.grok/skills/aar/__lib")
+from full_preprocessor import run_full_preprocessor
+r = run_full_preprocessor(
+    session_id=session_id,
+    workspace_encoded=workspace_encoded,
+    run_dir=str(run_dir),
+)
+print("ok:", r.ok, "status:", r.status_label,
+      "events:", r.events_total,
+      "signals:", r.signals_total,
+      "packet:", r.packet_dir)
 ```
 
-Write `$runDir/_run.json` with status, started_at, skill, terminal_id, shell, head.
+Then call:
+
+```bash
+python P:/tmp/aar_step0.py <session_id> <workspace_encoded> <out_dir_base>
+```
+
+For example, with the current session:
+
+```bash
+python P:/tmp/aar_step0.py 019f8148-3e72-79d2-a933-4bf432d435ec P%3A%5C P:/.artifacts/grok-aar/20260720-150000
+```
+
+**Why this works**: no shell tokenization, no PowerShell, the preprocessor
+does Step 0.1 + Step 0.5 in one call, and the output is captured cleanly.
+
+**Cross-host behavior**: the script is host-agnostic. It accepts env vars
+from both Grok Build (`GROK_TERMINAL_ID`, `GROK_SESSION_ID`) and Claude
+Code (`CLAUDE_TERMINAL_ID`, `CLAUDE_SESSION_ID`), with fallback chain
+`GROK → CLAUDE → WT_SESSION → TERMINAL_ID → TERM_SESSION_ID` for
+terminal id. The preprocessor path defaults to
+`P:/.grok/skills/aar/__lib/` (Grok Build) but can be overridden via
+`AAR_PREPROCESSOR_PATH` env var for Claude Code or other installations.
+The caller passes the full `out_dir` path including the terminal id —
+the script does NOT auto-insert a terminal prefix (that caused a
+double-prefix bug in an earlier draft).
+
+**Immunity to stale data** (mandatory contract):
+
+1. **Per-run freshness**: every invocation creates a new timestamped
+   run_dir and writes a fresh `_run.json`. There is no cache or
+   memoization across runs. A new AAR always sees the current session
+   state, not a snapshot from N hours ago.
+2. **Packet is authoritative**: the preprocessor emits a `snapshot_cutoff`
+   in `preprocess-summary.md`. The orchestrator cites events only from
+   the current packet. If `source_status` is `SOURCE_UNVERIFIED` or
+   `SOURCE_UNSUPPORTED`, the script exits with code 4 and a warning —
+   the orchestrator must not proceed with a degraded packet.
+3. **State file is advisory only**: the state file at
+   `P:/.artifacts/<term>/<pkg>-state.md` carries history across AARs
+   but is never a source of evidence for the current report. Treat it
+   as a TODO list, not a fact store.
+4. **Env var fallback is greedy**: the first non-empty env var in the
+   chain wins. If both `GROK_TERMINAL_ID` and `CLAUDE_TERMINAL_ID`
+   are set in the same shell, the Grok one wins. This is deliberate
+   (this skill is Grok-canonical) but documented so a Claude Code user
+   with both env vars set gets a predictable answer.
+
+**Exit codes** (for automation callers):
+
+| code | meaning |
+|---|---|
+| 0 | packet generated successfully |
+| 1 | preprocessor returned a non-OK status |
+| 2 | missing required argument or session id |
+| 3 | preprocessor not found at the configured path |
+| 4 | source_status is `SOURCE_UNVERIFIED` or `SOURCE_UNSUPPORTED` (stale data risk) |
+
+**If you must use PowerShell** (e.g., a hook forces it): write the script
+to a file FIRST (`Set-Content -Path foo.ps1 -Value $script`), then call
+`powershell -NoProfile -File foo.ps1`. Do not pass PowerShell as
+heredoc inline content to `run_terminal_command` — that's the case
+where `$term` and other short variables get stripped.
+
+**Fallback (if Python is unavailable)**: run the PowerShell snippet by
+saving it to a `.ps1` file first and invoking with `powershell -NoProfile
+-File foo.ps1`. Verify the output contains the expected `$runDir` value
+before proceeding.
 
 ### 0.2 Evidence resolution
 
@@ -100,11 +209,25 @@ Cross-validate against `summary.json.info.id` and `events.jsonl turn_started.ses
 
 ### 0.5.2 Run the preprocessor
 
-```powershell
-python P:/.grok/skills/aar/__lib/full_preprocessor.py `
-  --session-id <verified-session-id> `
-  --workspace-encoded <P%3A%5C> `
-  --run-dir $runDir
+**Same Python call as Step 0.1** — the preprocessor takes care of both.
+The CLI form is:
+
+```python
+from full_preprocessor import run_full_preprocessor
+r = run_full_preprocessor(
+    session_id=session_id,
+    workspace_encoded="P%3A%5C",
+    run_dir=run_dir,
+)
+```
+
+If invoking via subprocess:
+
+```bash
+python P:/.grok/skills/aar/__lib/full_preprocessor.py \
+  --session-id <verified-session-id> \
+  --workspace-encoded P%3A%5C \
+  --run-dir <run_dir>
 ```
 
 ### 0.5.3 Packet artifacts (under `$runDir/preprocess/`)

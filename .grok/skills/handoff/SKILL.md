@@ -26,7 +26,10 @@ evidence, status, and next steps.
   the user asks about. Default: the work stream behind the current request.
 - `/handoff close <path>` — close a completed handoff: prompt for wiki
   promotion, then delete the file.
-- `/handoff list` — list all open handoffs at `P:\docs\handoffs\`.
+- `/handoff list` — list all open handoffs at `P:\docs\handoffs\` via the
+  `__lib/list_handoffs.py` CLI (surfaces work status, freshness, ownership,
+  mismatch, claim consistency, and optional `--head` drift detection; see
+  the `/handoff list` section below).
 - Reads `compaction/segment_*.md` from the current session to recover
   pre-compaction context (within-session only).
 - Writes one file at `P:\docs\handoffs\<topic>-<YYYYMMDD>\HANDOFF.md`.
@@ -120,15 +123,86 @@ handoff. Not every work stream produces a reusable lesson.
 
 ## `/handoff list` — show open handoffs
 
-List all directories under `P:\docs\handoffs\`. For each, read the YAML
-frontmatter and show:
+Run the list CLI to survey every `P:\docs\handoffs\<topic>-<YYYYMMDD>\HANDOFF.md`
+in one pass without opening each file:
 
-```
-<topic>-<date>  status: <open|closed>  goal: <first line of Objective>
+```bash
+# Basic: list every handoff with work status, freshness, ownership.
+python P:/.grok/skills/handoff/__lib/list_handoffs.py [handoffs_root]
+
+# With HEAD-drift detection (recommended when triaging against current state):
+HEAD=$(git -C P:/ rev-parse HEAD)
+python P:/.grok/skills/handoff/__lib/list_handoffs.py --head "$HEAD"
 ```
 
-This gives the user a quick view of what's outstanding without opening
-each file.
+Output columns per row:
+
+- `<topic>-<date>` — directory name
+- `yaml:<status>` — chain header `status` (file status: open/closed/superseded)
+- `work:<STATUS>` — leading keyword from the body `## Status` section
+  (OPEN / READY_FOR_REVIEW / BLOCKED / CLOSED / WONTFIX). Shows `?` when the
+  body Status section is missing or doesn't open with a recognized keyword —
+  a real signal that the handoff deviates from the contract.
+- `MISMATCH` — flagged when body work-status is terminal (CLOSED or WONTFIX)
+  but the file is still `yaml:open`. This is the "should have been closed"
+  signal — a triager can act on it without reading the body.
+- `claimed:<host>` — present only when the optional `assigned_to` field is
+  set in the chain header AND all three assignment fields (`assigned_to`,
+  `assigned_at`, `assigned_by`) are consistent. Inconsistent claims are
+  hidden (the validator would warn on them) so the triager never sees a
+  claim that doesn't have provenance. Two handoffs claimed by the same host
+  on the same topic is a coordination failure; a claimed handoff should not
+  be touched by another terminal.
+- `head:DRIFT` — flagged only when `--head <sha>` is passed AND the handoff's
+  `accurate_as_of_head` differs from the current HEAD. This is the
+  stale-data-immunity signal (Hard Constraint #2): the handoff's cited
+  tree paths may no longer exist or may have moved. Re-verify file:line
+  references against the current tree before acting on the handoff.
+  `head:?` means the handoff predates the v0.1.1 schema and has no
+  `accurate_as_of_head` recorded at all — treat its references as
+  unverified. (No flag = either matches current HEAD or `--head` was
+  omitted.)
+- `produced` — relative time (`just now`, `12m`, `3h`, `2d`, `5w`)
+- `terminal` — short form of `current_terminal_id` (the prefix before first
+  `_`). A row produced in the last hour by an unfamiliar terminal is likely
+  in-flight from another session.
+- `objective` — first non-empty line of `## Objective` (or `## Goal` as a
+  fallback). Truncated to ~70 chars.
+
+Rows are sorted newest-first by `produced_at`. Handoffs with unparseable
+timestamps sink to the bottom and show `?` for the relative time. The script
+tolerates small future-deltas (timezone drift in how `produced_at` was
+written) by clamping to `just now`.
+
+**Why `--head` is opt-in.** Resolving HEAD requires a git call. For ad-hoc
+listing where staleness isn't the question, that's overhead. When triaging
+or deciding whether to trust a handoff's tree references, pass `--head` and
+the drift column appears. The summary line counts `N HEAD-drift` and
+`N no-head-field` only when `--head` is active.
+
+**Triage under multi-agent mutation.** `P:\docs\handoffs\` is shared across
+all terminals. During a triage, new directories may appear that were not in
+the user's named target set — this is normal, not anomalous. Default posture
+toward handoffs outside the user's named set:
+
+1. Note their existence (visible in `/handoff list` output: name, mtime,
+   terminal, claim, HEAD-drift).
+2. Do **not** open or read them — another terminal may be mid-write.
+3. Report them as *"not in the named set; likely active elsewhere"* and ask
+   whether to include.
+
+The vocabulary matters: *"not in the set you named"* (honest) — not
+*"outside scope"* (which implies a scope decision the user did not make) or
+*"unexpected state"* (which implies anomaly). The user has fleet awareness
+the triager lacks; surface the observation and let them decide.
+
+**Why this is a script, not prompt instructions.** Opening 8 handoffs to
+discover 5 are done doesn't scale. The list CLI extracts the load-bearing
+fields (work status, freshness, ownership, claim, HEAD-drift) in one pass so
+the triager opens only the rows that need attention. The HEAD-drift column
+in particular is the structural fix for the trust-without-verify failure
+mode: it cross-checks each handoff's recorded git HEAD against current
+reality, which is the one signal the handoff author cannot self-certify.
 
 ## Hard constraints (always loaded)
 
@@ -173,6 +247,10 @@ produced_at: <iso8601>
 status: open
 handoff_type: investigation             # v0.1 default; v0.2 adds others
 accurate_as_of_head: <git-sha>          # git HEAD at production time; sourced from summary.json.head_commit
+# Optional assignment block (v0.1.1) — uncomment when claiming for fleet coordination
+# assigned_to: <host|none>              # e.g., "grok", "claude" — who has claimed this
+# assigned_at: <iso8601>                # when the claim was made
+# assigned_by: <session-id>             # session that made the claim (provenance)
 ---
 ```
 
@@ -185,6 +263,14 @@ For v0.1, `parent_handoff_path` is almost always `none` — the user invokes
 to continue from, set `parent_handoff_path` to that path and inherit its
 `thread_id`; this is the v0.1 escape hatch for cross-session continuation
 without the full chain-walking machinery.
+
+**Assignment fields (v0.1.1):** When a handoff is claimed so other hosts or
+agents don't duplicate the work, set `assigned_to`, `assigned_at`, and
+`assigned_by`. These are **optional** — absent means unclaimed (anyone may
+take it). Present means a claim exists; `/handoff list` surfaces it. See
+`references/core-fields.md` for the full semantics. The
+`validate_assignment_fields` validator warns on inconsistency (e.g.,
+`assigned_to` set but `assigned_at` missing).
 
 ## Output location
 

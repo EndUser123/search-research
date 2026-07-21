@@ -36,6 +36,10 @@ HEADER_REQUIRED = (
     "accurate_as_of_head",  # git HEAD sha at production time (from summary.json.head_commit)
 )
 
+# Optional assignment/lock fields (v0.1.1). Not required, but if assigned_to
+# is present, the others should be too (checked by validate_assignment_fields).
+HEADER_ASSIGNMENT_FIELDS = ("assigned_to", "assigned_at", "assigned_by")
+
 HEADER_STATUS_ALLOWED = {"open", "closed", "superseded"}
 HEADER_TYPE_ALLOWED_V01 = {"investigation"}
 
@@ -80,6 +84,36 @@ VERIFICATION_LEVEL_ALLOWED = {
     "UNIT_TEST",
     "LIVE_BEHAVIOR",
 }
+
+# Keywords that signal a task is a bulk/batch/scale operation. When present
+# in a task packet's goal or in-scope, the falsifier-strength validator
+# applies a stricter check (must mention a rate/threshold, not just "0 output").
+_BULK_KEYWORDS = frozenset(
+    w.lower() for w in (
+        "fetch", "batch", "bulk", "backlog", "scale", "migrate", "import",
+        "export", "process", "production", "thousand", "million",
+        "videos", "records", "rows", "items", "files", "all pending",
+    )
+)
+
+# Indicators that a falsifier mentions a rate/success-threshold (not just
+# catastrophic-zero detection).
+_RATE_INDICATORS = frozenset(
+    w.lower() for w in (
+        "%", "percent", "rate", "ratio", "threshold", "success rate",
+        ">=", "<=", "> ", "< ", "at least", "no more than", "fewer than",
+    )
+)
+
+# Keywords that indicate the handoff author has explicitly labeled scope
+# bounds (subset vs total). Suppresses the scope-discrepancy warning.
+_SCOPE_LABEL_KEYWORDS = frozenset(
+    w.lower() for w in (
+        "scope bound", "scope:", "work scope", "subset", "of these",
+        "of which", "out of", "deferred", "remaining", "total backlog",
+        "in scope",
+    )
+)
 
 # UUID shape (Grok session ids and our thread_ids are UUID-ish).
 _UUID_RE = re.compile(
@@ -146,6 +180,35 @@ def extract_headings(body: str) -> list[str]:
             heading = numbered_prefix_re.sub("", heading, count=1)
             headings.append(heading.lower())
     return headings
+
+
+def extract_section_body(body: str, section_name: str) -> str:
+    """Return the text under a `## <section_name>` heading (case-insensitive,
+    leading numbered prefix tolerated), up to the next `## ` heading.
+
+    Returns '' if the section is absent. Used by tools that need to surface a
+    specific body field (e.g. `/handoff list` reads the Status section's first
+    line). Heading matching mirrors `extract_headings`: lowercased and
+    number-prefix-stripped.
+    """
+    numbered_prefix_re = re.compile(r"^\d+\.\s+")
+    target = section_name.lower()
+    in_section = False
+    lines: list[str] = []
+    for line in body.splitlines():
+        s = line.lstrip()
+        if s.startswith("## ") and not s.startswith("### "):
+            heading = s[3:].strip()
+            heading = numbered_prefix_re.sub("", heading, count=1).lower()
+            if heading == target:
+                in_section = True
+                continue
+            if in_section:
+                break  # next ## section ends this one
+            continue
+        if in_section:
+            lines.append(line)
+    return "\n".join(lines)
 
 
 def extract_task_packets(body: str) -> list[dict[str, str]]:
@@ -288,11 +351,25 @@ def validate_header(fm: dict[str, str]) -> list[dict[str, str]]:
 
 
 def validate_body_sections(headings: list[str]) -> list[dict[str, str]]:
-    """Validate that all mandatory body sections are present."""
+    """Validate that all mandatory body sections are present.
+
+    Matching is prefix-based: a heading matches a required section if the
+    heading starts with the section name followed by a word boundary
+    (space, paren, colon, or end-of-string). This allows descriptive
+    headings like ``## 1. Objective (one sentence)`` or
+    ``## 5. Verified facts (with source paths)`` to match the required
+    sections ``objective`` and ``verified facts`` respectively.
+    """
     issues: list[dict[str, str]] = []
-    heading_set = set(headings)
     for section in BODY_REQUIRED_SECTIONS:
-        if section not in heading_set:
+        found = any(
+            h == section
+            or h.startswith(section + " ")
+            or h.startswith(section + "(")
+            or h.startswith(section + ":")
+            for h in headings
+        )
+        if not found:
             issues.append({
                 "field": section,
                 "severity": "error",
@@ -444,6 +521,214 @@ def validate_streams_section_format(body: str) -> list[dict[str, str]]:
     return issues
 
 
+def _extract_section(body: str, section_name: str) -> str:
+    """Extract the text content of a ## section by name (case-insensitive).
+
+    Returns the lines between the heading and the next ## heading (or EOF).
+    Strips the numbered prefix from the heading before matching, consistent
+    with extract_headings().
+    """
+    numbered_prefix_re = re.compile(r"^\d+\.\s+")
+    lines = body.splitlines()
+    in_section = False
+    section_lines: list[str] = []
+    target = section_name.lower()
+    for line in lines:
+        s = line.lstrip()
+        if s.startswith("## ") and not s.startswith("### "):
+            heading = s[3:].strip()
+            heading = numbered_prefix_re.sub("", heading, count=1).lower()
+            if in_section:
+                break  # next section starts
+            in_section = heading == target
+            continue
+        if in_section:
+            section_lines.append(line)
+    return "\n".join(section_lines)
+
+
+def _extract_integers(text: str) -> set[int]:
+    """Extract integer values from text, handling comma-separated thousands.
+
+    E.g., '7,000' -> 7000, '51337' -> 51337. Filters out years (1800-2099)
+    and very small numbers (<10) that are likely not scope quantities.
+    """
+    numbers: set[int] = set()
+    # Match plain integers or comma-grouped integers (e.g., 51,337).
+    for m in re.finditer(r"\b(\d{1,3}(?:,\d{3})+|\d{3,})\b", text):
+        raw = m.group(1).replace(",", "")
+        try:
+            n = int(raw)
+        except ValueError:
+            continue
+        # Filter out likely-years and trivially small numbers.
+        if n < 100:
+            continue
+        if 1800 <= n <= 2099:
+            continue
+        numbers.add(n)
+    return numbers
+
+
+def validate_assignment_fields(fm: dict[str, str]) -> list[dict[str, str]]:
+    """Validate optional assignment/lock fields for internal consistency.
+
+    If ``assigned_to`` is present, ``assigned_at`` and ``assigned_by`` should
+    also be present so fleet coordination has a timestamp and provenance.
+    All three are optional — this validator only fires when one or more are
+    set.
+
+    Introduced in v0.1.1 after the fleet-coordination incident (2026-07-20):
+    a handoff was claimed verbally but the claim was not recorded in the file,
+    so another host started the same work. The assignment fields make claims
+    machine-readable for ``/handoff list``.
+    """
+    issues: list[dict[str, str]] = []
+    assigned_to = fm.get("assigned_to", "").strip()
+    assigned_at = fm.get("assigned_at", "").strip()
+    assigned_by = fm.get("assigned_by", "").strip()
+
+    if not assigned_to:
+        # All absent is the normal v0.1 state — no issues.
+        if not assigned_at and not assigned_by:
+            return []
+        # assigned_at or assigned_by present without assigned_to is inconsistent.
+        issues.append({
+            "field": "assigned_to",
+            "severity": "warn",
+            "message": (
+                "assigned_at/assigned_by are set but assigned_to is missing; "
+                "a claim needs an assignee"
+            ),
+        })
+        return issues
+
+    # assigned_to is set — check the companions.
+    if not assigned_at:
+        issues.append({
+            "field": "assigned_at",
+            "severity": "warn",
+            "message": "assigned_to is set but assigned_at is missing; fleet coordination needs a timestamp",
+        })
+    elif not _ISO8601_RE.match(assigned_at):
+        issues.append({
+            "field": "assigned_at",
+            "severity": "warn",
+            "message": f"assigned_at is not ISO 8601: {assigned_at!r}",
+        })
+
+    if not assigned_by:
+        issues.append({
+            "field": "assigned_by",
+            "severity": "warn",
+            "message": "assigned_to is set but assigned_by is missing; record which session claimed this",
+        })
+
+    return issues
+
+
+def validate_scope_bounds(fm: dict[str, str], body: str) -> list[dict[str, str]]:
+    """Warn when a Verified Facts number is much larger than the Objective number.
+
+    Catches the scope-ambiguity failure mode (2026-07-20 incident): the
+    Objective said "7000+ videos" but a Verified Fact mentioned "51,337
+    pending videos" without labeling which was the work scope and which was
+    the ambient total. A fresh reader who sees only one number will
+    misestimate the work.
+
+    This is a **heuristic with false positives** — severity is 'warn'. The
+    check is suppressed when the handoff author has used explicit scope-label
+    keywords ("scope bound", "work scope", "of these", "deferred", etc.).
+    """
+    issues: list[dict[str, str]] = []
+
+    obj_text = _extract_section(body, "objective")
+    if not obj_text:
+        return []
+
+    obj_numbers = _extract_integers(obj_text)
+    if not obj_numbers:
+        return []
+
+    facts_text = _extract_section(body, "verified facts")
+    if not facts_text:
+        return []
+
+    fact_numbers = _extract_integers(facts_text)
+
+    # Check for large discrepancies without subset labeling.
+    max_obj = max(obj_numbers)
+    combined_text = (obj_text + " " + facts_text).lower()
+    has_subset_label = any(kw in combined_text for kw in _SCOPE_LABEL_KEYWORDS)
+
+    if has_subset_label:
+        return []  # author explicitly labeled the scope bounds
+
+    for fn in sorted(fact_numbers, reverse=True):
+        if fn > max_obj * 3:
+            issues.append({
+                "field": "objective.scope_bounds",
+                "severity": "warn",
+                "message": (
+                    f"Objective's largest number is {max_obj:,} but a Verified Fact mentions "
+                    f"{fn:,}. If the work scope is a subset of a larger total, state both "
+                    f"explicitly (e.g., 'Scope: ~{max_obj:,} of {fn:,} total'). Ambiguous scope "
+                    f"caused the 7,000-vs-51,337 incident (2026-07-20)."
+                ),
+            })
+            break  # one warning is enough
+
+    return issues
+
+
+def validate_falsifier_strength(packets: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Warn when a bulk-operation task has a falsifier that only catches catastrophe.
+
+    A falsifier like 'produces 0 transcripts' only catches **total** failure,
+    not a 30% success rate (which is still a disaster for a production run).
+    Bulk/batch/scale tasks should specify a success-rate threshold.
+
+    Heuristic: fires when the task goal or in-scope contains a bulk keyword
+    AND the falsifier does not mention any rate/threshold indicator AND the
+    falsifier mentions a catastrophic-zero keyword. Severity is 'warn'.
+    """
+    issues: list[dict[str, str]] = []
+    for pkt in packets:
+        pkt_id = pkt.get("id", "<unknown>")
+        goal = pkt.get("goal", "").lower()
+        scope = pkt.get("in scope", "").lower()
+        falsifier = pkt.get("falsifier", "").lower()
+
+        # Is this a bulk operation?
+        combined = goal + " " + scope
+        is_bulk = any(kw in combined for kw in _BULK_KEYWORDS)
+        if not is_bulk or not falsifier:
+            continue
+
+        # Does the falsifier mention a rate/threshold?
+        has_rate = any(ind in falsifier for ind in _RATE_INDICATORS)
+        if has_rate:
+            continue  # good — rate threshold present
+
+        # Does it only mention catastrophic-zero?
+        catastrophe_words = ("0 ", "zero", "no output", "produces 0", "none", "empty", "crash")
+        only_catastrophe = any(w in falsifier for w in catastrophe_words)
+
+        if only_catastrophe:
+            issues.append({
+                "field": f"task_packets.{pkt_id}.falsifier",
+                "severity": "warn",
+                "message": (
+                    f"task packet {pkt_id!r} appears to be a bulk operation but its falsifier "
+                    f"only catches catastrophic failure (0 output / crash). For bulk operations, "
+                    f"specify a success-rate threshold (e.g., 'success rate < 90%'). A run that "
+                    f"produces 30% of target passes the 'not zero' bar but is a disaster."
+                ),
+            })
+
+    return issues
+
+
 # ---------------------------------------------------------------------------
 # Top-level entry point
 # ---------------------------------------------------------------------------
@@ -464,6 +749,9 @@ def validate_handoff_text(text: str) -> list[dict[str, str]]:
     issues.extend(validate_task_packets(packets))
     issues.extend(validate_verbatim_message(body))
     issues.extend(validate_streams_section_format(body))
+    issues.extend(validate_assignment_fields(fm))
+    issues.extend(validate_scope_bounds(fm, body))
+    issues.extend(validate_falsifier_strength(packets))
     return issues
 
 
@@ -480,6 +768,7 @@ def is_valid(text: str) -> bool:
 
 __all__ = [
     "HEADER_REQUIRED",
+    "HEADER_ASSIGNMENT_FIELDS",
     "HEADER_STATUS_ALLOWED",
     "HEADER_TYPE_ALLOWED_V01",
     "BODY_REQUIRED_SECTIONS",
@@ -487,12 +776,16 @@ __all__ = [
     "VERIFICATION_LEVEL_ALLOWED",
     "parse_frontmatter",
     "extract_headings",
+    "extract_section_body",
     "extract_task_packets",
     "validate_header",
     "validate_body_sections",
     "validate_task_packets",
     "validate_verbatim_message",
     "validate_streams_section_format",
+    "validate_assignment_fields",
+    "validate_scope_bounds",
+    "validate_falsifier_strength",
     "validate_handoff_text",
     "validate_handoff_file",
     "is_valid",
