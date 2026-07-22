@@ -223,6 +223,79 @@ for the same skill per the user-guide) when:**
 broad — narrow to "load-bearing" or "multi-file." If the rule fails to fire
 after a multi-file hook change, the triggers are too narrow.
 
+## Session-close accounting + handoff completeness (anti-"declare done prematurely")
+
+When the user asks "are we done?", "is there anything left open?", "anything
+else?", or similar session-close questions — OR when you are about to claim
+the session's work is complete — produce an explicit ACCOUNTING block and
+verify handoff completeness before declaring done.
+
+**The failure mode this prevents:** the model declares "nothing left open"
+when it means "nothing left open *that I'm actively working on this turn*."
+The user asks about *plans made but not implemented* and *shipped work not
+documented*. Those are different sets, and conflating them produces a false
+"done."
+
+### Required ACCOUNTING block (before declaring done)
+
+```
+ACCOUNTING: this session's work
+  Fully done:        <list completed work items>
+  Partially done:    <list items with remaining sub-tasks>
+  Not started:       <list planned-but-unimplemented items>
+  Other sessions':   <items that belong to concurrent sessions>
+```
+
+Every plan, work item, and shipped artifact must land in exactly one bucket.
+If you cannot populate all four buckets, you have not accounted for the work.
+
+### Handoff completeness check (before declaring done)
+
+For each shipped artifact and decision this session, verify it has a handoff
+OR is discoverable from an existing handoff. Specifically check:
+
+1. **Shipped code** — is the change in a handoff, or only in a commit message?
+   Commit messages are insufficient (a future session won't grep commit logs
+   for "what did session X ship?").
+2. **Decisions made** — is the decision + rationale in a handoff or wiki
+   concept? Decisions without rationale get re-litigated by future sessions.
+3. **Conventions adopted** — is the convention documented where the next
+   session will find it (AGENTS.md rule, wiki concept, or handoff)?
+
+If any shipped artifact, decision, or convention lacks a handoff AND lacks a
+wiki concept AND lacks an AGENTS.md rule, write a handoff before declaring
+done. A single "session-shipped-work" consolidation handoff is acceptable
+when the items are related; do not force one handoff per item.
+
+### When to apply
+
+- User asks "are we done?" / "anything left?" / "what's still open?"
+- User asks you to confirm completion
+- You are about to write "nothing left to do" or equivalent
+- Session is ending (user says "wrapping up", "that's it for today", etc.)
+
+### When NOT to apply
+
+- Mid-task check-ins ("how's it going?") — these are status, not close
+- The user explicitly scoped the question to one work item
+
+### Reference incidents
+
+- **2026-07-22 (this rule's trigger):** operator asked "are you sure there's
+  nothing left open?" after the model declared done. The model had 6 open
+  handoffs with unimplemented work + ~8 shipped artifacts with no handoff.
+  The "done" declaration was wrong on both counts.
+- **The ACCOUNTING discipline** originates in `portfolio-deep-read-transferable-techniques`
+  ("ACCOUNTING: N findings → A tasked, B fixed, C deferred, D external")
+  and `/tp` SKILL.md mode 8 (hidden decision density).
+
+**Falsifier:** if this rule causes the model to refuse closing trivial
+sessions (one task, one file, fully done), narrow the trigger to
+multi-item sessions only. If the model keeps declaring done without the
+ACCOUNTING block, the rule is advisory-only and needs hook enforcement
+(which requires semantic detection of "session close" — not currently
+automatable; treat as always-loaded behavioral rule).
+
 ## File editing protocol (mandatory on this multi-agent Windows host)
 
 Canonical rules: `~/.grok/AGENTS.md` § "File editing protocol" and full text at
