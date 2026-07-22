@@ -40,6 +40,25 @@ API_KEY = os.environ.get(
 )
 MODEL = "google/diffusiongemma-26b-a4b-it"
 
+# Context budget for dynamic truncation (replaces the fixed max_file_chars).
+# These are derived from real constraints, not magic numbers:
+#   - 262144 rated tokens × ~4 chars/token = ~1M chars theoretical
+#   - effective budget ~40-50% (tool-call overhead + thinking tokens)
+#   - reserve ~20% for output + prompt framing
+# → ~400K chars usable input budget per call.
+CONTEXT_CHARS_BUDGET = 400_000
+MIN_FILE_CAP = 5_000  # floor: tiny batches still get a sane per-file ceiling
+
+
+def _dynamic_file_cap(num_files: int) -> int:
+    """Compute the per-file char cap from the context budget, divided fairly.
+    num_files=1 → full budget. num_files=20 → budget/20. Floor at MIN_FILE_CAP.
+    No magic numbers — derived from CONTEXT_CHARS_BUDGET (the real context window)."""
+    if num_files <= 0:
+        return CONTEXT_CHARS_BUDGET
+    return max(CONTEXT_CHARS_BUDGET // num_files, MIN_FILE_CAP)
+
+
 DEFAULT_PROMPT = (
     "Read this SKILL.md file and produce a structured summary:\n"
     "## Purpose\n(1 sentence)\n\n"
@@ -149,11 +168,22 @@ def read_enhanced(file_path: str) -> dict:
     }
 
 
+GENERIC_STEMS = {"SKILL", "README", "INDEX", "CHANGELOG", "TODO", "NOTES"}
+
+
+def _display_name(p: Path) -> str:
+    """Prefer parent dir name when the filename is generic (SKILL.md, README.md).
+    Avoids batch output where every skill shows up as name='SKILL'."""
+    if p.stem.upper() in GENERIC_STEMS and p.parent != p.parent.parent:
+        return p.parent.name
+    return p.stem
+
+
 def read_batch(
     file_paths: list[str],
     prompt: str | None = None,
     batch_size: int = 20,
-    max_file_chars: int = 12000,
+    max_file_chars: int | None = None,
 ) -> dict:
     """Batch multiple files into one API call using 256K context.
 
@@ -164,7 +194,7 @@ def read_batch(
         file_paths: list of file paths to read
         prompt: custom summary prompt (default: 1-sentence purpose per file)
         batch_size: max files per API call (default 20, ~50K tokens)
-        max_file_chars: truncate individual files to this length (default 12000)
+        max_file_chars: per-file char cap. None = dynamic (derived from CONTEXT_CHARS_BUDGET // batch_count). The dynamic cap self-adjusts: 2 files → ~200K each, 20 files → ~20K each.
 
     Returns dict with:
         - summaries: list of {file, summary} dicts
@@ -172,24 +202,36 @@ def read_batch(
         - calls: number of API calls made
         - mode: "batch"
     """
-    user_prompt = prompt or (
-        "For EACH file below, provide a 1-sentence summary of its purpose. "
-        "Format as a numbered list matching the file numbers."
-    )
+    # Prompt with explicit file count to prevent the model from stopping early.
+    # Without "EXACTLY N files", the model non-deterministically skips the last
+    # file when the batch is large (observed: 6 files in → 5 summaries out).
+    if prompt:
+        user_prompt = prompt
+    else:
+        # The count is injected per-batch below (after batching).
+        user_prompt = None
+
+    # Dynamic cap: if caller didn't specify, derive from context budget.
+    # This is the self-adjusting cap — no fixed magic number.
+    if max_file_chars is None:
+        # Use the largest batch (first group) to size the cap; all batches
+        # use the same cap so summaries are comparable across batches.
+        effective_batch = min(batch_size, len(file_paths)) if file_paths else 1
+        max_file_chars = _dynamic_file_cap(effective_batch)
 
     # Read and prepare file contents
     prepared = []
     for fp in file_paths:
         p = Path(fp)
         if not p.exists():
-            prepared.append({"path": fp, "name": p.stem, "content": "[FILE MISSING]", "truncated": False})
+            prepared.append({"path": fp, "name": _display_name(p), "content": "[FILE MISSING]", "truncated": False})
             continue
         content = p.read_text(encoding="utf-8", errors="replace")
         truncated = False
         if len(content) > max_file_chars:
             content = content[:max_file_chars] + "\n... [truncated]"
             truncated = True
-        prepared.append({"path": fp, "name": p.stem, "content": content, "truncated": truncated})
+        prepared.append({"path": fp, "name": _display_name(p), "content": content, "truncated": truncated})
 
     # Batch into groups
     batches = []
@@ -208,6 +250,17 @@ def read_batch(
     all_summaries = []
 
     for bi, batch in enumerate(batches):
+        # Build the count-explicit prompt for this batch.
+        if user_prompt is None:
+            effective_prompt = (
+                f"There are EXACTLY {batch['count']} files below. "
+                f"You MUST produce a numbered summary for ALL {batch['count']} files "
+                f"(items 1 through {batch['count']}). "
+                f"For EACH file, provide a 1-sentence summary of its purpose. "
+                f"Format as a numbered list 1-{batch['count']}."
+            )
+        else:
+            effective_prompt = user_prompt
         messages = [
             {
                 "role": "system",
@@ -215,7 +268,7 @@ def read_batch(
             },
             {
                 "role": "user",
-                "content": f"{user_prompt}\n\n{batch['text']}",
+                "content": f"{effective_prompt}\n\n{batch['text']}",
             },
         ]
         max_tokens = min(200 * batch["count"] + 200, 4000)
@@ -260,29 +313,37 @@ def read_batch(
 
 def main():
     parser = argparse.ArgumentParser(description="DiffusionGemma file reader")
-    parser.add_argument("path", help="Path to file (single/enhanced) or directory/glob (batch)")
+    # Accept one or more paths. Single/enhanced mode uses paths[0]; batch mode uses all.
+    parser.add_argument("paths", nargs="+", help="One or more paths: file (single/enhanced), multiple files (batch), or directory/glob (batch)")
     parser.add_argument("--enhanced", action="store_true", help="Use multi-perspective fan-out + merge")
-    parser.add_argument("--batch", action="store_true", help="Batch multiple files in one call (use with directory or glob pattern)")
+    parser.add_argument("--batch", action="store_true", help="Batch multiple files in one call (files, directory, or glob pattern)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--prompt", default=None, help="Custom prompt")
     parser.add_argument("--batch-size", type=int, default=20, help="Max files per API call (batch mode)")
+    parser.add_argument("--pattern", default="*.md", help="Glob pattern for directory mode (default: *.md; use SKILL.md for skill trees)")
     args = parser.parse_args()
 
     try:
         if args.batch:
-            # Resolve files from directory or glob
-            p = Path(args.path)
-            if p.is_dir():
-                files = sorted(str(f) for f in p.rglob("SKILL.md"))
-            elif "*" in args.path or "?" in args.path:
-                import glob
-                files = sorted(glob.glob(args.path))
-            else:
-                # Single file with --batch flag: treat as single-element batch
-                files = [args.path]
+            # Resolve files from: (a) multiple explicit paths, (b) a directory, (c) a glob.
+            files = []
+            for path_arg in args.paths:
+                p = Path(path_arg)
+                if p.is_dir():
+                    # Directory mode: rglob with --pattern (default *.md; SKILL.md for skill trees)
+                    files.extend(str(f) for f in p.rglob(args.pattern))
+                elif "*" in path_arg or "?" in path_arg:
+                    import glob
+                    files.extend(glob.glob(path_arg))
+                elif p.is_file():
+                    files.append(path_arg)
+                else:
+                    print(f"ERROR: path not found or not a file/dir/glob: {path_arg}", file=sys.stderr)
+                    sys.exit(1)
+            files = sorted(set(files))  # dedupe
 
             if not files:
-                print(f"ERROR: No files found at {args.path}", file=sys.stderr)
+                print(f"ERROR: No files found for paths: {args.paths}", file=sys.stderr)
                 sys.exit(1)
 
             print(f"Batching {len(files)} files (batch_size={args.batch_size})...", file=sys.stderr)
@@ -296,7 +357,7 @@ def main():
                 print(f"\n--- batch mode: {result['elapsed']:.1f}s, {result['calls']} calls, {result['summarized']}/{result['total_files']} files ---", file=sys.stderr)
 
         elif args.enhanced:
-            result = read_enhanced(args.path)
+            result = read_enhanced(args.paths[0])
             if args.json:
                 print(json.dumps(result, indent=2))
             else:
@@ -304,7 +365,7 @@ def main():
                 print(f"\n--- {result['mode']} mode: {result['elapsed']:.1f}s, {result['calls']} calls ---", file=sys.stderr)
 
         else:
-            result = read_single(args.path, prompt=args.prompt)
+            result = read_single(args.paths[0], prompt=args.prompt)
             if args.json:
                 print(json.dumps(result, indent=2))
             else:

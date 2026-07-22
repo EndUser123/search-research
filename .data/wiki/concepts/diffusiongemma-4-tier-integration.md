@@ -7,7 +7,7 @@ sources:
   - P:/.data/wiki/concepts/compensating-for-weaker-models-ensemble-multi-pass.md
   - P:/.data/wiki/concepts/testing-methodology-both-outcomes-informative.md
   - P:/.data/wiki/concepts/skill-techniques-index.md
-  - P:/.data/wiki/scripts/diffusiongemma_read.py
+  - P:/.agents/scripts/models/dgemma_read.py
   - C:/Users/brsth/.grok/config.toml
 tags: [diffusiongemma, model-routing, 4-tier, integration, optimal-usage, batch, enhanced]
 host: grok

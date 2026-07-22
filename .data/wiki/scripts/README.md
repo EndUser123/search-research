@@ -46,10 +46,10 @@ Scans all SKILL.md files for technique indicator patterns (phase gates, falsifie
 ### `diffusiongemma_read.py` — DiffusionGemma direct-API file reader
 
 ```bash
-python P:/.data/wiki/scripts/diffusiongemma_read.py <file>                    # single pass
-python P:/.data/wiki/scripts/diffusiongemma_read.py <file> --enhanced         # multi-perspective fan-out
-python P:/.data/wiki/scripts/diffusiongemma_read.py <dir> --batch             # batch 20-50 files
-python P:/.data/wiki/scripts/diffusiongemma_read.py <dir> --batch --json      # JSON output
+python P:/.agents/scripts/models/dgemma_read.py <file>                    # single pass
+python P:/.agents/scripts/models/dgemma_read.py <file> --enhanced         # multi-perspective fan-out
+python P:/.agents/scripts/models/dgemma_read.py <dir> --batch             # batch 20-50 files
+python P:/.agents/scripts/models/dgemma_read.py <dir> --batch --json      # JSON output
 ```
 
 Reads files via DiffusionGemma (Google model, Nvidia inference) direct API. Bypasses `spawn_subagent` (which fails with empty-content errors). Three modes: single (~1-2s), enhanced 3-perspective parallel fan-out (~2.4s, 20/20 quality), batch (~6.5s for 20 files using 256K context).

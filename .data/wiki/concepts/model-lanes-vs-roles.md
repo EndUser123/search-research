@@ -10,7 +10,7 @@ summary: >
   first when they clear the quality floor; subscription escalate after.
   ccr-ornith is the Code lane primary (65K context, fast, free, but misreads
   Windows file attributes and times out on large reviews). DiffusionGemma is
-  the Code lane fallback (262K context, 42x faster than ornith, but produces
+  the Code lane pool member (262K context, 42x faster than ornith, but produces
   less detailed output and fails via spawn_subagent with "empty content").
   Gemini 3.x Flash is the new multimodal-capable free option.
 agent: grok
@@ -51,10 +51,15 @@ for the lane framework and the model-specific knowledge that informs lane choice
 
 ### Two lanes
 
-| Lane | When | Persona / type | Effort | Primary (free) | Escalate |
-|------|------|----------------|--------|----------------|----------|
-| **Reasoning** | Plan, architecture, RCA, adversarial critic, hard trade-offs | `plan` + `sdlc-plan`; `sdlc-debug`; `sdlc-critic` | **high** | `nvidia-nemotron-3-ultra` | `glm-5-2`; parent `grok-4.5` if needed |
-| **Code / everything else** | Implement, discover, tests, mechanical work | `sdlc-code`; `sdlc-discover`; test | low–**medium** | `ccr-ornith` (local) | `nvidia-diffusiongemma-26b`; then `minimax-m3`; then `gemini-3.6-flash` |
+| Lane | When | Persona / type | Effort | Free pool members | Escalation tier (subscription) |
+|------|------|----------------|--------|-------------------|-------------------------------|
+| **Reasoning** | Plan, architecture, RCA, adversarial critic, hard trade-offs | `plan` + `sdlc-plan`; `sdlc-debug`; `sdlc-critic` | **high** | `nvidia-nemotron-3-ultra` | `glm-5-2`; parent only for synthesis |
+| **Code / everything else** | Implement, discover, tests, mechanical work | `sdlc-code`; `sdlc-discover`; test | low–**medium** | `ccr-ornith`, `nvidia-diffusiongemma-26b`, `gemini-3.6-flash` | `minimax-m3` (when free pool exhausted) |
+
+> **Pool, not chain.** Models within a lane are a pool of qualified candidates,
+> not a ranked fallback chain. Any pool member is acceptable; selection is by
+> situational fit (context size, speed, availability). See
+> [[model-pool-not-chain]].
 
 **Multimodal is a capability filter, not a third lane.** When the packet needs
 images/audio, pick a multimodal-capable model that still fits the lane: `gemini-3.6-flash`,
@@ -110,7 +115,7 @@ network dependency.
 - Windows file attribute analysis → verify claims independently
 - Reviews requiring >10 min → split or use faster model for breadth
 
-## nvidia-diffusiongemma-26b — Code lane fallback
+## nvidia-diffusiongemma-26b — Code lane pool member
 
 ### What it is
 
@@ -154,7 +159,7 @@ The `spawn_subagent` failure means DiffusionGemma can't be used as a
 `spawn_subagent(model=...)` target. Instead, use the Python script:
 
 ```python
-# P:/.data/wiki/scripts/diffusiongemma_read.py
+# P:/.agents/scripts/models/dgemma_read.py
 # Single mode:
 python diffusiongemma_read.py --file path/to/file.py
 # Enhanced mode (3-perspective fan-out):
@@ -177,7 +182,7 @@ full catalog. Key models for lane routing:
 | `gemini-3.6-flash` | Code lane (multimodal) | Current stable Gemini; fast; free-tier friendly |
 | `gemini-3.5-flash-lite` | Code lane (mechanical) | Cheapest/fastest; high-throughput |
 | `gemini-3.1-pro-preview` | Reasoning lane (when quota allows) | Free-tier Pro quota often limit=0 |
-| `gemini-2.5-flash` | Code lane (fallback) | Proven free-tier fallback |
+| `gemini-2.5-flash` | Code pool member | Proven free-tier pool member |
 
 **Quota caveat:** Pro-class models (`gemini-3.1-pro-preview`, `gemini-2.5-pro`)
 have free-tier limit 0 on this host's keys. Use Flash/Lite for default; reserve
@@ -188,12 +193,12 @@ Pro for when quota exists.
 | Slug | Lane | Provider | Cost | Context | Notes |
 |------|------|----------|------|---------|-------|
 | `ccr-ornith` | Code | Local | Free | 65K | Primary; 65K limit; Windows attr issues |
-| `nvidia-diffusiongemma-26b` | Code | NVIDIA | Free | 262K | Fallback; use direct API not spawn_subagent |
+| `nvidia-diffusiongemma-26b` | Code | NVIDIA | Free | 262K | Pool member; use direct API not spawn_subagent |
 | `nvidia-nemotron-3-ultra` | Reasoning | NVIDIA | Free | 1M | Primary reasoning; token-hungry thinking trace |
 | `nvidia-inkling` | Multimodal | NVIDIA | Free | 1M | Native text+image+audio |
 | `gemini-3.6-flash` | Code/multimodal | Google | Free | 1M | New; current stable Flash |
 | `gemini-3.5-flash-lite` | Code/mechanical | Google | Free | 1M | Cheapest Gemini |
-| `gemini-2.5-flash` | Code/fallback | Google | Free | 1M | Proven free-tier |
+| `gemini-2.5-flash` | Code pool | Google | Free | 1M | Proven free-tier |
 | `glm-5-2` | Reasoning | Z.ai | Subscription | 1M | "FAR better at planning"; ration (4300 req/mo) |
 | `minimax-m3` | Code/execution | MiniMax | Subscription | 1M | "Good at instructions, weak planning"; 16K req/mo |
 | `gemma-4-31b-it` | Code/diversity | Google | Free | 131K | Open Gemma 4 via Gemini API |

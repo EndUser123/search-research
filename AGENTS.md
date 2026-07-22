@@ -379,6 +379,57 @@ schemes, format disciplines, process steps, skill structure, agent selection
 logic — any time you're proposing *how* something should be organized or
 structured.
 
+### Re-observe on rejection (user dislike = observation was too narrow)
+
+Observe-Before-Propose fires once, before the first proposal. It has no
+answer for what happens when the user rejects that proposal — and the
+default behavior on rejection (reason harder, generate a new proposal)
+reproduces the original failure mode one iteration later.
+
+**Trigger:** the user rejects, dislikes, or questions a proposed location /
+structure / approach. Phrasings include "I don't like X", "are you sure?",
+"is that optimal?", "that's not right". The user's dislike is **not a
+debating signal**. It is a signal that your observation was too narrow —
+you proposed from an incomplete view of what already exists.
+
+**Required sequence on rejection:**
+
+1. **STOP generating alternatives** from the same observation set. Do not
+   reason toward a new proposal; the same incomplete observation will
+   produce another wrong answer.
+2. **RE-OBSERVE with broader scope.** The rejection is evidence your
+   search missed something. Specifically:
+   - Grep/list roots you haven't checked yet (different directory levels,
+     `.agents/`, `__lib/`, plugin trees, the user's system prompt, the
+     session-start skill catalog)
+   - Search for the *concept* of the thing (e.g., for a shared-script
+     location: search for existing shared scripts, not for "where should
+     this go")
+   - Check adjacent problems the user has already solved — the existing
+     solution is usually the precedent
+3. **Cite what the broader observation found that the narrow one missed.**
+   The corrected proposal is grounded in the newly-found existing pattern,
+   not in reasoning about what *should* exist.
+4. **Only re-propose after the broader search.** A proposal made without
+   new observation is the same failure mode, one turn later.
+
+**Reference incident (2026-07-22):** user asked where to relocate a shared
+agent-callable script. The model proposed `cc-skills-utils/scripts/`
+(from memory — Claude-Code-plugin-scoped, invisible to Codex), then
+`P:/scripts/` (invented convention, ignored the existing `.agents/` tree),
+and only found `P:/.agents/scripts/models/` on the third turn after the
+user said "I don't like scripts/." The `.agents/` directory was in the
+system prompt's skill list the entire time; the model never grepped for it
+because its observation scope was anchored on Claude-Code conventions.
+Two turns of wrong proposals, each defended before re-observing.
+
+**Falsifier:** if this rule causes the model to re-search indefinitely
+when the user genuinely wants a fast answer, narrow the trigger to
+explicit dislike/question phrasings only. If the model keeps proposing
+from memory after the trigger fires, the rule is advisory-only and needs
+hook enforcement (which requires semantic detection of "user dislike" —
+not currently automatable; treat as always-loaded behavioral rule).
+
 ## Review Discipline
 
 For non-trivial analysis, proposals, mechanism investigations, benchmark
