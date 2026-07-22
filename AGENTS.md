@@ -223,6 +223,38 @@ for the same skill per the user-guide) when:**
 broad — narrow to "load-bearing" or "multi-file." If the rule fails to fire
 after a multi-file hook change, the triggers are too narrow.
 
+## File editing protocol (mandatory on this multi-agent Windows host)
+
+Canonical rules: `~/.grok/AGENTS.md` § "File editing protocol" and full text at
+`~/.grok/docs/file-editing-protocol.md`.
+
+**Minimum always-loaded rules:**
+1. After every patch/write: read edited section + surrounding lines.
+2. Never use full-file write on existing files.
+3. 2+ edits to same file → Python atomic write (`encoding='utf-8'`) from the start.
+4. Before editing a skill: verify path exists (`~/.grok/skills/` vs `P:/.grok/skills/`).
+5. No destructive git: no `reset --hard`, force-push, `checkout --`, `clean -fd`, amend of shared commits.
+6. High-collision files: atomic write + immediate verify.
+
+Session 2026-07-21 lost edits across multiple files (path confusion VERIFIED;
+some verified-then-vanished writes still UNKNOWN root cause).
+
+## Code-first breadth scan before LLM fan-out
+
+Before spawning N>5 subagents to analyze N artifacts, run a code-based breadth
+scan first (e.g. scan_techniques.py). Reserve LLM subagents for high-density subset.
+
+**Model tiering:**
+- Mechanical tasks: ccr-ornith (free local, parallel, ~43s per real read)
+- Synthesis: parent-inherited model (Grok)
+- Cross-model: /agy, /codex, /mmx (external CLIs)
+- See ~/.grok/tool-fallbacks.md for broken model combinations
+
+## Skill lifecycle maintenance
+
+After adding/removing/renaming any skill, regenerate the wiki skill index:
+python P:/.data/wiki/scripts/index_skills.py
+
 ## Internet research policy
 
 For web research, **follow the tool-selection rule in `~/.grok/AGENTS.md:240-265`**
