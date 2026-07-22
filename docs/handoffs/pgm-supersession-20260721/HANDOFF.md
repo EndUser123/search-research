@@ -55,7 +55,7 @@ Inventory and act on unclaimed handoffs in `P:/docs/handoffs/`; durable-record t
 |---|---|---|
 | Claim + supersede PGM eval handoff | `P:/docs/handoffs/proposal-grounding-monitor-evaluation-20260720/HANDOFF.md` | frontmatter: status=superseded, assigned_to=grok, assigned_at=2026-07-21T14:29:49Z, assigned_by=019f8507-...; §2 Status updated; §17 Supersession note added (later repaired for telemetry staleness); schema brought to v0.1.1 compliance via external session's `accurate_as_of_head` + `## Cross-Reference Couplings` additions |
 | Translate F1 in parent handoff | `P:/docs/handoffs/design-skill-runtime-foundation-20260720/HANDOFF.md` | 8 edits: Status summary (line 21), F1 decision row (110), D1 dependency (125), TP-1 task packet (140-147), F1 in open decisions (179), v0.1.0→v0.1.1 in non-goals (187), recommended next action #1 (228), [FACT] test count (249). Validator: 1 pre-existing error (thread_id slug), 1 pre-existing warning |
-| Session-close handoff (this file) | `P:/docs/handoffs/session-019f8507-pgm-supersession-20260721/HANDOFF.md` | new file |
+| Session-close handoff (this file) | `P:/docs/handoffs/pgm-supersession-20260721/HANDOFF.md` | new file |
 
 ### Not done (deferred per the user's confidence filter)
 
@@ -70,7 +70,7 @@ Inventory and act on unclaimed handoffs in `P:/docs/handoffs/`; durable-record t
 ### TASK-01: (this handoff) — DONE
 
 - goal: record this session's deliverables durably.
-- in scope: write the handoff at `P:/docs/handoffs/session-019f8507-pgm-supersession-20260721/HANDOFF.md`.
+- in scope: write the handoff at `P:/docs/handoffs/pgm-supersession-20260721/HANDOFF.md`.
 - out of scope: committing any of the modified files (decision deferred to user).
 - files / anchors: this file.
 - acceptance: handoff validates clean (only pre-existing errors); readable as a stand-alone record by a cold-start session.
@@ -84,7 +84,7 @@ Inventory and act on unclaimed handoffs in `P:/docs/handoffs/`; durable-record t
 The dirty P:/ tree has files this session didn't touch (`AGENTS.md`, `CLAUDE.md`, `~/.grok/skills/*/SKILL.md`, several plugins). Commits authored by this session are limited to:
 - `docs/handoffs/proposal-grounding-monitor-evaluation-20260720/HANDOFF.md`
 - `docs/handoffs/design-skill-runtime-foundation-20260720/HANDOFF.md`
-- `docs/handoffs/session-019f8507-pgm-supersession-20260721/HANDOFF.md` (new)
+- `docs/handoffs/pgm-supersession-20260721/HANDOFF.md` (new)
 
 Recommended option: **selective commit of just these three files** (e.g., `git add docs/handoffs/...` then `git commit`). Costs a one-line git invocation. User's call.
 
@@ -138,7 +138,7 @@ If a future cold-start session opens this handoff:
 ## 14. Suggested next invocation
 
 ```
-Read P:/docs/handoffs/session-019f8507-pgm-supersession-20260721/HANDOFF.md to recover this session's context. Decide whether to commit the three modified handoff files, then either:
+Read P:/docs/handoffs/pgm-supersession-20260721/HANDOFF.md to recover this session's context. Decide whether to commit the three modified handoff files, then either:
   - claim handoff-v02-aar-integration-20260720 (with operator direction on D1/D2), or
   - claim exec-gate-enhancement-20260721 (with operator direction on D2/D3), or
   - close out by committing this work and stopping.
