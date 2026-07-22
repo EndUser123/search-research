@@ -165,14 +165,17 @@ See child handoff §17 "Supersession note" for full receipts and the verificatio
 - falsifier: SessionStart fails or emits path warnings
 - verification level required: UNIT_TEST
 
-### TP-3: Decide design-docs disposition (at `~/.grok/design-runs/grok-design-10d0654e/`)
-- goal: Either promote 2-3 Key Decisions to wiki, or delete the whole design run.
-- in scope: review 4 design docs; pick one outcome per doc.
+### TP-3: ~~Decide design-docs disposition (at `~/.grok/design-runs/grok-design-10d0654e/`)~~ — DONE 2026-07-21 (session `019f8507`)
+
+- goal: Either promote 2-3 Key Decisions to wiki, or delete the whole design run. **[DECIDED 2026-07-21: DELETE the entire `~/.grok/design-runs/` directory.]**
+- in scope: review 4 design docs; pick one outcome per doc. **[All 4 in `grok-design-10d0654e` (and 3 sibling runs at `grok-design-43e11106`, `grok-design-6bf249df`, `grok-design-c65e5068`) → DELETE]**
 - out of scope: re-running the design.
 - files / anchors: `~/.grok/design-runs/grok-design-10d0654e/`, `P:/.data/wiki/concepts/`
 - acceptance: each doc has a disposition (promoted, deleted, or shelved-with-reason)
 - falsifier: if shelved, all 4 docs deleted; if promoted, only promoted entries remain.
 - verification level required: STATIC_INSPECTION
+- _decision rationale:_ **DELETE.** Surveyed 4 design runs in `~/.grok/design-runs/` (2026-07-20): `10d0654e` (4 files, 144KB), `43e11106` (3 files, 140KB), `6bf249df` (5 files, 150KB), `c65e5068` (0 files — empty). Total ~600KB. None git-tracked. None referenced from `P:/AGENTS.md`, `P:/.claude/CLAUDE.md`, or `~/.grok/AGENTS.md`. Surveyed `10d0654e` summary: 3-PR design totaling ~510 LOC (RC1 cascade-of-trust, RC3 task-prune, RC2 architectural principle). Per the parent handoff's own non-goal: "Do NOT recreate design docs at `~/.grok/design-runs/` unless a fresh `/design` run is invoked; legacy runs are stale by definition." The 4 runs are pre-`/design` Step 4.5/5.5/6.0/6d; they're doubly stale. The empty `c65e5068` shows the pattern of "create but never curate." Decision: delete the entire `~/.grok/design-runs/` directory; fresh `/design` runs (if any) will create their own scratch space.
+- _action status:_ **decision recorded, actual deletion NOT yet performed.** Surface to operator for confirmation before destructive operation.
 
 ### TP-4: Run `/design` end-to-end on a small real problem
 - goal: Validate Step 4.5/5.5/6.0/6d work in a real run before relying on them.
@@ -185,7 +188,7 @@ See child handoff §17 "Supersession note" for full receipts and the verificatio
 
 ## Hard constraints
 
-1. **M1 disposition:** leave as candidate with 6 known bugs tracked. Script works for its primary purpose; the 6 bugs are real but non-blocking. Fix in next session or delegate.
+1. **M1 disposition** *(DECIDED 2026-07-21 by session `019f8507`):* **leave as candidate** with 6 known bugs tracked. Script works for its primary purpose (active-surface snapshot); the 6 bugs are real but non-blocking. Fix in next session or delegate to a cold-start LLM with the code-review findings as input. **Rationale:** no incident has escalated the bugs above "known but tolerable"; M1 is observability tooling, not a security gate; the cost of full fix exceeds the cost of tolerating them given the audit's own classification.
 2. **F1 (enable `proposal-grounding-monitor`):** RESOLVED 2026-07-21 by supersession of child handoff (session `019f8507`). PGM enabled at `config.toml:88`; plugin v0.1.1 with AGENTS.md categorization fix at `relevance.py:147-155`; 117 tests pass. See `P:/docs/handoffs/proposal-grounding-monitor-evaluation-20260720/HANDOFF.md` §17.
 3. **F2 (cc-aca-* selective re-enable):** **DON'T ENABLE** the existing plugins. Their hooks never fire under Grok Build (`compat.claude.hooks=false`). The follow-on question — whether to port specific functionality (bulk-delete gate, investigation gate, verification gates) to Grok-native hooks — is a separate decision that has not been authorized.
 4. **/design Step 5.5 critical friend:** shipped but untested. Don't rely on PROCEED verdict until at least one real design run validates it.
@@ -237,7 +240,7 @@ M1 snapshot → reads ~/.grok/disabled-hooks
 
 1. ~~Enable `proposal-grounding-monitor`~~ — **DONE 2026-07-21.** PGM enabled at `config.toml:88`. See `P:/docs/handoffs/proposal-grounding-monitor-evaluation-20260720/HANDOFF.md` §17 for full receipts (PGM-ENABLE-01 + PGM-FIX-01 both already complete at re-evaluation; 117 tests pass; telemetry live with staleness note).
 2. **Fix M1 bug #1** (hardcoded path in hook JSON) — change to relative or `${GROK_PLUGIN_ROOT}`.
-3. **Decide design-docs disposition** — promote or delete.
+3. ~~Decide design-docs disposition~~ — **DONE 2026-07-21.** Decision: DELETE `~/.grok/design-runs/` (all 4 runs); see TP-3 for rationale. Actual deletion pending operator confirmation (destructive op).
 4. **Run `/design` on something real and small** — validate Step 4.5, 5.5, 6.0, 6d work end-to-end.
 5. **Then**: pre-flight stage (D2) + model selection (D3).
 
