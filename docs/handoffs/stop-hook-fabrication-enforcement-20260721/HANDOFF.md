@@ -1,5 +1,5 @@
 ---
-thread_id: stop-hook-fabrication-enforcement-20260721
+thread_id: f2aeee3e-7664-45d6-a56e-275c9c8825d8
 parent_handoff_path: none
 current_session_id: 019f821c-854e-76c1-a755-add284838bdf
 current_terminal_id: console

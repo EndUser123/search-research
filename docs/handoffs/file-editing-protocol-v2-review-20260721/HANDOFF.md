@@ -1,5 +1,5 @@
 ---
-thread_id: file-editing-protocol-v2-review-20260721
+thread_id: 03d2ec7c-a3bc-4ac7-8b5d-d86a9f8062a1
 parent_handoff_path: none
 current_session_id: 019f819a-7619-7cb3-a6a4-480ff1c916ce
 current_terminal_id: console_019f819a

@@ -1,5 +1,149 @@
 # Vault Log
 
+## --source
+Source: session-2026-07-22 (/www search tools)
+Agent: --agent
+Notes: grok
+Page: --notes
+
+## --source
+Source: session-2026-07-22 (/www deep)
+Agent: --agent
+Notes: grok
+Page: --notes
+
+## TUI Frameworks for Personal Scripts
+Source: session-2026-07-22
+Agent: grok
+Notes: /www research: Python Rich/Textual + PowerShell Terminal.Gui/ConsoleGuiTools comparison
+Page: P:/.data/wiki/concepts/tui-frameworks-for-personal-scripts.md
+
+## --source
+Source: session-2026-07-22 (/www)
+Agent: --agent
+Notes: grok
+Page: --notes
+
+## [2026-07-22] ingest | Agent config directory taxonomy: .agents vs .grok vs .claude vs .codex
+Source: session-2026-07-22
+Agent: grok
+Notes: /www research: agent config directory taxonomy
+Page: wiki/concepts/agent-config-directory-taxonomy.md
+
+## [2026-07-22] ingest | LLM agent token waste: 3 categories, 59% in verification, and what to detect
+Source: session-2026-07-22
+Agent: grok
+Notes: /wiki distill: AgentDiet 3-category taxonomy + Tokenomics 59.4% + Stanford 1000x + amplification model
+Page: wiki/concepts/llm-agent-token-waste-categories.md
+
+## [2026-07-22] ingest | /check and /review are complementary, not redundant
+Source: session-2026-07-22
+Agent: grok
+Notes: session 2026-07-21 AAR lesson L2
+Page: wiki/concepts/check-vs-review-complementary-not-redundant.md
+
+## [2026-07-22] ingest | Plan skill completeness: what makes LLM plans safe to execute
+Source: session-2026-07-22
+Agent: grok
+Notes: /www research: plan skill completeness (O'Reilly + Plan-and-Act + Tokenomics + AgentDiet)
+Page: wiki/concepts/plan-skill-completeness.md
+
+## [2026-07-21] ingest | Git worktree best practices for multi-terminal AI fleets: do's, don'ts, alternatives
+Source: session-2026-07-21 (/www compound research)
+Agent: grok
+Notes: Holistic worktree guide synthesizing 7 external sources (official git docs, GitButler, 5 practitioners incl. 1 large-monorepo skeptic). Confirms worktrees for multi-terminal AI fleets; documents dependency-install bottleneck, 2 conflicts (create-on-demand vs pre-warmed pool; GitButler virtual branches vs worktrees), and alternatives comparison. Fills the gap left by failure-mode-only existing concepts.
+Page: wiki/concepts/git-worktree-multi-terminal-best-practices.md
+
+## [2026-07-21] ingest | The analyst exhibits the pattern being analyzed
+Source: session-2026-07-21
+Agent: grok
+Notes: AAR batch promotion: analyst-exhibits-pattern-being-analyzed (from multiple AAR reports)
+Page: wiki/concepts/analyst-exhibits-pattern-being-analyzed.md
+
+## [2026-07-21] ingest | Check the data on disk before deferring: calibration data may already exist
+Source: session-2026-07-21
+Agent: grok
+Notes: AAR batch promotion: check-data-before-deferring (from multiple AAR reports)
+Page: wiki/concepts/check-data-before-deferring.md
+
+## [2026-07-21] ingest | Writing a discipline doesn't enforce it: the self-referential gap
+Source: session-2026-07-21
+Agent: grok
+Notes: AAR batch promotion: writing-discipline-not-enforced (from multiple AAR reports)
+Page: wiki/concepts/writing-discipline-not-enforced.md
+
+## [2026-07-21] ingest | Plan mode is not a security primitive
+Source: session-2026-07-21
+Agent: grok
+Notes: AAR batch promotion: plan-mode-not-security-primitive (from multiple AAR reports)
+Page: wiki/concepts/plan-mode-not-security-primitive.md
+
+## [2026-07-21] ingest | Multi-agent destructive git: force-push and reset --hard are categorically wrong on shared repos
+Source: session-2026-07-21
+Agent: grok
+Notes: AAR batch promotion: multi-agent-destructive-git (from multiple AAR reports)
+Page: wiki/concepts/multi-agent-destructive-git.md
+
+## [2026-07-21] ingest | Stop_claim_gap_telemetry_probe.py — verified internal structure
+Source: session-2026-07-21
+Agent: grok
+Notes: Verified internal structure of Stop_claim_gap_telemetry_probe.py: 371 total lines (325 non-empty), no env var reads, decision=telemetry hardcoded, dedup key includes marker.
+Page: wiki/concepts/stop-claim-gap-telemetry-probe-structure.md
+
+## [2026-07-20] ingest | Design skill's write/review loop misses framing gaps — preflight is the remedy
+Source: session-2026-07-20
+Agent: grok
+Notes: Meta-finding from the /codex + /mmx skill design session. 4 review rounds reached 0 open issues, then a preflight (source-authority-discovery) audit found 6 real gaps: unaddressed cc-skills-ai-api alternative, mmx OAuth auth-method, Windows .cmd shim silent failure, mmx search mode, sandbox_permissions key, host: tag. The design skill should mandate preflight before the first write round. ADR-009 documents the full design; this concept captures the structural finding about the design skill itself.
+Page: wiki/concepts/design-skill-preflight-gap.md
+
+## [2026-07-20] ingest | CLI canonical invocation silently does the wrong thing — a failure class
+Source: session-2026-07-20
+Agent: grok
+Notes: Three instances observed during /codex + /mmx skill smoke-testing: (1) codex review inherits danger-full-access from config.toml, (2) mmx --quiet strips JSON wrapper from --output json, (3) bare mmx on Windows fails via .cmd shim. All share the structure: help text suggests invocation X, X looks correct in code review, X silently produces wrong results at runtime. Only runtime smoke-tests catch these. The /mmx PR 3 smoke-test caught 3 bugs that 4 design review rounds missed.
+Page: wiki/concepts/cli-canonical-invocation-silent-failure-class.md
+
+## [2026-07-20] ingest | Skill rename propagation checklist
+Source: session-2026-07-20
+Agent: grok
+Notes: 10-step checklist extracted from renaming source-authority-discovery → preflight. Touches: primary skill dir (git mv), plugin mirror (git mv in submodule), SKILL.md frontmatter+body, workspace constitution (CLAUDE.md), plugin constitution, consumer skills (wargame/tp/grok-discovery), consumer scripts (run_discovery.ps1), contract tests, ADR references. Historical artifacts (audit JSONs, session state) intentionally left as point-in-time records. Both contract tests pass after rename.
+Page: wiki/concepts/skill-rename-propagation-checklist.md
+
+## [2026-07-21] ingest | Recurring thinking errors: solution-vending, premature convergence, goal-assumption, inference-as-fact, prior-output anchoring
+Source: session-2026-07-21
+Agent: grok
+Notes: operator-directed after multiple thinking errors recurred in a single session. Three of seven overlap with /tp modes 1/4/6; two (#2 premature convergence, #5 prior-output anchoring) are not named elsewhere. Page is operational — each error has a concrete instance, correction, and falsifier. Future sessions should use the 7-point check list in §"How a future session should use this page" before sending multi-option or multi-item responses.
+Page: wiki/concepts/recurring-thinking-errors.md
+
+## [2026-07-21] ingest | Skill quick-fit screening: a 30-second triage before skill execution
+Source: session-2026-07-21
+Agent: grok
+Notes: session 2026-07-21 /wiki ingest
+Page: wiki/concepts/skill-quick-fit-screening-pattern.md
+
+## [2026-07-21] ingest | Skill path resolution gotcha: Grok skills can live in multiple scopes
+Source: session-2026-07-21
+Agent: grok
+Notes: session 2026-07-21 /wiki ingest
+Page: wiki/concepts/skill-path-resolution-gotcha.md
+
+## [2026-07-21] ingest | On Windows Git Bash, git invokes hooks via shebang line — executable bit not required
+Source: session-2026-07-21
+Agent: grok
+Notes: Session 019f8507 distilled: Windows Git Bash invokes hooks via shebang line, not executable bit (refutes ccr-ornith false positive)
+Page: wiki/concepts/windows-gitbash-hook-invocation.md
+
+## [2026-07-21] ingest | Tool Use Protocol for Subagent Critical-Friend Critique
+Source: session-2026-07-21
+Agent: grok
+Notes: session 2026-07-21 /wiki ingest
+Page: wiki/concepts/tool-use-protocol-subagent-critical-friend.md
+
+## [2026-07-21] ingest | Git mv + search_replace: the 0/0 commit that loses your content changes
+Source: session-2026-07-21
+Agent: grok
+Notes: Session 019f8507 distilled: git mv + search_replace produces 0/0 commit that loses content changes
+Page: wiki/concepts/git-mv-search-replace-capture-bug.md
+
 ## [2026-07-20] update | Plausible narratives substitute for verification
 Source: session-2026-07-20
 Agent: grok
@@ -4305,3 +4449,129 @@ Path: P:/.data/wiki/concepts/claude-code-verify-builtin-skill.md
 
 ### Added (closing the lanes-vs-roles gap)
 - concepts/model-lanes-vs-roles.md — the 2-lane routing framework (Reasoning vs Code), extracted from /go spawn recipe into its own wiki concept. Documents: ccr-ornith capabilities + limitations (65K context, Windows attr false-positives, 956s timeout), DiffusionGemma capabilities + the critical spawn_subagent failure + direct API workaround, Gemini 3.x as new free option, full fleet table (11 models with lane/cost/context), wave table, context-fit formula. Cross-links model-picker, compensating-for-weaker-models, gemini catalog, gemini-api-vs-agy-cli.
+
+## 2026-07-21 — optimality-claims-are-completion-claims
+
+- **Concept:** "Optimal" / "best" / "recommended" claims are structurally equivalent to "done" / "fixed" claims; apply the same verification discipline (name metric, name alternatives, show comparison, state falsifier)
+- **Source:** Session 019f8155 — self-referential /www run triggered by "how do you know what you're saying is optimal?"
+- **Why durable:** Captures a discipline that's missing from the wiki despite three adjacent concepts (verification-before-completion, plausible-narratives, evidence-first). Closes a specific failure mode where "optimal" framing substitutes for actual comparison. Includes a legitimate escape hatch: when operator policy has eliminated certain alternatives upstream, downstream agents can cite that policy instead of re-comparing.
+- **Auto-linked:** wiki/concepts/verification-before-completion-principle (refines), wiki/concepts/plausible-narratives-substitute-for-verification (related)
+- **Research ledger:** P:/.data/www-ledger/optimality-claims-verification.md
+
+### Added (/wiki — session distillate)
+- concepts/rule-not-fired-vs-rule-doesnt-exist.md — meta-pattern from /tp critique: process failures on this host are overwhelmingly trigger failures (rule exists but doesn't fire), not knowledge gaps (rule doesn't exist). Worked example: the agent had a rule requiring >=2 alternatives for hard-to-reverse decisions, but built the Search MCP from user suggestion without evaluating alternatives. Fix: skill gating (/go architectural profile), not another rule. Includes diagnostic table and cost/benefit for when to add triggers.
+
+## [2026-07-21] ingest | File edit failures: two classes with distinct fixes
+Source: session-2026-07-21
+Agent: grok
+Notes: New concept — the persistence-vs-collision distinction for file edit losses. Class A (persistence failure, OS/tool layer) fixed by atomic write. Class B (sequential collision, agent concurrency) NOT fixed by atomic write; fixed by append-only for logs, conditional write for shared docs. Born from the 2026-07-21 log.md incident where 13 entries were lost to Class B collision misdiagnosed as Class A. v1 file-editing-protocol conflated the two; v2 (P:/tmp/file-editing-protocol-v2-019f819a.md) codifies the distinction.
+Page: wiki/concepts/file-edit-failures-two-classes.md
+
+## [2026-07-21] ingest | External reports: silent edit non-persistence and shell quoting failures
+Source: session-2026-07-21-www
+Agent: grok
+Notes: /www research — external prevalence of Class A silent writes (Claude Code #40227/#49805, Cursor buffer-not-disk) and Class C shell quoting (PowerShell @'...'@ in Bash #65162). Confirms industry reports match local protocol. Page: concepts/external-silent-edit-and-shell-quoting-reports.md
+
+## 2026-07-20 — subagent-synthesis-report-gate
+
+- **Page:** wiki/concepts/subagent-synthesis-report-gate.md
+- **Why:** the subagent-synthesis→report-gate rule was added to ~/.grok/AGENTS.md (lines 100–125) earlier in this session but never distilled to a wiki concept. The rule has a real reference failure (cc-council incident) and a companion failure mode (storytelling under uncertainty). Wiki page makes the rule discoverable via semantic search; the AGENTS.md entry stays load-bearing for always-loaded behavior.
+- **Existing pages checked:** llm-handoff-best-practices, optimal-cross-session-chain-traversal-aar-handoff-grok, handoff-skill-v011-validators, llm-council-and-model-fusion — none cover the subagent-synthesis-specific verification-gate rule.
+- **Superseded/contradicted:** none.
+
+### Added + corrected (model pool concept)
+- concepts/model-pool-not-chain.md — CORRECTS the chain notation in /go and model-lanes-vs-roles. Models within a lane are a POOL of qualified candidates, not a ranked fallback chain. Any pool member that clears the quality floor is acceptable; selection by situational fit, not fixed ordering. Chain notation led another LLM to propose linear fallback (DGemma -> ccr-ornith -> parent), which is wrong.
+- concepts/model-lanes-vs-roles.md — UPDATED: "Primary/Escalate" columns changed to "Free pool members/Escalation tier"; "fallback" labels changed to "pool member"; pool note added linking to model-pool-not-chain.
+- /go SKILL.md spawn recipe — UPDATED: wave table changed from chain notation (A -> B -> C) to pool notation ({A, B, C} -> escalate); spawn example updated to show pool selection logic, not chain escalation.
+
+### Added (fleet rationalization)
+- concepts/model-fleet-provider-pools.md — full 46-slug fleet across 8 access paths (CCR, NVIDIA, Google, MiniMax, GLM, Zen, go, OR free). Rationalized pool/flow: 6 free providers, subscription is exception not default. zen/go/or pools (16 models) are underused backup capacity. Selection flow: lane -> tier (free first) -> provider (diversity is a feature) -> situational fit. Includes calibration gap list (go-kimi, go-mimo, zen models untested).
+
+## [2026-07-22] ingest | Model selection from the pool: the decision framework
+Source: session-2026-07-22-www
+Agent: grok
+Notes: /www on model-selection strategy. Extends model-pool-not-chain (peers) with a 6-element decision framework (task-novelty, quality-floor, latency, context-fit, cost-regime, quota-strategy) + ordered-filter selection. External: mindstudio, truefoundry, CASTER, SCORE, 2 arxiv surveys. Key: subscription-quota-as-reserve, not budget-to-burn; avoid fail-then-retry cascades on predictable-hard tasks (route directly); monitor cascade escalation rate. Page: concepts/model-selection-from-pool-decision-framework.md
+
+### Corrected (OpenRouter NOT free + selection strategy)
+- concepts/model-fleet-provider-pools.md — CORRECTED: OpenRouter go-*/or-* models are NOT free (~.005/1M tokens). Reclassified as exception-only (manual picker). Updated pool tables to remove them from free tier. Added selection strategy: when to use free-fast vs free-slow vs subscription-high-quota. Decision factors ranked (quality floor, cost tier, context fit, latency, volume, quality requirement, provider diversity). Quota arithmetic for MiniMax (16K/mo) and GLM (4.3K/mo). Operator constraint: OpenRouter is manual-exception only.
+
+## [2026-07-22] ingest | DiffusionGemma direct API: reproducible HOW-TO
+Source: session-2026-07-22
+Agent: grok
+Notes: Created because prior DGemma pages asserted "works via direct API" without a recipe - a skeptic correctly flagged this as unsupported. This page provides endpoint, auth, request shape, 3 modes, and a falsification test. Both tests run at creation: smoke 2.0s, batch 1.4s/2 files. Smoke script at P:/tmp/dgemma_smoke.py. Page: concepts/diffusiongemma-direct-api-howto.md
+
+## [2026-07-22] update | DiffusionGemma HOW-TO: 6-skill test found + fixed 2 defects
+Source: session-2026-07-22
+Agent: grok
+Notes: Tested the HOW-TO across 6 real SKILL.md files (4.9-37KB). Found: (1) batch 'name' field used filename stem so all skills showed as 'SKILL' - fixed to use parent dir for generic names; (2) max_file_chars=12000 silently truncated 3/6 skills (tp/go/handoff) - raised to 50000. Re-tested: 6/6 correct names, 0/6 truncated, 7.0s. Script: P:/.data/wiki/scripts/diffusiongemma_read.py. Page updated with receipts.
+
+### Corrected (verified DGemma data + removed unverified claims)
+- concepts/model-fleet-provider-pools.md — UPDATED with verified data: DGemma live API tests (867ms-3.7s latency, 5/5 rapid-fire OK), NVIDIA rate limit confirmed ~40 RPM (no daily cap, staff-confirmed), context 262,144 confirmed from NIM docs. Removed fabricated quota arithmetic (was "50 calls/day"; actual is ~170/hr x 5 terminals = ~7% of NVIDIA 40 RPM ceiling). Added [UNMEASURED] labels for Gemini speed/quota and ornith latency. Removed "42x faster" claim (unverified). Added model architecture details (25.2B/3.8B MoE, diffusion block generation, 1100 tok/s spec).
+
+## [2026-07-22] cleanup | Removed meta-narrative anti-pattern from 2 wiki pages
+Source: session-2026-07-22
+Agent: grok
+Notes: Removed author-self-commentary sections that added no operational value to LLMs reading cold. DGemma HOW-TO: removed 'Why this page exists' + 'Why a skeptic was right to doubt' sections, cleaned summary, trimmed 'overclaimed' clause. Model-selection: removed 'What this adds' preamble, stripped 2 conversation-referencing parentheticals. External-reports page verified clean, no edits. Discriminator applied: 'does this tell the reader what to do?'
+
+## [2026-07-22] feat | Dynamic file cap in diffusiongemma_read.py + skill-refactoring handoff
+Source: session-2026-07-22
+Agent: grok
+Notes: (B) Replaced fixed max_file_chars=50000 with dynamic context-derived cap (CONTEXT_CHARS_BUDGET // batch_count). Testing found a latent prompt bug: model non-deterministically stopped at 5/6 summaries. Fixed with count-explicit prompt ("There are EXACTLY N files... ALL N must be covered"). Verified 3/3 runs at 6/6. Also: handoff created for the skill-refactoring program (11 skills >20KB, refactor to /tp-pattern one at a time). Handoff: P:/docs/handoffs/skill-refactoring-program-20260722/HANDOFF.md
+
+### Added (verified model test results)
+- concepts/dgemma-gemini-flash-operational-tests-2026-07-22.md — formal test of DGemma + Gemini 3.5 Flash-Lite across 6 task types. Both pass quality floor (7/7 code gen, 3/3 code review, valid JSON, 1.0 extraction recall). Gemini 4x faster (p50=918ms vs 3913ms) and 4x more consistent (p90/p50=1.09x vs 2.6x). DGemma empty-content root cause verified: 256-token diffusion blocks require max_tokens >= 256 (fixed via max_completion_tokens=8192). Full raw results at P:/tmp/model-test-results.json. Test bug disclosed (wrong prompt for handoff answer key, corrected, both scored 1.0 on re-run).
+
+### Added (verified Gemini/Gemma quota and rate limits)
+- concepts/gemini-gemma-quota-rate-limits-2026-07-22.md — official Google docs (scraped 2026-07-22): all Flash/Flash-Lite/Pro models confirmed FREE on Free Tier (free input + output). Rate limits per-project (not per-key): ~15 RPM, ~1,500 RPD for Flash-Lite (practitioner-reported; verify in AI Studio). ~50 RPD for Pro (explains our "limit: 0" errors). RPD resets midnight Pacific. agy uses separate subscription quota pool — independent from direct API. NVIDIA DGemma has separate quota (~40 RPM, no daily cap). Fleet usage ~1,360 calls/day = ~91% of Flash-Lite RPD — tight but workable.
+
+### Added (verified billing tiers + actual rate limits from operator dashboard)
+- concepts/gemini-billing-tiers-actual-rate-limits-2026-07-22.md — SUPERSEDES the practitioner-estimated limits from the earlier concept. Verified from operator's AI Studio dashboard: both API keys are Free tier (Google One AI Pro subscription does NOT upgrade API project tier). Actual limits: Gemma 4 31B = 14,400 RPD / 30 RPM (best free model by far); Flash-Lite = 500 RPD / 15 RPM; Flash = 20 RPD / 5 RPM; Pro = 0/0. Enabling billing moves ALL models to per-token pricing ( min prepay, stops at ). Cannot have billing and free pricing on same project. Strategy: stay free; Gemma 4 31B as Code lane primary (28x more RPD than Flash-Lite), DGemma (NVIDIA, no daily cap) as overflow.
+
+### Added (agy vs direct API strategy)
+- concepts/agy-vs-direct-api-complementary-value.md — answers "maybe we get more value by just using agy?" No: agy (1,500 req/day, Pro sub, agent harness, burns quota faster due to autonomous internal calls) and direct API (14,400 RPD on Gemma 4 alone, raw inference, separate quota pool) serve different purposes. API for mechanical/pool dispatch; agy for harness-heavy work (tools, repo map, Pro model access, second opinions). "Just use agy" trap: would exhaust in ~1hr of fleet work, lose NVIDIA/local models, lose parallelism. Practitioner evidence: Reddit users confirm agy burns quota 5-10x faster than API calls.
+
+### Added (Gemma operationalization guide)
+- concepts/operationalizing-gemma-models-2026-07-22.md — practical guide for maximizing value from Gemma 4 31B (Google API: 14,400 RPD, 16K TPM binding constraint, 131K context) and DiffusionGemma 26B (NVIDIA API: no daily cap, 40 RPM, 262K context). Includes: Google's official sampling params (temp=1.0, top_p=0.95, top_k=64), thinking mode via <|think|>, DGemma's 256-token block requirement (max_completion_tokens=8192 fix), TPM pacing strategy (3s for small, 30s for large), verified quality results for all 3 models, when-to-use-which decision table, and remaining test gaps. Combines official docs + our live test data.
+
+### Updated (delegation gate added to fleet pools)
+- concepts/model-fleet-provider-pools.md — added "Delegation gate" section adapted from cost-aware-delegation skill. Five-condition hard gate (mechanical, verifiable, bounded, nameable success criteria, savings > overhead), keep-with-parent list, good delegation targets, cost test ("if packet > task, too small to delegate"), delegation packet structure (8 fields), parent verification checklist. Source cited as cost-aware-delegation skill; Codex-specific details (PI worker, LM Studio) excluded; principles mapped to our pool model.
+
+## [2026-07-22] docs | Session-close accounting rule + shipped-work consolidation handoff
+Source: session-2026-07-22
+Agent: grok
+Notes: (1) New rule in P:/AGENTS.md: Session-close accounting + handoff completeness - requires ACCOUNTING block + handoff check before declaring done. Triggered by operator asking 'are you sure there's nothing left open?' when 6 handoffs + 8 shipped items were undocumented. (2) Consolidation handoff: session-2026-07-22-shipped-work captures the .agents/ move, dynamic cap, count-explicit prompt, _display_name fix, model-selection framework, Re-observe-on-rejection rule, meta-narrative cleanup, and commit-hygiene lesson - none of which were in the session's 6 planning handoffs.
+
+## [2026-07-22] ingest | Session close-out skill design: improvements + multi-terminal invariants
+Source: session-2026-07-22-www
+Agent: grok
+Notes: /www on /close skill improvements. 6 external-sourced patterns (Hermes handoff fields, Cognizant idempotency/validation-gates/decision-lock, digitalapplied loop cap, dev.to restart-survival) + 5 host-mandatory multi-terminal/stale-data invariants. Applied to /close skill (Hard constraints section + Steps 0/1/6/7). Page: concepts/session-close-out-skill-design.md
+
+## [2026-07-22] docs | Handoff: /tp model pool (stop degrading to inline on rate-limit)
+Source: session-2026-07-22
+Agent: grok
+Notes: /tp currently spawns fresh subagent with model omitted -> inherits parent -> if parent 429s, falls to inline (same-lens). Happened ~5x this session. Handoff scopes the fix: try a pool of spawn_subagent-compatible models (parent, ccr-ornith, go-mimo-v2-5, + Reasoning-lane probes) before inline fallback. Applies model-pool-not-chain to /tp. Critical constraint: pool must be spawn_subagent-compatible subset (dgemma/deepseek/qwen/mistral excluded per tool-fallbacks). Handoff: tp-model-pool-not-inline-fallback-20260722
+
+## [2026-07-22] feat | /tp model pool + /close test suite + correctness fixes
+Source: session-2026-07-22
+Agent: grok
+Notes: Actioned /tp critique findings on /close (all value-adding ones). (1) /tp Step 2 rewritten to try spawn_subagent model pool [nemotron, ornith, glm, mimo, parent] before inline fallback - verified via 4-model probe (all passed). (2) /close: removed undefined new_finding_from_check flag, added decision-lock contradiction-break rule, replaced fuzzy discoverable-from check, added 10-test suite (all pass), added auto-resolve for clean sessions, extended restart-survival spot-check to close-state.md. tool-fallbacks.md updated with probe data. Handoff tp-model-pool-not-inline-fallback-20260722 closed.
+
+## [2026-07-22] ingest | Model tool-calling capability matrix
+Source: session-2026-07-22-www
+Agent: grok
+Notes: /www on which models support agentic tool use. Key finding: most host-pool models DO support tool calling; dgemma is the exception (thinking-mode conflict with framework parser, NOT missing capability - Google ships function calling for Gemma 4). Failure is transport-specific (spawn_subagent/headless --tools fail; direct API works). Adds 7th element to model-selection framework: tool-call requirement. Nemotron paradox: high leaderboard scores but serialization-fails on real tool tasks on this host. Page: concepts/model-tool-calling-capability-matrix.md
+
+## [2026-07-22] docs | Two root-cause handoffs: test-code drift + API guessing
+Source: session-2026-07-22
+Agent: grok
+Notes: (1) test-code-drift-multi-agent-20260722: /close scanner went 4 versions with zero test coverage because concurrent sessions didn't update tests. Fix: coverage gate (pytest --cov-fail-under=80). (2) api-guessing-without-verification-20260722: agent wrote 24 tests against inferred API (8 failed) because grep function-names felt like a contract. Fix: read signatures before writing; test runner already catches wrong guesses. Both are instances of plausible-narratives-substitute-for-verification.
+
+## [2026-07-22] docs | Handoff: skill location audit + optimization review
+Source: session-2026-07-22
+Agent: grok
+Notes: Audit all 38 non-bundled skills across 4 scope locations (user/project/bundled/.agents) for optimal placement per .agents/ open standard + user-scope convention, plus optimization review (size, tests, portability, stale refs, convention compliance). 3 tasks: location audit (per-skill disposition), optimization review, disposition table. Specific questions: /check at project scope (missed by consolidation?), check-work deprecated (retire?), code-review vs review (duplicate?), .agents/ skills (cross-host or misplaced?). Connects to skill-refactoring-program and test-code-drift handoffs.
+
+## [2026-07-22] docs | Handoff: /close v6 deferred design findings
+Source: session-2026-07-22
+Agent: grok
+Notes: /tp critique of /close v6 (glm-5-2, 9 tool calls) found 9 issues. Items 1-4 (broken tests, stale gate count, wrong --no-loop row, untested functions) being fixed by concurrent session. Items 5-9 (quota gate overhead, session_observations false-positive rate, dead backslash regex, decisions-gate-invalidates-wiki-gate, no pruning mechanism) deferred to handoff for design evaluation. 5 findings, each with decision needed + possible fix + priority.

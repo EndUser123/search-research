@@ -1,5 +1,5 @@
 ---
-thread_id: external-state-cross-check-revision-20260721
+thread_id: 380e8091-b8ab-4778-9f57-4cdf31979be7
 parent_handoff_path: none
 current_session_id: 019f819a-7619-7cb3-a6a4-480ff1c916ce
 current_terminal_id: console_019f819a

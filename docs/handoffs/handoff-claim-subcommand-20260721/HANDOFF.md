@@ -1,5 +1,5 @@
 ---
-thread_id: handoff-claim-subcommand-20260721
+thread_id: b66fa7f7-c572-4eb1-8c5d-9b4f0cf98b85
 parent_handoff_path: P:/docs/handoffs/handoff-v02-aar-integration-20260720/HANDOFF.md
 current_session_id: 019f821c-854e-76c1-a755-add284838bdf
 current_terminal_id: console

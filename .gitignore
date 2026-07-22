@@ -624,3 +624,6 @@ backups/
 
 # Third-party and owned clones — each has its own .git repo
 packages/.github_repos/
+
+# Installer logs (regenerable runtime noise)
+packages/installers/ornith-server.log*

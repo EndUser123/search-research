@@ -1,5 +1,5 @@
 ---
-thread_id: exec-gate-enhancement-20260721
+thread_id: 18a85cda-3fa8-47e2-b2bb-f2b55ac77450
 parent_handoff_path: none
 current_session_id: 019f821c-854e-76c1-a755-add284838bdf
 current_terminal_id: console_9f699e91-fb33-4b67-a977-2e7a

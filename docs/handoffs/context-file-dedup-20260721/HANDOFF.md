@@ -1,5 +1,5 @@
 ---
-thread_id: context-file-dedup-20260721
+thread_id: 5c298571-7b40-4cdf-9ddf-cc4599bad45d
 parent_handoff_path: none
 current_session_id: 019f8082-9298-7561-b03e-3c21afc43115
 current_terminal_id: console_fb11bbd2-b737-48d8-bbcc-d06b

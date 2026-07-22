@@ -175,9 +175,51 @@ against current sources. This is the same shape as Disguise 5
 (actor-authored metadata as current truth) but with *time* as the gap
 instead of *author bias*.
 
+### Disguise 7 (2026-07-20 addition): tool-output-as-verification
+
+"The file is 325 lines, verified by direct file inspection." Narrative substitutes
+tool output for understanding of what the tool measures. The reviewer ran
+`Measure-Object -Line`, got 325, and treated it as "the verified line count."
+But `Measure-Object -Line` counts **non-empty lines**, not total lines. The
+actual total is 371 (verified by `.Count` and `splitlines()`). The reviewer's
+"correction" of the writer's 371 → 325 was itself wrong — it shipped with
+confidence because it came from a tool call, but the reviewer didn't understand
+what the tool measured.
+
+**Why this is a distinct disguise, not just a wrong number:** the failure is not
+"the tool gave bad data." The tool gave correct data for what it measures
+(non-empty lines = 325). The failure is that the reviewer **treated tool output
+as verification without understanding the tool's semantics**. The number felt
+authoritative because it came from a command, not from memory or inference. But
+"ran a command" is not the same as "verified the claim" — the command has to
+measure what you think it measures.
+
+**Worked example (2026-07-20):** during a design review loop, the writer claimed
+`Stop_claim_gap_telemetry_probe.py` is "371 lines." The reviewer "corrected"
+this to "325 lines, verified by direct file inspection" using
+`(Get-Content | Measure-Object -Line).Lines`. The writer accepted the correction
+and updated all references. Both the reviewer's correction and the writer's
+acceptance were instances of the anti-pattern: the reviewer didn't understand
+that `-Line` counts non-empty lines only; the writer accepted the authority of
+the correction without independent verification. The original 371 was correct
+all along.
+
+**This disguise is particularly dangerous because it defeats the external-state
+cross-check.** The reviewer was supposed to be the external-state cross-check
+for the writer (see [[external-state-cross-check-as-structural-fix]]). But the
+reviewer's own verification was flawed — they ran a tool, got a number, and
+treated it as ground truth without understanding what the tool measured. The
+correction mechanism itself was infected by the failure mode it was supposed to
+catch.
+
+**Fix:** when a tool produces a number that will be used as a verified claim,
+state what the tool measures in the same breath as the number. "325 non-empty
+lines (via `Measure-Object -Line`)" is honest; "325 lines, verified" is not.
+The investigation target is the **tool's semantics**, not just its output.
+
 ### Common shape
 
-All six disguises share the same structure: the model has gaps (in
+All seven disguises share the same structure: the model has gaps (in
 documentation, in host-applicability, in future intent, in measurement, in
 current-state knowledge, in temporal currency), constructs a plausible
 story to fill the gap (or treats an actor-authored or time-stamped field
@@ -194,6 +236,7 @@ differs per disguise:
 | 4. Unmeasured frequency | State the absence of measurement explicitly |
 | 5. Metadata self-report | Cross-check against external state the author cannot self-certify |
 | 6. Time-indexed claim | Re-check against current sources; label with as-of date |
+| 7. Tool output as verification | State what the tool measures, not just its output; verify tool semantics |
 
 ## Related
 
@@ -204,8 +247,9 @@ differs per disguise:
 
 ## Auto-related
 
-- [[host-surface-boundary]]
-- [[evidence-first-default-and-needless-confirmation]]
-- [[agent-oversight-rubber-stamping]]
-- [[verification-before-completion-principle]]
+- [[optimality-claims-are-completion-claims]]
+- [[go-home-narrative-fabricated-session-state-constraints]]
+- [[tool-use-protocol-subagent-critical-friend]]
+- [[skill-techniques-index]]
+- [[external-state-cross-check-as-structural-fix]]
 

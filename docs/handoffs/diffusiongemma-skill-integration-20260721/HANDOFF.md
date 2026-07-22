@@ -1,5 +1,5 @@
 ---
-thread_id: diffusiongemma-skill-integration-20260721
+thread_id: 0265f516-dcb1-4080-a68b-98135cbda750
 parent_handoff_path: none
 current_session_id: 019f821c-854e-76c1-a755-add284838bdf
 current_terminal_id: console
@@ -19,16 +19,21 @@ Wire the verified-working `diffusiongemma_read.py` (single, enhanced, and batch 
 
 ## 2. Status
 
-**Scripts built and tested; integration into skills not started.**
+**Task A COMPLETE (2026-07-21). Task B/C still open.**
 
 | Component | Built? | Tested? | Integrated into skills? |
 |---|---|---|---|
-| `diffusiongemma_read.py` (single) | ✅ | ✅ T1 | ❌ |
+| `diffusiongemma_read.py` (single) | ✅ | ✅ T1 | ✅ (/www Phase 1 fallback) |
 | `diffusiongemma_read.py` (--enhanced) | ✅ | ✅ T4 blind (20/20) | ❌ |
-| `diffusiongemma_read.py` (--batch) | ✅ | ✅ 26 files in one call | ❌ |
-| `scan_techniques.py` (regex breadth) | ✅ | ✅ 968 skills in 17s | ❌ (no LLM pass yet) |
+| `diffusiongemma_read.py` (--batch) | ✅ | ✅ multi-path fix + 2-file re-test 2026-07-21 | ✅ (/www Phase 1 step 3) |
+| `scan_techniques.py` (regex breadth) | ✅ | ✅ 968 skills in 17s | ❌ (Task B — note: dir mode now needs `--pattern SKILL.md`) |
 | AGENTS.md model-tiering rules | ✅ | ✅ | ✅ (documented) |
 | tool-fallbacks.md | ✅ | ✅ | ✅ (documented) |
+
+**2026-07-21 update (Task A shipped):**
+- `/www` Phase 1 step 3 now invokes `diffusiongemma_read.py <paths...> --batch --json` as the default breadth-reader, with automatic fallback to parent-model reads if the endpoint is unavailable.
+- Script fix required: argparse changed from single `path` to `paths` (nargs="+") so it accepts the multiple concept files qmd returns; dir-mode glob made configurable (`--pattern`, default `*.md`) so it works on wiki concepts, not just SKILL.md trees. Verified: 2 concepts → 1 API call → 4.8s, both summarized correctly.
+- **Backward-compat note for Task B:** the technique-scan dir-mode caller must now pass `--pattern SKILL.md` explicitly (was hardcoded before).
 
 ## 3. What's verified (all from 2026-07-21 testing)
 
