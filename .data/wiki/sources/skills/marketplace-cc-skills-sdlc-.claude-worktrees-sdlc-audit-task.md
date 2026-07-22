@@ -1,0 +1,19 @@
+---
+type: skill-reference
+scope: marketplace
+plugin: cc-skills-sdlc/.claude/worktrees/sdlc-audit
+skill_name: task
+source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/task/SKILL.md
+indexed_date: 2026-07-21
+---
+
+# Skill: task
+
+**Scope:** marketplace (plugin: cc-skills-sdlc/.claude/worktrees/sdlc-audit)
+**Path:** `P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/task/SKILL.md`
+
+Task orchestration - manage Claude Code task list
+
+> This is a lightweight pointer for semantic search. The authoritative source
+> is the SKILL.md file at the path above. Regenerate with
+> `python P:/.data/wiki/scripts/index_skills.py`.

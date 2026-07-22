@@ -1,0 +1,19 @@
+---
+type: skill-reference
+scope: marketplace
+plugin: cc-skills-utils/.claude/worktrees/verify-fix-interactive
+skill_name: main-review
+source_path: P:/packages/.claude-marketplace/plugins/cc-skills-utils/.claude/worktrees/verify-fix-interactive/skills/main-review/SKILL.md
+indexed_date: 2026-07-21
+---
+
+# Skill: main-review
+
+**Scope:** marketplace (plugin: cc-skills-utils/.claude/worktrees/verify-fix-interactive)
+**Path:** `P:/packages/.claude-marketplace/plugins/cc-skills-utils/.claude/worktrees/verify-fix-interactive/skills/main-review/SKILL.md`
+
+Slow, evidence-first maintenance auditor for the main skill family — inspects recent transcripts, diagnostics, and gate telemetry to find unsupported claims, inert gates, receipt mismatches, and regression/promotion candidates.
+
+> This is a lightweight pointer for semantic search. The authoritative source
+> is the SKILL.md file at the path above. Regenerate with
+> `python P:/.data/wiki/scripts/index_skills.py`.

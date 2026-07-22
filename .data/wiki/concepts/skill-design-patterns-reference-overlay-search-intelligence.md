@@ -1,0 +1,68 @@
+---
+title: "Skill design patterns: reference+overlay+validate and search intelligence"
+created: 2026-07-21
+source: session-2026-07-21
+tags: [skill-design, reference-overlay, search-intelligence, query-enhancement, snippet-triage]
+host: grok
+verification: session_20260721
+cognitive_load: 2
+summary: "Two skill design patterns discovered this session: (1) reference+overlay+validate — skills delegate to authoritative source files instead of re-stating their content, with a hard validation gate at the end; (2) search intelligence — query enhancement, diversity planning, and snippet triage before scraping."
+---
+
+# Skill design patterns: reference+overlay+validate and search intelligence
+
+## Pattern 1: Reference+overlay+validate
+
+**Discovered when:** `/www` Phase 3 duplicated `/wiki`'s write logic, causing the `host:` field to be missed because the duplicate copy was incomplete.
+
+**The pattern:**
+- A skill that delegates to another skill should NOT re-state the other skill's steps
+- Instead: reference the authoritative source file and section concretely ("follow `P:/.data/wiki/SCHEMA.md` §2-3")
+- Add only the www-specific overlay (steps unique to this skill)
+- End with a hard validation gate (run health check, confirm exit_clean)
+
+**Anti-pattern (what failed):** `/www` Phase 3 had 9 steps, 5 of which were copies of `/wiki`'s write process. When `/wiki` added the `host:` field requirement, `/www`'s copy didn't get updated. Result: all 7 concepts written via `/www` were missing `host:`.
+
+**Where applied:** `/www` Phase 3 (rewritten this session), and documented as a general principle for any skill that delegates to another.
+
+## Pattern 2: Search intelligence (query enhancement + snippet triage)
+
+**Discovered when:** `/www` Phase 2 had no query enhancement — it mechanically translated gaps into search strings without optimizing them.
+
+**The pattern has 4 components:**
+
+1. **Query enhancement** — transform raw gaps into optimized queries: add domain terminology, apply shape as modifier, add authoritative source targets, de-jargon
+2. **Query diversity planning** — ensure 5 source-type slots: official docs, practitioner blogs, academic/research, community discussion, negative/disconfirmation
+3. **Snippet triage** — score search results on relevance BEFORE scraping; only scrape 2+ scores. Prevents wasting firecrawl credits.
+4. **Iterative refinement** — if gaps remain unresolved after synthesis, reformulate with max 2 rounds.
+
+**Where applied:** `/www` Phase 2 Step 2.1 (query enhancement + diversity) and Step 2.2 (snippet triage), Step 2.8 (iterative refinement).
+
+## Pattern 3: False conclusions eliminate possibilities (meta-lesson)
+
+**Discovered when:** I concluded "DiffusionGemma fails on real tasks" from a single integration-path failure without isolating the layer. This false conclusion prevented me from building batch mode for ~3 hours.
+
+**The lesson:** false conclusions don't just produce wrong claims — they eliminate possibilities from consideration. The cost isn't the wrong conclusion; it's all the work that would have followed from the right conclusion but never started.
+
+**Where documented:** root-cause analysis in the DiffusionGemma testing flow. Related to [[fabricated-causal-chain-receipt-required]] and [[testing-methodology-both-outcomes-informative]].
+
+## Pattern 4: /handoff audit as a technique
+
+**Discovered when:** the user asked "what workstreams need a handoff?" and I had to manually enumerate and classify.
+
+**The pattern:** `/handoff audit` scans session workstreams, cross-references against existing handoffs, and classifies each as shipped / has-handoff-current / has-handoff-stale / needs-new-handoff / quick-to-do. With `-y`, auto-creates and updates handoffs.
+
+**Where applied:** `P:/.grok/skills/handoff/SKILL.md` — new `audit` subcommand.
+
+## Relationship to existing concepts
+
+- [[skill-techniques-index]] — T20 (two-phase analysis), T21 (concurrency test), T22 (model tiering)
+- [[fabricated-causal-chain-receipt-required]] — pattern 3 is the meta-lesson from this concept
+- [[testing-methodology-both-outcomes-informative]] — pattern 3 connects to the layer-isolation principle
+- [[skill-authoring-patterns-dos-and-donts]] — patterns 1-2 extend the industry best practices
+- [[diffusiongemma-4-tier-integration]] — the context where these patterns were discovered
+
+## Auto-related
+
+- [[skill-enforcement-layers]]
+

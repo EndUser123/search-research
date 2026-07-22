@@ -1,0 +1,19 @@
+---
+type: skill-reference
+scope: marketplace
+plugin: cc-skills-sdlc
+skill_name: improve-codebase-architecture
+source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/improve-codebase-architecture/SKILL.md
+indexed_date: 2026-07-21
+---
+
+# Skill: improve-codebase-architecture
+
+**Scope:** marketplace (plugin: cc-skills-sdlc)
+**Path:** `P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/improve-codebase-architecture/SKILL.md`
+
+Surface architectural friction and propose deepening opportunities — refactors that turn shallow modules into deep ones. Use when code architecture is causing friction, modules are shallow, or there are testability issues.
+
+> This is a lightweight pointer for semantic search. The authoritative source
+> is the SKILL.md file at the path above. Regenerate with
+> `python P:/.data/wiki/scripts/index_skills.py`.

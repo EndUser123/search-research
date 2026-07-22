@@ -1,0 +1,19 @@
+---
+type: skill-reference
+scope: claude-cache-local
+plugin: cc-skills-architect/1.0.28
+skill_name: constitutional-patterns
+source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-architect/1.0.28/skills/constitutional-patterns/SKILL.md
+indexed_date: 2026-07-21
+---
+
+# Skill: constitutional-patterns
+
+**Scope:** claude-cache-local (plugin: cc-skills-architect/1.0.28)
+**Path:** `C:/Users/brsth/.claude/plugins/cache/local/cc-skills-architect/1.0.28/skills/constitutional-patterns/SKILL.md`
+
+Standards for constitutional compliance and pattern enforcement.
+
+> This is a lightweight pointer for semantic search. The authoritative source
+> is the SKILL.md file at the path above. Regenerate with
+> `python P:/.data/wiki/scripts/index_skills.py`.

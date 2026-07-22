@@ -1,0 +1,94 @@
+---
+title: "Don't gate what the layer above already gates"
+created: 2026-07-20
+source: session-2026-07-20
+tags: [architecture, gates, proxy, anti-pattern, hooks, enforcement]
+summary: >
+  When a gate at layer N re-checks a property already gated at layer N+1, the
+  upstream gate conflicts with the downstream one. Exemption logic grows
+  unboundedly. The correct fix is to remove the upstream gate and rely on
+  observability.
+agent: grok
+host: both
+cognitive_load: 2
+verification: multi-source-verified
+relations:
+  - target: wiki/concepts/skill-enforcement-layers
+    type: refines
+  - target: wiki/concepts/non-regex-hook-optimizations
+    type: related
+---
+
+# Don't gate what the layer above already gates
+
+## The principle
+
+When a gate (hook, proxy, validator, check) at layer N re-checks a property
+already handled by a downstream component at layer N+1:
+
+1. The upstream gate has less context than the downstream one
+2. Conflicts are always resolved by exempting the upstream gate
+3. Each exemption surfaces a new edge case
+4. Exemption logic grows unboundedly
+5. The correct fix is to remove the upstream gate entirely
+
+## Worked example: CCR admission proxy ceiling (2026-07)
+
+The CCR admission proxy at `P:/.claude/provider-configs/ccr-admission-proxy.js`
+applied a `SAFE_CEILING = 483,616` token limit across all routes. CCR's
+routing layer (`ccr-custom-router.js`) already handled model selection and
+context limits per-route. The proxy sat in front of CCR's routing and applied
+a blanket ceiling — but it had no knowledge of which model CCR would dispatch to.
+
+**What happened:** compaction requests need ~700K tokens. The proxy blocked
+them. Six commits were spent adding exemption logic:
+1. maxTokens>0 guard
+2. claude-haiku override to an undersized model
+3. 2x input floor
+4. 1.1x input floor
+5. Another tweak
+6. Final fix: removed the ceiling entirely
+
+Each exemption surfaced the next edge case. The proxy was doing redundant
+work that caused more harm than good.
+
+**Fix (commit `c91e058`):** removed the ceiling. Proxy is now observability-only.
+
+## The discriminating test
+
+Before adding a gate at layer N that re-checks a property already gated at
+layer N+1, ask:
+
+> **What does the downstream gate do that this gate cannot?**
+
+- If the answer is "the downstream gate has more context" → the upstream
+  gate is redundant; remove it.
+- If the answer is "the upstream gate has faster feedback" → the upstream
+  gate may be worth keeping, but ONLY if the faster feedback justifies the
+  redundancy cost (exemption maintenance, false positives, conflict surface).
+
+## Anti-pattern to recognize
+
+When you find yourself adding exemption logic to a gate (exceptions, opt-out
+flags, bypass mechanisms, `--no-check` flags, model overrides), **the gate
+is probably wrong.** Exemptions are evidence of conflict with a downstream
+layer. The right response is to investigate the downstream layer and remove
+the conflicting gate, not to add more exemption paths.
+
+## Application to this workspace
+
+This principle applies to:
+- Hook design (don't re-check what the model's own reasoning handles)
+- Proxy design (don't re-route what the router already routes)
+- Config validation (don't re-validate what the runtime validates)
+- Permission rules (don't deny what the skill dispatch already gates)
+
+## Related
+
+- CCR fleet handoff: `P:/docs/ccr-fleet-request-lifecycle-handoff-2026-07-18.md`
+- Original design (RC2 principle): `~/.grok/design-runs/grok-design-10d0654e/grok-design-doc-10d0654e.md` (may be deleted if design docs are cleaned up — this wiki page is the durable version)
+
+## Auto-related
+
+- [[llm-handoff-best-practices]]
+

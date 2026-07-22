@@ -1,0 +1,60 @@
+---
+title: "Plan Mode in Grok Build is Structured-Thinking, Not a Security Sandbox"
+created: 2026-07-20
+source: session-2026-07-20
+tags: ['grok-build', 'plan-mode', 'host-grok', 'safety-model']
+summary: >
+  Plan mode is for aligning on architectural choices before commitment; subagent/bash bypass are by design. The safety story in Grok Build is permissions (rules + modes) + hooks + OS-level sandbox. Plan mode sits orthogonal to all three.
+agent: grok
+host: grok
+cognitive_load: 2
+verification: local-only
+---
+
+## Summary
+
+Grok Build's built-in `/plan` is a **structured-thinking phase** for alignment on architectural choices where multiple reasonable approaches exist and the wrong choice wastes effort. It is **not** a security boundary. The subagent-inheritance gap and bash-not-inspected-for-file-writes limitations documented in `19-plan-mode.md` are not bugs — they reflect that plan mode is not trying to be a containment primitive.
+
+The actual safety story in Grok Build is layered: **permission rules + permission modes + PreToolUse hooks + OS-level sandbox profiles**. Plan mode sits orthogonal to all three. Plan mode is about thinking, not containment.
+
+## Key Findings
+
+- **Subagent bypass is by design.** Per `19-plan-mode.md:131-133`: "Subagents are not covered by the parent session's plan-mode edit gate. Each subagent starts with a fresh plan-mode tracker (Inactive), so a general-purpose (or other write-capable) subagent can edit files while the parent is still in plan mode — and it inherits the parent's permission mode (including always-approve)."
+- **Bash commands not inspected for file writes.** Per `19-plan-mode.md:128-129`: "Bash commands are not inspected for file writes — plan mode blocks the edit tools, not shell redirection." A `python -c "open(...).write(...)"` bypasses the edit gate.
+- **State machine persistence.** Per `19-plan-mode.md:114-115`: plan-mode state persists to disk and survives process restarts. Transient states (`Pending`, `ExitPending`) collapse to `Inactive` on restart, but `Active` survives. Footgun for users resuming sessions after crashes.
+- **Plan mode ≠ permission mode.** Per `22-permissions-and-safety.md`: `defaultMode: "plan"` is "accepted for compatibility; plan sessions are a separate feature." Users who set `defaultMode: "plan"` thinking it enables plan mode are wrong — they need `/plan`, `Shift+Tab`, or `enter_plan_mode`.
+- **No plan-lifecycle hook events.** Per `10-hooks.md` event table, the hook surface has no `enter_plan_mode` / `exit_plan_mode` / `plan_approved` event. Hooks only see those as tool calls in `PreToolUse` / `PostToolUse` payloads — and the `toolName` for those is not documented in the user-guide.
+
+## Structured-thinking recipe (from `19-plan-mode.md:9-19`)
+
+When plan mode is active, the agent:
+
+1. Reads and searches the codebase to understand existing patterns and architecture
+2. Designs an implementation approach and writes it to the plan file (`plan.md` in the session dir)
+3. May use `ask_user_question` to clarify specific questions
+4. Calls `exit_plan_mode` to present the plan for your approval
+
+The plan file format (per `19-plan-mode.md:55-65`):
+
+- **Context** — why this change
+- **Recommended approach** — not every alternative, just the chosen one
+- **Paths of critical files to modify**
+- **Existing functions/utilities to reuse** with file paths
+- **Verification section** — how to test end-to-end
+
+A skill can encode this thinking pattern at `~/.grok/skills/<name>/SKILL.md`. The skill version does not get the runtime edit gate or TUI preview UI, but the user doesn't need those if they trust the skill to behave planfully.
+
+## Related
+
+- [[grok-build-cc-aca-actually-enabled]] — the cc-aca-* suite is firing as the runtime safety net, not plan mode
+- [[grok-build-disabled-hooks-per-hook-layer]] — the per-hook disable mechanism (orthogonal to plan mode)
+- [[grok-build-compat-layer-marketplace-plugin-skills]] — why a Grok-native `/plan` skill at user-level is hidden by `/plan` builtin priority
+- [[operator-collaboration-style-and-leverage]] — adjacent topic on how the operator works with agents
+
+## Auto-related
+
+<!-- auto-managed by wiki_after_write.py -->
+
+## Sources
+
+- session-2026-07-20 — verified via `~/.grok/docs/user-guide/19-plan-mode.md`, `22-permissions-and-safety.md`, `10-hooks.md`

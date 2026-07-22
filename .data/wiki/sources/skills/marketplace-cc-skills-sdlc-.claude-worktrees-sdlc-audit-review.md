@@ -1,0 +1,19 @@
+---
+type: skill-reference
+scope: marketplace
+plugin: cc-skills-sdlc/.claude/worktrees/sdlc-audit
+skill_name: review
+source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/review/SKILL.md
+indexed_date: 2026-07-21
+---
+
+# Skill: review
+
+**Scope:** marketplace (plugin: cc-skills-sdlc/.claude/worktrees/sdlc-audit)
+**Path:** `P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/review/SKILL.md`
+
+"Unified code & PR review — modes: pr (default), diff, file, tests, errors, types, simplify, critical, multi (multi-LLM), full (14-agent inspection)" argument-hint: "[mode] [scope]" allowed-tools: ["Bash", "Glob", "Grep", "Read", "Task"]
+
+> This is a lightweight pointer for semantic search. The authoritative source
+> is the SKILL.md file at the path above. Regenerate with
+> `python P:/.data/wiki/scripts/index_skills.py`.

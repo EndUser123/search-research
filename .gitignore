@@ -593,8 +593,22 @@ backups/
 **/.skill_usage.lock
 **/.continuous_mode.flag
 
-# Personal wiki data (not source packages)
+# Personal data (not source packages) — but wiki IS source, track it
+# Standard gitignore re-include pattern: ignore parent, un-ignore child dir,
+# ignore everything in child, then un-ignore specific subdirs/files.
 .data/
+!.data/wiki/
+.data/wiki/**
+!.data/wiki/concepts/
+!.data/wiki/concepts/**
+!.data/wiki/entities/
+!.data/wiki/entities/**
+!.data/wiki/sources/
+!.data/wiki/sources/**
+!.data/wiki/scripts/
+!.data/wiki/scripts/**
+!.data/wiki/SCHEMA.md
+!.data/wiki/log.md
 
 # Cross-platform research artifacts (research-brief.v1, research-run.v1, etc.)
 /.artifacts/

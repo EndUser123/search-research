@@ -4302,3 +4302,6 @@ Path: P:/.data/wiki/concepts/claude-code-verify-builtin-skill.md
 
 ### Added (late session)
 - concepts/qmd-semantic-search-requires-llm-backend.md — root cause of QMD's broken semantic search: CLI didn't pass llm_backend (BM25-only), auto-link timeout too short, default model weak. 3-layer fix documented.
+
+### Added (closing the lanes-vs-roles gap)
+- concepts/model-lanes-vs-roles.md — the 2-lane routing framework (Reasoning vs Code), extracted from /go spawn recipe into its own wiki concept. Documents: ccr-ornith capabilities + limitations (65K context, Windows attr false-positives, 956s timeout), DiffusionGemma capabilities + the critical spawn_subagent failure + direct API workaround, Gemini 3.x as new free option, full fleet table (11 models with lane/cost/context), wave table, context-fit formula. Cross-links model-picker, compensating-for-weaker-models, gemini catalog, gemini-api-vs-agy-cli.

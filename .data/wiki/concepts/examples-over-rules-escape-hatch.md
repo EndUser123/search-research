@@ -1,0 +1,88 @@
+---
+title: "Examples over rules — escape hatch for tacit knowledge that resists encoding"
+created: 2026-07-19
+source: session-2026-07-19
+tags: [context-engineering, few-shot, prompting, llm, technique]
+summary: >
+  Rules encode explicit knowledge; examples encode tacit knowledge. When you
+  find yourself rewriting the same rule repeatedly and outputs still feel
+  "off," stop trying to encode the rule and instead drop 10-20 of your best
+  past outputs into the prompt as a style/pattern corpus. This is a tool to
+  reach for when rules fail, not a default architecture.
+
+agent: grok
+cognitive_load: 2
+verification: inferred-only
+evidence_gaps:
+  - "Local efficacy for engineering/code domains is unverified; the mechanism is well-established for prose-style transfer but the claim that it transfers poorly to verifiable-output domains (code, infra, policy) is reasoned from first principles, not measured."
+  - "No local corpus of past outputs currently exists in P:/.data/; the absence check confirmed only rules-based or evaluation-based artifacts."
+host: both
+---
+
+## Summary
+
+Rules and examples are two different encoding strategies for getting an LLM to
+match your intent. **Rules encode explicit knowledge** (verifiable, testable,
+hook-enforceable). **Examples encode tacit knowledge** (cadence, emphasis,
+taste — patterns too complex to articulate). When rules work, rules win. When
+the thing you're trying to convey resists articulation, stop rewriting the
+rule and dump examples instead.
+
+## Key Findings
+
+**The technique (when it earns its keep):**
+
+- Provide 10–30 curated past outputs labeled with *why each is good*. Raw dumps
+  force the model to infer your taste; labeled examples tell it.
+- The corpus must be context-bounded (fits the window) or have a retrieval
+  path. Hand-waving "index and reference" is the implementation gap most
+  treatments skip.
+- The corpus must rotate, or it slowly teaches the model a style you've
+  outgrown. Style drifts; oldest examples must carry a date.
+
+**Where it works (high confidence, well-established mechanism):**
+
+- Prose-style transfer: newsletters, brand voice, content of any kind.
+- Repeatable artifacts with strong "this sounds like me" as the success
+  criterion, where correctness is not separately verifiable.
+
+**Where it likely transfers poorly (Assumption — see EVIDENCE_GAP):**
+
+- Verifiable-output domains (code, infra, policy, hooks): success criterion is
+  "passes tests / fires correctly / enforces the invariant," not "sounds
+  right." Rules and tests are the stronger encoding because they are
+  hook-enforceable and unambiguous.
+- One-off tasks: a corpus is amortized across many invocations of the same
+  workflow. For single-shots, the upfront cost of curation doesn't compound.
+
+**Signal that this is the right tool (the trigger to remember):**
+
+> You keep rewriting the same rule / instruction / system prompt for a workflow
+> and the output still feels wrong in a way you can't articulate. "I know it
+> when I see it, but I can't write the rule for it."
+
+That's the firing condition. Stop trying to write a better rule. Collect 10-20
+of your best past outputs, paste them in, and ask the model to match them.
+
+## Related
+
+- [[skill-enforcement-layers]] @related — rules-based enforcement is the
+  complement; this page is the escape hatch when rules fail
+- [[solo-operator-adr-best-practices]] @related — ADRs are rules-as-decisions;
+  the corpus method applies to prose-shaped outputs ADRs don't cover
+- [[claude-code-skill-failure-patterns]] @related — skills are the strongest
+  rules encoding; this is the fallback for what skills can't capture
+
+## Auto-related
+
+<!-- wiki_after_write.py will populate this -->
+
+## Sources
+
+- Session 2026-07-19 (this conversation)
+- Video: "Stop Prompting Claude. Use Hormozi's Method Instead" — source
+  transcript reviewed in-session
+- Local absence check: `P:/.data/` directory tree + grep for
+  `examples|corpus|few-shot|style-reference` — no existing corpus layer found
+  (only rules-based artifacts: `wiki/concepts/`, `cks/entries/`, `evals/gold/`,
+  `chs_archive/` raw session logs)
