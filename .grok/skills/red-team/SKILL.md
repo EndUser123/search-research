@@ -131,6 +131,25 @@ runs against it; output is parsed into the standard findings JSON. Tag
 findings from the cross-model specialist with `[cross-model: <slug>]` in
 the synthesis.
 
+**Quota optimization (critical for agy):** agy quota is **request-based**,
+not token-based. Each tool-call round-trip (file read, file write) counts
+as an API request. A 3-file review via separate tool reads costs ~15% of
+the 5h budget; the same review with files merged into 1 temp file costs
+~1.6%. **Always merge target files into a single temp file before
+dispatching to agy.** This takes effective capacity from ~5 runs/5h to
+~50 runs/5h.
+
+Measured quota data (2026-07-23, account a.hominidae@gmail.com, Gemini
+Flash + Pro group):
+
+| Pattern | Tool reads | Quota used (5h) | Runs per 5h |
+|---|---|---|---|
+| Single file (merged) | 1 | ~1.6% | ~50 |
+| Multi-file (separate reads) | 3-4 | ~15.6% | ~5 |
+| Light review (1 small file) | 1-2 | ~1.9% | ~40 |
+
+Source: 3-run quota measurement experiment, session 2026-07-23.
+
 **Reference:** `model-fleet-provider-pools.md` (fleet inventory),
 `model-tool-calling-capability-matrix.md` (tool-call compatibility),
 `model-pool-not-chain.md` (pool selection philosophy).
