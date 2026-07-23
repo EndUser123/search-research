@@ -64,6 +64,36 @@ with downstream blast radius, or external-facing behavior.
 **Anti-pattern.** Running `/red-team` on every "important" edit. Not every
 important edit is adversarial; many are routine review. Use the pre-check.
 
+### Wiki grounding (mandatory after routing pre-check passes)
+
+Before spawning specialists, query the wiki for existing knowledge related
+to the target. This prevents specialists from producing false-positive
+findings based on missing context (e.g., claiming "hooks don't fire" when
+the wiki documents that they do).
+
+```bash
+qmd search --collection wiki "<target topic keywords>" --limit 10
+```
+
+For each result in `concepts/`:
+- If a concept **validates** a premise in the target: pass to specialists
+  as "wiki-confirmed: concept-path confirms premise"
+- If a concept **contradicts** a premise: pass to specialists as a
+  pre-found attack vector: "wiki-note: concept-path may contradict
+  premise -- verify"
+- If a concept is **unrelated**: skip
+
+This is the same pattern `/plan` uses (wiki-grounding check before
+proposing). It ensures specialists start with known context instead of
+re-deriving it from scratch or, worse, building false assumptions.
+
+**Reference incident (2026-07-22):** a red-team specialist produced a
+CRITICAL finding ("Stop hooks don't fire under Grok Build") that was
+already refuted by the wiki concept `windows-gitbash-hook-invocation.md`.
+If the wiki had been queried first, the specialist would have started with
+"the wiki says hooks fire via shebang -- verify whether the proposal's hook
+path is Grok-native" instead of building the wrong conclusion from scratch.
+
 ## Mission
 Stress-test a proposal / solution / design / implementation / plan before commitment, then produce one refined output: ranked weaknesses, verified findings, concrete fixes, and a single go/no-go verdict.
 
@@ -113,7 +143,7 @@ evidence for whichever sources or checks are claimed.
 
 The orchestrator never holds specialist findings in its own context — only file paths. This keeps the long-lived orchestrator context small; findings load into the critic's ephemeral context instead. (Proven necessary: the adversarial-review family hit token walls under prose-paste and adopted this same disk-backed contract to fix it.)
 
-**run_dir** — generate at the start of every run: `P:/.claude/.artifacts/{session_id}/red-team/{YYYYMMDD-HHMMSS}/`. Create the directory before dispatching specialists. Use the **full session_id** (the runtime session UUID from `$CLAUDE_SESSION_ID` or the transcript filename stem) — NOT `terminal_id`/`$WT_SESSION`, which is shared across concurrent sessions in one Windows Terminal. The `session_id` segment makes concurrent runs in the same terminal non-colliding; the timestamp orders runs within a session. (Deviates from the monorepo's `{terminal_id}/{skill_name}/` convention deliberately — terminal_id collides; see plugin CLAUDE.md.)
+**run_dir** — generate at the start of every run: `P:/.artifacts/red-team/{session_id}/{YYYYMMDD-HHMMSS}/`. Create the directory before dispatching specialists. Use the **full session_id** (the runtime session UUID from `$CLAUDE_SESSION_ID` or the transcript filename stem) — NOT `terminal_id`/`$WT_SESSION`, which is shared across concurrent sessions in one Windows Terminal. The `session_id` segment makes concurrent runs in the same terminal non-colliding; the timestamp orders runs within a session. (Deviates from the monorepo's `{terminal_id}/{skill_name}/` convention deliberately — terminal_id collides; see plugin CLAUDE.md.)
 
 **Per-specialist path:** `{run_dir}/{specialist-name}.json` (e.g. `{run_dir}/security.json`).
 
@@ -257,7 +287,7 @@ python "<plugin_root>/__lib/telemetry.py" commit \
   [--duration-s <seconds>] [--operator-outcome accepted|partial|overridden|unknown]
 ```
 
-The writer derives `counts`/`critic_conflicts_resolved`/`top_categories` from `{run_dir}/critic.json` defensively (a missing critic produces a partial line with `parse_error`, never an exception). If the command itself fails, note it in the Review note section; **do not abort the run** — the verdict is the user-facing deliverable, telemetry is best-effort. `operator_outcome` defaults to `unknown`; update it later if the operator accepts/overrides the verdict (`python telemetry.py recent` reads back; manual edit of `P:/.claude/state/red-team/telemetry.jsonl` to amend `operator_outcome` is acceptable).
+The writer derives `counts`/`critic_conflicts_resolved`/`top_categories` from `{run_dir}/critic.json` defensively (a missing critic produces a partial line with `parse_error`, never an exception). If the command itself fails, note it in the Review note section; **do not abort the run** — the verdict is the user-facing deliverable, telemetry is best-effort. `operator_outcome` defaults to `unknown`; update it later if the operator accepts/overrides the verdict (`python telemetry.py recent` reads back; manual edit of `P:/.artifacts/red-team/telemetry.jsonl` to amend `operator_outcome` is acceptable).
 
 ## ROI frame
 `ROI ≈ (debug-time saved) × (recurrence frequency) ÷ (effort to land)`
@@ -494,14 +524,14 @@ dilute the verdict. Canonical template + worked examples at
 - Real incidents are converted into durable evals whenever feasible.
 - Improvement is judged by measured outcomes, not by self-description of being "better."
 
-**Mandatory telemetry:** every run appends one structured line to `P:/.claude/state/red-team/telemetry.jsonl` (see §4 Synthesis). The schema, writer, and CLI live in `__lib/telemetry.py` + `__lib/telemetry_schema.py`. Override path with `RED_TEAM_STATE_DIR`.
+**Mandatory telemetry:** every run appends one structured line to `P:/.artifacts/red-team/telemetry.jsonl` (see §4 Synthesis). The schema, writer, and CLI live in `__lib/telemetry.py` + `__lib/telemetry_schema.py`. Override path with `RED_TEAM_STATE_DIR`.
 
 **Incident capture:** when a run misses an issue, overfires, routes poorly, wastes time, or returns malformed output, record it:
 ```
 python "<plugin_root>/__lib/incidents.py" add --category <routing|formatting|critic-calibration|specialist-miss|stale-state|latency|other> \
   --run-id <run_id> --summary "..." [--expected ... --observed ... --impact ... --evidence ... --root-cause ...]
 ```
-Incidents live at `P:/.claude/state/red-team/incidents.jsonl`. The improvement workflow (Phase 3b) reads them, clusters repeats, and proposes changes.
+Incidents live at `P:/.artifacts/red-team/incidents.jsonl`. The improvement workflow (Phase 3b) reads them, clusters repeats, and proposes changes.
 
 **Safe automation vs human-gated:**
 - *Automatable:* collecting telemetry, clustering incidents, drafting candidate fixes, generating eval cases, running offline regression.

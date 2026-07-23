@@ -56,9 +56,9 @@ For ANY proposal that touches stateful systems — hooks with state files, contr
 - **How many orphaned state files exist RIGHT NOW?** Check: `~/.claude/.artifacts/*/hook_state/` (task contracts), `~/.claude/.state/` (other state), `~/.claude/plans/` (plan files).
 
 ### Root Write Avoidance
-- All findings and artifacts go under `P:/.claude/.artifacts/<run_dir>/` — never to project root (`P:\`).
+- All findings and artifacts go under `P:/.artifacts/red-team/<run_dir>/` — never to project root (`P:\`).
 - The directory policy gate (`PreToolUse_directory_policy.py`) blocks writes to `P:\` root.
-- If a specialist needs to test write behavior, use `P:/.claude/.artifacts/test/` as the target.
+- If a specialist needs to test write behavior, use `P:/.artifacts/red-team/test/` as the target.
 
 ## Tasks
 1. Restate the proposal in your own words (one paragraph); mark scope confirmed / inferred / needs-clarification.

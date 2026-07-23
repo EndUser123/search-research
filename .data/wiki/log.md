@@ -1,5 +1,41 @@
 # Vault Log
 
+## [2026-07-20] ingest | Design Doc and Spec System Patterns: External Best Practices
+Source: session-2026-07-20 (/www research on design system improvements)
+Agent: grok
+Notes: /www research on external design-doc/spec-generation systems. Sources: Augment Code (living specs), Addy Osmani (spec-writing guide), GitHub 2,500-repo study, Barnacle multi-agent document writing. Found 5 patterns to adopt: bidirectional spec updates, protected-decision markers, hierarchical spec summaries, cost-aware model tiering, structured decision logs. Validated 6 patterns we already do well.
+Page: P:/.data/wiki/concepts/design-doc-spec-system-patterns.md
+
+## [2026-07-22] ingest | Dead code detection workflow: vulture for Python LLM agent pipelines
+Source: session-2026-07-22
+Agent: grok
+Notes: /www: dead code detection workflow (vulture) + Grok Build hook architecture clarification
+Page: wiki/concepts/dead-code-detection-workflow.md
+
+## [2026-07-20] ingest | Friction Detection: Operator Pushback as Mechanical Trigger Signal
+Source: session-2026-07-20 (/www research on friction trigger reliability)
+Agent: grok
+Notes: /www research on making the /aar trigger reliable. Sources: arxiv 20,574-session study (pushback = primary misalignment signal, 41% of turns), Latitude.so (6 failure modes with detection methods). Key finding: detect operator pushback in transcript mechanically, not abstract "friction." Resolves the open question from mandatory-step-enforcement-code-over-prose.
+Page: P:/.data/wiki/concepts/friction-detection-operator-pushback-as-trigger.md
+
+## TUI Testing Strategy
+Source: session-2026-07-22
+Agent: grok
+Notes: /www research: 4-layer testing stack for Textual TUI apps (unit + property + integration + mutation)
+Page: P:/.data/wiki/concepts/tui-testing-strategy-python-textual.md
+
+## [2026-07-20] ingest | Mandatory Step Enforcement: Move Control Flow from Prose to Code
+Source: session-2026-07-20 (/www research)
+Agent: grok
+Notes: /www research on structural enforcement of mandatory steps. Sources: Brightlume (state machines), OpenAI (harness engineering), existing wiki (skill-enforcement-layers, skill-step-downgraded). Key finding: move enforcement from prose (advisory) to code (structural). Three patterns: state-machine guarded transitions, scanner-side gates, linter-promotion.
+Page: P:/.data/wiki/concepts/mandatory-step-enforcement-code-over-prose.md
+
+## [2026-07-20] ingest | Skill Step Downgraded from Action to Note Under Context Momentum
+Source: session-2026-07-20
+Agent: grok
+Notes: /close retrospective gate fired correctly but the "ask operator" action was downgraded to "recommend" in summary table. Operator caught it. Same root cause as premature solutioning: prose rules don't bind under context momentum.
+Page: P:/.data/wiki/concepts/skill-step-downgraded-from-action-to-note.md
+
 ## --source
 Source: session-2026-07-22 (/www search tools)
 Agent: --agent
@@ -4575,3 +4611,24 @@ Notes: Audit all 38 non-bundled skills across 4 scope locations (user/project/bu
 Source: session-2026-07-22
 Agent: grok
 Notes: /tp critique of /close v6 (glm-5-2, 9 tool calls) found 9 issues. Items 1-4 (broken tests, stale gate count, wrong --no-loop row, untested functions) being fixed by concurrent session. Items 5-9 (quota gate overhead, session_observations false-positive rate, dead backslash regex, decisions-gate-invalidates-wiki-gate, no pruning mechanism) deferred to handoff for design evaluation. 5 findings, each with decision needed + possible fix + priority.
+
+## [2026-07-22] docs | Handoff: /close scanner architecture + root-cause chain (5 levels)
+Source: session-2026-07-22
+Agent: grok
+Notes: 5-level root-cause analysis of the /close gate resolution failure (LLM said "noting" instead of acting). Level 1: symptoms (RC1-RC5). Level 2: mechanisms. Level 3: common pattern (agents solve immediate problems without system understanding). Level 4: Observe-Before-Propose scope too narrow (fires on structure, not infrastructure). Level 5: LLM optimizes output production over system understanding. Plus non-regex alternatives for scanner (YAML frontmatter parsing vs regex scraping). 7 tasks with dependency order. Task 1 (verify qmd) blocks everything.
+
+## [2026-07-22] ingest | Grok per-hook disable layer — silent suppression of plugin hooks
+Source: session-2026-07-22 (via /www)
+Agent: grok
+
+## [2026-07-22] ingest | Hook failure mode taxonomy — general, Grok-specific, exec-gate-specific
+Source: session-2026-07-22 (via /www)
+Agent: grok
+
+## [2026-07-22] ingest | Read-only vs mutating command classification — three solutions for exec-gate friction
+Source: session-2026-07-22 (via /www)
+Agent: grok
+
+## [2026-07-22] ingest | Exec-gate plugin design rationale and reusable logic (retired)
+Source: session-2026-07-22
+Agent: grok

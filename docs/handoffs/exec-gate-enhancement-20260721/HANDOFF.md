@@ -1,4 +1,14 @@
 ---
+SUPERSEDED 2026-07-22: The exec-gate plugin was retired. The matcher-based approach
+could not distinguish read-only from mutating bash commands (both go through
+run_terminal_command). Design rationale and reusable logic preserved at
+P:/.data/wiki/concepts/exec-gate-plugin-design-rationale-and-reusable-logic.md.
+Source archived at P:/.data/evidence/exec-gate-retired-20260722/.
+Do not implement enhancements to the retired plugin. If reviving the concept,
+use bash-classify as a payload inspector, not a tool-name matcher. See
+P:/.data/wiki/concepts/read-only-vs-mutating-command-classification.md.
+---
+---
 thread_id: 18a85cda-3fa8-47e2-b2bb-f2b55ac77450
 parent_handoff_path: none
 current_session_id: 019f821c-854e-76c1-a755-add284838bdf

@@ -4,7 +4,7 @@ Mirror of cc-lazy-closure-debt/__lib/debt_store.py: append+fsync JSONL with a
 process-local seq counter for sub-second ordering. One telemetry line per
 /red-team run.
 
-State path: P:/.claude/state/red-team/telemetry.jsonl
+State path: P:/.artifacts/red-team/telemetry.jsonl
 Override: RED_TEAM_STATE_DIR
 
 CLI:
@@ -41,7 +41,7 @@ def _next_seq() -> int:
         return _seq_counter
 
 
-DEFAULT_STATE_ROOT = Path(os.environ.get("RED_TEAM_STATE_DIR", "P:/.claude/state"))
+DEFAULT_STATE_ROOT = Path(os.environ.get("RED_TEAM_STATE_DIR", "P:/.artifacts"))
 PLUGIN_NAME = "red-team"
 
 

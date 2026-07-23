@@ -4,7 +4,7 @@ Same append+fsync JSONL pattern as telemetry.py. An incident is a durable
 record of a /red-team run misfire: miss, overfire, misroute, malformed output,
 stale state, latency spike. Operator-authored (post-hoc), not auto-captured.
 
-State path: P:/.claude/state/red-team/incidents.jsonl
+State path: P:/.artifacts/red-team/incidents.jsonl
 Override: RED_TEAM_STATE_DIR
 
 CLI:

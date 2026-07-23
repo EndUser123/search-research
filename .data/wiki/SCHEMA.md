@@ -418,6 +418,13 @@ python .../wiki_health_check.py --fix [--dry-run]
 
 **Automation (Claude-side only):** Phase 1 of `/wiki lint` is included in the `/main` health check on every invocation; `/main --fix` applies the safe-subset through a needs-based gate (re-runs only when vault mtime fingerprint changed since last fix; sentinel at `P:/.claude/.artifacts/_main/wiki_autofix_fingerprint.txt`).
 
+**External reference scanning** (consolidation safety net): `--fix` also scans
+`P:/docs/handoffs/` and `P:/docs/` for broken path references to deleted wiki
+pages. When a wiki page is consolidated/deleted/merged, handoffs referencing it
+by path become stale. `--fix` repairs what it can (unique fuzzy match at ≥0.9)
+and flags the rest as "manual review needed." **Run `--fix` after every
+consolidation pass** (manual merge, `/dream`, or Phase 2 deletions).
+
 ### Update
 
 Refresh stale wiki pages by detecting topics that need updating.

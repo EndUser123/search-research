@@ -78,15 +78,15 @@ it is a bug.
 
 | Path | Writer | Purpose |
 |---|---|---|
-| `P:/.claude/.artifacts/{session_id}/red-team/{ts}/` | Orchestrator (creates run_dir) | Per-run working directory |
+| `P:/.artifacts/red-team/{session_id}/{ts}/` | Orchestrator (creates run_dir) | Per-run working directory |
 | `{run_dir}/_run.json` | Orchestrator | Run metadata: status, dispatched, deferred, failed_agents |
 | `{run_dir}/proposal.md` | Planner | Restated proposal + candidate weaknesses |
 | `{run_dir}/prospect.md` | Planner (conditional) | Wiki/web priors scan |
 | `{run_dir}/claims.json` | Orchestrator (claim-refute setup) | Extracted claims with claim_type tags |
 | `{run_dir}/{specialist}.json` | Each specialist | Findings per the schema in `commands/red-team.md` |
 | `{run_dir}/critic.json` | Critic | Aggregated verdict + findings |
-| `P:/.claude/state/red-team/telemetry.jsonl` | `__lib/telemetry.py commit` | One structured line per run (Phase 3a self-improvement) |
-| `P:/.claude/state/red-team/incidents.jsonl` | `__lib/incidents.py add` | Run misfire records (specialist-miss, dispatch-failure, etc.) |
+| `P:/.artifacts/red-team/telemetry.jsonl` | `__lib/telemetry.py commit` | One structured line per run (Phase 3a self-improvement) |
+| `P:/.artifacts/red-team/incidents.jsonl` | `__lib/incidents.py add` | Run misfire records (specialist-miss, dispatch-failure, etc.) |
 
 **May NOT write:**
 
