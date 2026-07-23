@@ -1,5 +1,11 @@
 # Vault Log
 
+## [2026-07-20] ingest | Spec-Driven Development and Harness Engineering: Ecosystem Map
+Source: session-2026-07-20 (/www deep investigation of design system repos)
+Agent: grok
+Notes: Deep /www investigation of spec-driven development and harness engineering repos. Sources: GitHub Spec Kit (full spec-driven.md read), awesome-harness-engineering (326KB README), Addy Osmani, Augment Code, Martin Fowler/Böckeler, Alibaba open-code-review, statewright, lopopolo/harness-engineering, Loop Engineering. Key findings: our patterns validated as industry-standard; 4 techniques worth adopting from Spec Kit (constitutional gates, [NEEDS CLARIFICATION] markers, template-driven quality, specify→plan→tasks chain).
+Page: P:/.data/wiki/concepts/spec-driven-development-harness-engineering-ecosystem.md
+
 ## [2026-07-20] ingest | Design Doc and Spec System Patterns: External Best Practices
 Source: session-2026-07-20 (/www research on design system improvements)
 Agent: grok
@@ -4631,4 +4637,19 @@ Agent: grok
 
 ## [2026-07-22] ingest | Exec-gate plugin design rationale and reusable logic (retired)
 Source: session-2026-07-22
+Agent: grok
+
+## [2026-07-22] ingest | LLM defensiveness under user pushback — skill-level fixes don't work, structural ones do
+Source: session-2026-07-22 (via /www)
+Agent: grok
+
+
+## 2026-07-23 — problem-first-systems-decomposition
+
+- **Page:** wiki/concepts/problem-first-systems-decomposition.md
+- **Why:** user asked what mental model prevents optimization-without-understanding in LLM agents
+
+
+## [2026-07-22] ingest | Challenge-triggered verification — actual implementations people are using
+Source: session-2026-07-22 (via /www)
 Agent: grok
