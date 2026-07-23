@@ -4,7 +4,7 @@ scope: grok-installed-plugins
 plugin: episodic-memory-479fd403
 skill_name: remembering-conversations
 source_path: C:/Users/brsth/.grok/installed-plugins/episodic-memory-479fd403/skills/remembering-conversations/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: remembering-conversations

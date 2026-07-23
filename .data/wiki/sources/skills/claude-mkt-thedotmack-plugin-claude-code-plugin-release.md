@@ -4,7 +4,7 @@ scope: claude-mkt-thedotmack
 plugin: plugin
 skill_name: claude-code-plugin-release
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/thedotmack/plugin/skills/version-bump/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: claude-code-plugin-release

@@ -3,7 +3,7 @@ type: skill-reference
 scope: codex-user
 skill_name: skillopt
 source_path: C:/Users/brsth/.codex/skills/skillopt/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: skillopt

@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-utils/.claude/worktrees/verify-fix-interactive
 skill_name: main-review
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-utils/.claude/worktrees/verify-fix-interactive/skills/main-review/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: main-review

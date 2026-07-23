@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-skills-ai-api/1.0.22
 skill_name: perplexity-web-mcp
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/perplexity-web-mcp/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: perplexity-web-mcp

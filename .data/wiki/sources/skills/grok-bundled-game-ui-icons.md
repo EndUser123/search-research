@@ -3,7 +3,7 @@ type: skill-reference
 scope: grok-bundled
 skill_name: game-ui-icons
 source_path: C:/Users/brsth/.grok/bundled/skills/game-ui-icons/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: game-ui-icons

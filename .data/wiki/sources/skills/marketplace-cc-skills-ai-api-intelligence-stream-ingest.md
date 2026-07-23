@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-ai-api
 skill_name: intelligence-stream-ingest
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/intelligence-stream-ingest/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: intelligence-stream-ingest

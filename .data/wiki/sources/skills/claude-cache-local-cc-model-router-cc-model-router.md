@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-model-router
 skill_name: cc-model-router
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-model-router/0.2.25/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: cc-model-router

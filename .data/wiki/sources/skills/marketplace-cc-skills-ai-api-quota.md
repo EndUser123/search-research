@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-ai-api
 skill_name: quota
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/quota/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: quota

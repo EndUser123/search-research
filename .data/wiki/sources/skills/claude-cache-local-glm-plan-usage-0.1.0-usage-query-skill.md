@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: glm-plan-usage/0.1.0
 skill_name: usage-query-skill
 source_path: C:/Users/brsth/.claude/plugins/cache/local/glm-plan-usage/0.1.0/skills/usage-query-skill/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: usage-query-skill

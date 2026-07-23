@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-skills-sdlc/1.0.237
 skill_name: evidence-driven-experiment-loop
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/evidence-driven-experiment-loop/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: evidence-driven-experiment-loop

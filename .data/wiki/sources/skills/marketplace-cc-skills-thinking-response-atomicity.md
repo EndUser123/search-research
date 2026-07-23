@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-thinking
 skill_name: response-atomicity
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-thinking/skills/response-atomicity/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: response-atomicity

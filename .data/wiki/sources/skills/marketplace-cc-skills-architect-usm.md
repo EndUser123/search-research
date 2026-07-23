@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-architect
 skill_name: usm
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/usm/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: usm

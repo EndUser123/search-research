@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: claude-code-setup/1.0.0
 skill_name: claude-automation-recommender
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/claude-code-setup/1.0.0/skills/claude-automation-recommender/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: claude-automation-recommender

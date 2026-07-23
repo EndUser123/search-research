@@ -3,7 +3,7 @@ type: skill-reference
 scope: marketplace
 skill_name: cc-model-router
 source_path: P:/packages/.claude-marketplace/plugins/cc-model-router/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: cc-model-router

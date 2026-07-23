@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: plugin-dev/3ea7c42c4c24
 skill_name: agent-development
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/3ea7c42c4c24/skills/agent-development/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: agent-development

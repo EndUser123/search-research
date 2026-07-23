@@ -3,7 +3,7 @@ type: skill-reference
 scope: grok-agents
 skill_name: contract-status
 source_path: P:/.agents/skills/contract-status/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: contract-status

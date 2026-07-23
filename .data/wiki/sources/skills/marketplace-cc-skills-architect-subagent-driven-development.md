@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-architect
 skill_name: subagent-driven-development
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/subagent-driven-development/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: subagent-driven-development

@@ -4,7 +4,7 @@ scope: grok-installed-plugins
 plugin: superpowers-21e2a56d
 skill_name: using-superpowers
 source_path: C:/Users/brsth/.grok/installed-plugins/superpowers-21e2a56d/skills/using-superpowers/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: using-superpowers

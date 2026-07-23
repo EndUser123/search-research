@@ -4,7 +4,7 @@ scope: claude-cache-minimax
 plugin: minimax-skills/1.0.0/plugins/pptx-plugin
 skill_name: ppt-orchestra-skill
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/plugins/pptx-plugin/skills/ppt-orchestra-skill/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: ppt-orchestra-skill

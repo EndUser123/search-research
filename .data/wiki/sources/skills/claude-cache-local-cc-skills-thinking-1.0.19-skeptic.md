@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-skills-thinking/1.0.19
 skill_name: skeptic
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-thinking/1.0.19/skills/skeptic/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: skeptic

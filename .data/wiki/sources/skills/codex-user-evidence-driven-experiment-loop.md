@@ -3,7 +3,7 @@ type: skill-reference
 scope: codex-user
 skill_name: evidence-driven-experiment-loop
 source_path: C:/Users/brsth/.codex/skills/evidence-driven-experiment-loop/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: evidence-driven-experiment-loop

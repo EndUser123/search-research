@@ -4,7 +4,7 @@ scope: claude-mkt-quickstop
 plugin: avanti
 skill_name: ticket
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/quickstop/plugins/avanti/skills/ticket/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: ticket

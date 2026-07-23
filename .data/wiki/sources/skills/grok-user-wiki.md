@@ -3,7 +3,7 @@ type: skill-reference
 scope: grok-user
 skill_name: wiki
 source_path: C:/Users/brsth/.grok/skills/wiki/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: wiki

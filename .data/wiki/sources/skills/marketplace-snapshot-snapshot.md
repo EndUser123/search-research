@@ -4,7 +4,7 @@ scope: marketplace
 plugin: snapshot
 skill_name: snapshot
 source_path: P:/packages/.claude-marketplace/plugins/snapshot/skills/snapshot/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: snapshot

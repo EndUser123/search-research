@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-media
 skill_name: frontend-dev
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-media/skills/frontend-dev/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: frontend-dev

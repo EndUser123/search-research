@@ -4,7 +4,7 @@ scope: claude-cache-minimax
 plugin: minimax-skills/1.0.0
 skill_name: shader-dev
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/skills/shader-dev/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: shader-dev

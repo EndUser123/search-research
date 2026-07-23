@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-lazy-closure-debt/0.1.12
 skill_name: debt
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-lazy-closure-debt/0.1.12/skills/debt/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: debt

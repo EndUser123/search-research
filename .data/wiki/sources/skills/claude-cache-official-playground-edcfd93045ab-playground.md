@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: playground/edcfd93045ab
 skill_name: playground
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/playground/edcfd93045ab/skills/playground/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: playground

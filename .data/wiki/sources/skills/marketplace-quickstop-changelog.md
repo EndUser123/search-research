@@ -4,7 +4,7 @@ scope: marketplace
 plugin: quickstop
 skill_name: changelog
 source_path: P:/packages/.claude-marketplace/plugins/quickstop/skills/changelog/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: changelog

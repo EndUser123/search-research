@@ -4,7 +4,7 @@ scope: grok-installed-plugins
 plugin: firecrawl-grok-plugin-ba077673
 skill_name: firecrawl-agent
 source_path: C:/Users/brsth/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-agent/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: firecrawl-agent

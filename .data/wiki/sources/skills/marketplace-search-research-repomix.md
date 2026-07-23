@@ -4,7 +4,7 @@ scope: marketplace
 plugin: search-research
 skill_name: repomix
 source_path: P:/packages/.claude-marketplace/plugins/search-research/skills/repomix/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: repomix

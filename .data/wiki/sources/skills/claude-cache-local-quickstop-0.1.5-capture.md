@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: quickstop/0.1.5
 skill_name: capture
 source_path: C:/Users/brsth/.claude/plugins/cache/local/quickstop/0.1.5/skills/capture/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: capture

@@ -4,7 +4,7 @@ scope: grok-installed-plugins
 plugin: superpowers-21e2a56d
 skill_name: executing-plans
 source_path: C:/Users/brsth/.grok/installed-plugins/superpowers-21e2a56d/skills/executing-plans/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: executing-plans

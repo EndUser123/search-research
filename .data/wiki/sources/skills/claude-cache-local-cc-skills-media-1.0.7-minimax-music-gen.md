@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-skills-media/1.0.7
 skill_name: minimax-music-gen
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-media/1.0.7/skills/minimax-music-gen/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: minimax-music-gen

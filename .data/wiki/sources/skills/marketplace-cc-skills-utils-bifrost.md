@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-utils
 skill_name: bifrost
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/bifrost/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: bifrost

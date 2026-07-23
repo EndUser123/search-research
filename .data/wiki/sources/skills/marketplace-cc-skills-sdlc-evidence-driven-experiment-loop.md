@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-sdlc
 skill_name: evidence-driven-experiment-loop
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/evidence-driven-experiment-loop/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: evidence-driven-experiment-loop

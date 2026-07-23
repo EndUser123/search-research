@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-ai-api
 skill_name: ai-probe-openrouter
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/ai-probe-openrouter/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: ai-probe-openrouter

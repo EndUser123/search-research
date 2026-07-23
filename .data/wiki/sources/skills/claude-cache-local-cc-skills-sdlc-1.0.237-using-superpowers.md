@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-skills-sdlc/1.0.237
 skill_name: using-superpowers
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/using-superpowers/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: using-superpowers

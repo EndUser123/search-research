@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: plugin-dev/b20ef542ee28
 skill_name: plugin-structure
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/plugin-structure/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: plugin-structure

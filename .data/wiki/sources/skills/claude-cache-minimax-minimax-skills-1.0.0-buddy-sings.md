@@ -4,7 +4,7 @@ scope: claude-cache-minimax
 plugin: minimax-skills/1.0.0
 skill_name: buddy-sings
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/skills/buddy-sings/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: buddy-sings

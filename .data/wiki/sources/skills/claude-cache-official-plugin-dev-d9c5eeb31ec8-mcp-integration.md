@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: plugin-dev/d9c5eeb31ec8
 skill_name: mcp-integration
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/d9c5eeb31ec8/skills/mcp-integration/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: mcp-integration

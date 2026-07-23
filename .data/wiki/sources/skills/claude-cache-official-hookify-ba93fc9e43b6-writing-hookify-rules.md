@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: hookify/ba93fc9e43b6
 skill_name: writing-hookify-rules
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/hookify/ba93fc9e43b6/skills/writing-rules/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: writing-hookify-rules

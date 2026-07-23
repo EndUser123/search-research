@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: chrome-devtools-mcp/1.5.0
 skill_name: debug-optimize-lcp
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/chrome-devtools-mcp/1.5.0/skills/debug-optimize-lcp/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: debug-optimize-lcp

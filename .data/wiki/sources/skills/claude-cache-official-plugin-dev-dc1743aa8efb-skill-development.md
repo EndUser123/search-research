@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: plugin-dev/dc1743aa8efb
 skill_name: skill-development
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/skill-development/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: skill-development

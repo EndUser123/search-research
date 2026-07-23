@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: improve-partner/0.4.17
 skill_name: improve
 source_path: C:/Users/brsth/.claude/plugins/cache/local/improve-partner/0.4.17/skills/improve/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: improve

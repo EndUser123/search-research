@@ -4,7 +4,7 @@ scope: marketplace
 plugin: search-research/packages/yt-is
 skill_name: yt-dlp
 source_path: P:/packages/.claude-marketplace/plugins/search-research/packages/yt-is/skills/yt-dlp/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: yt-dlp

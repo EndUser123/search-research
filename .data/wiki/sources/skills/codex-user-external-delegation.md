@@ -3,7 +3,7 @@ type: skill-reference
 scope: codex-user
 skill_name: external-delegation
 source_path: C:/Users/brsth/.codex/skills/external-delegation/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: external-delegation

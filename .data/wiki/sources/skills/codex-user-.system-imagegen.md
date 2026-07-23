@@ -4,7 +4,7 @@ scope: codex-user
 plugin: .system
 skill_name: "imagegen"
 source_path: C:/Users/brsth/.codex/skills/.system/imagegen/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: "imagegen"

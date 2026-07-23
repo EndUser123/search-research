@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: frontend-design/d5786a45db5c
 skill_name: frontend-design
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/frontend-design/d5786a45db5c/skills/frontend-design/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: frontend-design

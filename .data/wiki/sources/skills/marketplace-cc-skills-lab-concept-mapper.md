@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-lab
 skill_name: concept-mapper
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-lab/skills/concept-mapper/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: concept-mapper

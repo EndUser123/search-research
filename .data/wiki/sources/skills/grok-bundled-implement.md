@@ -3,7 +3,7 @@ type: skill-reference
 scope: grok-bundled
 skill_name: implement
 source_path: C:/Users/brsth/.grok/bundled/skills/implement/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: implement

@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: search-research/0.1.123
 skill_name: chs
 source_path: C:/Users/brsth/.claude/plugins/cache/local/search-research/0.1.123/skills/chs/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: chs

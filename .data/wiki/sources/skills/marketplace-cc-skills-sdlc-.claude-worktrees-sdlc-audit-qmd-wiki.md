@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-sdlc/.claude/worktrees/sdlc-audit
 skill_name: qmd-wiki
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/qmd-wiki/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: qmd-wiki

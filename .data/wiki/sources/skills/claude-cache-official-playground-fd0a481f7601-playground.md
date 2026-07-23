@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: playground/fd0a481f7601
 skill_name: playground
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/playground/fd0a481f7601/skills/playground/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: playground

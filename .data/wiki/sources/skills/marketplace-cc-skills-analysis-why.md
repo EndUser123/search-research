@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-analysis
 skill_name: why
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-analysis/skills/why/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: why

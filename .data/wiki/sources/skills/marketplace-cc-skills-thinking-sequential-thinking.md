@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-thinking
 skill_name: sequential-thinking
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-thinking/skills/sequential-thinking/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: sequential-thinking

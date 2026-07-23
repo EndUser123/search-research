@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-architect
 skill_name: ralph
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/ralph/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: ralph

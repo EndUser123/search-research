@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-analysis
 skill_name: claude-audit
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-analysis/skills/claude-audit/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: claude-audit

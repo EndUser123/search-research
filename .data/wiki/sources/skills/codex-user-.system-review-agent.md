@@ -4,7 +4,7 @@ scope: codex-user
 plugin: .system
 skill_name: review-agent
 source_path: C:/Users/brsth/.codex/skills/.system/review-agent/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: review-agent

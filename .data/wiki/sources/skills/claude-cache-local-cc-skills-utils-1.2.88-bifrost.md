@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-skills-utils/1.2.88
 skill_name: bifrost
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-utils/1.2.88/skills/bifrost/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: bifrost

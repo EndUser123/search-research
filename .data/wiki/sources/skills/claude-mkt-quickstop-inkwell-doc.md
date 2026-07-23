@@ -4,7 +4,7 @@ scope: claude-mkt-quickstop
 plugin: inkwell
 skill_name: doc
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/quickstop/plugins/inkwell/skills/doc/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: doc

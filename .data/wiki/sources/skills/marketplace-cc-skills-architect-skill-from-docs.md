@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-architect
 skill_name: skill-from-docs
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/skill-from-docs/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: skill-from-docs

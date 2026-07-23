@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-architect
 skill_name: gitready
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/gitready/skills/gitready/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: gitready

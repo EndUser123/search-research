@@ -4,7 +4,7 @@ scope: claude-cache-local
 plugin: cc-skills-thinking/1.0.19
 skill_name: reflect
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-thinking/1.0.19/skills/reflect/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: reflect

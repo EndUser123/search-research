@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-ai-api
 skill_name: google-ai-usage-monitor
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/google-ai-usage-monitor/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: google-ai-usage-monitor

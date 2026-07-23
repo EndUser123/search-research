@@ -4,7 +4,7 @@ scope: claude-cache-minimax
 plugin: minimax-skills/1.0.0
 skill_name: vision-analysis
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/skills/vision-analysis/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: vision-analysis

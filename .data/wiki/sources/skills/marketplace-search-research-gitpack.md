@@ -4,7 +4,7 @@ scope: marketplace
 plugin: search-research
 skill_name: gitpack
 source_path: P:/packages/.claude-marketplace/plugins/search-research/skills/gitpack/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: gitpack

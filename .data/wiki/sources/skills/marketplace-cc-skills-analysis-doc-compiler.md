@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-analysis
 skill_name: doc-compiler
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-analysis/skills/doc-compiler/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: doc-compiler

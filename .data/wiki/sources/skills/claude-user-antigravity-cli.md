@@ -3,7 +3,7 @@ type: skill-reference
 scope: claude-user
 skill_name: antigravity-cli
 source_path: C:/Users/brsth/.claude/skills/antigravity-cli/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: antigravity-cli

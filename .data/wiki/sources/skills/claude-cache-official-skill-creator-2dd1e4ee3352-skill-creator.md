@@ -4,7 +4,7 @@ scope: claude-cache-official
 plugin: skill-creator/2dd1e4ee3352
 skill_name: skill-creator
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/skill-creator/2dd1e4ee3352/skills/skill-creator/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: skill-creator

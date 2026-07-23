@@ -4,7 +4,7 @@ scope: marketplace
 plugin: glm-plan-usage
 skill_name: usage-query-skill
 source_path: P:/packages/.claude-marketplace/plugins/glm-plan-usage/skills/usage-query-skill/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: usage-query-skill

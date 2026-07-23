@@ -4,7 +4,7 @@ scope: marketplace
 plugin: cc-skills-lab
 skill_name: csf-nip-integration
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-lab/skills/csf-nip-integration/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: csf-nip-integration

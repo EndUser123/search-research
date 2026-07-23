@@ -4,7 +4,7 @@ scope: codex-user
 plugin: .system
 skill_name: skill-installer
 source_path: C:/Users/brsth/.codex/skills/.system/skill-installer/SKILL.md
-indexed_date: 2026-07-21
+indexed_date: 2026-07-23
 ---
 
 # Skill: skill-installer
