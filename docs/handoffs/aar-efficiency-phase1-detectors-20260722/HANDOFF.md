@@ -4,8 +4,8 @@ parent_handoff_path: P:/docs/handoffs/aar-narrativization-hook-20260722/HANDOFF.
 current_session_id: 019f8507-6395-7bc0-87a9-9122e28d68c8
 current_terminal_id: console_896ff2fb-4053-4c04-9d6a-74e4
 produced_at: 2026-07-23T02:00:00Z
-status: open
-handoff_type: investigation
+status: implemented
+handoff_type: implementation
 accurate_as_of_head: b3fb5225caa69e4759ca6697df715b6b6214259d
 ---
 
@@ -17,7 +17,7 @@ Build the detector foundation: 5 efficiency-waste detectors, the aggregator, exc
 
 ## 2. Status
 
-**OPEN** — inherits scope from parent handoff `aar-narrativization-hook-20260722`. Red-team findings have been triaged and folded into the task packets below.
+**IMPLEMENTED (2026-07-23)** — TASK-00, TASK-01, TASK-02 complete. TASK-03 deferred (optional). Phase 2 is unblocked.
 
 ## 3. Producing context
 
@@ -43,7 +43,15 @@ Build the detector foundation: 5 efficiency-waste detectors, the aggregator, exc
 
 ## 6. Current state
 
-Nothing done. Parent handoff has the design; this handoff has the red-team-corrected task packets.
+**Implemented (2026-07-23):**
+- TASK-00: `run_all_detectors()` now wraps each detector in try/except (line ~1903). One failing detector logs warning and pipeline continues.
+- TASK-01: 5 efficiency detectors added (`detect_context_rederivation`, `detect_redundant_verification`, `detect_retry_storm`, `detect_oversized_read`, `detect_expired_context`) with all red-team H2 threshold corrections applied. 22 tests in `test_efficiency_detectors.py`, all passing. 32 total detectors (was 27).
+- TASK-02: `all_aggregates()` (was dead code) now wired into `full_preprocessor.py` line ~270. New `aggregate_efficiency_waste()` in `aggregators.py`. `aggregates.json` artifact written alongside `signals.json`.
+
+**Not implemented:**
+- TASK-03 (secret exposure severity triage) — optional, independent, deferred.
+
+**Test results:** 562 passed (up from 540), 1 pre-existing failure (SKILL.md line count, unrelated).
 
 ## 7. Task packets
 

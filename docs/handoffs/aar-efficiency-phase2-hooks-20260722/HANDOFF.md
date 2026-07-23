@@ -17,7 +17,7 @@ Build the Stop hooks (narrativization detection + efficiency warnings) and the A
 
 ## 2. Status
 
-**OPEN — BLOCKED on Phase 1.** Cannot start until `aar-efficiency-phase1-detectors-20260722` is complete (detectors tested + aggregator wired).
+**OPEN — UNBLOCKED.** Phase 1 complete (2026-07-23): detectors tested, aggregator wired, `aggregates.json` artifact written. Phase 2 can start immediately.
 
 ## 3. Producing context
 
