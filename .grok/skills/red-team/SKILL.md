@@ -98,19 +98,26 @@ instead of parent-model. **Do NOT use Claude or Anthropic models**
 (operator constraint).
 
 **Cross-model pool** (drawn from wiki concept `model-fleet-provider-pools.md`,
-filtered for reasoning lane + tool-calling capability):
+filtered for reasoning lane + tool-calling capability per
+`model-tool-calling-capability-matrix.md`):
 
-| Try order | Model | Provider | Cost | Context | Tool access |
-|---|---|---|---|---|---|
-| 1 | `nvidia-nemotron-3-ultra` | NVIDIA | Free | 1M | spawn_subagent OK |
-| 2 | `glm-5-2` | GLM | Subscription | 1M | spawn_subagent OK |
-| 3 | `go-mimo-v2-5` | OpenRouter | ~$0.005/1M | 200K | spawn_subagent OK |
-| 4 | `minimax-m3` | MiniMax | Subscription | 1M | chat-only (no file access — use for reasoning-only specialist) |
+| Try order | Model | Provider | Cost | Context | Tool access | Notes |
+|---|---|---|---|---|---|---|
+| 1 | `glm-5-2` | GLM | Subscription | 1M | spawn_subagent OK | Best tool-calling (76.8% MCP Atlas); scarce quota |
+| 2 | `go-mimo-v2-5` | OpenRouter | ~$0.005/1M | 200K | spawn_subagent OK | Verified working (this session); paid |
+| 3 | `minimax-m3` | MiniMax | Subscription | 1M | chat-only | No file access — reasoning-only specialist only |
+| 4 | parent-inherited | — | — | — | full | Last resort (same-model, weakest decorrelation) |
 
-Pool selection logic: free-first (nemotron), then subscription (glm),
-then paid (mimo), then chat-only (mmx). Same pool-not-chain pattern as
-/tp Step 2. If all pool members fail, fall back to parent-model for
-that specialist (disclose in synthesis).
+**Note:** `nvidia-nemotron-3-ultra` is excluded from this pool because it
+serialization-fails on real tool tasks (verified this session + documented
+in `model-tool-calling-capability-matrix.md`). It works for trivial probes
+but not for the file-reading, grep-heavy work a cross-model specialist needs.
+
+Pool selection logic: subscription-first-but-strongest (glm), then paid
+(mimo), then chat-only (mmx), then parent. Free-first is sacrificed here
+because the only free reasoning model with tool-call support that survived
+real testing is glm via subscription. If all pool members fail, fall back
+to parent-model for that specialist (disclose in synthesis).
 
 **Which specialist gets the cross-model slot:** the one with the highest
 expected value from independent verification — typically the correctness
