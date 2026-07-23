@@ -39,14 +39,15 @@ Before assuming a Claude Code feature works identically here, verify against
 | Area | Claude Code | Grok Build |
 |------|-------------|------------|
 | Hook types | `command`, `prompt`, `agent` | `command`, `http` only |
-| Hook discovery | `~/.claude/settings.json` + plugins | `~/.grok/hooks/*.json` + scans Claude/Cursor locations for compat |
+| Hook discovery | `~/.claude/settings.json` + plugins | **All hook scopes** merge: `~/.grok/hooks/*.json` (global), `<project>/.grok/hooks/*.json` (project), `~/.grok/plugins/<plugin>/hooks/hooks.json` (plugin), `~/.claude/settings.json` (compat, controlled by `compat.claude.hooks`), `~/.cursor/hooks.json` (compat). See **`~/.grok/docs/user-guide/10-hooks.md`** for the full discovery table, all 14 hook events, matchers, and Stop-decision-control. |
 | Slash commands | `.claude/commands/` | `.grok/commands/` (different resolution) |
 | Personas | `~/.claude/personas/` | `~/.grok/bundled/personas/` (different path; no `~/.grok/personas/`) |
 | MCP dispatch | Native | Via `use_tool` / `server__tool` qualified names |
 | Session ID env | `$CLAUDE_SESSION_ID` | `$GROK_SESSION_ID` (Claude alias still set) |
 
 **Rule:** when proposing any hook, command, or skill mechanism, cite the
-Grok Build doc that confirms it works here. If only Claude Code docs support
+Grok Build doc that confirms it works here (especially
+`~/.grok/docs/user-guide/10-hooks.md` for hooks). If only Claude Code docs support
 it, flag it as unverified and check `~/.grok/docs/user-guide/` first.
 
 **Session start — read the active-surface snapshot:** before assuming any
