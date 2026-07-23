@@ -93,20 +93,40 @@ blind spots from the same model family. Research (FERZ Oct 2025, Cemri
 uncorrelated error detection. Cross-model diversity is the highest-
 leverage decorrelation.
 
-**Rule:** one specialist per /red-team run uses a cross-model CLI instead
-of parent-model spawn_subagent. Use /agy (Antigravity/Gemini), /codex
-(OpenAI), or /mmx (MiniMax). **Do NOT use Claude or Anthropic models**
+**Rule:** one specialist per /red-team run uses a cross-model model
+instead of parent-model. **Do NOT use Claude or Anthropic models**
 (operator constraint).
+
+**Cross-model pool** (drawn from wiki concept `model-fleet-provider-pools.md`,
+filtered for reasoning lane + tool-calling capability):
+
+| Try order | Model | Provider | Cost | Context | Tool access |
+|---|---|---|---|---|---|
+| 1 | `nvidia-nemotron-3-ultra` | NVIDIA | Free | 1M | spawn_subagent OK |
+| 2 | `glm-5-2` | GLM | Subscription | 1M | spawn_subagent OK |
+| 3 | `go-mimo-v2-5` | OpenRouter | ~$0.005/1M | 200K | spawn_subagent OK |
+| 4 | `minimax-m3` | MiniMax | Subscription | 1M | chat-only (no file access — use for reasoning-only specialist) |
+
+Pool selection logic: free-first (nemotron), then subscription (glm),
+then paid (mimo), then chat-only (mmx). Same pool-not-chain pattern as
+/tp Step 2. If all pool members fail, fall back to parent-model for
+that specialist (disclose in synthesis).
 
 **Which specialist gets the cross-model slot:** the one with the highest
 expected value from independent verification — typically the correctness
 or logic specialist, since those catch bugs most likely to share blind
 spots across same-family agents.
 
-**Implementation:** dispatch via the skill's shell-out pattern (the
-specialist prompt is written to a file, the CLI runs against it, output
-is parsed into the standard findings JSON). Tag findings from the cross-
-model specialist with `[cross-model: <slug>]` in the synthesis.
+**Implementation:** dispatch via spawn_subagent with the model slug, OR
+shell out to the CLI (/agy, /codex, /mmx) if spawn_subagent doesn't
+support the model. The specialist prompt is written to a file; the CLI
+runs against it; output is parsed into the standard findings JSON. Tag
+findings from the cross-model specialist with `[cross-model: <slug>]` in
+the synthesis.
+
+**Reference:** `model-fleet-provider-pools.md` (fleet inventory),
+`model-tool-calling-capability-matrix.md` (tool-call compatibility),
+`model-pool-not-chain.md` (pool selection philosophy).
 
 **Telemetry:** record `cross_model_specialist: <slug>` in the run's
 telemetry line. After 5+ runs, compare cross-model specialist precision
