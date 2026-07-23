@@ -14,13 +14,13 @@ source_transcript: C:\Users\brsth\.grok\sessions\P%3A%5C\019f8b39-95e3-7121-a8de
 
 ## Objective
 
-Investigate whether the `/tp` Step 2 spawn_subagent pool — `[nvidia-nemotron-3-ultra, ccr-ornith, glm-5-2, go-mimo-v2-5, parent-inherited]` — has the right membership, sufficient size, and the right selection algorithm; surface a recommendation (or recommendation set) before any `/tp/SKILL.md` edit.
+Investigate whether the `/tp` Step 2 spawn_subagent pool — currently `[nvidia-nemotron-3-ultra, glm-5-2, go-mimo-v2-5, parent-inherited]` (4 members as of 2026-07-23 15:19 UTC, after `ccr-ornith` was removed) — has the right membership, sufficient size, and the right selection algorithm; surface a recommendation (or recommendation set) before any further `/tp/SKILL.md` edit.
 
 **Scope bounds:** Investigation only. **Do NOT modify `~/.grok/skills/tp/SKILL.md` Step 2** in this thread. The work scope is "investigate + recommend + (optionally) probe new models for the pool"; the ambient total is "the future-state `/tp` Step 2 once the user approves a recommendation." The implementation handoff is a separate thread that should be forked only after the user picks a path.
 
 ## Status
 
-OPEN — pool exists and is functional (closed handoff `tp-model-pool-not-inline-fallback-20260722` shipped it 2026-07-22). Investigation pending. **Critical empirical evidence added 2026-07-23 below — pool's first-of-list member (`nvidia-nemotron-3-ultra`) fails on real /tp-sized prompts.**
+OPEN — pool exists and is functional (closed handoff `tp-model-pool-not-inline-fallback-20260722` shipped it 2026-07-22). **Mid-session update 2026-07-23:** the pool is now 4 members (ccr-ornith removed by commit `019c59d` in `~/.grok/` repo: "serialization error under load"). The handoff was written with the 5-member pool composition; this revision updates the membership facts and adds the second empirical evidence.
 
 ## Producing context
 
@@ -41,28 +41,29 @@ OPEN — pool exists and is functional (closed handoff `tp-model-pool-not-inline
 
 ## Verified facts (with source paths)
 
-- [FACT] `/tp` SKILL.md Step 2 current pool = `[nvidia-nemotron-3-ultra, ccr-ornith, glm-5-2, go-mimo-v2-5, parent-inherited]` (5 members). Source: `~/.grok/skills/tp/SKILL.md:243-249`. Verified by direct read this turn.
-- [FACT] Pool lanes: Reasoning = `{nemotron-3-ultra, glm-5-2, parent-inherited}` (3); Code = `{ccr-ornith, go-mimo-v2-5}` (2). Source: pool table column "Lane" in `/tp/SKILL.md:243-249`. The /tp critique is a Reasoning-lane task.
-- [FACT] Pool cost regimes: Free = `{nemotron-3-ultra, ccr-ornith}` (2); Subscription = `{glm-5-2}` (1, rationed); Paid OR = `{go-mimo-v2-5}` (1); Paid Grok = `{parent-inherited}` (1). Source: pool table column "Cost" in `/tp/SKILL.md:243-249`.
+- [FACT] `/tp` SKILL.md Step 2 current pool = `[nvidia-nemotron-3-ultra, glm-5-2, go-mimo-v2-5, parent-inherited]` (4 members). Source: `~/.grok/skills/tp/SKILL.md:243-249`. Verified by direct read this turn (post-`019c59d` state).
+- [FACT] Pool lanes: Reasoning = `{nemotron-3-ultra, glm-5-2, parent-inherited}` (3); Code = `{go-mimo-v2-5}` (1). Source: pool table column "Lane" in `/tp/SKILL.md:243-249`. The /tp critique is a Reasoning-lane task.
+- [FACT] Pool cost regimes: Free = `{nemotron-3-ultra}` (1); Subscription = `{glm-5-2}` (1, rationed); Paid OR = `{go-mimo-v2-5}` (1); Paid Grok = `{parent-inherited}` (1). Source: pool table column "Cost" in `/tp/SKILL.md:243-249`.
 - [FACT] Pool is **deterministic** — try members in fixed order, first success wins. Source: `/tp/SKILL.md:251-256` ("for slug in [...]: spawn_subagent(...) if spawn returned content: break").
-- [FACT] Pool probed 2026-07-22 (1 day ago). Source: `/tp/SKILL.md:236-242` ("All 4 models below passed a spawn_subagent compatibility probe... 2026-07-22"). Note: parent-inherited is the 5th, not probed (the default).
-- [FACT] Known-broken models via spawn_subagent (excluded from pool): `nvidia-diffusiongemma-26b` (empty content), `go-deepseek-v4-*`, `go-kimi-*` (serialization), `go-qwen3-*` (401), `mistral-medium-latest` (422). Source: `tool-fallbacks.md:59-60`.
+- [FACT] Pool probed 2026-07-22 (1 day ago). Source: `/tp/SKILL.md:236-242` ("All 4 models below passed a spawn_subagent compatibility probe... 2026-07-22"). Note: parent-inherited is the 4th, not probed (the default).
+- [FACT] Known-broken models via spawn_subagent (excluded from pool): `nvidia-diffusiongemma-26b` (empty content), `go-deepseek-v4-*`, `go-kimi-*` (serialization), `go-qwen3-*` (401), `mistral-medium-latest` (422), **`ccr-ornith` (removed 2026-07-23 by commit `019c59d`: serialization error under load)**. Source: `~/.grok/skills/tp/SKILL.md:241` and `tool-fallbacks.md:59-60`.
 - [FACT] This session cancelled the fresh subagent (Nemotron-3-ultra, first pool member) before completion. The cancellation came after the user explicitly rejected the deterministic-always-first pattern with the question "why isn't the choice random?"
-- [FACT] The closed parent handoff solved inline-fallback, NOT pool composition. Its Resolution section (lines 158-167) confirms "ALL TASKS COMPLETE" but does not address whether the pool members are the right ones, whether 5 is enough, or whether deterministic selection is correct.
+- [FACT] Another `/tp` invocation in this session (per commit `019c59d` message) had: nemotron failed, ccr-ornith failed (serialization error under load), glm-5-2 succeeded. The operator flagged ccr-ornith should have already been removed; it was removed.
+- [FACT] The closed parent handoff solved inline-fallback, NOT pool composition. Its Resolution section (lines 158-167) confirms "ALL TASKS COMPLETE" but does not address whether the pool members are the right ones, whether 5 (now 4) is enough, or whether deterministic selection is correct.
 
 ## Current state
 
 **What works:**
-- Pool exists; 5 members; spawn_subagent compatibility verified 2026-07-22.
+- Pool exists; 4 members (after ccr-ornith removal 2026-07-23); spawn_subagent compatibility verified 2026-07-22 for the surviving 3.
 - Selection loop is straightforward: try in order, first success wins.
 - Inline fallback is preserved as last resort with disclosure.
 - Model disclosure in Step 3 names which pool member ran.
 
 **What's not yet investigated:**
-- Whether the pool members are the **right** models for the task (Reasoning lane vs Code lane fit).
-- Whether 5 is enough (gap analysis against the full 48-model fleet).
+- Whether the pool members are the **right** models for the task (Reasoning lane vs Code lane fit). 3 of 4 are Reasoning; the only Code-lane model (mimo) is untested at this prompt size.
+- Whether 4 is enough (gap analysis against the full 48-model fleet). The pool shrunk 5→4 mid-session; if the trend continues, the pool size question becomes "is 3 sufficient before falling to inline?"
 - Whether deterministic selection is correct (vs randomized, vs hybrid).
-- Whether the cost-regime ordering is optimal (free-first is logical but Means ornith often fires when nemotron is unavailable — and ornith is slow).
+- Whether the cost-regime ordering is optimal (free-first is logical but Means nemotron-3-ultra (the free option) is also the one that fails on real prompts).
 
 **Concern raised this session:**
 - The user observed that the spawn always picks the first pool member (deterministic). They want **variety** — either by adding more members, by randomizing selection, or both.
@@ -106,6 +107,47 @@ The investigation should now include:
 - A real-prompt probe of all 4 non-parent pool members (not just thin "Reply READY" probes).
 - Whether nemotron-3-ultra should be moved down in the pool order (or temporarily removed) until real-prompt reliability is verified.
 - Whether randomized selection should be adopted as a near-term defense against per-model degradation.
+
+## Second empirical evidence (2026-07-23, concurrent ~15:19 UTC)
+
+A separate `/tp` invocation in this session (running concurrently with this handoff's preparation) produced a different failure pattern, captured in commit `019c59d` (authored by Claude Sonnet 4.6 in `~/.grok/` repo).
+
+**Receipt (from commit message):**
+
+```
+fix: remove ccr-ornith from /tp spawn pool (serialization error under load)
+ccr-ornith hit a serialization error during the 2026-07-23 /tp critique
+(nemotron also failed; glm-5-2 succeeded). Operator flagged it should have
+already been removed. Removed from pool table, selection pseudocode,
+example disclosures, and cross-family reference. Pool is now 3 models +
+parent.
+```
+
+**What this adds:**
+
+1. **ccr-ornith also failed serialization under load.** Not the same prompt size as my evidence (commit message doesn't specify), but the same failure family. ccr-ornith was Code-lane (free local), so the failure mode spans both Reasoning and Code lanes.
+
+2. **glm-5-2 succeeded.** Reasoning-lane, subscription (rationed). The pool now has one confirmed-working member on real prompts. This is the only positive evidence we have.
+
+3. **The pool dropped from 5 to 4 members.** `~/.grok/skills/tp/SKILL.md` lines 243-249 now show `[nvidia-nemotron-3-ultra, glm-5-2, go-mimo-v2-5, parent-inherited]`. ccr-ornith was removed from the pool table, selection pseudocode, example disclosures, and cross-family reference. The "Known-broken slugs" line (line 241) was updated to include ccr-ornith.
+
+4. **The operator's directive was clear.** "ccr-ornith should have already been removed." This is feedback on the pool's historical membership — the user is signaling that the pool should have been pruned earlier, not just now.
+
+**Combined evidence (this session's two `/tp` failures + the glm-5-2 success):**
+
+| Pool member | Lane | Real-prompt verdict this session |
+|---|---|---|
+| nvidia-nemotron-3-ultra | Reasoning | **FAILED** (serialization error, 98k tokens) |
+| glm-5-2 | Reasoning | **PASSED** (per commit `019c59d` message) |
+| go-mimo-v2-5 | Code | Untested at this prompt size |
+| parent-inherited | Reasoning | (assumed working — fallback) |
+| ~~ccr-ornith~~ | ~~Code~~ | ~~FAILED~~ (removed 2026-07-23 by `019c59d`) |
+
+**Implication for the investigation:**
+
+- **TK-COMPOSITION-01 (lane fit) is now answerable.** 3 Reasoning + 1 Code. glm-5-2 (Reasoning) succeeded. ccr-ornith (Code) failed. mimo (Code) untested. Net: Reasoning lane is empirically better than Code lane on real prompts, but the sample is small (n=2).
+- **TK-SIZE-01 (Reasoning-lane free options) is more urgent.** The only free Reasoning member (nemotron) is the one that fails. The fallback Reasoning member (glm-5-2) is rationed. The pool has 1 confirmed-working free-or-paid Reasoning member for real prompts.
+- **TK-RANDOM-01 is sharpened.** With nemotron (1st) and ornith (2nd, now removed) both failing, deterministic-always-first was a single point of failure. Randomization would have hit glm-5-2 (Reasoning, working) on retry.
 
 ## Task packets
 
