@@ -139,6 +139,17 @@ the 5h budget; the same review with files merged into 1 temp file costs
 dispatching to agy.** This takes effective capacity from ~5 runs/5h to
 ~50 runs/5h.
 
+**Merge script (use this, don't merge manually):**
+
+```bash
+python P:/.agents/scripts/merge_files.py P:/tmp/<slug>-merged-source.py <file1> <file2> <file3>
+```
+
+Then the specialist prompt references the single merged file. This is a
+mechanical operation — no LLM judgment needed. The script is at
+`P:/.agents/scripts/merge_files.py` and is shared across all skills that
+dispatch to CLI-based models (red-team, /tp, future consumers).
+
 Measured quota data (2026-07-23, account a.hominidae@gmail.com, Gemini
 Flash + Pro group):
 
