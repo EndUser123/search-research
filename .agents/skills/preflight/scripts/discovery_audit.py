@@ -148,11 +148,15 @@ def audit(*, scopes: list[str], targets: list[str], max_files: int = 20_000) -> 
             # useful evidence but are not competing runtime owners.
             if name_hits and _is_authority_candidate(classification):
                 for role in name_hits:
-                    role_counts[role] = role_counts.get(role, 0) + 1
-                    role_candidates.setdefault(role, []).append({
-                        "path": str(path),
-                        "classification": classification,
-                    })
+                    role_candidates.setdefault(role, [])
+                    # Deduplicate by file path — overlapping targets (e.g.
+                    # "quality-gate" and "quality-gate.json") can match the
+                    # same file, which is target overlap, not a role conflict.
+                    if not any(c["path"] == str(path) for c in role_candidates[role]):
+                        role_candidates[role].append({
+                            "path": str(path),
+                            "classification": classification,
+                        })
             matching.append({
                 "path": str(path),
                 "classification": classification,
@@ -175,6 +179,10 @@ def audit(*, scopes: list[str], targets: list[str], max_files: int = 20_000) -> 
                 })
 
     conflicts: list[dict[str, object]] = []
+    # Recompute role_counts from deduplicated candidates so overlapping
+    # targets (e.g. "quality-gate" and "quality-gate.json") matching the
+    # same file don't produce a false multiple_role_candidates conflict.
+    role_counts = {role: len(cands) for role, cands in role_candidates.items()}
     for role, count in sorted(role_counts.items()):
         if count > 1:
             conflicts.append({
