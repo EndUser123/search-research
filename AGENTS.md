@@ -227,9 +227,19 @@ after a multi-file hook change, the triggers are too narrow.
 ## Session-close accounting + handoff completeness (anti-"declare done prematurely")
 
 When the user asks "are we done?", "is there anything left open?", "anything
-else?", or similar session-close questions — OR when you are about to claim
-the session's work is complete — produce an explicit ACCOUNTING block and
-verify handoff completeness before declaring done.
+else?", **"what are we forgetting?"**, **"what are we missing?"**, **"did we
+miss anything?"**, or similar coverage/close questions — OR when you are about
+to claim the session's work is complete — produce an explicit ACCOUNTING block
+and verify handoff completeness before declaring done.
+
+**This rule fires on coverage questions at ANY point in the session, not just
+at session close.** "What are we forgetting?" is a coverage question, not a
+time question — it can be asked mid-session and still requires the full
+ACCOUNTING block. The operator reported (2026-07-24) that session-close
+accounting is sometimes unreliable and that "what are we forgetting?" is a
+frequent question pattern that was not triggering the accounting block. The
+fix: treat coverage phrases as accounting triggers regardless of when in the
+session they appear.
 
 **The failure mode this prevents:** the model declares "nothing left open"
 when it means "nothing left open *that I'm actively working on this turn*."
@@ -249,6 +259,15 @@ ACCOUNTING: this session's work
 
 Every plan, work item, and shipped artifact must land in exactly one bucket.
 If you cannot populate all four buckets, you have not accounted for the work.
+
+**Reliability requirement (2026-07-24):** the ACCOUNTING block must be
+mechanically complete, not impressionistically complete. Before writing each
+bucket, scan: (1) `git log --oneline -10` for recent commits, (2) `git status`
+for uncommitted work, (3) the conversation for stated plans that were not
+executed, (4) any handoffs referenced this session. Do not populate buckets
+from memory alone — verify against workspace evidence. The operator reported
+that accounting is sometimes unreliable; the fix is to ground each bucket
+entry in a tool-call receipt, not recall.
 
 ### Handoff completeness check (before declaring done)
 
@@ -271,9 +290,13 @@ when the items are related; do not force one handoff per item.
 ### When to apply
 
 - User asks "are we done?" / "anything left?" / "what's still open?"
+- User asks "what are we forgetting?" / "what are we missing?" / "did we miss anything?"
 - User asks you to confirm completion
 - You are about to write "nothing left to do" or equivalent
 - Session is ending (user says "wrapping up", "that's it for today", etc.)
+
+**Coverage questions fire at ANY point in the session, not just at close.**
+"What are we forgetting?" mid-session still gets the full ACCOUNTING block.
 
 ### When NOT to apply
 
