@@ -77,7 +77,8 @@ def update_outcome(entry_id: str, outcome: str) -> bool:
                 updated = True
             new_lines.append(json.dumps(entry, ensure_ascii=False))
         except json.JSONDecodeError:
-            continue
+            # Bug 2 fix: preserve unparseable lines instead of dropping them silently
+            new_lines.append(line)
 
     if updated:
         LOG_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
@@ -119,6 +120,10 @@ def show_patterns(limit: int = 20) -> str:
     )
 
     # Domain action rates (from outcome data)
+    # Accept BOTH manual vocabulary (acted-on, ignored, partially-applied)
+    # AND inferred vocabulary (likely-acted-on, likely-ignored, stale-unresolved, proceeded)
+    ACTED_OUTCOMES = {"acted-on", "partially-applied", "likely-acted-on"}
+    IGNORED_OUTCOMES = {"ignored", "likely-ignored", "stale-unresolved"}
     domain_acted = {}
     domain_ignored = {}
     domain_total = {}
@@ -126,9 +131,9 @@ def show_patterns(limit: int = 20) -> str:
         outcome = e.get("outcome")
         for d in e.get("domains", []):
             domain_total[d] = domain_total.get(d, 0) + 1
-            if outcome in ("acted-on", "partially-applied"):
+            if outcome in ACTED_OUTCOMES:
                 domain_acted[d] = domain_acted.get(d, 0) + 1
-            elif outcome == "ignored":
+            elif outcome in IGNORED_OUTCOMES:
                 domain_ignored[d] = domain_ignored.get(d, 0) + 1
 
     # Recurring findings (simple keyword overlap)
@@ -148,8 +153,7 @@ def show_patterns(limit: int = 20) -> str:
         lines_out.append(f"  ⚠️ Unresolved: {unresolved} REVISE/BLOCK with no recorded outcome")
 
     # Domain patterns (only if we have outcome data)
-    has_outcomes = any(e.get("outcome") for e in recent)
-    if has_outcomes:
+    has_outcomes = any(e.get("outcome") for e in recent)    if has_outcomes:
         # Domains with highest ignore rate
         ignore_rates = []
         for d, total in domain_total.items():
@@ -208,13 +212,14 @@ def infer_outcomes(dry_run: bool = False) -> str:
 
     lines_raw = LOG_PATH.read_text(encoding="utf-8").strip().split("\n")
     entries = []
+    unparseable_lines = []  # Bug 2 fix: preserve corrupt lines
     for line in lines_raw:
         if not line.strip():
             continue
         try:
             entries.append(json.loads(line))
         except json.JSONDecodeError:
-            continue
+            unparseable_lines.append(line)  # preserve for writeback
 
     if not entries:
         return "No critiques to infer."
@@ -273,6 +278,7 @@ def infer_outcomes(dry_run: bool = False) -> str:
 
     if not dry_run and inferred > 0:
         new_lines = [json.dumps(e, ensure_ascii=False) for e in entries if e]
+        new_lines.extend(unparseable_lines)  # Bug 2 fix: preserve corrupt lines
         LOG_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
 
     summary = f"Inferred {inferred} outcomes ({already_set} already set).\n"
