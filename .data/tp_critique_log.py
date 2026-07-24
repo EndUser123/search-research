@@ -153,7 +153,8 @@ def show_patterns(limit: int = 20) -> str:
         lines_out.append(f"  ⚠️ Unresolved: {unresolved} REVISE/BLOCK with no recorded outcome")
 
     # Domain patterns (only if we have outcome data)
-    has_outcomes = any(e.get("outcome") for e in recent)    if has_outcomes:
+    has_outcomes = any(e.get("outcome") for e in recent)
+    if has_outcomes:
         # Domains with highest ignore rate
         ignore_rates = []
         for d, total in domain_total.items():
