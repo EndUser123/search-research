@@ -179,3 +179,146 @@ Added 2026-07-23:
   bugs, 8 tools) proved precision is the dominant quality problem (F1
   scores 13-47%, precision 16-67%). Source: wiki concept
   `improving-red-team-precision-and-cross-model.md`.
+
+Added 2026-07-24:
+- **Root-cause clustering + finding classification + minimum-fix-set:** after
+  the operator's red-team on model pool policy produced 62 raw findings
+  that collapsed to 5 root causes. The operator asked "is this a disaster?"
+  The clustering had to be done manually post-hoc by a `/tp` subagent. The
+  improvements below move clustering, classification, and fix-set analysis
+  into the critic/synthesis pipeline.
+
+## Root-cause clustering (runs in critic, before verdict)
+
+**The amplification problem:** one architectural gap (e.g., "domain table
+has no enforcement mechanism") gets independently discovered by
+gate-reviewer, workflow, logic, state, and performance specialists. Each
+emits a BLOCK. The synthesis shows 5 BLOCKs. The operator sees
+"62 findings, is this a disaster?" — when the answer is "5 root causes, 3
+are implementation bugs fixable in an hour."
+
+**Protocol (the critic MUST run this after severity-gating, before verdict):**
+
+1. **Group findings** where multiple specialists independently identified
+   the same underlying problem. Two findings share a root cause when fixing
+   the root cause would resolve both (per `AGENTS.md` § "Root-cause
+   clustering before fix proposal").
+2. **Emit each group** as a cluster: cluster_id, root_cause (one sentence),
+   findings (list of finding IDs), amplification_count (how many specialists
+   found it), severity (highest among members), and the single fix that
+   addresses all members.
+3. **Rank clusters** by impact × amplification (a problem found by 4
+   specialists with a single fix is higher priority than 2 independent
+   REVISEs).
+4. **Collapse severity in the count** — if 5 specialists each emit a BLOCK
+   for the same root cause, the cluster is ONE BLOCK (amplified × 5), not
+   five BLOCKs. The synthesis shows "BLOCK × 5 (amplified)" so the operator
+   knows coverage was broad without inflating the apparent severity.
+5. **Surface unclustered findings** — anything that doesn't join a cluster
+   stays as a standalone finding with its original severity.
+
+**Output format (clusters replace the flat findings list in synthesis):**
+
+```
+ROOT CAUSE CLUSTERS (ranked by impact × amplification)
+
+Cluster RC-1 [BLOCK × 4 amplified] — Domain table has no enforcement mechanism
+  Members: GATE-1, WF-1, WF-4, GATE-7
+  Root cause: the domain table is documented but no skill, hook, or router
+  reads it. Every skill defaults to parent Grok.
+  Fix: add model= parameter to spawn_subagent calls, or build a routing hook.
+  Impact: the entire policy is non-operational until this is fixed.
+
+Cluster RC-2 [BLOCK × 3 amplified] — Telemetry has concurrency bugs
+  Members: ST-1, ST-4, ST-7
+  Root cause: JSONL append with no locking + bare except:pass + char-based truncation
+  Fix: SQLite backend + targeted exception + line-boundary truncation
+  Impact: data corruption under multi-terminal use; silent data loss
+
+STANDALONE FINDINGS (not clustered)
+  ST-5 [BLOCK] — temperature=0.1 contradicts determinism claim
+  LOGIC-002 [REVISE] — M3 fallback contradicts body text
+  ...
+```
+
+**Why this matters:** the operator's first question after a red-team is
+"how bad is it, really?" The cluster view answers that directly: "5 root
+causes, 2 are implementation bugs, 1 is a wiring gap, 2 are definitional."
+The flat finding list answers "list everything wrong" — which is the
+critic's job, not the operator's first need.
+
+## Finding classification (tags every cluster or standalone finding)
+
+After clustering, tag each cluster/finding with exactly one of:
+
+| Class | Meaning | Operator action |
+|---|---|---|
+| `architectural` | The design itself is wrong — the pattern won't work regardless of implementation quality | Redesign needed; may block ship |
+| `implementation` | The design is sound but the code has bugs | Fix the code; does not block the design |
+| `definitional` | A term, threshold, or gate is undefined (e.g., "quality floor" with no definition) | Define the term or downgrade the gate; documentation work |
+| `deferrable` | Real finding but safe to defer — won't affect correctness or safety in the near term | Backlog item; track but don't block |
+
+**How the critic assigns classes:**
+- If the finding says "this approach/pattern/architecture is flawed" → `architectural`
+- If the finding says "this code path has a bug/corruption/race/error" → `implementation`
+- If the finding says "this term is undefined / this threshold is unjustified / this gate has no measurement" → `definitional`
+- If the finding is real but the impact is future-scale (not blocking current ship) → `deferrable`
+
+**Output:** the synthesis header shows class counts:
+
+```
+CLASSIFICATION SUMMARY
+  Architectural:  0   (no design-level flaws found)
+  Implementation: 4   (bugs in the code — fixable in hours)
+  Definitional:   8   (undefined terms — documentation work)
+  Deferrable:     3   (real but safe to defer)
+  Total clusters: 5   (from 62 raw findings across 6 specialists)
+```
+
+This directly answers "is this a disaster?" If architectural = 0, the
+design is sound. If implementation = 4, it's a few hours of fixes. The
+operator triages by class, not by raw finding count.
+
+## Minimum fix-set (synthesis output, replaces flat "recommended next steps")
+
+After clustering and classification, the synthesis emits a **prioritized
+minimum fix-set**: the smallest set of changes that addresses the highest-
+impact clusters. This is the 20/80 analysis the operator needs — not "fix
+all 62 findings" but "these 3 changes collapse 12 findings."
+
+**Format:**
+
+```
+MINIMUM FIX-SET (prioritized — do these first)
+
+1. [implementation, 15 min] Fix extract.py temperature to 0.0
+   Addresses: ST-5 (determinism contradiction)
+   Impact: makes the wiki's determinism claim true
+   Why first: 1-line fix, eliminates 1 BLOCK immediately
+
+2. [implementation, 10 min] Add model= to /check spawn block
+   Addresses: RC-1 cluster (domain table unenforced)
+   Impact: proof-of-concept that the policy can fire
+   Why first: highest-amplification cluster, simplest fix
+
+3. [implementation, 20 min] Fix telemetry exception handling + truncation
+   Addresses: RC-2 partial (ST-4, ST-7)
+   Impact: prevents silent data loss and syntax corruption
+   Why first: concurrency bugs compound over time
+
+DEFERRED (do NOT fix now — track in backlog)
+- LOGIC-001 to LOGIC-018 (most): definitional; policy is internally consistent enough
+- ST-6: telemetry growth — 2326 bytes today; fix at 10MB
+- PERF-001: benchmark sequential — 5 min acceptable
+```
+
+**The rule:** the minimum fix-set addresses all clusters tagged
+`architectural` or `implementation` with BLOCK severity, plus the highest-
+amplification REVISE clusters. It explicitly lists what NOT to fix
+(deferrable and definitional findings that don't block ship).
+
+**Why this replaces the old "recommended next steps":** the old format
+listed every real step without priority or triage. The operator had to
+manually decide "which of these 15 steps do I actually do first?" The
+minimum fix-set answers that directly: "these 3, in this order, for these
+reasons; defer the rest."

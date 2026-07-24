@@ -29,6 +29,23 @@ concluding the spec is wrong.
 
 ## Host runtime: Grok Build (not Claude Code)
 
+## Model routing policy (read before dispatching subagents)
+
+For any task that dispatches subagents or chooses a model, read these two
+wiki concepts first:
+- `P:/.data/wiki/concepts/model-pool-selection-policy-speed-quota-diversity.md`
+  — domain table mapping task types to default models (mechanical → DeepSeek,
+  reasoning → GLM, code-gen → M3, etc.) with tool-use + firewall-layer columns
+- `P:/.data/wiki/concepts/context-firewall-architecture.md`
+  — 3-layer pattern (extraction pool / agent pool / orchestrator) for context
+  isolation. Layer 1 = script-called completion models (DiffusionGemma);
+  Layer 2 = spawn_subagent with tools; Layer 3 = orchestrator synthesis.
+
+Skills that dispatch subagents should pass `model=<domain-default>` instead
+of inheriting parent Grok. Telemetry logging is wired into extract.py and
+benchmark.py; full skill integration is pending (see handoff at
+`P:/docs/handoffs/model-telemetry-integration/HANDOFF.md`).
+
 This workspace runs on **Grok Build**. Many conventions here originated in
 Claude Code (CLAUDE.md, `.claude/` directories, hook patterns), and the
 **principles** transfer. The **specifics** do not always.

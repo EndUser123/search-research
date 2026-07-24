@@ -1,5 +1,29 @@
 # Vault Log
 
+## Updated [[context-firewall-architecture]] with external validation citations (Anthropic, LangChain, FrugalGPT, RouteLLM) and script-firewall trade-offs section (7 risks with mitigations). 3 serious risks: extract-then-need mismatch, signal loss on novel content, cross-file pattern blindness. All mitigated by Layer 2 agent fallback.
+Source: session-2026-07-24
+Agent: grok
+Notes: External research validated 3-layer pattern as standard; 2 novel pieces: script-firewall and extraction pool.
+Page: P:/.data/wiki/concepts/context-firewall-architecture.md
+
+## Created [[context-firewall-architecture]]: 3-layer dispatch pattern (extraction pool, agent pool, orchestrator). Updated [[model-pool-selection-policy-speed-quota-diversity]] domain table with tool-use, firewall-layer, and extraction pool dimensions. Added --gaps/--domain/--pool modes to model-benchmark skill. Wrote telemetry integration handoff.
+Source: session-2026-07-24
+Agent: grok
+Notes: Firewall: DiffusionGemma primary extraction, Gemma-4-31b/Gemini-Flash-Lite fallbacks. Telemetry handoff at P:/docs/handoffs/model-telemetry-integration/HANDOFF.md
+Page: P:/.data/wiki/concepts/context-firewall-architecture.md
+
+## Updated [[model-pool-selection-policy-speed-quota-diversity]] with first measured latency data (DeepSeek 2900ms fastest vs M3 4056ms vs GLM 6744ms), 9 corrections from /tp critique + /www research, and external literature references (RouteLLM, llm-d, FrugalGPT, OmniRouter, Thompson sampling).
+Source: session-2026-07-24
+Agent: grok
+Notes: Corrections: quality floor as Rule 0, mechanical default DeepSeek not M3, context-fit pre-check, multimodal row, code-gen needs calibration, diversity for resilience, per-provider thresholds, speed-primary is industry inversion, model-pool is our coinage.
+Page: P:/.data/wiki/concepts/model-pool-selection-policy-speed-quota-diversity.md
+
+## AI thought-partner landscape and /tp improvements
+Source: /www research (minimax-search + web-search-prime, 7 queries)
+Agent: grok
+Notes: OpenClaw/Hermes have no critical-friend mode. MAD literature validates /tp design (cross-model, verification, single-round). Three improvements: critique memory, pre-critique triage, outcome tracking.
+Page: P:/.data/wiki/concepts/ai-thought-partner-landscape-and-tp-improvements-2026.md
+
 ## Created model-pool-selection-policy-speed-quota-diversity
 Source: session-2026-07-24
 Agent: grok
@@ -4731,3 +4755,9 @@ Agent: grok
 ## [2026-07-22] ingest | Challenge-triggered verification — actual implementations people are using
 Source: session-2026-07-22 (via /www)
 Agent: grok
+
+## 2026-07-24
+- **Example Domain** (P:\.data\wiki\sources\example.com\000-.md)
+  - URL: https://example.com
+  - SHA256: fea0da776d1c2e68dfd88bab21228628968e567f744b4b228ed32ac0b3b7e729
+  - Source: crawl-ingest (ingested)

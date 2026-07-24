@@ -99,6 +99,18 @@ Scan git diff + conversation **and** the evidence packet's `signal_counts`
 and `scope_files` bucket. Group into coherent concerns.
 One verifier per concern, always.
 
+**Exclude skill-internal bookkeeping from verification concerns.** The
+evidence packet captures all `file_edits`, but not all edits are user-facing
+deliverables. Filter out:
+- Research ledgers (`P:/.data/www-ledger/`) — skill plumbing for `/www` incremental reuse
+- State files (`P:/.artifacts/<term>/*-state.md`) — terminal-scoped resume state
+- Wiki log entries (`P:/.data/wiki/log.md`) — append-only log side-effect
+- Cache/regenerated artifacts the user never sees
+
+These are side-effects of skill execution, not work products. Verifying them
+wastes a verifier slot and inflates the report with entries the user doesn't
+care about. Include them only if the user explicitly asked about them.
+
 ## Step 2 -- Write packets (path-only)
 $runDir/packets/CHECK-<concern>.md with checklist, files, tests, falsifier.
 
@@ -131,9 +143,18 @@ spawn_subagent(
     subagent_type="general-purpose",
     capability_mode="execute",   # NOT "read-only" — see allowed/disallowed below
     background=True,
+    model="zen-deepseek-v4-flash-free",  # domain-table default (code-verification). Fallback: minimax-m3. See [[model-pool-selection-policy-speed-quota-diversity]]
     prompt=<path-only verifier prompt>,
 )
 ```
+
+**Model selection for verifiers:** per the fleet model pool policy, code-
+verification defaults to `zen-deepseek-v4-flash-free` (fastest, free,
+code-specialized, measured 2900ms). If the verifier needs heavier reasoning
+(e.g. architectural claims, security analysis), use `minimax-m3` or
+`glm-5-2` instead. For adversarial cross-checking (rule 3: diversity), vary
+the model family from the implementation model. Omit `model` to inherit
+parent only for trivial coordination.
 
 ### Allowed commands (verifiers MAY run)
 
