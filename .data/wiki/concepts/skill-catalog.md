@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-23
 cognitive_load: 3
-summary: Auto-generated index of 970 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 968 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-23 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 970 across 21 scopes.
+**Total skills:** 968 across 21 scopes.
 
 ## How to use this catalog
 
@@ -23,15 +23,13 @@ Auto-generated on 2026-07-23 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - **Authoritative source:** always read the actual `SKILL.md` at the listed path (stubs may lag)
 - **Scope meanings:** see the table at the bottom of this page
 
-## grok-user (32 skills)
+## grok-user (30 skills)
 
 | Skill | Description (truncated) | Path |
 |---|---|---|
 | **aar** | Evidence-grounded continual-improvement system: reconstructs sessions, performs value accounting, identifies the opportu... | `~/.grok/skills/aar/SKILL.md` |
 | **agy** | Run Google Antigravity CLI (agy / Gemini) for a second opinion, code review, research, or analysis. Conductor evaluates ... | `~/.grok/skills/agy/SKILL.md` |
-| **check-work** | DEPRECATED — use /check instead. /check is a strict superset (multi-concern, evidence packet, auto-/review escalation). ... | `~/.grok/skills/check-work/SKILL.md` |
 | **close** | Session close-out orchestrator. Runs close_accounting.py to scan handoffs, wiki, git commits, temp files, git status, an... | `~/.grok/skills/close/SKILL.md` |
-| **code-review** | DEPRECATED — use `/review --focus maintainability` instead. The repo-level /review skill absorbs this skill's maintainab... | `~/.grok/skills/code-review/SKILL.md` |
 | **codex** | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | `~/.grok/skills/codex/SKILL.md` |
 | **create-skill** | Interactively create a new Grok skill (SKILL.md + optional scripts/references). Use when the user wants to create a skil... | `~/.grok/skills/create-skill/SKILL.md` |
 | **debrief** | Smart session retrospective. Scans the current session for actionable improvements across 5 lenses: root causes, code qu... | `~/.grok/skills/debrief/SKILL.md` |
@@ -49,7 +47,7 @@ Auto-generated on 2026-07-23 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **imagine** | How to use the image_gen and image_edit tool calls in Grok Build: when to build a visual with code instead of generating... | `~/.grok/skills/imagine/SKILL.md` |
 | **marketplace-bridge** | Pulls AI-skill listings from four public marketplaces (SkillsMP, SkillHub, ClawHub, skills.sh), fetches each skill's SKI... | `~/.grok/skills/marketplace-bridge/SKILL.md` |
 | **mmx** | Run MiniMax CLI (mmx) for a cross-model second opinion or web search via the MiniMax index. Conductor evaluates assignme... | `~/.grok/skills/mmx/SKILL.md` |
-| **plan** | Plan-mode rules for /plan invocation. Loaded when the user asks for a plan, a recommendation, or a durable artifact that... | `~/.grok/skills/plan/SKILL.md` |
+| **plan-writer** | Comprehensive implementation plans from a spec or requirements. Owns the full planning workflow: when to plan (objective... | `~/.grok/skills/plan-writer/SKILL.md` |
 | **refactor** |  | `~/.grok/skills/refactor/SKILL.md` |
 | **review** | Intelligent code/package review with verified findings on disk. Auto-infers target (local diff, branch, PR, or package p... | `~/.grok/skills/review/SKILL.md` |
 | **search-fleet** | Capability-routed multi-backend search with RRF aggregation. Reads the tool registry at ~/.grok/search-fleet.toml, class... | `~/.grok/skills/search-fleet/SKILL.md` |
@@ -85,7 +83,7 @@ Auto-generated on 2026-07-23 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **resume-cursor** | Resume or continue work from a recent Cursor CLI or Cursor Desktop session. Use when the user switched from Cursor, says... | `~/.grok/bundled/skills/resume-cursor/SKILL.md` |
 | **review** | Run a reviewer subagent against uncommitted local changes, a named branch, or a GitHub PR. Local and branch modes write ... | `~/.grok/bundled/skills/review/SKILL.md` |
 
-## grok-installed-plugins (28 skills)
+## grok-installed-plugins (27 skills)
 
 | Skill | Description (truncated) | Path |
 |---|---|---|
@@ -102,7 +100,6 @@ Auto-generated on 2026-07-23 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **using-git-worktrees** _[superpowers-21e2a56d]_ | Use when starting feature work that needs isolation from current workspace or before executing implementation plans - en... | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/using-git-worktrees/SKILL.md` |
 | **using-superpowers** _[superpowers-21e2a56d]_ | Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY respo... | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/using-superpowers/SKILL.md` |
 | **verification-before-completion** _[superpowers-21e2a56d]_ | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verifi... | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/verification-before-completion/SKILL.md` |
-| **writing-plans** _[superpowers-21e2a56d]_ | Use when you have a spec or requirements for a multi-step task, before touching code | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/writing-plans/SKILL.md` |
 | **writing-skills** _[superpowers-21e2a56d]_ | Use when creating new skills, editing existing skills, or verifying skills work before deployment | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/writing-skills/SKILL.md` |
 | **firecrawl-agent** _[firecrawl-grok-plugin-ba077673]_ | AI-powered autonomous data extraction that navigates complex sites and returns structured JSON. Use this skill when the ... | `~/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-agent/SKILL.md` |
 | **firecrawl** _[firecrawl-grok-plugin-ba077673]_ | Search, scrape, and interact with the web via the Firecrawl CLI. Use this skill whenever the user wants to search the we... | `~/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-cli/SKILL.md` |
@@ -118,11 +115,12 @@ Auto-generated on 2026-07-23 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **usage-query-skill** _[c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-usage-f12dc7b5]_ | Run the usage query script to retrieve account usage information for GLM Coding Plan. Only use when invoked by usage-que... | `~/.grok/installed-plugins/c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-usage-f12dc7b5/skills/usage-query-skill/SKILL.md` |
 | **case-feedback-skill** _[c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-bug-4165180d]_ | Run the case feedback script to submit feedback for the current conversation. Only use when invoked by case-feedback-age... | `~/.grok/installed-plugins/c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-bug-4165180d/skills/case-feedback-skill/SKILL.md` |
 
-## grok-project (1 skills)
+## grok-project (2 skills)
 
 | Skill | Description (truncated) | Path |
 |---|---|---|
 | **check** | "Multi-concern session verification with PASS/FAIL verdict" | `P:/.grok/skills/check/SKILL.md` |
+| **red-team** |  | `P:/.grok/skills/red-team/SKILL.md` |
 
 ## grok-agents (4 skills)
 
