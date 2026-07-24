@@ -1,5 +1,65 @@
 # Vault Log
 
+## expected-ui-ux-features
+Source: session-2026-07-24
+Agent: grok
+Notes: Tiered UI/UX checklist: table-stakes, good, great, web, TUI. 7 sources + WCAG 2.1. Disconfirmation: no Tier 1/2 features challenged.
+Page: P:/.data/wiki/concepts/expected-ui-ux-features.md
+
+## textual-tui-best-practices
+Source: session-2026-07-24
+Agent: grok
+Notes: Textual TUI best practices: workers, reactive, CSS, app structure, version stability
+Page: P:/.data/wiki/concepts/textual-tui-best-practices.md
+
+## thought-partner-design-dimensions-beyond-critique
+Source: session-2026-07-23
+Agent: grok
+Notes: Created via /www — Six Thinking Hats analysis of /tp, pattern recognition as master-coach differentiator, three new domains proposed
+Page: P:/.data/wiki/concepts/thought-partner-design-dimensions-beyond-critique.md
+
+## skill-auto-invocation-reliability
+Source: session-2026-07-23
+Agent: grok
+Notes: Created via /www — 650-trial data on skill activation reliability, cross-host enforcement comparison
+Page: P:/.data/wiki/concepts/skill-auto-invocation-reliability.md
+
+## agentic-sdlc-skill-lifecycle-architecture
+Source: session-2026-07-23
+Agent: grok
+Notes: Created via /www — Agentic SDLC domain classification: our skill lifecycle mapped to industry standard
+Page: P:/.data/wiki/concepts/agentic-sdlc-skill-lifecycle-architecture.md
+
+## AI Automated Test Generation Patterns
+Source: session-2026-07-22
+Agent: grok
+Notes: /www: cross-model test generation, IDE tools benchmark, NVIDIA HEPH, Pynguin, CodiumAI, common failure modes, optimal prompts
+Page: P:/.data/wiki/concepts/ai-automated-test-generation-patterns.md
+
+## Quality Gate Hook System Implementation
+Source: session-2026-07-22
+Agent: grok
+Notes: /wiki: documents the 4-file hook system (Stop gate + PostToolUse nudge + Session cleanup), through 2 critiques + 1 review, proven catching its own developer mid-session
+Page: P:/.data/wiki/concepts/quality-gate-hook-system-implementation.md
+
+## [2026-07-20] ingest | Mental Models for /tp and /brainstorming
+Source: session-2026-07-20 (/www research on mental models for tp and brainstorming)
+Agent: grok
+Notes: /www research on mental models for /tp and /brainstorming. Sources: Costa & Kallick (critical friend), Chiang et al. (devil's advocate LLM), Design Council (Double Diamond), Klein (pre-mortem), Munger/Parrish (second-order thinking), Argyris (double-loop), Rosenbaum/Liu (LLM creativity research). Key findings: 3 models already implemented (critical friend, steelman/devil's advocate, double-loop). 3 missing: Double Diamond (diverge-converge for /brainstorming), pre-mortem (prospective hindsight for /tp), second-order thinking (downstream consequences for /tp).
+Page: P:/.data/wiki/concepts/mental-models-for-tp-and-brainstorming.md
+
+## [2026-07-20] ingest | Mental Models for Handoff and AAR
+Source: session-2026-07-20 (/www research on mental models for handoff + AAR)
+Agent: grok
+Notes: /www research on mental models that help handoff and AAR. Sources: Argyris (double-loop learning), Esther Derby (double-loop in retrospectives), Boyd (OODA loop), Dodge et al. (AAR for AI), USAID AAR guide, Wharton, Grinschgl (distributed cognition), progressive disclosure/crystallization. Key finding: 3 models already implemented (progressive disclosure, progressive crystallization, cognitive offloading). 2 missing: double-loop learning (challenges assumptions, not just actions) and OODA loop (faster retrospective cycle for LITE tier). Most impactful change: add double-loop questions to AAR Phase 4.
+Page: P:/.data/wiki/concepts/mental-models-for-handoff-and-aar.md
+
+## [2026-07-20] ingest | Parallel-Safe Solution Decomposition: DSM + Critical Path + Completeness Verification
+Source: session-2026-07-20 (/www research on parallel decomposition mental models)
+Agent: grok
+Notes: /www research on mental models for decomposing steps, finding parallelism, and verifying completeness. Sources: DSM (MIT, dsmweb.org, Sookocheff), CPM (Wikipedia), Wardley Mapping, Value Stream Mapping (Atlassian), GitHub Spec Kit. Key finding: DSM + CPM solve decomposition + parallelism; the missing piece is completeness verification — a checklist confirming the decomposed pattern retains all components. Recommendation: implement workflow completeness checks in /design, /go, /red-team.
+Page: P:/.data/wiki/concepts/parallel-safe-solution-decomposition.md
+
 ## [2026-07-20] ingest | Spec-Driven Development and Harness Engineering: Ecosystem Map
 Source: session-2026-07-20 (/www deep investigation of design system repos)
 Agent: grok
