@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -89,9 +90,9 @@ def show_patterns(limit: int = 20) -> str:
     if not LOG_PATH.exists():
         return "📊 /tp history: no critiques logged yet."
 
-    lines = LOG_PATH.read_text(encoding="utf-8").strip().split("\n")
+    lines_raw = LOG_PATH.read_text(encoding="utf-8").strip().split("\n")
     entries = []
-    for line in lines:
+    for line in lines_raw:
         if not line.strip():
             continue
         try:
@@ -111,6 +112,12 @@ def show_patterns(limit: int = 20) -> str:
         verdicts[v] = verdicts.get(v, 0) + 1
     verdict_str = ", ".join(f"{count} {v}" for v, count in sorted(verdicts.items(), key=lambda x: -x[1]))
 
+    # Unresolved count (REVISE/BLOCK with no outcome)
+    unresolved = sum(
+        1 for e in recent
+        if e.get("verdict") in ("REVISE", "BLOCK") and not e.get("outcome")
+    )
+
     # Domain action rates (from outcome data)
     domain_acted = {}
     domain_ignored = {}
@@ -119,7 +126,7 @@ def show_patterns(limit: int = 20) -> str:
         outcome = e.get("outcome")
         for d in e.get("domains", []):
             domain_total[d] = domain_total.get(d, 0) + 1
-            if outcome == "acted-on":
+            if outcome in ("acted-on", "partially-applied"):
                 domain_acted[d] = domain_acted.get(d, 0) + 1
             elif outcome == "ignored":
                 domain_ignored[d] = domain_ignored.get(d, 0) + 1
@@ -130,12 +137,15 @@ def show_patterns(limit: int = 20) -> str:
         for f in e.get("findings", []):
             fl = f.lower()
             for key in ["anchoring", "sycophancy", "pre-mortem", "gold-plating",
-                        "over-engineering", "root cause", "framing", "binary"]:
+                        "over-engineering", "root cause", "framing", "binary",
+                        "session-state", "max_tokens", "serialization"]:
                 if key in fl:
                     finding_words[key] = finding_words.get(key, 0) + 1
 
     lines_out = [f"📊 /tp history (last {len(recent)} of {len(entries)} critiques):"]
     lines_out.append(f"  Verdicts: {verdict_str}")
+    if unresolved:
+        lines_out.append(f"  ⚠️ Unresolved: {unresolved} REVISE/BLOCK with no recorded outcome")
 
     # Domain patterns (only if we have outcome data)
     has_outcomes = any(e.get("outcome") for e in recent)
@@ -170,7 +180,7 @@ def show_patterns(limit: int = 20) -> str:
             )
             lines_out.append(f"  Domains you act on: {acted_str}")
     else:
-        lines_out.append("  (outcome tracking: no outcomes recorded yet — use 'tp_critique_log.py outcome <id> --outcome acted-on|ignored')")
+        lines_out.append("  (outcome tracking: no outcomes recorded yet — run 'auto' to infer from git history)")
 
     # Recurring findings
     recurring = [(k, c) for k, c in finding_words.items() if c >= 2]
@@ -180,6 +190,95 @@ def show_patterns(limit: int = 20) -> str:
         lines_out.append(f"  Recurring themes: {rec_str}")
 
     return "\n".join(lines_out)
+
+
+def infer_outcomes(dry_run: bool = False) -> str:
+    """Infer outcomes for critiques with null outcome using git history.
+
+    Heuristic:
+    - REVISE/BLOCK with commits after timestamp in P:/ or ~/.grok → "likely-acted-on"
+    - REVISE/BLOCK with no commits after timestamp → "likely-ignored"
+    - PROCEED → always "proceeded" (doesn't need action tracking)
+    - Stale (>7 days, REVISE/BLOCK, no outcome) → "stale-unresolved"
+
+    Returns a summary of inferences made.
+    """
+    if not LOG_PATH.exists():
+        return "No critique log found."
+
+    lines_raw = LOG_PATH.read_text(encoding="utf-8").strip().split("\n")
+    entries = []
+    for line in lines_raw:
+        if not line.strip():
+            continue
+        try:
+            entries.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    if not entries:
+        return "No critiques to infer."
+
+    # Get git commits since each entry's timestamp
+    inferred = 0
+    already_set = 0
+    results = []
+
+    for entry in entries:
+        if entry.get("outcome") is not None:
+            already_set += 1
+            continue
+
+        verdict = entry.get("verdict", "UNKNOWN")
+        ts = entry.get("timestamp", "")
+
+        if verdict == "PROCEED":
+            entry["outcome"] = "proceeded"
+            inferred += 1
+            results.append(f"  {entry['id']}: PROCEED → proceeded")
+            continue
+
+        # For REVISE/BLOCK: check git history
+        if verdict in ("REVISE", "BLOCK") and ts:
+            # Check both repos
+            commits_after = 0
+            for repo in ["P:/", str(Path.home() / ".grok")]:
+                try:
+                    result = subprocess.run(
+                        ["git", "-C", repo, "log", "--oneline", f"--since={ts}", "--format=%h"],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    if result.returncode == 0 and result.stdout.strip():
+                        commits_after += len(result.stdout.strip().split("\n"))
+                except (subprocess.TimeoutExpired, FileNotFoundError):
+                    pass
+
+            # Check age
+            try:
+                entry_time = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                age_days = (datetime.now(timezone.utc) - entry_time).days
+            except (ValueError, TypeError):
+                age_days = 0
+
+            if commits_after > 0:
+                entry["outcome"] = "likely-acted-on"
+                results.append(f"  {entry['id']}: {verdict} → likely-acted-on ({commits_after} commits after)")
+            elif age_days >= 7:
+                entry["outcome"] = "stale-unresolved"
+                results.append(f"  {entry['id']}: {verdict} → stale-unresolved ({age_days} days, no commits)")
+            else:
+                entry["outcome"] = "likely-ignored"
+                results.append(f"  {entry['id']}: {verdict} → likely-ignored ({age_days} days, no commits)")
+            inferred += 1
+
+    if not dry_run and inferred > 0:
+        new_lines = [json.dumps(e, ensure_ascii=False) for e in entries if e]
+        LOG_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+
+    summary = f"Inferred {inferred} outcomes ({already_set} already set).\n"
+    if results:
+        summary += "\n".join(results)
+    return summary
 
 
 def main():
@@ -204,6 +303,14 @@ def main():
     p_outcome.add_argument("entry_id")
     p_outcome.add_argument("--outcome", required=True, choices=["acted-on", "ignored", "partially-applied"])
 
+    # infer
+    p_infer = sub.add_parser("infer", help="Auto-infer outcomes from git history")
+    p_infer.add_argument("--dry-run", action="store_true", help="Show what would be inferred without writing")
+
+    # auto (infer + patterns in one call — what /tp calls at Step 0.5)
+    p_auto = sub.add_parser("auto", help="Infer outcomes then show patterns (the /tp Step 0.5 call)")
+    p_auto.add_argument("--limit", type=int, default=20)
+
     args = parser.parse_args()
 
     if args.command == "append":
@@ -223,6 +330,15 @@ def main():
         else:
             print(f"Entry {args.entry_id} not found", file=sys.stderr)
             sys.exit(1)
+
+    elif args.command == "infer":
+        result = infer_outcomes(dry_run=args.dry_run)
+        print(result)
+
+    elif args.command == "auto":
+        # Infer outcomes silently, then show patterns
+        infer_outcomes(dry_run=False)
+        print(show_patterns(args.limit))
 
     else:
         parser.print_help()
