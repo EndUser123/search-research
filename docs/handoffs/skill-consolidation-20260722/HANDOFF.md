@@ -7,7 +7,7 @@ produced_at: 2026-07-22T18:00:00Z
 status: open
 handoff_type: plan
 assigned_to: unassigned
-accurate_as_of_head: pending
+accurate_as_of_head: a600948
 source_transcript: C:\Users\brsth\.grok\sessions\P%3A%5C\019f8a66-ce7a-71c3-8655-8d6ee4d2ee4d\chat_history.jsonl
 ---
 
@@ -249,6 +249,9 @@ DEPRECATED-description (WI-5).** No file moves. No body replacements.
 **Content:**
 - The skill lifecycle map (create -> audit -> improve -> document)
 - Routing table: "if you want to X, use mode Y"
+- The DEPRECATED-description convention for retiring Grok-native skills
+  (from this session's /tp-reviewed analysis: `check-work` and `code-review`
+  already use this pattern; it's simpler and safer than Move-Item archiving)
 - 5 transferable techniques (extracted, self-contained):
   1. TDD-for-skills (RED-GREEN-REFACTOR) — from superpowers `writing-skills`
   2. Held-out validation — from `skillopt`: only accept improvements that win on unseen examples
