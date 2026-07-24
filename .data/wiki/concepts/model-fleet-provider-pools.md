@@ -121,14 +121,66 @@ use a merged temp file + single tool read instead.
 | `glm-5-2` | GLM direct | 1M | "FAR better at planning"; strong reasoning |
 | `minimax-m3` | MiniMax direct | 1M | Fallback reasoning (weak at planning, OK at execution) |
 
-### Multimodal capability filter
+### Multimodal capability filter (all 46 models, researched 2026-07-24)
 
-| Model | Provider | Capabilities |
-|-------|----------|-------------|
-| `nvidia-inkling` | NVIDIA | Text + image + audio (native multimodal) |
-| `minimax-m3` | MiniMax | Text + image |
-| `gemini-3.6-flash` | Google | Text + image + video |
-| `gemini-2.5-flash` | Google | Text + image |
+**Multimodal = accepts image input (at minimum).** All multimodal models output
+text only — none generate images/audio. OpenRouter and Zen pass through image
+input to models that natively support it; the practical question is whether the
+underlying model accepts images, not which access path you use.
+
+#### Multimodal models (accept image input)
+
+| Model | Fleet slugs | Modalities | Confidence |
+|-------|-------------|------------|------------|
+| NVIDIA Inkling (Thinking Machines) | `nvidia-inkling` | Text + image + audio | `[FACT]` — model card, NVIDIA NIM |
+| MiniMax M3 | `minimax-m3` | Text + image + video (up to 30 min) | `[FACT]` — MiniMax blog, OR, HuggingFace |
+| Gemini 3.6 Flash | `gemini-3.6-flash` | Text + image + video | `[FACT]` — Gemini API docs |
+| Gemini 3.5 Flash-Lite | `gemini-3.5-flash-lite` | Text + image + video | `[FACT]` — Gemini family (all variants) |
+| Gemini 2.5 Flash | `gemini-2.5-flash` | Text + image + video | `[FACT]` — Gemini API docs |
+| Gemini 3.1 Pro Preview | `gemini-3.1-pro-preview` | Text + image + video + audio | `[FACT]` — Gemini family |
+| Kimi K3 (Moonshot) | `go-kimi-k3` | Text + image (natively multimodal) | `[FACT]` — Moonshot homepage |
+| Kimi K2.7 Code | `go-kimi-k2-7-code` | Text + image | `[FACT]` — Moonshot platform docs |
+| MiMo V2.5 (Xiaomi) | `go-mimo-v2-5`, `zen-mimo-v2.5-free` | Text + image + video + audio (omnimodal) | `[FACT]` — HuggingFace, Xiaomi blog |
+| MiMo V2.5-Pro | `go-mimo-v2-5-pro` | Text + image + video + audio (omnimodal) | `[FACT]` — HuggingFace |
+| Qwen3.7-Plus (Alibaba) | `go-qwen3-7-plus` | Text + image + video | `[FACT]` — OpenRouter, Alibaba docs |
+| Gemma-4-31B-IT (Google) | `gemma-4-31b-it` | Text + image | `[FACT]` — HuggingFace, Google AI docs |
+| DiffusionGemma-26B (NVIDIA) | `nvidia-diffusiongemma-26b` | Text + image + video | `[FACT]` — NVIDIA NIM docs (also noted §architecture) |
+
+#### Text-only models
+
+| Model | Fleet slugs | Confidence | Evidence |
+|-------|-------------|------------|----------|
+| Nemotron-3-Ultra | `nvidia-nemotron-3-ultra`, `zen-nemotron-3-ultra-free`, `or-nemotron-ultra-free` | `[FACT]` text-only | NVIDIA NIM docs: "This text-only, reasoning-capable model" |
+| Nemotron-3-Super | `or-nemotron-super-free` | `[INFERENCE]` text-only | Pre-trained on text tokens only; no vision mentioned in any source |
+| GLM-5.2 (Zhipu) | `glm-5-2` | `[FACT]` text-only | glm5.app: "GLM 5.2 is text-in, text-out only." Vision = separate GLM-5V-Turbo |
+| big-pickle (= GLM-4.6) | `zen-big-pickle` | `[FACT]` text-only | pi.dev: "Input: text"; community-confirmed GLM-4.6 |
+| Ornith-1.0-9B (DeepReinforce) | `ccr-ornith` | `[INFERENCE]` text-only | Coding model; one aggregator claims multimodal but unverified |
+| Laguna M1 (Poolside) | `or-laguna-m1-free` | `[FACT]` text-only | HuggingFace: "Input: text"; agentic coding model |
+| North Mini Code (Cohere) | `zen-north-mini-code-free` | `[INFERENCE]` text-only | 30B MoE coding model; no vision mentioned |
+| HY3 (Tencent) | `or-hy3-free` | `[INFERENCE]` text-only | 295B MoE reasoning model; no vision mentioned |
+| DeepSeek V4-Flash | `go-deepseek-v4-flash`, `zen-deepseek-v4-flash-free` | `[INFERENCE]` text-only | cloudbase: "V4-Flash does not accept image_url" |
+
+#### Conflicting / ambiguous
+
+| Model | Fleet slug | Status | Detail |
+|-------|------------|--------|--------|
+| DeepSeek V4-Pro | `go-deepseek-v4-pro` | `[FACT]` text-only | HuggingFace model card: "language models"; API docs no image input. Third-party "vision" claims are OCR wrappers, not native. |
+| Qwen3.7-Max | `go-qwen3-7-max` | `[INFERENCE]` text-primary | apidog: "Max keeps a small text-only edge"; "For mixed or vision work, Plus is the only option" |
+
+#### Resolved (updated 2026-07-24)
+
+| Model | Fleet slug | Was | Now | Evidence |
+|-------|------------|-----|-----|----------|
+| Qwen3.6-Plus | `go-qwen3-6-plus` | `[UNKNOWN]` | `[FACT]` multimodal (T+I+V) | Official Qwen blog: "multimodal capabilities, visual analysis, video reasoning" |
+| Mistral Medium 3.5 | `mistral-medium-latest` | `[UNKNOWN]` | `[FACT]` multimodal (T+I) | mistral.ai/models: tagged "Multimodal" explicitly |
+| DeepSeek V4-Pro | `go-deepseek-v4-pro` | `[CONFLICTING]` | `[FACT]` text-only | HuggingFace: "language models"; API docs no image input; Reddit confirms no native vision |
+
+#### Research notes
+
+- **Nemotron 3 family:** Only **Nano Omni** is multimodal (text+vision+audio). Ultra and Super are text-only reasoning models. Nano Omni is not in the fleet.
+- **GLM family:** GLM-5.2 is text-only. The multimodal variant is **GLM-5V-Turbo** (separate model, not in fleet). GLM-4.6 (big-pickle) is also text-only.
+- **DeepSeek V4:** The "Thinking with Visual Primitives" paper describes a research direction, not a shipped capability. Vision support is provider-dependent and unconfirmed natively.
+- **OpenRouter pass-through:** OpenRouter has a unified image-input API that works with any model that natively supports images. The go-*/or-* prefixes don't strip multimodal capability — if the model accepts images, OpenRouter passes them through.
 
 ### Synthesis / parent (judgment, cross-referencing, final output)
 

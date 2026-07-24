@@ -1,5 +1,23 @@
 # Vault Log
 
+## Created model-pool-selection-policy-speed-quota-diversity
+Source: session-2026-07-24
+Agent: grok
+Notes: Three-rule policy: speed+quota over free, except diversity for adversarial review. Corrects free-first default.
+Page: P:/.data/wiki/concepts/model-pool-selection-policy-speed-quota-diversity.md
+
+## Multimodal capability: all 46 models researched
+Source: web research via /www (minimax-search, 11 queries)
+Agent: grok
+Notes: Expanded multimodal filter from 4 to all 46 models. 13 multimodal, 9 text-only, 3 conflicting. Key: GLM-5.2 text-only, Nemotron-3-Ultra text-only, MiMo V2.5 omnimodal, Gemma-4-31B accepts images, DeepSeek V4-Pro conflicting.
+Page: P:/.data/wiki/concepts/model-fleet-provider-pools.md
+
+## best-practices-enforcement-mechanism-grok-build
+Source: session-2026-07-24 (/www research)
+Agent: grok
+Notes: Created via /www research on enforcement-mechanism design for Grok Build. Synthesizes wiki (external-state-cross-check, mandatory-step-enforcement, grok-pretooluse-deny-contract) + web (fbakkensen Stop-hook quality gates, wandb Yes-Man/correlated-validator, freecodecamp deterministic validator). Refines external-state-cross-check and mandatory-step-enforcement.
+Page: wiki/concepts/best-practices-enforcement-mechanism-grok-build.md
+
 ## expected-ui-ux-features
 Source: session-2026-07-24
 Agent: grok
