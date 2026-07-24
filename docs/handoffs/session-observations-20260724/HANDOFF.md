@@ -1,34 +1,39 @@
 ---
-thread_id: session-2026-07-24-keep-smaller-copy
-current_session_id: 019f91d3-2741-7f83-af68-211796180474
-parent_handoff_path: none
-assignee: grok
+title: "Session observations 2026-07-24"
+session_id: 019f94c9-43c1-7b31-87c4-980fdd3047e8
+date: 2026-07-24
 status: CLOSED
-created: 2026-07-24
+type: session-observations
 ---
 
-# Session observations — Keep-Smaller-Copy TUI
+# Session observations — 2026-07-24
 
-## Observations
+## Major work shipped
 
-1. **Confirmation dialog is the #1 missing safety feature.** The app performed destructive file operations (move/copy/delete) with no confirmation gate. The operator experienced "many errors" and couldn't tell what happened because there was no transaction log until late in the session. A confirmation dialog was identified by the red-team audit as CRITICAL but was NOT implemented.
+- **Model fleet multimodal tags**: all 35 models tagged [T]/[T+I]/[T+I+V]/[T+I+V+A]/[T+I+A] in config.toml
+- **Inkling fix**: added max_completion_tokens=16384, resolved serialization error on both HTTP and spawn_subagent paths
+- **/tp improvements**: horizon=now domain 5 fix, hybrid session-state carve-out, critique memory (tp_critique_log.py with auto-infer outcomes from git history)
+- **model-benchmark overhaul**: quality scoring, cost tracking, parallel execution, multimodal tier, tool-call tier, reliability trend, cli_benchmark.py for agy/codex/mmx
+- **AGENTS.md policies**: auto-commit without asking, web_search "last resort only + quota cost", accounting reliability requirement, coverage question triggers
+- **Wiki**: multimodal capability filter (46 models), AI thought-partner landscape research
 
-2. **Stop hook stale-verification receipts are a recurring pattern.** The Stop hook fired 3 times this session because I deleted test harnesses after running them, invalidating the verification receipt. The pattern: write harness → run test → delete harness → claim done. The fix should be: either keep the harness until the next behavioral test, or run a final syntax check as the last verification before cleanup.
+## Key observations
 
-3. **The `/go` H3 wiki query enhancement works.** Adding the wiki library query to `/go`'s discovery phase was a small, clean change (~25 lines). The principle extends: any skill that touches code should check the wiki for library knowledge before implementing. Source: session ID 019f91d3, turn where we added wiki query to `/go`.
+1. **Mistral Medium Latest is the fleet surprise** — fastest on both mechanical (1.1s) and reasoning (1.2s) tiers with perfect quality. Was [T?] unverified; now confirmed [T+I] multimodal.
 
-4. **Advisory vs mandatory is the wrong default for safety features.** When I proposed advisory triggers for `/www` proactive use cases, the operator pushed back: "why advisory instead of mandatory?" The governance model's established pattern is mandatory structural enforcement for things that prevent documented failure classes. Advisory reproduces the preflight failure (rule existed in prose, didn't fire, 5 failures resulted).
+2. **Zen models pass HTTP but fail spawn_subagent** — zen-deepseek-v4-flash-free and zen-north-mini-code-free both work via direct API but fail Grok's dispatch with "serialization error: missing field `id`". They can't be used as /tp lenses, /check verifiers, or /review specialists.
 
-5. **Textual 8.0.2 has breaking changes from 0.x that aren't well-documented.** `App.action_quit` became async, `Static.renderable` became `Static.content`. These hit us at runtime. A `/www` pre-adoption research run would have caught these before coding.
+3. **DiffusionGemma doesn't support tool calling** — the only model that failed the tool-call tier. Diffusion architecture produces different output structure.
 
-6. **The app's "no results" diagnostic text was the right call.** Adding the breakdown ("0 to move (src=199 tgt=10; 10 not smaller)") saved significant debugging time. Without it, the user would have seen an empty table with no explanation. This pattern (explain WHY, not just WHAT) should be standard for all empty-state displays.
+4. **GLM-5.2 quality scoring reveals hidden problem** — responds HTTP 200 but content is empty or just thinking tags. Without quality scoring, latency-only benchmarks would hide this. Q=0.0 on both mechanical and reasoning.
+
+5. **NVIDIA NIM serialization bug is fleet-wide** — the `max_tokens: null` → `expected u32` error affects any NIM model without explicit max_completion_tokens in config. Inkling was the first to surface it; Nemotron also had it in spawn_subagent tests.
+
+6. **built-in web_search costs Grok quota** — runs grok-4.20-multi-agent model, not a free API. AGENTS.md updated to "last resort only."
 
 ## Seeds for future work
 
-- **Confirmation dialog for Keep-Smaller-Copy** — the #1 unfinished item from the red-team audit
-- **Swap Source/Target button** — trivial to implement, prevents the #1 user error
-- **Progress counter during scan/move** — user asked for this directly, still missing
-- **Dynamic button labels** (Move→Delete when Delete switch is ON)
-- **Column sorting** in the results DataTable
-- **Wiki health audit script** — quarterly staleness/coverage/orphan scan
-- **`/www` proactive trigger design** — 3 mandatory, 5 advisory, 1 scheduled (the design from the /tp discussion)
+- **model-benchmark telemetry integration**: the telemetry library is ready but no skills actually call log_spawn() yet. Priority targets: /check verifiers, /tp lenses, /review specialists.
+- **Quality calibration**: the keyword-based scoring is crude. Could use LLM-as-judge for richer quality assessment on reasoning tier.
+- **Zen spawn_subagent fix**: the "missing field id" error might be fixable with a response-format shim or config change. Worth investigating if Zen models are needed as dispatch targets.
+- **Cost tracking for paid models**: the pricing table has $0 for all providers since none are paid per-token. When OpenRouter models are tested, the cost data will start populating.
