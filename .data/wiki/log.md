@@ -1,5 +1,29 @@
 # Vault Log
 
+## Causal mechanism claims require source inspection before durable write
+Source: session-019f96f5
+Agent: grok
+Notes: Specific surface form of the receipt rule: before writing 'X happens because <mechanism>' into a durable artifact, read the source. Worked example: the close-scanner concept incident.
+Page: P:/.data/wiki/concepts/causal-mechanism-claims-require-source-receipts-before-durable-write.md
+
+## Close scanner verification gap is stale-read when /check verifiers ran
+Source: session-019f96f5
+Agent: grok
+Notes: Scanner can't see into /check subagent transcripts → reports false VERIFICATION_GAP. Cold-start protocol: check for /check run dirs + read check-state.md before treating gap as real.
+Page: P:/.data/wiki/concepts/close-scanner-verification-gap-stale-read.md
+
+## Wiki-integrated skills: query-at-start, save-at-end pattern
+Source: session-2026-07-25
+Agent: grok
+Notes: Audit of 36 skills. 7 with proper integration, 6 partial, 2 clear gaps (wargame, model-benchmark). /why is gold standard. Documents the 3-point pattern and refactoring sequence.
+Page: wiki/concepts/wiki-integrated-skills-query-save-pattern.md
+
+## /check design: inline-equivalence sub-signal + LangGraph vocabulary note
+Source: session-2026-07-25
+Agent: grok
+Notes: Added 5.2.1 to /check design (PR 1 scope): inline-equivalence detection with EQUIVALENCE_CLAIM_PATTERNS regex. Added architectural vocabulary note mapping detectors→deterministic nodes, verifiers→agentic nodes, routing→conditional edges per LangGraph framing.
+Page: P:/docs/designs/2026-07-25-check-orchestrator-design.md
+
 ## 3 wiki concepts from /why v3 multi-model synthesis
 Source: session-019f9a89-why-v3-synthesis
 Agent: grok
