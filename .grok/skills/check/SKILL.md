@@ -45,19 +45,48 @@ command_executions, test_runs, verification_tool_calls, claim_verbs, failures,
 todo_state_changes, scope_files, subagent_spawns, unverified_claim_candidates).
 
 ```powershell
-# Resolve the current Grok session transcript path. Three sources, in order:
+# Resolve the current Grok session transcript path. Sources, in priority order:
 #   1. $env:GROK_SESSION_TRANSCRIPT (explicit override)
-#   2. The active session under ~/.grok/sessions/<encoded-cwd>/<uuid>/
-#   3. Caller-supplied path (positional arg to /check)
+#   2. Caller-supplied path (positional arg to /check)
+#   3. Direct construction from $env:GROK_SESSION_ID (DETERMINISTIC — no race)
+#   4. Last-resort scan (single-session hosts only — RACES on multi-agent hosts)
 $transcript = $env:GROK_SESSION_TRANSCRIPT
 if (-not $transcript -and $args[0] -and (Test-Path $args[0])) { $transcript = $args[0] }
 if (-not $transcript) {
-    # Best-effort: scan this terminal's encoded-cwd dir for the newest session.
-    # (Allowed: immutable discovery of THIS terminal's own session, not a peer's.)
     $sessionsRoot = Join-Path $env:USERPROFILE ".grok/sessions"
-    if (Test-Path $sessionsRoot) {
+    # Primary: construct path directly from session ID.
+    # This is deterministic — no race condition with concurrent sessions.
+    $sessionId = $env:GROK_SESSION_ID
+    if (-not $sessionId) { $sessionId = $env:CLAUDE_SESSION_ID }
+    # On Grok Build, the session ID env vars are NOT exported to shell subprocesses.
+    # The LLM knows its own session ID from the system context (prompt file path,
+    # compaction segment paths). If env vars are empty, the LLM MUST set $sessionId
+    # here as a literal from its own context — do NOT leave it empty and fall through
+    # to the scan, which races on multi-agent hosts.
+    # Example: $sessionId = "019f94c9-43c1-7b31-87c4-980fdd3047e8"
+    if (-not $sessionId) { $sessionId = "LLM_FILL_FROM_CONTEXT" }
+    if ($sessionId -and (Test-Path $sessionsRoot)) {
+        $encodedCwd = [System.Uri]::EscapeDataString((Get-Location).Path)
+        $directPath = Join-Path $sessionsRoot "$encodedCwd/$sessionId/chat_history.jsonl"
+        if (Test-Path $directPath) {
+            $transcript = $directPath
+        }
+    }
+    # Fallback: scan ONLY if session ID construction failed.
+    # WARNING: on multi-agent hosts (5+ concurrent Grok sessions writing
+    # transcripts to the same directory), this races — it returns whichever
+    # session flushed last, not THIS session. The direct-construction path
+    # above is the correct method. This fallback exists for single-session
+    # hosts or edge cases where the session ID env var is unavailable.
+    if (-not $transcript -and (Test-Path $sessionsRoot)) {
         $transcript = Get-ChildItem -Path $sessionsRoot -Recurse -Filter "chat_history.jsonl" -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+        if ($transcript) {
+            $foundSession = (Split-Path $transcript -Parent | Split-Path -Parent | Split-Path -Leaf)
+            if ($foundSession -ne $sessionId) {
+                Write-Warning "TRANSCRIPT MISMATCH: scan found session '$foundSession' but current session is '$sessionId'. Using wrong-session fallback. Evidence packet may be unreliable."
+            }
+        }
     }
 }
 if (-not $transcript) {
