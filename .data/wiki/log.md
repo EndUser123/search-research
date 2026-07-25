@@ -1,5 +1,35 @@
 # Vault Log
 
+## 3 wiki concepts from /why v3 multi-model synthesis
+Source: session-019f9a89-why-v3-synthesis
+Agent: grok
+Notes: Captured 3 reusable design decisions from the 5-model /why synthesis: (1) multi-producer-cross-model-synthesis methodology pattern (N producers + 1 synthesizer with per-finding verification gate); (2) inline-conditional-over-dispatch principle (for skills with conditional depth, inline triggers fire on evidence; dispatch presupposes reliable Step-0 classification which is itself a closure-pressure failure mode); (3) synchronous-review-direct-write pattern (staging only earns its keep for async review; sync review IS the gate). All three pass validate_wiki_entry.py. /why v3 implementation at commit ddf793d in ~/.grok.
+Page: wiki/concepts/multi-producer-cross-model-synthesis.md, wiki/concepts/inline-conditional-over-dispatch-for-skill-design.md, wiki/concepts/synchronous-review-direct-write-pattern.md
+
+## Adaptive expansion: evidence-triggered conditional steps over pre-classification dispatch
+Source: session-019f96f5
+Agent: grok
+Notes: Validates /why v2→v3 refactor. 3 supporting literatures: CAT/IRT, Bayesian adaptive trials, adaptive vs routine expertise. Hybrid form (fixed core + adaptive expansion) is empirically supported.
+Page: P:/.data/wiki/concepts/adaptive-expansion-evidence-triggered-conditional-steps.md
+
+## LLM Dreaming — Offline Memory Consolidation for LLM Agents
+Source: session-2026-07-25
+Agent: grok
+Notes: Multi-source /www: 5 subagents (theory/repos/sentiment/discovery/disconfirmation). Dominant 2026 sense = async memory consolidation (Anthropic Dreams May 2026, Letta sleep-time compute, Xiaomi MiMo). Bloat is #1 failure mode. Multi-agent fleet topology (our exact pattern) is unresearched. Proposed /dream meta-skill over existing substrates with anti-bloat + identity-preservation + security gates. Disconfirmation qualified 4/5 Round-1 claims; refuted 'Reflexion plateaus' in strong form.
+Page: wiki/concepts/llm-dreaming-memory-consolidation.md
+
+## Handoff: code-orchestrates pattern workstream
+Source: session-2026-07-25
+Agent: grok
+Notes: Bundles /close Fix 4 + /check improvements + 5 skill refactors under one pattern. LangGraph as canonical reference. Tier 1 (tactical), Tier 2 (strategic), Tier 3 (open question).
+Page: P:/docs/handoffs/code-orchestrates-pattern-workstream-20260725/HANDOFF.md
+
+## Code-orchestrates-model-judges at the skill scale
+Source: session-2026-07-25
+Agent: grok
+Notes: Update: LangGraph is the canonical implementation. StateGraph + conditional edges map directly to our gate loop. Added LangGraph as 5th term + framework-comparison table.
+Page: wiki/concepts/code-orchestrates-model-judges-skill-scale.md
+
 ## Code-orchestrates-model-judges at the skill scale
 Source: session-2026-07-25
 Agent: grok
