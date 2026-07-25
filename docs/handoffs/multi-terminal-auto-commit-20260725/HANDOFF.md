@@ -91,6 +91,19 @@ CAS branch update, and foreign-overlap detection against concurrent sessions.
 
 ## Open work
 
+- **CRITICAL: Receipt hooks not registered.** The receipt system scripts exist
+  (`verification_receipt_writer.py`, `quality_gate.py`, `receipt_shadow_evaluation.py`)
+  and pass 101 tests, but the hooks are NOT registered in any hook dispatch JSON.
+  Shadow evaluation data confirms: 35 sessions evaluated, ALL report
+  `hook_registration_status: not_registered` and `completion_attempts: 0`. The
+  "shadow mode" described in prior handoffs was the *intent*, not the reality.
+  **Next step:** register the receipt hooks in the Grok-native hook dispatch
+  (`~/.grok/hooks/` JSON files), verify they fire on a live session, then
+  accumulate 20-30 sessions of real shadow data before promotion decision.
+- **F4 (fingerprint-based verification caching) in /check** is blocked on this
+  registration. The /check skill's Step 0.9 (deterministic pre-check) and the
+  /check orchestrator design both assume receipt fingerprints are available.
+  They aren't until the hooks are wired.
 - **Wiki promotion**: 4 decisions above should be promoted to wiki concepts
   (deferred — not done in this session to avoid mid-close file mutations)
 - **Worktree enforcement**: ADR-008 recommends worktree-per-session as the
