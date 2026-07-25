@@ -124,7 +124,7 @@ Auto-generated on 2026-07-24 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | Skill | Description (truncated) | Path |
 |---|---|---|
 | **check** | "Multi-concern session verification with PASS/FAIL verdict" | `P:/.grok/skills/check/SKILL.md` |
-| **red-team** |  | `P:/.grok/skills/red-team/SKILL.md` |
+| **red-team** | Multi-agent adversarial review of any proposal, solution, design, or implementation before commitment. Planner → special... | `P:/.grok/skills/red-team/SKILL.md` |
 
 ## grok-agents (4 skills)
 
