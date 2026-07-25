@@ -1,5 +1,17 @@
 # Vault Log
 
+## [2026-07-24] ingest | Relevance gate before raising issues
+Source: session-2026-07-24
+Agent: grok
+Notes: Relevance gate behavioral rule
+Page: wiki/concepts/relevance-gate-before-raising-issues.md
+
+## relevance-gate-before-raising-issues
+Source: session 019f96f5
+Agent: grok
+Notes: Behavioral rule: filter what to raise through decision/risk/trust gate before surfacing. Prevents exhaustive low-impact reporting that creates friction.
+Page: concepts/relevance-gate-before-raising-issues.md
+
 ## close-auto-invokes-aar
 Source: session 019f96f5
 Agent: grok
