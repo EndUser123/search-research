@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-25
 cognitive_load: 3
-summary: Auto-generated index of 975 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 976 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 975 across 21 scopes.
+**Total skills:** 976 across 21 scopes.
 
 ## How to use this catalog
 
@@ -60,7 +60,7 @@ Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **web** | Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (minima... | `~/.grok/skills/web/SKILL.md` |
 | **why** | Evidence-tiered, pattern-aware root cause analysis for AI agent failures, diagnostic errors, and system observations. Qu... | `~/.grok/skills/why/SKILL.md` |
 | **why-old** | ARCHIVED — pre-refactor snapshot of /why preserved 2026-07-25 for A/B comparison. This is the original 5-dimension Ishik... | `~/.grok/skills/why-old/SKILL.md` |
-| **wiki** | Persistent knowledge base for durable findings. Default (/wiki with no args): distill the current session's unique, non-... | `~/.grok/skills/wiki/SKILL.md` |
+| **wiki** | Persistent knowledge base for durable findings AND design decisions. Default (/wiki with no args): distill the current s... | `~/.grok/skills/wiki/SKILL.md` |
 | **www** | Wiki-Web-Wiki compound research skill. Queries the local wiki for what we already know, researches the web for what we d... | `~/.grok/skills/www/SKILL.md` |
 
 ## grok-bundled (21 skills)
@@ -128,13 +128,14 @@ Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **check** | "Multi-concern session verification with PASS/FAIL verdict" | `P:/.grok/skills/check/SKILL.md` |
 | **red-team** | Multi-agent adversarial review of any proposal, solution, design, or implementation before commitment. Planner → special... | `P:/.grok/skills/red-team/SKILL.md` |
 
-## grok-agents (5 skills)
+## grok-agents (6 skills)
 
 | Skill | Description (truncated) | Path |
 |---|---|---|
 | **avant-garde-ui** | Senior frontend architect and avant-garde UI designer persona for design-intent work. Use when the user wants to create ... | `P:/.agents/skills/avant-garde-ui/SKILL.md` |
 | **contract-status** | Show contract system health dashboard (writer + Stop stats) | `P:/.agents/skills/contract-status/SKILL.md` |
 | **nlm-bulk-ingest** | Cluster a large list of URLs (YouTube videos, web pages, PDFs) into themed NotebookLM notebooks under the per-notebook s... | `P:/.agents/skills/nlm-bulk-ingest/SKILL.md` |
+| **nlm-to-wiki** | Sync NotebookLM notebook content into the wiki vault as SCHEMA-compliant concept pages with full 4-hop provenance (conce... | `P:/.agents/skills/nlm-to-wiki/SKILL.md` |
 | **notebooklm** | Complete API for Google NotebookLM - full programmatic access including features not in the web UI. Create notebooks, ad... | `P:/.agents/skills/notebooklm/SKILL.md` |
 | **preflight** | Build an evidence-backed inventory of existing implementations, callers, registrations, state/default consumers, caches,... | `P:/.agents/skills/preflight/SKILL.md` |
 
