@@ -1,5 +1,29 @@
 # Vault Log
 
+## close-auto-invokes-aar
+Source: session 019f96f5
+Agent: grok
+Notes: Decision: /close auto-invokes /aar (the Never-auto rule was a regression). Surfaces dirty_age.py false positive on dirty submodule working trees.
+Page: concepts/close-auto-invokes-aar.md
+
+## [2026-07-24] ingest | /close auto-invokes /aar — not optional
+Source: session-2026-07-24
+Agent: grok
+Notes: AAR close-invocation policy reversal decision
+Page: wiki/concepts/close-auto-invokes-aar.md
+
+## integrity-authority-not-achievable-single-user
+Source: session-2026-07-24
+Agent: grok
+Notes: Created during /close. 10/10 adversarial write vectors forge authority on single-user Windows.
+Page: wiki/concepts/integrity-authority-not-achievable-single-user.md
+
+## host-metadata-not-authoritative-for-identity
+Source: session-2026-07-24
+Agent: grok
+Notes: Created during /close. Proven that summary.json is model-writable and cwd is not always show-toplevel.
+Page: wiki/concepts/host-metadata-not-authoritative-for-identity.md
+
 ## Updated [[context-firewall-architecture]] with external validation citations (Anthropic, LangChain, FrugalGPT, RouteLLM) and script-firewall trade-offs section (7 risks with mitigations). 3 serious risks: extract-then-need mismatch, signal loss on novel content, cross-file pattern blindness. All mitigated by Layer 2 agent fallback.
 Source: session-2026-07-24
 Agent: grok

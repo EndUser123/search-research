@@ -593,10 +593,12 @@ backups/
 **/.skill_usage.lock
 **/.continuous_mode.flag
 
-# Personal data (not source packages) — but wiki IS source, track it
-# Standard gitignore re-include pattern: ignore parent, un-ignore child dir,
-# ignore everything in child, then un-ignore specific subdirs/files.
-.data/
+# Personal data (not source packages) — but wiki IS source, track it.
+# Use .data/* (not .data/) so git still traverses the directory and the
+# re-include rules below actually work. With .data/ git never lists the
+# dir's contents, so !.data/wiki/ is silently ineffective and every new
+# wiki concept requires `git add -f` to track. The /* form fixes that.
+.data/*
 !.data/wiki/
 .data/wiki/**
 !.data/wiki/concepts/
