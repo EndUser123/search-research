@@ -50,7 +50,7 @@ corrected, comprehensive inventory + routing strategy.
 
 | Tool | Quota | Role |
 |------|-------|------|
-| **`web_search`** | ~2 RPS fleet-wide; 429 under parallel load | **Fallback only** — lower priority than MCPs above |
+| **`web_search`** | ~2 RPS fleet-wide; 429 under parallel load | **Last resort only — consumes Grok quota.** `web_search` runs `grok-4.20-multi-agent` model inference (confirmed 2026-07-24, `~/.grok/docs/user-guide/05-configuration.md:31`), NOT a free API call. MCP search tools (minimax-search, web-search-prime) use independent quota pools. Policy: use `web_search` only after all MCP search tools have failed. |
 
 ### Layer 3 — `search-research` CLI (local, 11+ providers)
 
