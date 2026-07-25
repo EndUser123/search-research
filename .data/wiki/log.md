@@ -1,5 +1,83 @@
 # Vault Log
 
+## Code-orchestrates-model-judges at the skill scale
+Source: session-2026-07-25
+Agent: grok
+Notes: /www research: micro-scale complement to macro (workflows) and meso (hooks). MindStudio deterministic+agentic nodes, DevelopersDigest control stack. 4 overlapping names for the same principle.
+Page: wiki/concepts/code-orchestrates-model-judges-skill-scale.md
+
+## Nemotron serde unsolved — wiki findability + 2026-07-25 retest
+Source: session-019f9a89-nemotron-retest
+Agent: grok
+Notes: Documented where Nemotron spawn_subagent serialization lives (capability matrix is canonical). Status NOT SOLVED. Retest 2026-07-25 same error null expected u32 col 330 on ~90k-token assignment. Workarounds only; root cause still UNKNOWN.
+Page: wiki/concepts/model-tool-calling-capability-matrix.md
+
+## Handoff: close lighter-equivalent loophole (3 ACT_NOW from AAR)
+Source: session-2026-07-25
+Agent: grok
+Notes: Implements the 3 structural fixes from session-019f9488 AAR: close /close self-authorization loophole, extend claims-require-receipts to equivalence claims, resolve-now default for /close gates.
+Page: P:/docs/handoffs/close-lighter-equivalent-loophole-20260725/HANDOFF.md
+
+## NotebookLM source limits free vs paid
+Source: session-2026-07-25
+Agent: grok
+Notes: Free=50, Plus=300. Stale training data defaults to 50. Verify with capacity test.
+Page: wiki/concepts/notebooklm-source-limits-free-vs-paid.md
+
+## AAR session 019f9488 — /tp rewrite close-out
+Source: session-2026-07-25
+Agent: grok
+Notes: Full /aar run with preprocessor packet (264 events, 108 signals). Critical finding: model self-authorized inline equivalent to skip /aar — recurring closure-pressure pathology. 7 opportunities identified, 3 ACT_NOW.
+Page: P:/.artifacts/grok-aar/console_console_83b3323a-a71b-4f55-8a5d-6a41/20260725-close/aar-report.md
+
+## Semantic clustering with bounded size
+Source: session-2026-07-25
+Agent: grok
+Notes: HDBSCAN two-pass + KNN-assign + greedy merge; verified 4116 videos -> 15 clusters
+Page: wiki/concepts/semantic-clustering-bounded-size.md
+
+## NotebookLM CLI operational gotchas
+Source: session-2026-07-25
+Agent: grok
+Notes: Auth recovery recipe, bulk add correction, first-URL cosmetic error
+Page: wiki/concepts/notebooklm-cli-operational-gotchas.md
+
+## Session 019f9488 retrospective — /tp rewrite, receipt system commit, domain 5 sharpening
+Source: session-2026-07-25
+Agent: grok
+Notes: Inline /close retrospective. Three frictions: defer-to-fresh-session rationalization, dropped header mid-edit, close verdict contradicted deferrals. /tp smoke test passed.
+Page: P:/docs/handoffs/session-019f9488-retrospective-20260725/RETROSPECTIVE.md
+
+## Skill rewrite protocol: rename-fallback, cross-reference preservation, filename-collision resolution
+Source: session-2026-07-25
+Agent: grok
+Notes: Reusable rewrite protocol validated on /tp — rename-fallback, split deep content, filename-collision resolution
+Page: wiki/concepts/skill-rewrite-preserve-tested-behavior-protocol.md
+
+## Multi-dimensional matrix as skill-design organization pattern
+Source: session-2026-07-25
+Agent: grok
+Notes: 4D matrix pattern from /tp rewrite — lens x horizon x target x posture as organizing principle
+Page: wiki/concepts/multi-dimensional-matrix-skill-organization-pattern.md
+
+## Cognitive enforcement patterns for AI coding agents
+Source: session-2026-07-25
+Agent: grok
+Notes: Six-category framework: epistemic checkpoints, pre-mortem, mandatory verification, language precision, destructive action gates, reasoning flaws. Derived from CLAUDE.md + AGENTS.md.
+Page: P:/.data/wiki/concepts/cognitive-enforcement-patterns-for-ai-coding-agents.md
+
+## [2026-07-25] ingest | Instruction-to-state closure gap: desired state and obligation ledgers
+Source: session-2026-07-25
+Agent: grok
+Notes: Captured the externally researched trade-offs and selected a narrow desired-state manifest plus session-scoped obligation ledger.
+Page: wiki/concepts/instruction-to-state-closure-gap-obligation-ledger.md
+
+## intent-based-routing-for-ai-agent-skills-2026
+Source: session-2026-07-25 (/www research)
+Agent: grok
+Notes: Validates /tp semantic intent classification approach. Industry consensus: LLM-based classification sufficient for <15 categories; cascade (keyword→embedding→SLM→LLM) needed at scale.
+Page: wiki/concepts/intent-based-routing-for-ai-agent-skills-2026.md
+
 ## ai-agent-verification-orchestration-best-practices-2026
 Source: session-2026-07-24/25 (/www research)
 Agent: grok
