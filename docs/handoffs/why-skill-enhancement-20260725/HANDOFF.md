@@ -103,6 +103,91 @@ The design went through three rounds of review (my initial proposal, two externa
 **Decision 10: Negative-path checks mandatory only for enforcement work.**
 - Both external analyses agreed: mandatory for hooks/gates/receipts/verification systems, conditional for ordinary debugging.
 
+### Additional high-ROI optimizations (post-handoff review — 2026-07-25)
+
+These emerged from reviewing the handoff against the Codex prompt
+(`C:\Users\brsth\Downloads\why-from-codex.txt`) and the Claude RCA reference
+at `cc-skills-sdlc/.../__lib/evidence_tiers.md`. They are NOT covered by the
+10 decisions above and have the highest long-term ROI.
+
+**Optimization A: Evidence-tier system (from Claude `evidence_tiers.md`).**
+- The handoff's "evidence inventory" (Mechanism/State/Outcome/Authority) is
+  necessary but not sufficient. The Claude reference adds a **Tier 1-4
+  confidence ceiling** system:
+  - Tier 1 (95%): execution artifacts, logs, test output, telemetry
+  - Tier 2 (85%): official docs, specs, peer-reviewed reference
+  - Tier 3 (75%): static analysis, logical derivation, symbols
+  - Tier 4 (50%): comments, unverified claims, speculation
+- **Rule:** overall confidence cannot exceed the weakest tier in the causal
+  chain (weakest-link). This is mechanically enforceable and prevents the
+  "I read the code, therefore FACT" error — reading code is Tier 3, not Tier 1.
+- **Why high-ROI:** this single rule structurally prevents the receipt-system
+  failure class (treating an inference as a fact). It's the missing enforcement
+  layer behind the existing `[FACT]/[INFERENCE]/[UNKNOWN]` labels.
+
+**Optimization B: Pattern-library integration (RADICAL — highest ROI).**
+- `/why` currently investigates every failure as novel. This workspace has
+  27+ wiki concepts, many documenting recurring failure patterns (closure
+  pressure, narrative sufficiency, reactive pattern matching, fail-open,
+  etc.).
+- **Add Step 0: pattern match.** Before investigating, query the wiki
+  (`/wiki query <failure-shape>`) for similar past failures. If a known
+  pattern matches, START from the known root cause and verify/disconfirm,
+  rather than re-deriving from scratch.
+- **Why highest ROI:** turns `/why` from a one-shot analyzer into a
+  cumulative-knowledge system. Each investigation builds on prior ones.
+  Directly addresses the "external LLMs found deeper causes" gap — the
+  external LLMs had broader pattern libraries; our `/why` doesn't query its
+  own.
+- **Depends on:** Optimization C (the feedback loop that populates the library).
+
+**Optimization C: Feedback-to-wiki loop (RADICAL — enables B).**
+- Every `/why` that finds a **systemic or architectural** cause should
+  auto-write (with operator confirm) a wiki concept capturing the pattern.
+- Without this, `/why` findings evaporate into session transcripts and never
+  feed back into future investigations.
+- **Threshold:** only systemic/architectural causes (not one-off code bugs).
+  The pattern must be reusable to warrant a concept.
+- This closes the loop: `/why` → wiki concept → future `/why` Step 0 query.
+
+**Optimization D: Failure-class dispatch (radical refactor of step structure).**
+- The handoff keeps a linear 8-step structure with inline "conditional
+  expansion." A cleaner radical refactor: **dispatch at Step 0 based on
+  failure class**, making the conditionality concrete:
+  - `--bug`: ordinary code bug → mechanical dimension primary, skip
+    agent-control lens, 60-second fast path
+  - `--agent`: agent-control system (hooks/gates/receipts/verification) →
+    full protocol: contract-map, feedback loops, negative paths, semantic vs
+    lexical feedback
+  - `--pattern`: recurring behavioral pattern → wiki-first (Optimization B),
+    longitudinal across sessions
+  - `--system`: architectural/systemic → contract-map first, then dimensions
+- **Why:** makes "conditional expansion" dispatch-driven (clear modes) rather
+  than a series of inline conditionals the LLM must track. Saves effort on
+  simple bugs; guarantees depth on complex ones.
+
+**Optimization E: Six-layer first-divergence model (from Codex prompt).**
+- The handoff has "identify the first divergence" but the Codex prompt
+  distinguishes six layers that should not be conflated:
+  symptom → first divergence → immediate trigger → proximate cause →
+  contributing conditions → systemic/reusable cause.
+- **Why:** prevents the common error of conflating trigger with cause
+  ("the hook blocked" is a trigger; "the receipt was semantically
+  inadequate" is the cause). Explicit layer separation forces the
+  distinction.
+
+**Optimization F: Semantic vs lexical feedback (agent-control lens addition).**
+- For agent-control systems, distinguish "the gate fired correctly (lexical —
+  exit code, file written)" from "the gate measured the right thing
+  (semantic — does the receipt actually prove completion?)."
+- The receipt-system failure was lexical-correct (hooks fired, files written)
+  but semantic-wrong (receipts didn't measure test quality).
+- Add as a named sub-check within the agent-control lens (Decision 1).
+
+**Recommended implementation order:** C → B → A → D → E → F.
+C and B are the radical refactor (cumulative knowledge system). A is the
+enforcement layer. D is structural clarity. E and F are refinements.
+
 ## What NOT to change
 
 These existing features are sound and should be preserved:
