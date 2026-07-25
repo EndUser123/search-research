@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-25
 cognitive_load: 3
-summary: Auto-generated index of 973 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 974 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 973 across 21 scopes.
+**Total skills:** 974 across 21 scopes.
 
 ## How to use this catalog
 
@@ -23,7 +23,7 @@ Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - **Authoritative source:** always read the actual `SKILL.md` at the listed path (stubs may lag)
 - **Scope meanings:** see the table at the bottom of this page
 
-## grok-user (34 skills)
+## grok-user (35 skills)
 
 | Skill | Description (truncated) | Path |
 |---|---|---|
@@ -58,7 +58,8 @@ Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **tp** | Critical-friend / thought-partner. Default /tp is a two-lens critique: a fresh subagent generates the critique (differen... | `~/.grok/skills/tp/SKILL.md` |
 | **wargame** | Content discipline for plans where observation is expensive, ambiguity is high, or the decision is hard to reverse. Forc... | `~/.grok/skills/wargame/SKILL.md` |
 | **web** | Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (minima... | `~/.grok/skills/web/SKILL.md` |
-| **why** | Multi-dimensional root cause analysis for AI agent failures, diagnostic errors, and system observations. Applies Ishikaw... | `~/.grok/skills/why/SKILL.md` |
+| **why** | Evidence-tiered, pattern-aware root cause analysis for AI agent failures, diagnostic errors, and system observations. Di... | `~/.grok/skills/why/SKILL.md` |
+| **why-old** | ARCHIVED — pre-refactor snapshot of /why preserved 2026-07-25 for A/B comparison. This is the original 5-dimension Ishik... | `~/.grok/skills/why-old/SKILL.md` |
 | **wiki** | Persistent knowledge base for durable findings. Default (/wiki with no args): distill the current session's unique, non-... | `~/.grok/skills/wiki/SKILL.md` |
 | **www** | Wiki-Web-Wiki compound research skill. Queries the local wiki for what we already know, researches the web for what we d... | `~/.grok/skills/www/SKILL.md` |
 
