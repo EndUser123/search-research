@@ -159,6 +159,24 @@ Output:
 Record a one-line summary: specialist count, findings raw/verified, clusters,
 verdict, cross-model specialist used, latency.
 
+## Save step: persist systemic attack/failure patterns to wiki (NEW 2026-07-25)
+
+After the verdict, check whether the red-team surfaced a **systemic attack or failure pattern** worth saving to the wiki. Red-team findings about structural/design-level weaknesses are exactly the kind of knowledge that compounds — future red-teams (Wiki grounding, Step 0.5) and `/wargame` sessions should find them.
+
+**Mechanical gate — an attack/failure pattern is wiki-worthy ONLY if ALL of:**
+1. The finding is **architectural** (class `architectural` from Step 6) — not a code-level implementation bug
+2. Has **verified evidence** (BLOCK or REVISE severity, verified in Step 3)
+3. **Named abstractly** (e.g., `fail-open-on-import-error-pattern` not `2026-07-25-auth-bypass`)
+4. **Cross-target reusable** (would apply to a different proposal/design in a different subsystem)
+5. **Not already in the wiki** (Wiki grounding query would have surfaced it; refine instead of duplicate)
+6. Has a **falsifier** (what observation would show this attack vector does NOT apply)
+
+If all 6 pass: write to `P:/.data/wiki/concepts/<slug>.md` per SCHEMA.md frontmatter, log via `append_log.py`. Cite the cluster ID and run_dir as sources.
+
+If any fails: the finding stays in the red-team output only.
+
+**Reference:** `/why` Step 15 mechanical gate; wiki concept `wiki-integrated-skills-query-save-pattern`. This closes the loop with the Wiki grounding step.
+
 ## Modes
 
 | Mode | Invocation | When |
