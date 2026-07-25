@@ -1,5 +1,11 @@
 # Vault Log
 
+## ai-agent-verification-orchestration-best-practices-2026
+Source: session-2026-07-24/25 (/www research)
+Agent: grok
+Notes: Created via /www research on /check orchestrator patterns. Synthesizes Addy Osmani, Futurum/Qodo, fbakkensen, AgentGuard, Weights & Biases, and community sources.
+Page: wiki/concepts/ai-agent-verification-orchestration-best-practices-2026.md
+
 ## [2026-07-24] ingest | Relevance gate before raising issues
 Source: session-2026-07-24
 Agent: grok
