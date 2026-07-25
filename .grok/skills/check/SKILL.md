@@ -143,18 +143,27 @@ spawn_subagent(
     subagent_type="general-purpose",
     capability_mode="execute",   # NOT "read-only" — see allowed/disallowed below
     background=True,
-    model="zen-deepseek-v4-flash-free",  # domain-table default (code-verification). Fallback: minimax-m3. See [[model-pool-selection-policy-speed-quota-diversity]]
+    # Model: omit to inherit parent Grok (safest default).
+    # The domain table recommends zen-deepseek-v4-flash-free for code-verification,
+    # but it currently fails via spawn_subagent (serialization error — see wiki
+    # model-tool-calling-capability-matrix). Use minimax-m3 or glm-5-2 if a
+    # non-parent model is needed. See [[model-pool-selection-policy-speed-quota-diversity]]
     prompt=<path-only verifier prompt>,
 )
 ```
 
-**Model selection for verifiers:** per the fleet model pool policy, code-
-verification defaults to `zen-deepseek-v4-flash-free` (fastest, free,
-code-specialized, measured 2900ms). If the verifier needs heavier reasoning
-(e.g. architectural claims, security analysis), use `minimax-m3` or
-`glm-5-2` instead. For adversarial cross-checking (rule 3: diversity), vary
-the model family from the implementation model. Omit `model` to inherit
-parent only for trivial coordination.
+**Model selection for verifiers:** the domain table at
+`[[model-pool-selection-policy-speed-quota-diversity]]` recommends
+`zen-deepseek-v4-flash-free` for code-verification (fastest, free, 2900ms).
+However, DeepSeek currently fails via `spawn_subagent` with a serialization
+error (verified 2026-07-24). Until the model's spawn_subagent compatibility
+is resolved, either:
+- Omit `model` to inherit parent Grok (works, but uses the most expensive model)
+- Use `model="minimax-m3"` (subscription, verified working, 4056ms)
+- Use `model="glm-5-2"` (subscription, verified working, 6744ms, best reasoning)
+
+For adversarial cross-checking (rule 3: diversity), vary the model family
+from the implementation model.
 
 ### Allowed commands (verifiers MAY run)
 
