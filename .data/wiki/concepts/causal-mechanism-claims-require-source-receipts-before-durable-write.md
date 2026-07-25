@@ -40,6 +40,8 @@ sources:
 relations:
   - target: wiki/concepts/plausible-narratives-substitute-for-verification.md
     type: refines — adds the causal-mechanism + durable-write surface form
+  - target: wiki/concepts/go-home-narrative-fabricated-session-state-constraints.md
+    type: related — sibling in the closure-pressure family; that concept covers anthropomorphic stop-narratives, this covers unreceived causal mechanisms. Both substitute feeling/narrative for receipt/measurement.
   - target: wiki/concepts/close-scanner-verification-gap-stale-read.md
     type: documented-by — that concept's correction incident is the worked example here
   - target: wiki/concepts/fabricated-causal-chain-receipt-required.md
