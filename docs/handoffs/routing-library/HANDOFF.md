@@ -92,6 +92,51 @@ OPEN — design identified, not started. The `/check` skill has a proof-of-conce
 - **Should the library handle fallback automatically?** If DeepSeek is down, should route.py automatically try MiMo, then M3? Recommendation: yes for the first fallback level; surface the fallback in telemetry.
 - **Should /go use route.py?** /go's wave system is more complex (personas, effort levels). Recommendation: defer — /go's reconciliation note is sufficient for now.
 
+### OD-04: Pool selection strategy (which model does the orchestrator pick from a multi-model pool?)
+
+**The problem:** When a domain maps to a pool of multiple qualified models (e.g., code-verification → {nemotron, glm, inkling, mimo}), the routing library must decide WHICH one to dispatch to. The current /tp approach (try in fixed order: nemotron → glm → inkling → mimo) is a chain, not a pool — nemotron bears all calls and the others are never exercised.
+
+**Candidate strategies:**
+
+| Strategy | How it picks | Pro | Con | Data needed |
+|----------|-------------|-----|-----|-------------|
+| **Always-first (current)** | Fixed order, first available | Simple, predictable | One model bears all load; others never exercised; no quality comparison data | None |
+| **Round-robin** | Cycle through pool members per dispatch | Spreads quota/load across providers; exercises all models; builds telemetry on each; provider-resilience (one outage doesn't kill all dispatches) | Might pick a slower model for time-sensitive tasks | None |
+| **Quality-weighted** | Pick model with best historical quality_score for this domain | Routes to empirically best model per task type | Cold-start: no data for first N calls; needs telemetry integration first | Telemetry (quality_score per model per domain) |
+| **Speed-weighted** | Pick fastest model for this domain | Minimizes latency | Might sacrifice quality | Telemetry (latency per model per domain) |
+| **Quota-aware** | Pick model with most remaining quota in current window | Avoids rate limits | Needs live quota data (not available for most providers — only GLM and MiniMax have published per-5h limits) | Provider quota API or static limits from wiki |
+| **Composite (quality × speed × quota)** | Weighted score combining all three | Optimal routing | Most complex; weights need tuning | All three data sources |
+
+**Recommendation (initial):** Start with **round-robin** for these reasons:
+1. Zero data dependency (works from first call, unlike quality-weighted or quota-aware)
+2. Exercises all pool members, which builds the telemetry data needed to later upgrade to quality-weighted
+3. Spreads quota usage across providers, reducing single-provider rate-limit risk
+4. The wiki's cross-family diversity principle is preserved (pool members are already cross-family)
+
+**Upgrade path:** after ~50 telemetry entries per model per domain, switch to quality-weighted or composite. The round-robin phase IS the data collection phase.
+
+**Cold-start handling:** if a model has <3 data points for a domain, always include it in the rotation (even if quality-weighted would exclude it). This ensures every model gets minimum calibration data before being deprioritized.
+
+### OD-05: Inkling delegation-only constraint
+
+**The problem:** Inkling (Thinking Machines) produces garbage as a Grok Build interactive model ("UBS", "Savings") but works correctly via spawn_subagent delegation (2.9s, correct output) and direct API (Q=1.0 all benchmark tiers). The routing library must know that Inkling is valid for delegation but not for interactive use.
+
+**Proposed mechanism:** add a `delegation_only = true` field to Inkling's domain table entry. The routing library respects this for spawn dispatch (includes it in pools) but the operator-facing model picker documentation should warn against selecting it as a primary model.
+
+**tool-fallbacks.md already documents this** (committed 2026-07-24). The routing library should read tool-fallbacks.md or the domain table's delegation_only flag to exclude delegation-only models from any "suggested primary model" logic.
+
+### OD-06: Cross-family diversity enforcement
+
+**The problem:** random selection within a family does NOT decorrelate errors (wiki: `multi-agent-correlated-errors.md`). The routing library should ensure pool members are from different model families, not just different slugs from the same provider.
+
+**Evidence from wiki:**
+- `multi-agent-correlated-errors.md`: "Persona mutations don't change attention. Frame mutations change what each agent attends to."
+- `llm-council-and-model-fusion.md`: "Prefer cross-family panel members over three clones of the same API."
+- `ai-thought-partner-landscape-and-tp-improvements-2026.md`: "Same-model debate → degenerate consensus. Cross-model diversity is the fix." (Zhang et al 2025, 26 citations)
+- `best-practices-enforcement-mechanism-grok-build.md`: "Same model family = correlated failure, not validation."
+
+**Proposed mechanism:** the domain table tags each model with its family (NVIDIA, Zhipu, Thinking Machines, Xiaomi, Google, etc.). When multiple dispatches happen in parallel (e.g., /check spawns 3 verifiers), the routing library distributes them across families, not within one. Round-robin within a cross-family pool satisfies this automatically — the pool is already cross-family, and round-robin naturally spreads across families.
+
 ## Hard constraints
 
 - The library must not break if telemetry is unavailable (same fail-open contract as extract.py)
