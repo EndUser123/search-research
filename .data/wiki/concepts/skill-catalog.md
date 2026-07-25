@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-25
 cognitive_load: 3
-summary: Auto-generated index of 974 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 975 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 974 across 21 scopes.
+**Total skills:** 975 across 21 scopes.
 
 ## How to use this catalog
 
@@ -128,12 +128,13 @@ Auto-generated on 2026-07-25 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **check** | "Multi-concern session verification with PASS/FAIL verdict" | `P:/.grok/skills/check/SKILL.md` |
 | **red-team** | Multi-agent adversarial review of any proposal, solution, design, or implementation before commitment. Planner → special... | `P:/.grok/skills/red-team/SKILL.md` |
 
-## grok-agents (4 skills)
+## grok-agents (5 skills)
 
 | Skill | Description (truncated) | Path |
 |---|---|---|
 | **avant-garde-ui** | Senior frontend architect and avant-garde UI designer persona for design-intent work. Use when the user wants to create ... | `P:/.agents/skills/avant-garde-ui/SKILL.md` |
 | **contract-status** | Show contract system health dashboard (writer + Stop stats) | `P:/.agents/skills/contract-status/SKILL.md` |
+| **nlm-bulk-ingest** | Cluster a large list of URLs (YouTube videos, web pages, PDFs) into themed NotebookLM notebooks under the per-notebook s... | `P:/.agents/skills/nlm-bulk-ingest/SKILL.md` |
 | **notebooklm** | Complete API for Google NotebookLM - full programmatic access including features not in the web UI. Create notebooks, ad... | `P:/.agents/skills/notebooklm/SKILL.md` |
 | **preflight** | Build an evidence-backed inventory of existing implementations, callers, registrations, state/default consumers, caches,... | `P:/.agents/skills/preflight/SKILL.md` |
 
