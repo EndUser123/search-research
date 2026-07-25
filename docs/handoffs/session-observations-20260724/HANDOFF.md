@@ -1,39 +1,39 @@
 ---
-title: "Session observations 2026-07-24"
-session_id: 019f94c9-43c1-7b31-87c4-980fdd3047e8
-date: 2026-07-24
+current_session_id: 019f9488-2a86-7bf1-ae6f-eeb341ec7095
+thread_id: session-observations-20260724
+parent_handoff_path: none
 status: CLOSED
-type: session-observations
+created: 2026-07-24
 ---
 
-# Session observations — 2026-07-24
+# Session Observations — 2026-07-24
 
-## Major work shipped
+## Session topic
 
-- **Model fleet multimodal tags**: all 35 models tagged [T]/[T+I]/[T+I+V]/[T+I+V+A]/[T+I+A] in config.toml
-- **Inkling fix**: added max_completion_tokens=16384, resolved serialization error on both HTTP and spawn_subagent paths
-- **/tp improvements**: horizon=now domain 5 fix, hybrid session-state carve-out, critique memory (tp_critique_log.py with auto-infer outcomes from git history)
-- **model-benchmark overhaul**: quality scoring, cost tracking, parallel execution, multimodal tier, tool-call tier, reliability trend, cli_benchmark.py for agy/codex/mmx
-- **AGENTS.md policies**: auto-commit without asking, web_search "last resort only + quota cost", accounting reliability requirement, coverage question triggers
-- **Wiki**: multimodal capability filter (46 models), AI thought-partner landscape research
+Epistemic-integrity enforcement design + Stop-hook receipt system implementation for Grok Build on Windows 11.
 
-## Key observations
+## Observations
 
-1. **Mistral Medium Latest is the fleet surprise** — fastest on both mechanical (1.1s) and reasoning (1.2s) tiers with perfect quality. Was [T?] unverified; now confirmed [T+I] multimodal.
+### 1. Stop-hook receipt system is operationally safe in shadow mode
+**Description:** PostToolUse receipts with worktree identity + file fingerprints work correctly under live multi-session conditions. Zero unsafe allows across 4 live sessions + 17 controlled scenarios. The old gate's `stop_hook_active` branch already handles prose-only responses, so the friction-reduction value is narrower than initially assumed.
+**Source:** session 019f9488, live shadow data from sessions 019f94ac/019f94c9/019f94d7.
 
-2. **Zen models pass HTTP but fail spawn_subagent** — zen-deepseek-v4-flash-free and zen-north-mini-code-free both work via direct API but fail Grok's dispatch with "serialization error: missing field `id`". They can't be used as /tp lenses, /check verifiers, or /review specialists.
+### 2. INTEGRITY_AUTHORITY is not achievable on this host without external infrastructure
+**Description:** The model shares the same user identity as the hook process. Every file the hook can write, the model can write via 10 distinct vectors. HMAC with file-stored keys provides zero boundary. The one path to integrity authority requires a protected remote (branch-protected git or external signing service).
+**Source:** session 019f9488, B2 adversarial write matrix (10/10 vectors forge authority).
 
-3. **DiffusionGemma doesn't support tool calling** — the only model that failed the tool-call tier. Diffusion architecture produces different output structure.
+### 3. `summary.json` is model-writable — cannot serve as identity authority
+**Description:** Investigated using `summary.json.git_root_dir` as a cache for repository identity. Proven model-writable (overwrote + restored during probe). Payload `cwd` is not always equal to `git show-toplevel` (subagent worktree sessions have divergent cwd). Only safe optimization: combine 3 git subprocess calls into 1 (165ms → 51ms).
+**Source:** session 019f9488, host metadata identity investigation.
 
-4. **GLM-5.2 quality scoring reveals hidden problem** — responds HTTP 200 but content is empty or just thinking tags. Without quality scoring, latency-only benchmarks would hide this. Q=0.0 on both mechanical and reasoning.
+### 4. Worktree identity must derive from Git metadata, not path or session metadata
+**Description:** `git-common-dir` (repository) + `git-dir` + `show-toplevel` (worktree) is the correct identity hierarchy. `git worktree move` changes `show-toplevel` but not `git-dir`; worktree recreation at same path may keep same `git-dir` name. The fingerprint check on file content is the ultimate defense against stale state.
+**Source:** session 019f9488, worktree identity resolution + red-team F3/F7.
 
-5. **NVIDIA NIM serialization bug is fleet-wide** — the `max_tokens: null` → `expected u32` error affects any NIM model without explicit max_completion_tokens in config. Inkling was the first to surface it; Nemotron also had it in spawn_subagent tests.
+### 5. The old Stop gate's false-positive friction comes from `.py` files in temp directories
+**Description:** Writing throwaway analysis scripts in `P:/tmp/` triggered the code-modification gate because `_is_code_file` returns True for `.py` extensions regardless of path. Fixed by adding `_is_excluded_path` for `P:/tmp/` and hook state dir. The red-team found the fix is asymmetric (receipt writer doesn't apply the same exclusion) — fixed in the 4-bug patch set.
+**Source:** session 019f9488, Stop hook feedback on temp scripts + red-team RC-1.
 
-6. **built-in web_search costs Grok quota** — runs grok-4.20-multi-agent model, not a free API. AGENTS.md updated to "last resort only."
-
-## Seeds for future work
-
-- **model-benchmark telemetry integration**: the telemetry library is ready but no skills actually call log_spawn() yet. Priority targets: /check verifiers, /tp lenses, /review specialists.
-- **Quality calibration**: the keyword-based scoring is crude. Could use LLM-as-judge for richer quality assessment on reasoning tier.
-- **Zen spawn_subagent fix**: the "missing field id" error might be fixable with a response-format shim or config change. Worth investigating if Zen models are needed as dispatch targets.
-- **Cost tracking for paid models**: the pricing table has $0 for all providers since none are paid per-token. When OpenRouter models are tested, the cost data will start populating.
+### 6. `/local:red-team` converted from overlay to standalone skill
+**Description:** The workspace red-team skill was an overlay extending the now-disabled plugin. Converted to standalone with inlined procedure. Plugin `red-team` disabled in `config.toml [plugins] disabled`.
+**Source:** session 019f9488, skill lifecycle maintenance.
