@@ -73,24 +73,41 @@ if (-not $transcript) {
         }
     }
     # Fallback: scan ONLY if session ID construction failed.
-    # WARNING: on multi-agent hosts (5+ concurrent Grok sessions writing
-    # transcripts to the same directory), this races — it returns whichever
-    # session flushed last, not THIS session. The direct-construction path
-    # above is the correct method. This fallback exists for single-session
-    # hosts or edge cases where the session ID env var is unavailable.
+    # FAIL-CLOSED on multi-agent hosts: if the scan finds a DIFFERENT session's
+    # transcript than the current session ID, do NOT use it. A wrong-session
+    # transcript produces garbage evidence — better to have no evidence packet
+    # (LLM-only verification) than wrong-session evidence.
     if (-not $transcript -and (Test-Path $sessionsRoot)) {
-        $transcript = Get-ChildItem -Path $sessionsRoot -Recurse -Filter "chat_history.jsonl" -ErrorAction SilentlyContinue |
+        $scanned = Get-ChildItem -Path $sessionsRoot -Recurse -Filter "chat_history.jsonl" -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
-        if ($transcript) {
-            $foundSession = (Split-Path $transcript -Parent | Split-Path -Parent | Split-Path -Leaf)
-            if ($foundSession -ne $sessionId) {
-                Write-Warning "TRANSCRIPT MISMATCH: scan found session '$foundSession' but current session is '$sessionId'. Using wrong-session fallback. Evidence packet may be unreliable."
+        if ($scanned) {
+            $foundSession = (Split-Path $scanned -Parent | Split-Path -Parent | Split-Path -Leaf)
+            if ($foundSession -eq $sessionId -and $sessionId -ne "LLM_FILL_FROM_CONTEXT") {
+                $transcript = $scanned
+            } elseif ($sessionId -eq "LLM_FILL_FROM_CONTEXT") {
+                Write-Warning "SESSION_ID NOT SET: LLM did not fill session ID. Using scanned transcript (may be wrong session). Evidence packet unreliable."
+                $transcript = $scanned
+            } else {
+                Write-Warning "TRANSCRIPT MISMATCH (FAIL-CLOSED): scan found session '$foundSession' but current session is '$sessionId'. NOT using wrong-session transcript. Continuing without evidence packet (LLM-only verification)."
             }
         }
     }
 }
 if (-not $transcript) {
-    Write-Warning "No session transcript found; falling back to LLM-only verification."
+    Write-Warning "No session transcript found; building git-derived evidence packet."
+    # F2: Git-derived fallback — when transcript discovery fails, derive
+    # evidence from git history instead of falling to LLM-only. The git diff/log
+    # IS a deterministic evidence source for what was changed this session.
+    $gitDiff = git diff --name-only 2>$null
+    $gitLog = git log --oneline -10 2>$null
+    $gitPacket = @{
+        source = @{ status = "GIT_DERIVED"; transcript = "not_found" }
+        git_changed_files = $gitDiff -split "`n" | Where-Object { $_.Trim() }
+        git_recent_commits = $gitLog -split "`n" | Where-Object { $_.Trim() }
+    } | ConvertTo-Json -Depth 3
+    $gitPacketPath = "$runDir/packets/git-evidence.json"
+    $gitPacket | Set-Content -Path $gitPacketPath -Encoding UTF8
+    Write-Host "Git-derived evidence: $gitPacketPath (transcript unavailable; using git diff + log)"
 } else {
     $packetPath = "$runDir/packets/evidence-packet.json"
     python "P:/.grok/skills/check/__lib/preprocessor.py" "$transcript" "$packetPath"
@@ -120,13 +137,64 @@ if (-not $transcript) {
   the verifier decides severity in context.
 
 **When the preprocessor fails or no transcript is found:** continue with
-LLM-only verification. Do NOT block /check on preprocessor availability — it
-is an enhancement, not a gate.
+the best available evidence (git-derived packet or LLM-only). Do NOT block
+/check on preprocessor availability — it is an enhancement, not a gate.
+
+## Step 0.9 -- Deterministic pre-check (conditional, before verifiers)
+
+**Goal:** catch failures that deterministic tools can find *before* spending
+200-350s on LLM verifiers. If ruff/pyright/tests fail, the LLM will reach
+the same conclusion — just much slower.
+
+**Trigger:** run when ANY scope file is a `.py` file (determined from the
+evidence packet's `scope_files` or the git-derived packet's `git_changed_files`).
+
+**What it does:**
+
+```powershell
+# Run deterministic checks on changed .py files only
+$pyFiles = ($scopeFiles | Where-Object { $_ -match '\.py$' })
+if ($pyFiles) {
+    $deterministicResult = "$runDir/packets/deterministic-check.json"
+    # Ruff: errors only (E, F rules)
+    $ruff = ruff check --select E,F --output-format=json $pyFiles 2>$null
+    # Pyright: errors only
+    $pyright = pyright --outputjson $pyFiles 2>$null | ConvertFrom-Json
+    $pyrightErrors = $pyright.generalDiagnostics | Where-Object { $_.severity -eq "error" }
+    # If any errors found, write them to the packet for verifiers
+    if ($LASTEXITCODE -ne 0 -or $pyrightErrors) {
+        @{ ruff_errors = $ruff; pyright_errors = $pyrightErrors } | ConvertTo-Json | Set-Content $deterministicResult
+        Write-Host "Deterministic pre-check: ERRORS FOUND (see $deterministicResult)"
+    } else {
+        Write-Host "Deterministic pre-check: clean"
+    }
+}
+```
+
+**Short-circuit rule:** if the deterministic pre-check finds errors (ruff E/F or pyright errors), the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
+
+**Do NOT short-circuit to immediate FAIL** without the LLM verifier — the deterministic check finds syntax/type errors but not logic errors. The LLM verifier still needs to run for the full assessment. The deterministic check just seeds the verifier with confirmed findings so it doesn't waste time rediscovering them.
+
+**Skip when:** no `.py` files in scope, or `--lite` mode.
 
 ## Step 1 -- Detect concerns
 Scan git diff + conversation **and** the evidence packet's `signal_counts`
 and `scope_files` bucket. Group into coherent concerns.
 One verifier per concern, always.
+
+**Concern-type tagging (F6):** tag each concern with a type that determines
+which verifier protocol phases run:
+
+| Concern type | Phase A | Phase B | Notes |
+|-------------|---------|---------|-------|
+| `code` | ✅ | ✅ | Full protocol — build, test, lint, review |
+| `doc` | ✅ | ❌ | Skip Phase B — no build/test needed for `.md`/`.toml`/config |
+| `research` | ✅ | ❌ | Skip Phase B — verify conclusions, not code |
+| `config` | ✅ | ✅ (contract-diff) | Verify config schema + backwards compat, not build |
+| `operational` | ✅ | ❌ | Verify outcomes (did the action happen?), not code |
+
+Tag the concern type in the verifier packet so the verifier knows which phases
+to run. This saves 100-200s per concern that doesn't need Phase B.
 
 **Exclude skill-internal bookkeeping from verification concerns.** The
 evidence packet captures all `file_edits`, but not all edits are user-facing
@@ -181,18 +249,22 @@ spawn_subagent(
 )
 ```
 
-**Model selection for verifiers:** the domain table at
-`[[model-pool-selection-policy-speed-quota-diversity]]` recommends
-`zen-deepseek-v4-flash-free` for code-verification (fastest, free, 2900ms).
-However, DeepSeek currently fails via `spawn_subagent` with a serialization
-error (verified 2026-07-24). Until the model's spawn_subagent compatibility
-is resolved, either:
-- Omit `model` to inherit parent Grok (works, but uses the most expensive model)
-- Use `model="minimax-m3"` (subscription, verified working, 4056ms)
-- Use `model="glm-5-2"` (subscription, verified working, 6744ms, best reasoning)
+**Model selection for verifiers — tiered routing (F5):**
+
+Route verifiers to the cheapest model that can do the job. The concern type
+determines the tier:
+
+| Concern type | Recommended model | Why |
+|-------------|-------------------|-----|
+| Doc-only (`.md`, `.toml`, config) | `minimax-m3` (subscription, 4056ms) | No code reasoning needed; M3 is fast and cheap |
+| Code review (`.py`, `.ts`, `.js`) | Parent-inherited Grok or `glm-5-2` (6744ms) | Best reasoning for code correctness |
+| Security/concurrency | `glm-5-2` (best reasoning) | Highest stakes need best model |
+| Simple existence checks (file exists, commit pushed) | `minimax-m3` | Mechanical; doesn't need expensive model |
 
 For adversarial cross-checking (rule 3: diversity), vary the model family
-from the implementation model.
+from the implementation model. When multiple concerns exist, route each
+independently — don't use one model for all concerns just because the first
+concern needed it.
 
 ### Allowed commands (verifiers MAY run)
 
@@ -226,6 +298,14 @@ authorize, perform it directly, or skip the check.
 
 ## Step 4 -- Merge verdicts
 All PASS = CHECK PASS. Any FAIL = CHECK FAIL.
+
+**Cross-verifier contradiction detection (F8):** when multiple verifiers
+return, compare their findings for contradictions. If Verifier A says "the
+file is correct" and Verifier B says "the same file has a bug," flag the
+contradiction to the operator. Contradictions indicate either (a) one
+verifier is wrong, or (b) the concern split was wrong and both verifiers
+partially saw the same issue. Either way, surface the contradiction rather
+than silently averaging the verdicts.
 
 ## Step 5 -- Fix and reverify (max 3 cycles)
 
@@ -553,6 +633,16 @@ data analysis, research).
 - Do not accept proxy signals as proof of completion. Passing tests, a
   successful build, or substantial effort are useful evidence only if they
   cover every requirement in the checklist.
+- **Outcome-based verification mandate (F7):** do NOT accept the agent's
+  transcript self-report as verification evidence. "The agent said it ran
+  the tests" is not verification — YOU must run the tests. A checkpoint
+  that reads self-report is not a checkpoint. If you cannot independently
+  confirm a claim, label it UNVERIFIED.
+- **Falsifier-evidence receipts (F9):** when you state that a claim is
+  confirmed or refuted, cite the specific tool call or command output that
+  confirms it. "I checked and it works" is not a receipt. `grep -r
+  "__trunc__" --type py` returning 0 matches IS a receipt. Include the
+  actual command and its output summary in your report.
 - Do not invent issues to fill space. If the work genuinely addresses the
   user's requests correctly, say PASS. Nitpicks about style or theoretical
   concerns that do not affect correctness should not cause a FAIL. However,
