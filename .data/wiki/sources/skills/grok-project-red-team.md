@@ -3,6 +3,8 @@ type: skill-reference
 scope: grok-project
 skill_name: red-team
 source_path: P:/.grok/skills/red-team/SKILL.md
+grok_enabled: true
+claude_enabled: n/a
 indexed_date: 2026-07-25
 ---
 

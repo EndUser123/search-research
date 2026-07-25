@@ -3,7 +3,9 @@ type: skill-reference
 scope: grok-bundled
 skill_name: resume-claude
 source_path: C:/Users/brsth/.grok/bundled/skills/resume-claude/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: true
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: resume-claude

@@ -4,7 +4,9 @@ scope: claude-cache-official
 plugin: chrome-devtools-mcp/1.6.0
 skill_name: memory-leak-debugging
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/chrome-devtools-mcp/1.6.0/skills/memory-leak-debugging/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: memory-leak-debugging

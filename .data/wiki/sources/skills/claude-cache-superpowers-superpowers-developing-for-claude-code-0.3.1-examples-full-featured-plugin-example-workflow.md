@@ -4,7 +4,9 @@ scope: claude-cache-superpowers
 plugin: superpowers-developing-for-claude-code/0.3.1/examples/full-featured-plugin
 skill_name: example-workflow
 source_path: C:/Users/brsth/.claude/plugins/cache/superpowers-marketplace/superpowers-developing-for-claude-code/0.3.1/examples/full-featured-plugin/skills/workflow/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: example-workflow

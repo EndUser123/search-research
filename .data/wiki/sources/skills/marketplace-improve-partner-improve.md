@@ -4,7 +4,9 @@ scope: marketplace
 plugin: improve-partner
 skill_name: improve
 source_path: P:/packages/.claude-marketplace/plugins/improve-partner/skills/improve/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: improve

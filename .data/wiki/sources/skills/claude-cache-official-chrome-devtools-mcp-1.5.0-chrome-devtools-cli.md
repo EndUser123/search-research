@@ -4,7 +4,9 @@ scope: claude-cache-official
 plugin: chrome-devtools-mcp/1.5.0
 skill_name: chrome-devtools-cli
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/chrome-devtools-mcp/1.5.0/skills/chrome-devtools-cli/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: chrome-devtools-cli

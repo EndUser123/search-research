@@ -3,6 +3,8 @@ type: skill-reference
 scope: grok-user
 skill_name: review
 source_path: C:/Users/brsth/.grok/skills/review/SKILL.md
+grok_enabled: true
+claude_enabled: n/a
 indexed_date: 2026-07-25
 ---
 

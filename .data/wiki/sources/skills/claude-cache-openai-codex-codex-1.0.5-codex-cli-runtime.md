@@ -4,7 +4,9 @@ scope: claude-cache-openai-codex
 plugin: codex/1.0.5
 skill_name: codex-cli-runtime
 source_path: C:/Users/brsth/.claude/plugins/cache/openai-codex/codex/1.0.5/skills/codex-cli-runtime/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: codex-cli-runtime

@@ -4,7 +4,9 @@ scope: marketplace
 plugin: quickstop
 skill_name: stale
 source_path: P:/packages/.claude-marketplace/plugins/quickstop/skills/stale/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: stale

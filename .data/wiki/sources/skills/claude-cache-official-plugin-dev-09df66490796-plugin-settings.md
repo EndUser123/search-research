@@ -4,7 +4,9 @@ scope: claude-cache-official
 plugin: plugin-dev/09df66490796
 skill_name: plugin-settings
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/09df66490796/skills/plugin-settings/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: plugin-settings

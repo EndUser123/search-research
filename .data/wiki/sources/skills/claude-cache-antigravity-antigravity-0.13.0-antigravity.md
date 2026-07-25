@@ -4,7 +4,9 @@ scope: claude-cache-antigravity
 plugin: antigravity/0.13.0
 skill_name: antigravity
 source_path: C:/Users/brsth/.claude/plugins/cache/antigravity-for-claude-code/antigravity/0.13.0/skills/antigravity/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: antigravity

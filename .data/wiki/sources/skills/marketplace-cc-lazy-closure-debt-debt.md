@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-lazy-closure-debt
 skill_name: debt
 source_path: P:/packages/.claude-marketplace/plugins/cc-lazy-closure-debt/skills/debt/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: debt

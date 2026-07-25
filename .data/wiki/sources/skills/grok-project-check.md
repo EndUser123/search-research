@@ -3,7 +3,9 @@ type: skill-reference
 scope: grok-project
 skill_name: check
 source_path: P:/.grok/skills/check/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: true
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: check

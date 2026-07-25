@@ -4,7 +4,9 @@ scope: claude-cache-minimax
 plugin: minimax-skills/1.0.0/plugins/pptx-plugin
 skill_name: design-style-skill
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/plugins/pptx-plugin/skills/design-style-skill/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: false
+indexed_date: 2026-07-25
 ---
 
 # Skill: design-style-skill

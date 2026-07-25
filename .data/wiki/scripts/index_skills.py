@@ -19,7 +19,9 @@ in the actual SKILL.md file; the stub is a searchable pointer.
 """
 from __future__ import annotations
 
+import json
 import re
+import tomllib
 from datetime import date
 from pathlib import Path
 from typing import NamedTuple
@@ -27,6 +29,28 @@ from typing import NamedTuple
 VAULT = Path("P:/.data/wiki")
 STUBS_DIR = VAULT / "sources" / "skills"
 CATALOG_PATH = VAULT / "concepts" / "skill-catalog.md"
+
+GROK_CONFIG = Path("C:/Users/brsth/.grok/config.toml")
+CLAUDE_SETTINGS = Path("C:/Users/brsth/.claude/settings.json")
+
+# Map each Claude cache/marketplace scope → the source suffix used in
+# settings.json enabledPlugins keys (e.g. "cc-skills-media@local").
+CLAUDE_SCOPE_SOURCE: dict[str, str] = {
+    "claude-cache-local": "local",
+    "claude-mkt-local": "local",
+    "claude-cache-official": "claude-plugins-official",
+    "claude-cache-antigravity": "antigravity-for-claude-code",
+    "claude-cache-karpathy": "karpathy-skills",
+    "claude-cache-minimax": "minimax-skills",
+    "claude-cache-openai-codex": "openai-codex",
+    "claude-cache-pi": "pi-plugin-cc",
+    "claude-cache-ponytail": "ponytail",
+    "claude-cache-superpowers": "superpowers-marketplace",
+    "claude-cache-zai": "zai-coding-plugins",
+    "claude-mkt-quickstop": "quickstop",
+    "claude-mkt-thedotmack": "thedotmack",
+    "marketplace": "local",
+}
 
 # (scope_label, root_path, plugin_relative_path_or_None)
 # If plugin_relative is set, skills live at <root>/<plugin>/<rel>/<skill>/SKILL.md
@@ -72,6 +96,73 @@ class SkillEntry(NamedTuple):
     path: str
     description: str
     plugin: str | None  # for plugin-sourced skills
+    grok_state: str = "—"   # ✓ enabled | ✗ disabled | — n/a
+    claude_state: str = "—"  # ✓ enabled | ✗ disabled | — n/a
+
+
+def load_grok_disabled() -> set[str]:
+    """Parse [plugins].disabled from ~/.grok/config.toml."""
+    if not GROK_CONFIG.exists():
+        return set()
+    try:
+        with GROK_CONFIG.open("rb") as f:
+            data = tomllib.load(f)
+        return set(data.get("plugins", {}).get("disabled", []))
+    except Exception:
+        return set()
+
+
+def load_claude_enabled() -> dict[str, bool]:
+    """Parse enabledPlugins from ~/.claude/settings.json."""
+    if not CLAUDE_SETTINGS.exists():
+        return {}
+    try:
+        data = json.loads(CLAUDE_SETTINGS.read_text(encoding="utf-8"))
+        return data.get("enabledPlugins", {})
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def compute_plugin_state(scope: str, plugin: str | None,
+                          grok_disabled: set[str],
+                          claude_enabled: dict[str, bool]) -> tuple[str, str]:
+    """Return (grok_state, claude_state) for a skill entry.
+
+    '✓' = enabled in that host
+    '✗' = disabled in that host (plugin on disk but turned off)
+    '—' = not applicable (scope isn't loaded by that host)
+    """
+    is_grok_scope = scope.startswith("grok-") or scope == "marketplace"
+    is_claude_scope = scope.startswith("claude-") or scope == "marketplace"
+    is_codex_scope = scope.startswith("codex-")
+
+    if is_codex_scope:
+        return ("—", "—")
+
+    # Direct skills (not in a plugin) are always enabled when the scope loads
+    if plugin is None:
+        return ("✓" if is_grok_scope else "—",
+                "✓" if is_claude_scope else "—")
+
+    # Plugin-sourced: extract bare plugin name (strip version-hash subdirs)
+    bare = plugin.split("/")[0]
+
+    # Grok: disabled-list is opt-out (absence = enabled)
+    grok = ("✗" if is_grok_scope and bare in grok_disabled
+            else "✓" if is_grok_scope else "—")
+
+    # Claude: enabledPlugins is opt-in (absence = disabled)
+    if is_claude_scope:
+        source = CLAUDE_SCOPE_SOURCE.get(scope, "")
+        if source:
+            key = f"{bare}@{source}"
+            claude = "✓" if claude_enabled.get(key, False) else "✗"
+        else:
+            claude = "—"  # unknown source mapping
+    else:
+        claude = "—"
+
+    return (grok, claude)
 
 
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -101,7 +192,8 @@ def parse_frontmatter(text: str) -> tuple[str, str]:
     return (name, desc)
 
 
-def scan_scope(scope: str, root: Path, plugin_rel: str | None) -> list[SkillEntry]:
+def scan_scope(scope: str, root: Path, plugin_rel: str | None,
+               grok_disabled: set[str], claude_enabled: dict[str, bool]) -> list[SkillEntry]:
     """Find all SKILL.md files under a scope root via deep glob.
 
     Robust to varying directory structures:
@@ -137,6 +229,7 @@ def scan_scope(scope: str, root: Path, plugin_rel: str | None) -> list[SkillEntr
                 plugin = parts[0]
         text = skill_md.read_text(encoding="utf-8", errors="replace")
         name, desc = parse_frontmatter(text)
+        grok_st, claude_st = compute_plugin_state(scope, plugin, grok_disabled, claude_enabled)
         entries.append(
             SkillEntry(
                 scope=scope,
@@ -144,6 +237,8 @@ def scan_scope(scope: str, root: Path, plugin_rel: str | None) -> list[SkillEntr
                 path=str(skill_md).replace("\\", "/"),
                 description=desc,
                 plugin=plugin,
+                grok_state=grok_st,
+                claude_state=claude_st,
             )
         )
     return entries
@@ -167,6 +262,15 @@ def slugify(scope: str, plugin: str | None, name: str) -> str:
     return "-".join(parts)
 
 
+def _state_yaml(value: str) -> str:
+    """Convert symbol to YAML bool or 'n/a'."""
+    if value == "✓":
+        return "true"
+    if value == "✗":
+        return "false"
+    return "n/a"
+
+
 def write_stub(entry: SkillEntry) -> Path:
     """Write a lightweight stub file for qmd indexing."""
     slug = slugify(entry.scope, entry.plugin, entry.name)
@@ -177,6 +281,8 @@ type: skill-reference
 scope: {entry.scope}
 {plugin_note}skill_name: {entry.name}
 source_path: {entry.path}
+grok_enabled: {_state_yaml(entry.grok_state)}
+claude_enabled: {_state_yaml(entry.claude_state)}
 indexed_date: {date.today().isoformat()}
 ---
 
@@ -229,6 +335,11 @@ def write_catalog(entries: list[SkillEntry]) -> None:
         "- **Authoritative source:** always read the actual `SKILL.md` at the listed path (stubs may lag)",
         "- **Scope meanings:** see the table at the bottom of this page",
         "",
+        "**G / C columns:** Grok-enabled / Claude-enabled state per skill:",
+        "- `✓` = plugin is enabled (active in sessions)",
+        "- `✗` = plugin is on disk but disabled in that host's config",
+        "- `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)",
+        "",
     ]
 
     for scope in [
@@ -261,8 +372,8 @@ def write_catalog(entries: list[SkillEntry]) -> None:
             continue
         lines.append(f"## {scope} ({len(scope_entries)} skills)")
         lines.append("")
-        lines.append("| Skill | Description (truncated) | Path |")
-        lines.append("|---|---|---|")
+        lines.append("| Skill | G | C | Description (truncated) | Path |")
+        lines.append("|---|---|---|---|---|")
         for e in scope_entries:
             desc_short = e.description[:120] + ("..." if len(e.description) > 120 else "")
             desc_short = desc_short.replace("|", "\\|").replace("\n", " ")
@@ -271,7 +382,7 @@ def write_catalog(entries: list[SkillEntry]) -> None:
                 name_cell += f" _[{e.plugin}]_"
             path_short = e.path.replace("C:/Users/brsth", "~")
             path_short = path_short.replace("P:/packages/.claude-marketplace/plugins", "…/marketplace")
-            lines.append(f"| {name_cell} | {desc_short} | `{path_short}` |")
+            lines.append(f"| {name_cell} | {e.grok_state} | {e.claude_state} | {desc_short} | `{path_short}` |")
         lines.append("")
 
     lines.extend([
@@ -324,9 +435,15 @@ def main() -> None:
     for old in STUBS_DIR.glob("*.md"):
         old.unlink()
 
+    # Load plugin enable/disable state from both hosts
+    grok_disabled = load_grok_disabled()
+    claude_enabled = load_claude_enabled()
+    print(f"Grok disabled plugins: {len(grok_disabled)}")
+    print(f"Claude enabled plugins: {len(claude_enabled)}")
+
     all_entries: list[SkillEntry] = []
     for scope, root, plugin_rel in SCOPES:
-        entries = scan_scope(scope, root, plugin_rel)
+        entries = scan_scope(scope, root, plugin_rel, grok_disabled, claude_enabled)
         for e in entries:
             write_stub(e)
         all_entries.extend(entries)

@@ -3,7 +3,9 @@ type: skill-reference
 scope: grok-user
 skill_name: marketplace-bridge
 source_path: C:/Users/brsth/.grok/skills/marketplace-bridge/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: true
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: marketplace-bridge

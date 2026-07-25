@@ -4,7 +4,9 @@ scope: grok-installed-plugins
 plugin: superpowers-21e2a56d
 skill_name: using-git-worktrees
 source_path: C:/Users/brsth/.grok/installed-plugins/superpowers-21e2a56d/skills/using-git-worktrees/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: true
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: using-git-worktrees

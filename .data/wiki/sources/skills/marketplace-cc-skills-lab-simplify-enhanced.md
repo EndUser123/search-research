@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-skills-lab
 skill_name: simplify-enhanced
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-lab/skills/simplify-enhanced/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: simplify-enhanced

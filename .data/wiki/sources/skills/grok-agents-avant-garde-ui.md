@@ -3,7 +3,9 @@ type: skill-reference
 scope: grok-agents
 skill_name: avant-garde-ui
 source_path: P:/.agents/skills/avant-garde-ui/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: true
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: avant-garde-ui

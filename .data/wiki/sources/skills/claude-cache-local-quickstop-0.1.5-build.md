@@ -4,7 +4,9 @@ scope: claude-cache-local
 plugin: quickstop/0.1.5
 skill_name: build
 source_path: C:/Users/brsth/.claude/plugins/cache/local/quickstop/0.1.5/skills/build/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: build

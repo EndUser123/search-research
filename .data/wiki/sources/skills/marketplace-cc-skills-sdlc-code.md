@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-skills-sdlc
 skill_name: code
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/code/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: code

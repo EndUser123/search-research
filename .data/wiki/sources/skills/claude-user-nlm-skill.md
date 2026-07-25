@@ -3,7 +3,9 @@ type: skill-reference
 scope: claude-user
 skill_name: nlm-skill
 source_path: C:/Users/brsth/.claude/skills/nlm-skill/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: nlm-skill

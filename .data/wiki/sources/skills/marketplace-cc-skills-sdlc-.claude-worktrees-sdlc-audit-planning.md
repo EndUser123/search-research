@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-skills-sdlc/.claude/worktrees/sdlc-audit
 skill_name: planning
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/planning/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: planning

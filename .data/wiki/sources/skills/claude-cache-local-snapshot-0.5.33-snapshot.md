@@ -4,7 +4,9 @@ scope: claude-cache-local
 plugin: snapshot/0.5.33
 skill_name: snapshot
 source_path: C:/Users/brsth/.claude/plugins/cache/local/snapshot/0.5.33/skills/snapshot/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: snapshot

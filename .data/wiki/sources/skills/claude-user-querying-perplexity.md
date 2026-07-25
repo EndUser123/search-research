@@ -3,7 +3,9 @@ type: skill-reference
 scope: claude-user
 skill_name: querying-perplexity
 source_path: C:/Users/brsth/.claude/skills/perplexity-web-mcp/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: querying-perplexity

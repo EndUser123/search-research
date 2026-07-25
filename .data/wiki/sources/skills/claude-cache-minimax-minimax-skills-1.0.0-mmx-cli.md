@@ -4,7 +4,9 @@ scope: claude-cache-minimax
 plugin: minimax-skills/1.0.0
 skill_name: mmx-cli
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/skills/minimax-multimodal-toolkit/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: false
+indexed_date: 2026-07-25
 ---
 
 # Skill: mmx-cli

@@ -4,7 +4,9 @@ scope: claude-mkt-thedotmack
 plugin: openclaw
 skill_name: do
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/thedotmack/openclaw/skills/do/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: false
+indexed_date: 2026-07-25
 ---
 
 # Skill: do

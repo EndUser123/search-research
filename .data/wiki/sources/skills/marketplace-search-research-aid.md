@@ -4,7 +4,9 @@ scope: marketplace
 plugin: search-research
 skill_name: aid
 source_path: P:/packages/.claude-marketplace/plugins/search-research/skills/aid/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: aid

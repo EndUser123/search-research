@@ -4,7 +4,9 @@ scope: claude-cache-minimax
 plugin: minimax-skills/1.0.0
 skill_name: pptx-generator
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/skills/pptx-generator/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: false
+indexed_date: 2026-07-25
 ---
 
 # Skill: pptx-generator

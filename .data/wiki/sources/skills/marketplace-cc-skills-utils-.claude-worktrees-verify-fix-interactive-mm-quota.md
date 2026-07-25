@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-skills-utils/.claude/worktrees/verify-fix-interactive
 skill_name: mm-quota
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-utils/.claude/worktrees/verify-fix-interactive/skills/mm-quota/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: mm-quota

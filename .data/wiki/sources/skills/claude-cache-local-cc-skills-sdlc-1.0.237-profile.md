@@ -4,7 +4,9 @@ scope: claude-cache-local
 plugin: cc-skills-sdlc/1.0.237
 skill_name: profile
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/profile/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: profile

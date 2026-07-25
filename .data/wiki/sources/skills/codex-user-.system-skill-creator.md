@@ -4,7 +4,9 @@ scope: codex-user
 plugin: .system
 skill_name: skill-creator
 source_path: C:/Users/brsth/.codex/skills/.system/skill-creator/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: skill-creator

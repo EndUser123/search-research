@@ -4,7 +4,9 @@ scope: claude-cache-superpowers
 plugin: superpowers-developing-for-claude-code/0.3.1
 skill_name: working-with-claude-code
 source_path: C:/Users/brsth/.claude/plugins/cache/superpowers-marketplace/superpowers-developing-for-claude-code/0.3.1/skills/working-with-claude-code/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: working-with-claude-code

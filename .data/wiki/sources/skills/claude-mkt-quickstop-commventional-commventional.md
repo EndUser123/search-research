@@ -4,7 +4,9 @@ scope: claude-mkt-quickstop
 plugin: commventional
 skill_name: commventional
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/quickstop/plugins/commventional/skills/commventional/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: false
+indexed_date: 2026-07-25
 ---
 
 # Skill: commventional

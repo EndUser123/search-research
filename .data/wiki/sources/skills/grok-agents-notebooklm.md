@@ -3,7 +3,9 @@ type: skill-reference
 scope: grok-agents
 skill_name: notebooklm
 source_path: P:/.agents/skills/notebooklm/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: true
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: notebooklm

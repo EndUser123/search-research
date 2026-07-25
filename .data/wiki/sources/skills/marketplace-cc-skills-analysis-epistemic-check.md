@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-skills-analysis
 skill_name: epistemic-check
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-analysis/skills/epistemic-check/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: epistemic-check

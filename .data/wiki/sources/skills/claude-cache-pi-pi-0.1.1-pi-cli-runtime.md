@@ -4,7 +4,9 @@ scope: claude-cache-pi
 plugin: pi/0.1.1
 skill_name: pi-cli-runtime
 source_path: C:/Users/brsth/.claude/plugins/cache/pi-plugin-cc/pi/0.1.1/skills/pi-cli-runtime/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: pi-cli-runtime

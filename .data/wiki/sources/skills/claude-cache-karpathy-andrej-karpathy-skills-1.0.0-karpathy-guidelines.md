@@ -4,7 +4,9 @@ scope: claude-cache-karpathy
 plugin: andrej-karpathy-skills/1.0.0
 skill_name: karpathy-guidelines
 source_path: C:/Users/brsth/.claude/plugins/cache/karpathy-skills/andrej-karpathy-skills/1.0.0/skills/karpathy-guidelines/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: karpathy-guidelines

@@ -4,7 +4,9 @@ scope: claude-cache-local
 plugin: cc-skills-ai-api/1.0.22
 skill_name: ai-cli
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/ai-cli/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: ai-cli

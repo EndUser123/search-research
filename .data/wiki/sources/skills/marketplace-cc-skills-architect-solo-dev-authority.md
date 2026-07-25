@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-skills-architect
 skill_name: solo-dev-authority
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/solo-dev-authority/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: solo-dev-authority

@@ -3,7 +3,9 @@ type: skill-reference
 scope: grok-bundled
 skill_name: design
 source_path: C:/Users/brsth/.grok/bundled/skills/design/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: true
+claude_enabled: n/a
+indexed_date: 2026-07-25
 ---
 
 # Skill: design

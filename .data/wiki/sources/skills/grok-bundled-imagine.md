@@ -3,6 +3,8 @@ type: skill-reference
 scope: grok-bundled
 skill_name: imagine
 source_path: C:/Users/brsth/.grok/bundled/skills/imagine/SKILL.md
+grok_enabled: true
+claude_enabled: n/a
 indexed_date: 2026-07-25
 ---
 

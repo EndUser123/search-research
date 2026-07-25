@@ -4,7 +4,9 @@ scope: claude-cache-local
 plugin: search-research/0.1.123
 skill_name: chs-eval
 source_path: C:/Users/brsth/.claude/plugins/cache/local/search-research/0.1.123/skills/chs-eval/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: n/a
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: chs-eval

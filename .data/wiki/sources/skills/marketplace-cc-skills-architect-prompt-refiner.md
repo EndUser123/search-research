@@ -4,7 +4,9 @@ scope: marketplace
 plugin: cc-skills-architect
 skill_name: prompt_refiner
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/prompt_refiner/SKILL.md
-indexed_date: 2026-07-23
+grok_enabled: false
+claude_enabled: true
+indexed_date: 2026-07-25
 ---
 
 # Skill: prompt_refiner

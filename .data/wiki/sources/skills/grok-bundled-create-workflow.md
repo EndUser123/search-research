@@ -3,6 +3,8 @@ type: skill-reference
 scope: grok-bundled
 skill_name: create-workflow
 source_path: C:/Users/brsth/.grok/bundled/skills/create-workflow/SKILL.md
+grok_enabled: true
+claude_enabled: n/a
 indexed_date: 2026-07-25
 ---
 
