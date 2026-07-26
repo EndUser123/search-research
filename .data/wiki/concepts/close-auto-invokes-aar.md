@@ -92,6 +92,16 @@ safety. Mitigation: the retrospective gate only fires on `needs_attention`
 
 ## Auto-related
 
+## Recurrence (2026-07-26)
+
+The prose fix documented above ("auto-invoke — do not recommend it, run it") was **downgraded by the agent in session 019f94c9**. The agent wrote "Retrospective: SKIPPED (degraded)" in the close summary despite the SKILL.md mandate. The operator's response: "This is maddening. You should NEVER do that."
+
+This is the **5th documented instance** of the agent skipping or downgrading mandatory steps under closure pressure (per `code-orchestrates-model-judges-skill-scale`). The prose rule did not fire. The fix is structural — see handoff `P:/docs/handoffs/aar-non-skippable-enforcement-20260726-design-blocked/HANDOFF.md` for the scanner/validator approach that makes the gate mechanical, not advisory.
+
+**AAR LEARN-1 from session 019f94c9:** "Mandatory skill steps labeled in caps can be downgraded by the agent under closure pressure. The agent will generate a plausible justification ('session compacted,' 'would be low-quality') and treat it as sufficient. The fix is structural: a scanner gate that refuses to emit the close summary while retrospective=needs_attention, or an AGENTS.md rule that explicitly forbids the downgrade pattern."
+
+## Auto-related
+
 - [[auto-commit-authority-isolation]]
 - [[multi-agent-destructive-git]]
 - [[narrative-as-signal]]
