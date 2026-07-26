@@ -1,5 +1,17 @@
 # Vault Log
 
+## User Modeling for Agentic CLIs: research landscape and operator-profile recommendation
+Source: session-2026-07-26 / www
+Agent: grok
+Notes: Predictive operator model concept is real (User Modeling / Personal LLM Agents). Disconfirmation flipped naive answer: ETH Zurich -3% on LLM-written context, Writer.com 25x sycophancy under Mem0. Recommendation: keep existing operator-collaboration-style-and-leverage.md; do not auto-inject; add refresh discipline.
+Page: P:/.data/wiki/concepts/user-modeling-for-agentic-clis.md
+
+## Skill dedup behavior across agent CLIs (research)
+Source: www (web: anomalyco/opencode#29950,#32202; openai/codex#25324,#8169; vercel-labs/skills#1200; anthropics/claude-code#10115,#46833,#42384; nodejs.org/api/fs.html; forum.cursor.com)
+Agent: grok
+Notes: Re-refined agent-config-directory-taxonomy.md: NO major agent CLI dedupes by resolved path. Symlink into multiple scan roots of same tool causes duplication (Codex/Copilot/Claude/Grok) or non-deterministic last-writer-wins (OpenCode). Corrected recommendation: source outside scan roots, junction to exactly ONE root per tool.
+Page: wiki/concepts/agent-config-directory-taxonomy.md
+
 ## receipt-before-write handoff + vocabulary-mismatch sub-pattern
 Source: session-20260726
 Agent: grok
