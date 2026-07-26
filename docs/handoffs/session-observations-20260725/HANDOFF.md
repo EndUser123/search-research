@@ -108,6 +108,6 @@ Operator asked for `/why` skill optimization proposals using multiple models. Se
 - Skill implementations (2):
   - `C:/Users/brsth/.grok/skills/why/SKILL.md` v3 (commit `ddf793d`)
   - `C:/Users/brsth/.grok/skills/wiki/SKILL.md` decisions-default (commit `7ab98b7`)
-- Assignment packet template: `P:/tmp/why-skill-multi-model-assignment.md`
-- Producer outputs: `P:/tmp/why-skill-codex-final.md`, `P:/tmp/why-skill-agy-out.txt`
+- Assignment packet template: `P:/docs/tmp-preserved-20260725/why-skill-multi-model-assignment.md`
+- Producer outputs: `P:/docs/tmp-preserved-20260725/why-skill-codex-final.md`, `P:/docs/tmp-preserved-20260725/why-skill-agy-out.txt`
 - Handoff driving the work: `P:/docs/handoffs/why-skill-enhancement-20260725/HANDOFF.md`
