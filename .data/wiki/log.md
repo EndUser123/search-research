@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --concept
+Source: dream-pass1-auto-promotion-act-on-high-confidence
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
 Source: validator-script-closure-pressure-backstop
 Agent: --action
 Notes: created
