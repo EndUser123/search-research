@@ -18,6 +18,32 @@ issue, or behavior claims went unverified), /check auto-fires /review instead
 of suggesting it. See Step 6.2 for the full trigger list. Use `--no-auto-review`
 to force suggestion-only mode.
 
+## SDLC stage
+
+**Stage:** VERIFY — session-grounded verification (between EXECUTE and REVIEW)
+**Control plane:** tasks (operator-assigned) + handoffs (`P:\docs\handoffs\<topic>-<date>\HANDOFF.md`)
+
+### Entry state — work is ready when
+- Session produced code changes, claims, or operational actions needing verification
+- A work unit (task or handoff item) is claimed "done" but not yet verified
+
+### Better fit — route out when
+- User wants fresh-eyes defect hunting (not session-grounded) → `/review`
+- Structural problems dominate → `/refactor`
+- Work isn't done yet → `/go` (implement first)
+
+### Exit transitions (recommend at CHECK DONE)
+| Verdict | Recommend |
+|---|---|
+| PASS + load-bearing triggers fire | auto-runs `/review` (Step 6.2) |
+| PASS + no triggers | `/review` optional; advance to `/close` |
+| FAIL | `/go fix <blockers>` then re-`/check` |
+| FAIL structural | `/refactor` |
+
+Reference: `P:/.data/wiki/concepts/agentic-sdlc-skill-lifecycle-architecture.md` (lifecycle mapping) and `workflow-definition-over-agent-capability.md` (why stages matter).
+
+---
+
 ## Step 0 -- Run dir + state resume
 
 ```powershell
@@ -298,6 +324,16 @@ authorize, perform it directly, or skip the check.
 
 ## Step 4 -- Merge verdicts
 All PASS = CHECK PASS. Any FAIL = CHECK FAIL.
+
+**Telemetry (after each verifier returns):** log the spawn result for fleet tracking:
+```bash
+python P:/.agents/scripts/log_spawn.py \
+    --model <model used> --caller /check \
+    --success <true|false> --latency <ms> \
+    --domain code-verification \
+    --notes "<concern type>"
+```
+Non-blocking. This is how we know which models are reliable for /check-sized verification prompts — without it, pool decisions are guesswork.
 
 **Cross-verifier contradiction detection (F8):** when multiple verifiers
 return, compare their findings for contradictions. If Verifier A says "the
