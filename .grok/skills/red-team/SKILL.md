@@ -68,6 +68,8 @@ Spawn each specialist as a **read-only** subagent. Each specialist:
 - writes findings to `{run_dir}/{specialist}.json`
 - returns ONLY the file path (no inline prose)
 
+> **Wait-all-before-conclude gate (mandatory):** before Step 3 (verify) or any synthesis output, issue `get_command_or_subagent_output(task_ids=[every-specialist-id], timeout_ms=<positive>)` and require every specialist to return `completed` or explicitly failed. "Task not found" is a mechanical error (typo, lost ID) — re-read `spawn_subagent` return to recover the correct ID; do NOT re-spawn duplicates. See [[parallel-subagent-wait-all-gate]].
+
 **run_dir:** `P:/.artifacts/red-team/{session_id}/{YYYYMMDD-HHMMSS}/`
 
 **Precision incentive (add to every specialist prompt):**

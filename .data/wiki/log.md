@@ -1,5 +1,11 @@
 # Vault Log
 
+## Parallel subagent wait-all-before-conclude gate
+Source: session-2026-07-26
+Agent: grok
+Notes: Rule: orchestrator skills may not emit durable artifacts or fact-conclusions until all dispatched background subagents return completed or explicitly failed. Fixes the partial-persistence failure from the operator-modeling /www run.
+Page: P:/.data/wiki/concepts/parallel-subagent-wait-all-gate.md
+
 ## User Modeling for Agentic CLIs (disconfirmation upgrade)
 Source: session-2026-07-26 / late subagent merge
 Agent: grok
