@@ -170,3 +170,23 @@ Keep Option I but with a defined trigger: "at N patches or M months dead, automa
 2. Has anyone forked qmd since 2026-07-20? (Re-check GitHub for forks.)
 3. What's the actual maintenance cost of Option D once prototyped? (The clean-slate test's blind spot — must measure, not assume.)
 4. Are there features qmd provides that Option D wouldn't easily replicate? (Tag filtering, cross-collection, reranking — audit qmd's API surface.)
+
+## Minor shim improvements (MONITOR — non-blocking)
+
+Two suggestion-severity findings from the `/check` verifier on `wiki_search.py` (commit 6c95152). Not blocking; batch with future shim work:
+
+1. **Expose `rerank` and `filters` parameters in `WikiSearch.search()`** — qmd's `hybrid_search(query, top_k, rerank=False, filters=None)` accepts both; the shim currently passes only `query` and `top_k`. Future consumers needing metadata-filtered or reranked results would otherwise have to bypass the shim (defeating its architectural purpose). ~5-line patch.
+2. **Document the `bm25_score=None` / `vector_score=None` behavior in `search()` docstring** — when qmd's `rerank=False` (the default), only the combined `score` is populated; the split scores come back as `None`. Consumers expecting numeric values get surprised. Docstring clarification, no code change.
+
+## Falsifier tracking: extract-moves-not-conditions (MONITOR until trigger)
+
+The three `/tp` enhancements (commit c8a6875 — decomposition-first Step 0.7, prioritized-list output contract, operator-catch surfacing) have not yet fired on a real multi-item target. The falsifier for each: fires-too-broad (every invocation) vs fires-too-narrow (never fires on real multi-item targets).
+
+**Trigger for re-evaluation:** after **5 multi-item `/tp` invocations**, audit whether Step 0.7 fired correctly:
+- 0/5 fires → trigger is broken (too narrow); tighten the multi-item-bundle detection
+- 5/5 fires on single-decision targets → trigger is broken (too broad); narrow the detection
+- 1-4/5 fires on genuinely multi-item targets → trigger is calibrated correctly
+
+**How to count:** the existing `/tp` critique log at `P:/.data/tp_critique_log.py` records each invocation. The structural fix (Option C from the #2 discussion) is to add a `multi_item: bool` field and a `--falsifier-check` mode that surfaces concepts due for validation. That's a future `/tp` enhancement — until then, manual audit after ~5 invocations.
+
+**Disposition:** MONITOR. This handoff stays open until the falsifier check fires. When it does, update `P:/.data/wiki/concepts/extract-moves-not-conditions-tp-enhancements.md` with the calibration result and close this section.

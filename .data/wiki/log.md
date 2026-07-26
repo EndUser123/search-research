@@ -1,5 +1,17 @@
 # Vault Log
 
+## blind-spot-detection-methods (expanded)
+Source: session-20260726
+Agent: grok
+Notes: 5 techniques with workspace mapping + gaps identified (RCF biggest gap; ACH partial in /why)
+Page: P:/.data/wiki/concepts/blind-spot-detection-methods.md
+
+## blind-spot-detection-methods
+Source: session-20260726
+Agent: grok
+Notes: /www research: 5 evidence-backed blind-spot techniques (pre-mortem, devil's advocate, RCF, bias blind spot, ACH); maps to workspace; identifies reference class forecasting as the biggest gap
+Page: P:/.data/wiki/concepts/blind-spot-detection-methods.md
+
 ## extract-moves-not-conditions-tp-enhancements
 Source: session-20260725
 Agent: grok
