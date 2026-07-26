@@ -1,5 +1,17 @@
 # Vault Log
 
+## receipt-before-write handoff + vocabulary-mismatch sub-pattern
+Source: session-20260726
+Agent: grok
+Notes: Deferred structural hook with trigger; workflow fix adopted
+Page: P:/docs/handoffs/receipt-before-write-workflow-and-hook-20260726/HANDOFF.md
+
+## Cross-env skill portability research
+Source: www (web: opencode.ai/docs, openai/codex#20637, anthropics/claude-code#66352)
+Agent: grok
+Notes: Refined agent-config-directory-taxonomy.md: .agents/skills/ natively polled by 4/5 tools (Codex, OpenCode, Grok Build, Copilot). Claude Code lone holdout.
+Page: wiki/concepts/agent-config-directory-taxonomy.md
+
 ## blind-spot-detection-methods (expanded)
 Source: session-20260726
 Agent: grok

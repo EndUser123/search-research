@@ -29,6 +29,31 @@ summary: >
   to write "X happens because <mechanism>" into a wiki concept, handoff,
   or commit message → stop and read the source first. If you can't cite
   line numbers, you don't have the receipt.
+
+## Sub-pattern: vocabulary-mismatch grep fallacy (added 2026-07-26)
+
+A specific failure mode within the general pattern: **grepping with the searcher's vocabulary instead of the source's vocabulary, then treating the null result as evidence of absence.**
+
+**How it manifests:** the agent wants to write a claim about how a workspace skill works ("`/close` does not auto-invoke `/aar`"). It greps the source file using its own framing vocabulary ("blind", "gap", "filter"). The grep returns results — but only for sections that share the searcher's vocabulary. Sections that cover the same function under different vocabulary (e.g., `/close` frames it as the "Retrospective gate" using "auto-invoke") don't match. The agent treats "my grep didn't return it" as "it's not there" — a classic absence-of-evidence fallacy.
+
+**Why it's dangerous:** the grep *feels* thorough because it returns multiple matches. The agent has "evidence" (16 lines returned!) and uses that evidence to license a confident claim. The evidence is real but incomplete in a way the agent can't detect without either (a) broadening the vocabulary or (b) reading the section directly.
+
+**Reference incident (2026-07-26, session 019f9bfe):** I grepped `/close/SKILL.md` for `blind|missing|forgot|gap|filter` while writing `blind-spot-detection-methods.md`. The grep returned 16 lines (genuine matches). I concluded `/close` doesn't auto-invoke `/aar`. Line 123 — which explicitly says "auto-invoke `/aar` — do not recommend it, run it" — didn't match my pattern because it uses "retrospective" and "auto-invoke," not "blind" or "gap." The operator caught it; the wiki concept had to be corrected.
+
+**Structural fix (beyond the general rule):** when grepping a source to verify a claim about its behavior, run TWO searches:
+1. The searcher's vocabulary (your framing)
+2. The source's likely vocabulary (the skill/function names, the verbs the source uses)
+
+If search #1 returns results but search #2 returns different results, the vocabulary mismatch is the signal — read the section directly before claiming absence. This is the receipt: two searches with different vocabularies, both confirming or both refuting.
+
+**Three instances in session 019f9bfe:** crawl4ai upgrade (didn't grep wiki for "crawl4ai upgrade"), `/tp quick` misrecommendation (didn't read the skill's actual mode definitions), `/close`-`/aar` (this incident). The pattern recurs despite the rule existing — confirming the rule's own warning that behavioral mitigations decay under closure pressure.
+
+## Receipts (for the vocabulary-mismatch sub-pattern)
+
+- **`_has_code_writes` was `.py`-only before this session's fix** — [OBSERVED] `C:\Users\brsth\.grok\skills\close\__lib\close_accounting.py:400-409` (pre-fix version). The function filtered for `.py/.pyw/.pyx/.pyi/.pxd` only; `.md` wiki writes were not counted as substantive work.
+- **`/close` auto-invokes `/aar` when Retrospective gate is `needs_attention`** — [OBSERVED] `C:\Users\brsth\.grok\skills\close\SKILL.md:123`. The grep for "blind|gap|filter" didn't match because line 123 uses "retrospective" and "auto-invoke" — the vocabulary mismatch this sub-pattern documents.
+- **Grep returned 16 lines but missed line 123** — [OBSERVED] session 019f9bfe transcript: the grep command and its 16-line output are in the turn where I wrote the false gap claim. The operator's pushback ("I thought we had updated the close orchestration") is what surfaced the miss.
+- **The three instances in session 019f9bfe** — [OBSERVED] session transcript: (1) crawl4ai upgrade recommendation without grepping `web-scraping-tool-alternatives-free-tier.md`, (2) `/tp quick` recommendation without reading `/tp/SKILL.md` mode definitions, (3) `/close`-`/aar` false gap without grepping for "aar" or "retrospective."
 agent: grok
 host: both
 cognitive_load: 2
