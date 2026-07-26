@@ -1,5 +1,11 @@
 # Vault Log
 
+## 2026-07-26 session findings
+Source: session-019f9bfe
+Agent: grok
+Notes: Scope-matching concept revised (commit 339cdf9): reclassified 5 near-misses as layer-1, REJECTED scope-receipt block as anti-pattern, reframed operator as structural external verifier. nemorton-3-ultra root cause FULLY CONFIRMED via dual cross-transport test (commits 44d83f6, 137e338): Grok Build serde bug, not NVIDIA; OpenCode PASS (88.99s, 6 tools), PI PASS (70.44s, 3 tools). Red-team BLOCK on prose-rule adoption: prose rule is anti-pattern #1 per enforcement wiki line 44; concept line 8 (systematize operator catches) contradicts line 159 (prose rule). Path forward: structural mechanism (AAR Q11 feedback loop) + measurement baseline first + separate directive-non-execution class. Three handoffs: nemotron-spawn-failure-investigation, cross-transport-model-matrix, scope-matching-rule-adoption-post-redteam.
+Page: P:/.data/wiki/log.md
+
 ## AAR skill install scope: user not workspace
 Source: session-20260726
 Agent: grok
