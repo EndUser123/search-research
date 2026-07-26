@@ -35,10 +35,21 @@ This is not hypocrisy — it's the same cognitive pressure operating at both lev
 - **Use a fresh-subagent verifier on the AAR report itself.** A different context reading the report can catch analyst-level instances that the original context cannot see.
 - **Label the meta-level explicitly.** If the AAR documents "narrativization without verification," add a check: "Did this AAR narrativize anything without verification?"
 
+## Extension: applies to fix sets, not just analysis claims (refined 2026-07-26c)
+
+The pattern generalizes beyond the analysis *narrative* to the analysis *output* — specifically, the recommended fixes. A `/why` (or `/aar`, or any RCA) investigation that documents "closure pressure caused unverified claims" and then recommends four prose rules as fixes is exhibiting the pattern at the fix level: the fixes are themselves unverified claims (no test that they'll work, no competing-fix analysis, no falsifier). The analyst's recommendation set is subject to the same closure pressure that produced the original failure.
+
+**Concrete instance (2026-07-26, session 019f9f48):** a `/why` run on the symlink-recommendation failure correctly diagnosed "receipt misattribution" and recommended four fixes — all prose rules. The recommendation set exhibited the exact pattern the analysis documented: prose rules are the mitigation class the workspace's own pattern library (`[[mandatory-step-enforcement-code-over-prose]]`, 2026-07-20) flags as decaying under closure pressure. The operator caught it by asking "did you critically review these fixes?" — the same question that catches the original pattern.
+
+**Fix at the skill level:** `/why` Step 14 should run the `[[external-state-cross-check-as-structural-fix]]` design heuristic on its own fix set. The wiki already has the test: *"When you catch yourself proposing 'add a rule'...run the test: (1) what external state would have flagged this failure? (2) Can the actor manipulate that state?"* The skill needs to invoke it — not re-derive it.
+
+**Naming convention:** the field calls this **self-referential agent improvement** (Gödel Agent, arxiv 2410.04444, Oct 2024). The workspace calls it "the analyst exhibits the pattern being analyzed." Same pattern, different vocabulary.
+
 ## Evidence
 
 - **R11 L4** (session ec84a662): The AAR report documented fabrication patterns while itself containing unverified causal claims about those patterns.
 - **This session (019f8507)**: The AAR documented "narrativization without verification" (P2, 3 episodes) while the AAR report itself contained narrativized claims ("nobody closes handoffs," "drift-endemic problem") that the operator corrected.
+- **Session 019f9f48 (2026-07-26)**: `/why` run on the symlink-recommendation failure recommended four prose fixes; operator's "did you critically review these?" question surfaced that all four were the decaying-mitigation class the wiki already documents.
 
 ## Related
 
