@@ -1,5 +1,29 @@
 # Vault Log
 
+## New wiki concept: lexical-vs-semantic-verification-gap
+Source: session-019f9a89-why-v3-ab-test
+Agent: grok
+Notes: Captured the control-plane failure pattern that the /why v3 A/B test surfaced: a gate can fire correctly lexically (exit code 0, file written) while measuring the wrong thing semantically (does the receipt prove completion). Distinct from premature-closure (model-side) and from mutation-receipt (system-side architecture); this is the verification-plane gap that lets the model's false claim pass the gate. Validated by the A/B run: v1 found the underlying measurement gap but bucketed as generic 'Structural'; v3 Step 6 sub-dimension named it as the highest-signal finding. Passes validate_wiki_entry.py with Receipts section.
+Page: wiki/concepts/lexical-vs-semantic-verification-gap.md
+
+## Optimal-vs-blanket rule application
+Source: session-2026-07-25
+Agent: grok
+Notes: When a default rule (observe-then-refactor) is applied as a blanket, it often doesn't fit. 3 preconditions to check per-instance: (1) already observed? (2) mechanical check? (3) code layer exists? Worked case from the wiki-save gate split.
+Page: wiki/concepts/optimal-vs-blanket-rule-application.md
+
+## [2026-07-25] ingest | Close verification evidence is scope-specific, not a universal stale-read
+Source: session-2026-07-25
+Agent: grok
+Notes: Correct scope-specific /check verification semantics and receipt integration
+Page: wiki/concepts/close-scanner-verification-gap-stale-read.md
+
+## Wiki integration added to 7 skills (debrief, wargame, model-benchmark, tp, review, red-team)
+Source: session-2026-07-25
+Agent: grok
+Notes: All 7 skills now have query-at-start + save-at-end wiki integration with mechanical gates. Closes the audit gap from wiki-integrated-skills-query-save-pattern. Commits 1c7fc2b + dae4e9d.
+Page: multiple skills
+
 ## Causal mechanism claims require source inspection before durable write
 Source: session-019f96f5
 Agent: grok
