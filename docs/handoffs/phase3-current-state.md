@@ -1,11 +1,12 @@
 # Phase 3 Current-State Handoff
 
-**Last updated:** 2026-07-26
-**Status:** DEPLOYED to active surface; live acceptance pending
+**Last updated:** 2026-07-26T20:07Z
+**Status:** DEPLOYED + VERIFIED; live acceptance pending
 
 ## Independently verified facts
 
 - Integration worktree: `P:/worktrees/dotgrok-phase3`, branch `integration/phase3-ab`
+- Worktree HEAD: `880f558` (includes pytest narrowing fix)
 - Worktree is clean (0 dirty files)
 - All 10 Phase 3 production files are deployed to `C:/Users/brsth/.grok/hooks/scripts/`
 - Deployment receipt: `scripts.deployment-receipt-20260726-133631.json`
@@ -15,9 +16,12 @@
 - `verification_status_adapter.VERIFICATION_INCOMPATIBLE` blocks close on missing API
 - `candidate_resolver.PathCandidate` has `retryability` + `required_next_action` fields
 - All 10 modules import cleanly on the active surface
-- Deterministic test suite: 468 checks total, verified passing in prior session
-  - test_e2e_close_b5 passed in 3/3 stability runs (one transient failure in a
-    full-suite run was confirmed as git index.lock contention from parallel tests)
+- All 10 deployed file hashes match source
+- Post-deployment static verification: 10/10 checks pass
+- Deterministic test suite: 468 checks total (455 custom-framework + 13 pytest),
+  ALL PASSING this session post-restart post-fix
+  - Fixed a regression: `_pytest_narrowing_reasons` false-positive on `python -m` prefix
+    (commit `880f558`, deployed to active surface)
 - Design specification: `P:/docs/designs/phase3-hook-enforcement.md` (19 sections)
 - Deployment manifest: `hooks/scripts/tests/DEPLOYMENT_MANIFEST.json`
 - Deployment script: `hooks/scripts/tests/Deploy-Phase3.ps1`
