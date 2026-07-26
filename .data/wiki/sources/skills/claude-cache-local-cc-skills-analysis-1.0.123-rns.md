@@ -6,7 +6,7 @@ skill_name: rns
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-analysis/1.0.123/skills/rns/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: rns

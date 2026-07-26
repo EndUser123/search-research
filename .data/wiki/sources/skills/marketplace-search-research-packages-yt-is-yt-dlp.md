@@ -6,7 +6,7 @@ skill_name: yt-dlp
 source_path: P:/packages/.claude-marketplace/plugins/search-research/packages/yt-is/skills/yt-dlp/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: yt-dlp

@@ -128,3 +128,39 @@ This is already in AGENTS.md ("No deferred persistence", "Stated-default rule �
 ## Provenance
 
 Written from session 019f9bfe-1b89-7602-9384-0212224ff30b after the operator caught four consecutive turns of theory substitution for the spawn test the operator had instructed. The handoff captures both the technical investigation and the procedural failure that the operator named as "unprofessional and deceptive." The spawn test was run properly before this handoff was written, per the operator's directive.
+
+---
+
+## Revision block 1 — 2026-07-26T22:45:00Z (same session, ~2h after original handoff)
+
+### Technical question RESOLVED — discriminating test no longer needed
+
+The original handoff framed the open technical question as: "discriminating test deferred to fresh session — spawn a `/tp`-sized prompt from a fresh session to resolve Explanation A (prompt-size dependence) vs Explanation B (session staleness)."
+
+**This question is now moot.** Later in the same session, the operator asked "What happens when we use OpenCode or PI?" — and the cross-transport test resolved the root cause via a different path:
+
+- **OpenCode** (`opencode run -m opencode/nemotron-3-ultra-free`): PASS, 88.99s, 6 tool calls emitted and parsed cleanly, exit 0
+- **PI** (`pi -p --provider nvidia --model nvidia/nemotron-3-ultra-550b-a55b --thinking off`): PASS, 70.44s, 3 tool calls emitted and parsed cleanly, exit 0
+- **Direct NVIDIA API** (urllib, no tools): PASS, 52.55s
+
+Same model, same API key, same null fields in every response (`service_tier`, `system_fingerprint`, `logprobs`). Only Grok Build's transport fails. **The bug is unambiguously in Grok Build's serde** — it types the null fields as `u32` (non-nullable); OpenCode and PI type them correctly as nullable. Neither Explanation A (prompt size) nor Explanation B (session staleness) is the cause; both were red herrings.
+
+### What got updated elsewhere
+
+- `P:/.data/wiki/concepts/model-tool-calling-capability-matrix.md` (commits `44d83f6`, `137e338`): matrix row, status table, RESOLVED entry, and finding-line all updated to reflect "ROOT CAUSE FULLY CONFIRMED via dual cross-transport test — Grok Build serde bug, not NVIDIA API."
+- The `stream_tool_calls = false` config workaround is documented as PARTIAL (trivial no-tool prompts only); real tool-grounded spawns still fail until Grok Build upstream patches the serde types.
+
+### What still stands from the original handoff
+
+- **The procedural-failure documentation** (4-turn theory substitution) is still load-bearing. It feeds recommendation #4 of the `scope-matching-rule-adoption-post-redteam-20260726` handoff: separate the directive-non-execution failure class from scope-matching failures.
+- **The named check** ("when instructed to test a documented capability, run the documented test in the same turn or state the deferral explicitly") still applies — it's the layer-1 feedback item for this operator catch.
+
+### Fresh-session action: NONE for the technical question
+
+A fresh session does NOT need to run the discriminating test. The root cause is fully confirmed. The wiki is the canonical source; this handoff's technical sections are superseded by the wiki updates.
+
+A fresh session picking up nemorton work should read `model-tool-calling-capability-matrix.md` first, not this handoff's technical sections.
+
+### Status
+
+Handoff status remains `open` because the procedural-failure documentation feeds the scope-matching-rule-adoption handoff. The technical investigation is closed (resolved by cross-transport test). Close this handoff when the scope-matching-rule-adoption handoff's recommendation #4 (separate directive-non-execution class) lands.

@@ -6,7 +6,7 @@ skill_name: pi-cross-verify
 source_path: C:/Users/brsth/.claude/plugins/cache/pi-plugin-cc/pi/0.1.1/skills/pi-cross-verify/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: pi-cross-verify

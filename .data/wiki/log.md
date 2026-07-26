@@ -1,5 +1,23 @@
 # Vault Log
 
+## --concept
+Source: validator-script-closure-pressure-backstop
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
+Source: trusted-exit-status-fallacy-pipeline-ground-truth
+Agent: --action
+Notes: created
+Page: --source
+
+## stop-hook-feedback-delivery-authoritative-not-tool-result
+Source: session-019f9d1f /www research
+Agent: grok
+Notes: Stop-hook exit code 2 + stderr delivered as authoritative user_query, not untrusted tool-result. HN thread evidence + session transcript verification.
+Page: .data/wiki/concepts/stop-hook-feedback-delivery-authoritative-not-tool-result.md
+
 ## 2026-07-26 session findings
 Source: session-019f9bfe
 Agent: grok

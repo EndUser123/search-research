@@ -6,7 +6,7 @@ skill_name: claude-md-improver
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0/skills/claude-md-improver/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: claude-md-improver

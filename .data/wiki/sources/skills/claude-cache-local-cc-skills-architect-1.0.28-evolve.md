@@ -6,7 +6,7 @@ skill_name: evolve
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-architect/1.0.28/skills/evolve/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: evolve

@@ -74,7 +74,7 @@ OPEN — investigation not started. Evidence is anecdotal (1 data point from ses
 
 **Out of scope:** Modifying the kill mechanism (host-runtime concern).
 
-**Files / anchors:** Append timings to this handoff's "Collected timings" section below. Or write to `P:/tmp/kill-timings.jsonl` if a session does not have this handoff open.
+**Files / anchors:** Append timings to this handoff's "Collected timings" section below. (If a future session does not have this handoff open, write to any temp JSONL file and reference it here.)
 
 **Acceptance:** 5 data points with (kill_time, termination_time, delta, post_kill_tool_calls, mid_tool_call).
 

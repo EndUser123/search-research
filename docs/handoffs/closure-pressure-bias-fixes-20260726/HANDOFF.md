@@ -122,6 +122,12 @@ Rules (AGENTS.md) decay under pressure per `[[mandatory-step-enforcement-code-ov
 - `P:/.data/wiki/concepts/go-home-narrative-fabricated-session-state-constraints.md` → the specific quit-narrative surface
 - `P:/.data/wiki/concepts/mandatory-step-enforcement-code-over-prose.md` → explains why rules-only fixes may not fire
 
+## Late-session update (2026-07-26 ~23:00)
+
+The /tp pool table was already refactored to wiki-driven selection this session (commit `379e67c`). The pool no longer hardcodes specific models in position 1 — it queries the wiki. The only remaining pool fix: update the fallback table to list `or-nemotron-ultra-free` as position 1 (not `nvidia-nemotron-3-ultra`), based on empirical testing proving `or-nemotron-ultra-free` works for tool-grounded spawns while `nvidia-nemotron-3-ultra` does not. This is a 1-line edit in the fallback table, not a structural change.
+
+The closure-pressure fixes (Fix 1 + Fix 3) are still the main open work. The pool fix is a separate task that can be done in 30 seconds.
+
 ## Resumption protocol
 
 1. Read this handoff + the two wiki patterns.

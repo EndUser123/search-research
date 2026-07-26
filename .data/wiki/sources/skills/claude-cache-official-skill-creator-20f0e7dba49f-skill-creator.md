@@ -6,7 +6,7 @@ skill_name: skill-creator
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/skill-creator/20f0e7dba49f/skills/skill-creator/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: skill-creator

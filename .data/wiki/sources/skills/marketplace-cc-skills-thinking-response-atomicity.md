@@ -6,7 +6,7 @@ skill_name: response-atomicity
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-thinking/skills/response-atomicity/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: response-atomicity

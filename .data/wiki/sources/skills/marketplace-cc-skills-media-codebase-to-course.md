@@ -6,7 +6,7 @@ skill_name: codebase-to-course
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-media/skills/codebase-to-course/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: codebase-to-course

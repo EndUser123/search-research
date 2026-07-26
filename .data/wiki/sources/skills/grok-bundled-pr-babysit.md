@@ -5,7 +5,7 @@ skill_name: pr-babysit
 source_path: C:/Users/brsth/.grok/bundled/skills/pr-babysit/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: pr-babysit

@@ -306,7 +306,7 @@ parent.
 
 **Goal:** Determine how to track which pool member actually serves each /tp invocation, and surface the distribution to the operator.
 
-**In scope:** Telemetry design. Options: (a) write to a JSONL log at `P:/tmp/tp-pool-activations.jsonl`; (b) embed in the existing quality-gate trace log; (c) emit via Stop hook event.
+**In scope:** Telemetry design. Options: (a) write to a JSONL log at a session-scoped temp path; (b) embed in the existing quality-gate trace log; (c) emit via Stop hook event.
 
 **Out of scope:** Real-time dashboards.
 

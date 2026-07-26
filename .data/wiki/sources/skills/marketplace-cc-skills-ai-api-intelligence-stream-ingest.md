@@ -6,7 +6,7 @@ skill_name: intelligence-stream-ingest
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/intelligence-stream-ingest/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: intelligence-stream-ingest

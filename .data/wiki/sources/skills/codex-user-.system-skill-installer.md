@@ -6,7 +6,7 @@ skill_name: skill-installer
 source_path: C:/Users/brsth/.codex/skills/.system/skill-installer/SKILL.md
 grok_enabled: n/a
 claude_enabled: n/a
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: skill-installer

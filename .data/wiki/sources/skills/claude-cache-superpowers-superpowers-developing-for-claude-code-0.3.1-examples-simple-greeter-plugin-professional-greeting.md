@@ -6,7 +6,7 @@ skill_name: professional-greeting
 source_path: C:/Users/brsth/.claude/plugins/cache/superpowers-marketplace/superpowers-developing-for-claude-code/0.3.1/examples/simple-greeter-plugin/skills/professional-greeting/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: professional-greeting

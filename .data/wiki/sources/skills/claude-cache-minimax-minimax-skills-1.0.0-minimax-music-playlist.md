@@ -6,7 +6,7 @@ skill_name: minimax-music-playlist
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/skills/minimax-music-playlist/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: minimax-music-playlist

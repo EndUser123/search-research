@@ -6,7 +6,7 @@ skill_name: playground
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/playground/b5f93a18bae8/skills/playground/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: playground

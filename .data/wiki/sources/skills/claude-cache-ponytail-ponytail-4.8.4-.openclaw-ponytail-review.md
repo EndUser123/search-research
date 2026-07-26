@@ -6,7 +6,7 @@ skill_name: ponytail-review
 source_path: C:/Users/brsth/.claude/plugins/cache/ponytail/ponytail/4.8.4/.openclaw/skills/ponytail-review/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: ponytail-review

@@ -5,7 +5,7 @@ skill_name: game-animation-frames
 source_path: C:/Users/brsth/.grok/bundled/skills/game-animation-frames/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: game-animation-frames

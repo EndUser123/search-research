@@ -5,7 +5,7 @@ skill_name: design
 source_path: C:/Users/brsth/.grok/skills/design/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: design

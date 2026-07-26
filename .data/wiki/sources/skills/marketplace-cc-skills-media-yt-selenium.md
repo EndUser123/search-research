@@ -6,7 +6,7 @@ skill_name: yt-selenium
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-media/skills/yt-selenium/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: yt-selenium

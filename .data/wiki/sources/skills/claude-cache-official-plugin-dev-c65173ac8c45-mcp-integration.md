@@ -6,7 +6,7 @@ skill_name: mcp-integration
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/c65173ac8c45/skills/mcp-integration/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: mcp-integration

@@ -6,7 +6,7 @@ skill_name: skill-development
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/edcfd93045ab/skills/skill-development/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: skill-development

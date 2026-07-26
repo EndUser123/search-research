@@ -6,7 +6,7 @@ skill_name: case-feedback-skill
 source_path: C:/Users/brsth/.grok/installed-plugins/c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-bug-4165180d/skills/case-feedback-skill/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: case-feedback-skill

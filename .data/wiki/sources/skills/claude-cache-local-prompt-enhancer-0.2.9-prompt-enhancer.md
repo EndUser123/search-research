@@ -6,7 +6,7 @@ skill_name: prompt-enhancer
 source_path: C:/Users/brsth/.claude/plugins/cache/local/prompt-enhancer/0.2.9/skills/prompt-enhancer/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: prompt-enhancer

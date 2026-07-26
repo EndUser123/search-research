@@ -6,7 +6,7 @@ skill_name: skeptic
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-thinking/skills/skeptic/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: skeptic

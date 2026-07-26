@@ -6,7 +6,7 @@ skill_name: ticket
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/quickstop/plugins/avanti/skills/ticket/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-25
+indexed_date: 2026-07-26
 ---
 
 # Skill: ticket
