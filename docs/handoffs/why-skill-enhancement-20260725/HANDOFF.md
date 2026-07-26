@@ -4,9 +4,20 @@ parent_handoff_path: none
 current_session_id: 019f96f5-dc4a-79d0-9e17-396f2a582186
 current_terminal_id: console_9f93f0d3-0b5b-4985-b779-6a2c
 produced_at: 2026-07-25T18:30:00Z
-status: open
+status: closed
 handoff_type: investigation
-accurate_as_of_head: unknown
+accurate_as_of_head: fec1636
+closed_at: 2026-07-26T05:00:00Z
+closed_because: >
+  Implementation completed by concurrent session (commit ddf793d — /why v3
+  refactor: inline conditional expansion, no failure-class dispatch). Design
+  captured across 4 wiki concepts: adaptive-expansion-evidence-triggered-
+  conditional-steps.md (this session), inline-conditional-over-dispatch-for-
+  skill-design.md + synchronous-review-direct-write-pattern.md +
+  multi-producer-cross-model-synthesis.md (sibling session 019f9a89).
+  /why-old preserved for A/B comparison. The one remaining open thread
+  (live A/B test of v3 vs /why-old on a real failure) is operator-triggered,
+  not implementation work — document in session-observations, not here.
 ---
 
 # Handoff: `/why` skill enhancement — evidence-gated causal investigation
