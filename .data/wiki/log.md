@@ -1,5 +1,29 @@
 # Vault Log
 
+## Research: structural enforcement for skipped-under-load rules on Grok Build
+Source: session-2026-07-26-www-enforcement
+Agent: grok
+Notes: Researched 5 enforcement mechanisms for rules that get skipped under generative load, focused on Grok Build (command+http hooks only). Findings: (1) 800-line AGENTS.md is the root cause, not rule wording (39% multi-turn drop from flat rule piles); (2) UserPromptSubmit rule-injection is the canonical just-in-time mechanism; (3) PreToolUse regex for Class C is feasible with two-tier pattern; (4) PostToolUse sequence-marker gate via state files; (5) HTTP hook to cross-model LLM judge is last resort (93% failure rate). Dominant failure mode is route-around (background agents bypass Stop hooks; Reward Hacking Benchmark). Ranked implementation: trim AGENTS.md first, then rule-injection, then per-rule hooks. Synthesizes mandatory-step-enforcement-code-over-prose + best-practices-enforcement-mechanism-grok-build + llm-judgment-hooks. 14 sources, multi-source-verified.
+Page: wiki/concepts/structural-enforcement-for-skipped-rules-grok-build-2026.md
+
+## cli-api-drift-in-skill-scripts
+Source: session-20260725
+Agent: grok
+Notes: Cross-model reviewed by go-mimo-v2-5 (PROMOTE); companion to subprocess-as-degradation-boundary
+Page: P:/.data/wiki/concepts/cli-api-drift-in-skill-scripts.md
+
+## Testing plan: K3 and Ultra spawn_subagent failures
+Source: session-2026-07-26
+Agent: grok
+Notes: Proper testing plan with /tp review. Phase 0 discriminates the reasoning_content hypothesis via known-working models. Phase 1 splits K3 (OpenCode proxy) and Ultra (NVIDIA direct) as separate tracks. Revised based on review: added T0 discriminator, split tracks, deferred upstream reporting until root cause confirmed.
+Page: wiki/concepts/testing-plan-k3-ultra-spawn-failures.md
+
+## subprocess-as-degradation-boundary
+Source: session-20260725
+Agent: grok
+Notes: Isolates the coupling insight from /tp critique; companion to cli-api-drift
+Page: P:/.data/wiki/concepts/subprocess-as-degradation-boundary.md
+
 ## 3 wiki concepts: decisions + finding from session close
 Source: session-019f9a89-close-followup
 Agent: grok
@@ -731,7 +755,9 @@ Page: wiki/concepts/multi-terminal-git-coordination-primitives.md
 Source: session-2026-07-19
 Agent: grok
 Notes: Per-subcommand syntax mismatch in `qmd`. `qmd update --collection wiki` errors with "unrecognized arguments" — correct is `qmd update wiki` (positional). `qmd search` and `qmd status` use `--collection` flag correctly. Three doc instances fixed (two handoffs). Important framing: the corpus-redundancy conclusion from earlier this session was NOT invalidated by this error — the author caught and corrected the syntax before running the test, and this-session re-test with fresh index confirmed auto-link still returns empty. Meta-lesson: verify CLI syntax via `--help` before documenting; also, doc errors do not automatically invalidate downstream tests (require verifying the wrong syntax was actually used in the test).
-Page: wiki/concepts/qmd-cli-syntax-differs-by-subcommand.md
+
+**[SUPERSEDED 2026-07-25]** The above entry documents `qmd update` as a real command. It does not exist in qmd 0.1.2 — `qmd --help` shows only `search`, `collection`, `document`. The referenced concept `qmd-cli-syntax-differs-by-subcommand.md` was never created. The "positional vs flag" distinction was either against a different qmd version or was a hallucinated command. The current qmd API uses `qmd document add` for indexing (per-document, not bulk `update`). This correction surfaced during session-20260725 /why investigation of crawl4ai qmd integration failures. The corpus-redundancy conclusion noted above stands; only the qmd command documentation was wrong.
+Page: wiki/concepts/qmd-cli-syntax-differs-by-subcommand.md (NEVER CREATED — dangling reference)
 
 ## [2026-07-19] ingest | Grok Build /export derives filename from session title, not the argument
 Source: session-2026-07-19
