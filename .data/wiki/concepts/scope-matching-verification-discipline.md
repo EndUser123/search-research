@@ -1,10 +1,11 @@
 ---
 title: "Scope-matching verification discipline — the literature on why self-verification has a structural ceiling"
 created: 2026-07-26
-source: session-20260726 (/www research on LLM verification scope-matching)
+revised: 2026-07-26
+source: session-20260726 (/www research on LLM verification scope-matching; revised after /tp critique go-mimo-v2-5)
 tags: [verification, scope-matching, self-verification, external-verification, llm-agents, hallucination, process-reward-models, claim-grounding, research]
 summary: >
-  Research on LLM verification converges on one finding: self-verification doesn't work reliably regardless of how disciplined the scope-matching is, because a single agent shares its own training-data blind spots. The literature distinguishes process verification (check each step/scope item) from outcome verification (check the final answer) — our Option B (scope-matching discipline) is the claim-side analog of process verification. The durable fix the literature points to is a two-layer defense: (1) scope-matching discipline improves self-verification quality and catches easy cases, (2) external verification on claims that matter catches the cases self-verification structurally cannot. The workspace already has layer 2 partially (Stop hook, /check, operator catches); the gap is non-file claims (crawl4ai upgrade, /close-/aar) that have no structural external gate. FutureAGI (2026) frames this as "hallucination is a metric problem, not a model problem — gate the response on the judge."
+  Research on LLM verification converges on one finding: self-verification doesn't work reliably regardless of how disciplined the scope-matching is, because a single agent shares its own training-data blind spots. The literature distinguishes process verification (check each step/scope item) from outcome verification (check the final answer) — our Option B (scope-matching discipline) is the claim-side analog of process verification. REVISED 2026-07-26 after /tp critique: all 5 session near-misses were layer-1 failures (scope-matching would have caught each one), not layer-2 as originally classified. The operator IS the structural external verifier for non-file claims — the gap is not absence of layer 2 but failure to systematize operator catches. The Brilliant (2026) structural ceiling applies to autonomous systems; in a human-directed system, the operator breaks the ceiling by having different training data, blind spots, and incentives. The originally-recommended "scope-receipt block" was rejected — it is the model-authored-ledger anti-pattern from [[best-practices-enforcement-mechanism-grok-build]].
 agent: grok
 host: both
 cognitive_load: 4
@@ -29,6 +30,8 @@ relations:
 ---
 
 # Scope-matching verification discipline
+
+> **Revision note (2026-07-26):** This concept was revised after a /tp critique (go-mimo-v2-5, subagent `019f9f94-138e-78e2-b4db-0b4c68b3217d`) found three problems with the original recommendations: (1) all 5 session near-misses were misclassified as layer-2 failures when they are layer-1 failures, (2) the recommended "scope-receipt block" is the model-authored-ledger anti-pattern prohibited by [[best-practices-enforcement-mechanism-grok-build]], and (3) the "structural ceiling" argument was applied to a human-directed system where the operator IS the external verifier. The research synthesis (Findings 1-4, misconceptions, receipts) is preserved as-is; only the interpretation, mapping table, and recommendations were revised. Revised sections are marked [REVISED].
 
 ## Decision context
 
@@ -83,27 +86,52 @@ Layer 1 (self-verification) exists in /check's verifier protocol (enumerate chec
 
 The existing [[causal-mechanism-claims-require-source-receipts-before-durable-write]] concept covers reading the source before claiming mechanism. This concept adds: matching verifier scope to claim scope before claiming verification, AND recognizing that even scope-matched self-verification has a structural ceiling that only external verification can break.
 
-## How this maps to our workspace
+## How this maps to our workspace [REVISED]
 
 | Layer | What we have | What the literature says we need |
 |---|---|---|
-| **Self-verification (process)** | Option B (proposed): enumerate scope → match checks. Partially implemented in /check verifier protocols. | Necessary but not sufficient — catches easy cases, misses correlated-error class |
-| **External verification (runtime)** | Stop hook (file-state class only); /check verifiers (code + contract class); operator catches (everything else, but non-structural) | The consensus durable fix — but our external gates don't cover non-file claims |
+| **Self-verification (process)** | Option B: enumerate scope → match checks. Partially implemented in /check verifier protocols. | Necessary but not sufficient — catches easy cases, misses correlated-error class |
+| **External verification (runtime)** | Stop hook (file-state class); /check verifiers (code + contract class); **operator (non-file claims — STRUCTURAL, not "non-structural")** | The consensus durable fix. The operator IS the external verifier for non-file claims — different training data, different blind spots, different incentives from the LLM. |
 | **Cross-model verification** | /tp two-lens pool; /aar cross-model audit; /check model-tiered verifiers | Partially implemented; agreement bias is the residual risk |
 
-**The actual gap:** non-file claims (recommendations, gap-claims, mechanism-claims in prose) have NO structural external gate. They're caught only by operator attention. The 5 near-misses this session break down as:
-- 3 non-file claims (crawl4ai upgrade, /tp quick, /close-/aar) → caught by operator only
-- 1 file claim with wrong kwarg → caught by /check verifier (external)
-- 1 file claim with no functional test → caught by operator prompt (near-external)
+**[REVISED] The 5 near-misses this session were ALL layer-1 failures.** The original concept misclassified the 3 non-file claims as layer-2 failures to justify the scope-receipt block. The correct classification (verified by /tp critique, go-mimo-v2-5, 2026-07-26):
 
-The literature predicts this distribution: file-state claims have structural gates (Stop hook, /check); non-file claims don't.
+- **crawl4ai upgrade claim (non-file):** model recommended upgrading 0.7.8→0.9.2 without checking wiki for version blockers. A scope-matching check ("what evidence supports this upgrade? enumerate: compatibility, blocker history, known issues") would have surfaced the wiki-documented lxml blocker. **Layer-1 failure — didn't check at all.**
+- **/tp quick misrecommendation (non-file):** model recommended /tp quick for verifying /design changes without checking the skill definition. A scope-matching check ("is /tp quick the right tool? enumerate: what /tp quick does vs. what I need") would have caught that /tp quick is same-agent dialogue, not an external verifier. **Layer-1 failure — didn't check at all.**
+- **/close-/aar gap (non-file):** model claimed /close doesn't auto-invoke /aar using vocabulary-mismatch grep (searched "blind|gap|filter" but the mechanism uses "retrospective"). A scope-matching check ("did I check the actual mechanism, not just grep for my vocabulary?") would have required reading close SKILL.md directly. **Layer-1 failure — checked the wrong scope.**
+- **wiki_search.py add_document bug (file):** model passed `markdown_file=<path>` without checking qmd 0.1.2's actual API signature (`add_document(document_id, markdown, metadata)`). A scope-matching check ("what's the actual function signature?") would have caught the mismatch. **Layer-1 failure — didn't check the API.**
+- **wiki_search.py list_documents bug (file):** model used `getattr(d, "document_id", d.get(...))` without checking that qmd returns `list[str]`. A scope-matching check ("what does list_documents actually return?") would have caught the type mismatch. **Layer-1 failure — didn't check the return type.**
+
+**All 5 were caught by external verification (operator or /check) — layer 2 worked as designed.** None were layer-2 failures (where the model checked but shared the blind spot). The original concept's classification of instances 1-3 as layer-2 was the error that unjustified the scope-receipt block recommendation.
+
+## The operator as structural external verifier [REVISED — new section]
+
+The Brilliant (2026) information-theoretic argument — that self-verification shares the generator's weights and therefore its errors — is correct **for autonomous systems**. It does NOT apply unchanged to human-directed systems where the operator is in the loop. The operator has:
+
+- **Different training data** (human cognition, not LLM weights)
+- **Different blind spots** (the operator's blind spots are not correlated with the LLM's blind spots — they're independent error structures)
+- **Different incentives** (the operator wants correctness; the LLM is biased toward closure and helpfulness)
+
+This is the **solve-verify asymmetry** made structural: verifying a claim is in a different complexity class than generating it, and the operator's verification does not share the LLM's error-correlation structure. The operator catching 5/5 near-misses this session is not luck — it's the structural property working as designed. (The classic framing: Pólya's distinction between generation and verification as separate phases; the complexity-theory framing: NP-generation vs. polynomial-time verification when the verifier is genuinely independent.)
+
+**What this reframing means:** the workspace does NOT lack layer 2 for non-file claims. The operator IS layer 2 for non-file claims. The real gaps are operational, not structural:
+
+1. **Operator catches are expensive** — they consume operator attention, the scarcest resource in the system. Every layer-1 failure that reaches the operator is a tax on operator time.
+2. **Operator catches aren't systematized** — each catch is a one-off correction; the specific blind spot that caused it isn't automatically fed back into layer-1 as a named check that prevents recurrence.
+3. **Operator catches depend on operator vigilance** — if the operator is tired, distracted, or trusts the model's confidence, the catch fails. This is the residual risk, not the absence of a gate.
+
+**The fix is NOT to build a structural gate that replaces the operator** (that was the rejected scope-receipt block — a model-authored ledger, which is the anti-pattern documented in [[best-practices-enforcement-mechanism-grok-build]]: "the model can silently drop requirement C at write time"). **The fix is to systematize the operator catch** so that each one reduces the probability of the next:
+
+- Track operator-caught near-misses in AAR Q11 (already wired — "operator-flagged items without resolution")
+- Feed each catch back into layer-1 as a named scope-matching check (e.g., "before claiming version upgrade, check wiki for blockers"; "before recommending a skill mode, check the skill definition")
+- Use /tp two-lens for non-file claims that warrant a second lens before the operator sees them (claim-type routing — cheaper than operator attention for high-stakes prose claims)
 
 ## Receipts (workspace mechanism claims)
 
 - **Stop hook catches "file modified after verification" class** — [OBSERVED] session 019f9bfe: two Stop hook blocks (continuations 6c63b501, 34877404) fired when wiki_search.py and close_accounting.py were modified after their last verification tool call. The hook's required-verification-scope message names the specific files. Inspected this session.
 - **/check verifiers catch code and contract issues** — [OBSERVED] /check subagent 019f9d00 found the `list_documents` AttributeError bug in wiki_search.py; /check subagent 019f9f57-a508 found the `markdown_file` kwarg bug in crawl_to_qmd.py. Both were external verifiers (cross-family spawns) that caught what self-verification missed.
-- **Operator catches non-file claims** — [OBSERVED] session 019f9bfe: operator caught crawl4ai upgrade claim (wiki documented lxml blocker), /tp quick misrecommendation (wrong skill mode), /close-/aar false gap (close SKILL.md line 123 contradicts). None of these were caught by any structural gate — only by operator attention.
-- **Non-file claims have no structural external gate** — [INFERENCE] based on review of Stop hook behavior (fires on file mutations only), /check scope (code + contract concerns only), and /aar Q11 (fires within /aar only, not on every claim). The gap is structural: no hook or gate checks prose claims against their scope.
+- **Operator catches non-file claims** — [OBSERVED] session 019f9bfe: operator caught crawl4ai upgrade claim (wiki documented lxml blocker), /tp quick misrecommendation (wrong skill mode), /close-/aar false gap (close SKILL.md line 123 contradicts). [REVISED: the operator IS the structural external verifier for this claim class — different training data, different blind spots from the LLM. The original framing ("caught only by operator attention, non-structural") was wrong; the operator is structural.]
+- **All 5 near-misses were layer-1 failures** — [REVISED, DERIVED from per-instance analysis above] each near-miss had a specific scope-matching check that would have caught it. None were layer-2 failures (checked but shared blind spot). The original "3 were layer-2" classification was the error that unjustified the scope-receipt block.
 - **5 near-misses this session** — [OBSERVED] session transcript: each near-miss documented in the /why RCA with receipt (who caught it, what was claimed vs. what was true).
 
 ## What people get wrong about LLM self-verification
@@ -116,24 +144,25 @@ Three common misconceptions the research corrects:
 
 **Misconception 3: "If the verifier passes, the claim is verified."** Hallucinated verification (Medium 2026) is when the check itself is wrong — the verifier confidently reports "PASS" for a claim it didn't actually validate. This is the _has_code_writes incident: the syntax check "passed" (it was a real pass), but the claim ("detects .md files") was not within the syntax check's scope. The verifier wasn't wrong; the scope-mapping was. This is why scope-matching discipline matters even when the verifier is external — the scope-mapping step determines what the verifier is actually checking.
 
-## What this means for our recommendation
+## What this means for our recommendation [REVISED]
 
-The /why RCA recommended "Option B, reinforced by Option A, defer Option C." The research modifies this:
+The /why RCA recommended "Option B, reinforced by Option A, defer Option C." The research and the /tp critique modify this:
 
-- **Option B (scope-matching discipline): ADOPT as layer 1.** It's the process-verification analog and catches easy cases. The Setlur et al. process-verifier research validates the per-step/per-scope-item approach. Add it to AGENTS.md as a named workflow step: before any completion claim, enumerate the claim's scope as a checklist, then verify each scope item has a matching check. This is what worked for the wiki_search.py verifier (6 enumerated items, all checked) vs. what failed for _has_code_writes (generic syntax check, scope not enumerated).
+- **Option B (scope-matching discipline): ADOPT as layer 1 — this is the highest-leverage fix.** All 5 near-misses were layer-1 failures; scope-matching would have caught each one. The Setlur et al. process-verifier research validates the per-step/per-scope-item approach. Add it to AGENTS.md as a named workflow step: before any completion claim, enumerate the claim's scope as a checklist, then verify each scope item has a matching check. This is what worked for the wiki_search.py verifier (6 enumerated items, all checked) vs. what failed for the 5 near-misses (scope not enumerated).
 - **Option A (pre-claim labeling): ADOPT as layer 1 reinforcement.** Label unverified claims [INFERENCE] / [UNVERIFIED]. No claim ships as [FACT] without scope-matching receipt. The literature's agreement-bias finding (Andrade et al.) warns that even the model's own confidence in "I checked this" is unreliable — so the labeling must be mechanical (did a scope-matching check run?) not judgmental (does the model feel confident?).
-- **Option C (structural external gate): DON'T defer indefinitely — scope it narrowly.** The full semantic-claim-matching hook is over-engineering. But a NARROWER structural gate is feasible and the literature supports it. FutureAGI's "gate the response on the judge" pattern can be scoped to what's mechanically checkable: require a "scope-receipt mapping" block before any "done" / "complete" / "fixed" claim in the response. The block lists: (claim) -> (verifier) -> (scope covered). The Stop hook can check for the block's PRESENCE without parsing its SEMANTICS — and the absence of the block when a completion claim is made is itself a structural signal. This is narrower than full semantic claim-matching but catches the class of "claimed completion without any verifier cited."
-- **The two-layer defense the literature points to:** Layer 1 (scope-matching discipline) catches the easy cases where the model would have shipped a claim without checking at all. Layer 2 (external verification) catches the correlated-error class where the model checked but shared its own blind spot. We need both. We currently have layer 2 for file claims (Stop hook, /check) but not for non-file claims. The narrow-Option-C scope-receipt-block would extend layer 2 to non-file claims without the full semantic-matching overhead.
+- **Option C (scope-receipt block): REJECT — contradicts the workspace's own anti-pattern list.** The original concept recommended a model-authored "scope-receipt block" (claim → verifier → scope covered) that the Stop hook would check for presence. This is exactly the "Model-authored requirement ledger" anti-pattern documented in [[best-practices-enforcement-mechanism-grok-build]]: "Actor-authored metadata; per Disguise 5, the model can silently drop requirement C at write time." The /tp critique (go-mimo-v2-5, 2026-07-26) caught this contradiction. The scope-receipt block reproduces the failure it's meant to detect — the model can game it by listing a verifier without actually running it, or by dropping inconvenient scope items. The original concept's own disconfirmation ("even if gameable, it makes scope legible at emission time") does not overcome the anti-pattern: legibility that the actor controls is not verification.
+- **Operator-catch systematization: the actual layer-2 fix for non-file claims.** The operator IS the structural external verifier. The fix is systematization, not gate-building: (1) AAR Q11 tracks operator catches, (2) each catch feeds back into layer-1 as a named scope-matching check (closing the loop so the same blind spot doesn't recur), (3) /tp two-lens for high-stakes non-file claims before the operator sees them (claim-type routing — cheaper than operator attention).
 
-**The key insight the research adds that the /why RCA missed:** the question isn't "behavioral vs structural" — it's "which layer catches which failure class." Layer 1 (self-verification with scope-matching) catches the "didn't check at all" class. Layer 2 (external verification) catches the "checked but shared the blind spot" class. The 5 near-misses break down: instances 4 and 5 (file claims with wrong/no tests) were layer-1 failures (would have been caught by scope-matching). Instances 1, 2, 3 (non-file claims) were layer-2 failures (scope-matching wouldn't have helped because the model shares the blind spot). This means the narrow-Option-C is specifically needed for the non-file-claim class that layer 1 structurally cannot cover.
+**[REVISED] The key insight:** the question is not "behavioral vs. structural" — it's "which layer catches which failure class, and is each layer doing its job." Layer 1 (scope-matching) catches the "didn't check at all" class — which is what all 5 near-misses were. Layer 2 (external verification via operator + /check + Stop hook) catches the "checked but shared the blind spot" class — which is what zero near-misses were this session, but remains the residual risk the literature warns about. The original concept's claim that "instances 1, 2, 3 were layer-2 failures" was the misclassification that unjustified the scope-receipt block. The corrected picture: layer 1 is underinvested (adopt scope-matching discipline), layer 2 is working (operator caught 5/5) but expensive (systematize via AAR Q11 feedback loop).
 
-## What this means for our workspace
+## What this means for our workspace [REVISED]
 
-- **Adopt scope-matching as a named AGENTS.md workflow step (Option B).** Before any completion claim, enumerate the claim's scope as a checklist, verify each scope item has a matching check. This is layer 1.
-- **Extend the receipt-before-write handoff trigger.** The existing `receipt-before-write-workflow-and-hook-20260726` handoff tracks the pattern. Its trigger (3 recurrences in 10 sessions) should now count ALL near-miss instances (not just wiki writes) — including non-file claims caught by the operator.
-- **Design the narrow-Option-C scope-receipt block.** When the trigger fires, build a Stop hook that requires a scope-receipt block before completion claims. The block is mechanical (present/absent), not semantic (correct/incorrect). This extends layer 2 to non-file claims.
-- **Don't over-invest in self-verification improvements.** The literature is clear: scope-matching helps but has a structural ceiling. The highest-leverage investment is in external verification coverage, not in making self-verification smarter.
-- **Track near-miss rate across sessions.** The falsifier for the two-layer defense: if near-miss rate drops after adopting layer 1, layer 1 is sufficient. If it stays high, layer 2 (narrow Option C) is needed. This requires the AAR Q11 blind-spot sub-check to flag operator-caught near-misses — which it already does ("operator-flagged items without resolution").
+- **Adopt scope-matching as a named AGENTS.md workflow step (Option B).** Before any completion claim, enumerate the claim's scope as a checklist, verify each scope item has a matching check. This is layer 1 and the highest-leverage fix given that all 5 near-misses were layer-1 failures.
+- **Systematize operator catches via AAR Q11 feedback loop.** The AAR blind-spot sub-check already flags "operator-flagged items without resolution." Extend it to require a layer-1 feedback item for each catch: "what named scope-matching check would have caught this?" This closes the loop — each operator catch becomes a layer-1 improvement that prevents recurrence. This is the systematization the operator-as-external-verifier framing demands.
+- **Claim-type routing for non-file claims.** For high-stakes non-file claims (version recommendations, skill-mode recommendations, gap claims about workspace capabilities), route through /tp two-lens before the operator sees them. This catches the easy layer-1 cases before they consume operator attention, reserving operator time for the genuine layer-2 class.
+- **Do NOT build the scope-receipt block.** It is the model-authored-ledger anti-pattern from [[best-practices-enforcement-mechanism-grok-build]]. The /tp critique caught this contradiction; the original recommendation is retracted.
+- **Extend the receipt-before-write handoff trigger to count all near-miss instances.** The existing `receipt-before-write-workflow-and-hook-20260726` handoff tracks the pattern. Its trigger (3 recurrences in 10 sessions) should count ALL near-miss instances — including non-file claims caught by the operator, not just wiki writes. But the structural fix it points to is layer-1 discipline + operator-catch systematization, NOT the scope-receipt block.
+- **Track near-miss rate across sessions.** The falsifier for the two-layer defense: if near-miss rate drops after adopting layer 1 (scope-matching discipline), layer 1 is doing its job. If it stays high, the AAR Q11 feedback loop isn't translating catches into layer-1 improvements — strengthen the feedback loop, don't add a gate.
 
 ## Falsifier
 
@@ -141,11 +170,12 @@ This research synthesis is wrong if, within 12 months:
 - **A technique emerges that makes LLM self-verification reliable without external checks** — disconfirming the structural-ceiling finding. Counter: the information-theoretic argument (Brilliant 2026) is fundamental; a technique would need to break the correlation between generator and verifier errors.
 - **Agreement bias is solved by a prompting technique** — making same-model verification sufficient. Counter: Andrade et al. tested mitigation techniques; agreement bias persisted.
 - **The workspace's layer-2 coverage (Stop hook + /check + operator) proves sufficient without layer 1** — meaning scope-matching discipline adds no marginal value. Test: adopt layer 1, measure near-miss rate over 20 sessions, compare to baseline.
+- **[REVISED] The operator-as-external-verifier framing is wrong if operator catch rate drops below ~80% on layer-1 failures** — meaning the operator is not actually a reliable external verifier (tired, distracted, or trusts model confidence). Counter: the operator caught 5/5 this session. Test: track operator catch rate in AAR Q11 over 20 sessions. If catch rate falls, the systematization (feedback loop into layer 1) must reduce the load on operator attention, not replace the operator with a gate.
 
 ## Sources
 
 - [How Multi-Agent Self-Verification Actually Works](https://pub.towardsai.net/how-multi-agent-self-verification-actually-works-and-why-it-changes-everything-for-production-ai-71923df63d01) (Towards AI, 2026) — "a single LLM can't reliably verify its own outputs"; four verification architectures. Contributed: the structural impossibility argument and the taxonomy of verification approaches.
-- [Limits of Self-Correction in LLMs](https://www.preprints.org/manuscript/202601.0892) (Brilliant, 2026) — correlated error between generator and verifier. Contributed: the information-theoretic formalization explaining WHY scope-matching can't break the ceiling.
+- [Limits of Self-Correction in LLMs](https://www.preprints.org/manuscript/202601.0892) (Brilliant, 2026) — correlated error between generator and verifier. Contributed: the information-theoretic formalization explaining WHY scope-matching can't break the ceiling. [REVISED applicability: applies to autonomous systems; in human-directed systems the operator breaks the ceiling.]
 - [Mitigating Agreement Bias in MLLMs](https://arxiv.org/html/2507.11662v2) (Andrade et al., 2025) — verifiers over-validate. Contributed: the cross-family requirement for external verification; same-family verification shares agreement bias.
 - [LLM Hallucination 2026](https://futureagi.com/blog/understanding-llm-hallucination-2025/) (FutureAGI, 2026) — "gate the response on the judge." Contributed: the framing that hallucination is a metric/gate problem, not a model problem; runtime judges as the structural fix.
 - [Process Advantage Verifiers](https://openreview.net/forum?id=A6Y7AqlzLW) (Setlur et al., 2025) — process > outcome verification. Contributed: validates scope-matching (per-item) as the right approach for layer 1.

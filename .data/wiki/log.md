@@ -1,5 +1,17 @@
 # Vault Log
 
+## Proactive AI volunteering mechanisms: research base and three-mechanism ladder
+Source: session-2026-07-26 / /www proactive AI research
+Agent: grok
+Notes: Field is mixed-initiative (Horvitz 1999). BEHAVE-AI principles (3 of 8 are proactivity CONSTRAINTS). Harari & Amir 2025: proactive help reduces adoption even when useful. Three-mechanism ladder: (1) end-of-turn observation rule [shipped to AGENTS.md], (2) /notice skill [built], (3) full proactive agent [rejected].
+Page: P:/.data/wiki/concepts/proactive-ai-volunteering-mechanisms.md
+
+## Meta-rigor: /why Step 14 self-application (research)
+Source: www (wiki: mandatory-step-enforcement-code-over-prose, external-state-cross-check-as-structural-fix, analyst-exhibits-pattern-being-analyzed; web: arxiv 2410.04444 Gödel Agent, brightlume.ai, openai harness-engineering)
+Agent: grok
+Notes: Refined analyst-exhibits-pattern-being-analyzed.md with fix-set extension. All three claimed novel gaps were already documented in wiki from 2026-07-20/21. Actual gap is one skill-wiring: /why Step 14 does not invoke external-state-cross-check on its own fix set.
+Page: wiki/concepts/analyst-exhibits-pattern-being-analyzed.md
+
 ## Research vs design vs architect skills + /www self-assessment
 Source: session-2026-07-26 / /www meta-run
 Agent: grok
