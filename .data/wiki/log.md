@@ -1,5 +1,11 @@
 # Vault Log
 
+## AAR skill install scope: user not workspace
+Source: session-20260726
+Agent: grok
+Notes: AAR lives at user scope ~/.grok/skills/aar/ not P:/.grok/skills/aar/. Path bug fixed in commit 236204c. Complements skill-host-applicability-convention.
+Page: wiki/concepts/aar-skill-install-scope-user-not-workspace.md
+
 ## model-tool-calling-capability-matrix updated
 Source: session-2026-07-26 / empirical nemotron testing
 Agent: grok
@@ -5176,4 +5182,6 @@ Agent: grok
 - **UditAkhourii/adhd** (P:\.data\wiki\sources\github.com\000-UditAkhourii-adhd.md)
   - URL: https://github.com/UditAkhourii/adhd
   - SHA256: 1a3d51bb130ee804ff3c1d91e39ed68ccb29efafcd72b9f60ba6e859c9c992cf
+  - Source: crawl-ingest (ingested)
+130ee804ff3c1d91e39ed68ccb29efafcd72b9f60ba6e859c9c992cf
   - Source: crawl-ingest (ingested)
