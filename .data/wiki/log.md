@@ -1,5 +1,23 @@
 # Vault Log
 
+## Receipt-misattribution sub-pattern (why RCA)
+Source: why RCA on session 019f9f48 turn 1
+Agent: grok
+Notes: Added sub-pattern to causal-mechanism-claims-require-source-receipts-before-durable-write.md: receipt misattribution across neighboring claims (verified discovery, misattributed to deployment recommendation). Cross-model reviewed by glm-5-2 (WRITE-WITH-MODIFICATIONS).
+Page: wiki/concepts/causal-mechanism-claims-require-source-receipts-before-durable-write.md
+
+## Hook evidence-collection cost vs timeout tradeoff
+Source: session-2026-07-26 / /why Step 15
+Agent: grok
+Notes: Verification hooks that do synchronous git subprocess fan-out don't scale with workspace size; on 994-file P:\ the receipt hook consumed 5.8s of 10s budget on dirty-set scan alone, causing silent receipt-coverage gaps. Cross-model review passed 3/3. Pattern + architectural fixes captured.
+Page: P:/.data/wiki/concepts/hook-evidence-collection-cost-vs-timeout-tradeoff.md
+
+## Junction failure modes for skill discovery (research)
+Source: www (web: learn.microsoft.com, gitforwindows.org, docker/for-win#1205, openai/codex#11314, upstash/context7#2361; empirical: test_git_junction.py)
+Agent: grok
+Notes: Updated agent-config-directory-taxonomy.md with junction-vs-symlink failure-mode table. Junctions work for Grok Build + Node.js (verified) and are safe for recommended layout (junction outside git/sync). Codex/OpenCode junction compatibility UNVERIFIED — prior symlink/path-resolution issues suggest possible failure.
+Page: wiki/concepts/agent-config-directory-taxonomy.md
+
 ## Parallel subagent wait-all-before-conclude gate
 Source: session-2026-07-26
 Agent: grok
