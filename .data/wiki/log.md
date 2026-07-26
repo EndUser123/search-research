@@ -1,5 +1,41 @@
 # Vault Log
 
+## 3 wiki concepts: decisions + finding from session close
+Source: session-019f9a89-close-followup
+Agent: grok
+Notes: Three concepts captured during close follow-up: (1) nemotron-tp-pool-demote-decision — §4b decision documenting the /tp pool demotion with falsifier; (2) wiki-captures-decisions-by-default — §4b decision documenting the SCHEMA §4 split; (3) verify-against-existing-state-before-defensive-mechanisms — §4a finding codifying the structural fix for over-engineering errors. All pass validate_wiki_entry.py. Plus 2 handoffs: missed-decisions-wiki-capture-investigation and why-skill-adoption-gap.
+Page: wiki/concepts/nemotron-tp-pool-demote-decision.md, wiki/concepts/wiki-captures-decisions-by-default.md, wiki/concepts/verify-against-existing-state-before-defensive-mechanisms.md
+
+## VII. Advanced Memory Architectures
+Source: nlm-sync-2026-07-25
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/nlm-23bf4931-vii-advanced-memory-architectures.md
+
+## VI. Information Architecture and Prompt Engineering
+Source: nlm-sync-2026-07-25
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/nlm-23bf4931-vi-information-architecture-and-prompt-engineering.md
+
+## IV. Enterprise Collaboration and Autonomy
+Source: nlm-sync-2026-07-25
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/nlm-23bf4931-iv-enterprise-collaboration-and-autonomy.md
+
+## III. Specialized Workflow Components
+Source: nlm-sync-2026-07-25
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/nlm-23bf4931-iii-specialized-workflow-components.md
+
+## I. Foundational Claude Configuration and Capabilities
+Source: nlm-sync-2026-07-25
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/nlm-23bf4931-i-foundational-claude-configuration-and.md
+
 ## Documented deferral: when documentation substitutes for action
 Source: session-2026-07-25 (via /aar Phase 9.5 auto-promotion)
 Agent: grok
