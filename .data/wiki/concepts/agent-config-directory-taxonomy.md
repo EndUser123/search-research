@@ -144,13 +144,27 @@ The 2026-07-26b recommendation ("junctions beat symlinks") was tested empiricall
 **Bottom line:**
 - Junctions are **safe for Grok Build** (the primary consumer on this host) — verified operationally across 5+ days and 6 active junctions.
 - Junctions are **safe for the recommended layout** (junction at `~/.agents/skills/`, source outside git/sync) — the documented failure modes don't trigger.
-- Junctions are **unverified for Codex CLI and OpenCode on Windows specifically.** Existing issues (`openai/codex#11314`, `upstash/context7#2361`) document link-rejection in those tools, but neither was tested with junctions (Codex issue was macOS + symlinks; OpenCode issue was unrelated setup bug). The behavior of these tools' scanners when encountering a Windows junction is **[UNKNOWN]** until empirically tested.
+- Junctions are **[OBSERVED — VERIFIED 2026-07-26d]** for Codex CLI and OpenCode on Windows. Prior issues (`openai/codex#11314`, `upstash/context7#2361`) documented link-rejection in those tools but only for symlinks (Codex issue was macOS; OpenCode issue was a setup bug). Junctions specifically work in both — see "Empirical verification 2026-07-26d" below.
 
-**Empirical test the operator should run before relying on junctions for Codex/OpenCode coverage:**
-1. Pick one existing junction (e.g. `~/.agents/skills/verification-before-completion` → `P:/packages/.github_repos/superpowers/skills/verification-before-completion`)
-2. Launch Codex CLI on `P:\` and run `/skills` (or whatever Codex's skill-listing command is)
-3. Launch OpenCode and check the `<available_skills>` block in verbose system prompt
-4. If the skill appears → junctions work for that tool. If not → fall back to real-directory copies for that tool, accept the duplication-or-source-discipline tradeoff.
+**Empirical verification 2026-07-26d (replaces prior "operator should run this test" guidance):**
+
+Both tools were tested non-interactively from inside Grok Build (the claim "I cannot run this from inside Grok Build" was narrative-sufficiency closure — both CLIs have non-interactive diagnostic commands):
+
+| Tool | Command used | Junction-reachable skills found | Duplicates |
+|---|---|---|---|
+| **OpenCode** | `opencode debug skill` (lists all discovered skills as JSON) | 13/13 junctions under `~/.agents/skills/` resolved | **0** (23 total skills, 23 unique names) |
+| **Codex CLI** | `codex debug prompt-input` (renders model-visible prompt including `<skills_instructions>` block) | 12/12 junctions under `~/.agents/skills/` + `P:/.agents/skills/` resolved | **0** (39 total `file:` locators, 39 unique paths) |
+
+Receipts:
+- `opencode debug skill` JSON output captured to `P:/tmp/opencode_skills.json` (session 019f9f48)
+- `codex debug prompt-input` JSON output captured to `P:/tmp/codex_prompt.json` (session 019f9f48)
+- Parser: `P:/tmp/parse_opencode_skills.py`, `P:/tmp/parse_codex_skills.py`
+
+**Disconfirms the prior concerns:**
+- `openai/codex#11314` (Codex rejects symlinked skill dirs) does NOT apply to junctions on Windows. The issue was macOS + symlinks. Junctions traverse cleanly.
+- `upstash/context7#2361` (OpenCode path-resolution security check rejects "outside target directory") does NOT fire for junction-reachable skills. The check appears to operate on installation paths, not discovery paths.
+
+**Bottom line upgraded:** [OBSERVED — verified 2026-07-26d] junctions are **safe for all 5 environments** (Grok Build, OpenCode, Codex CLI verified empirically this session; Copilot documented; Claude Code N/A — doesn't read `.agents/skills/`). The recommended deploy strategy (source outside scan roots, one junction per tool) is empirically validated, not hypothesized.
 
 **Falsifier:** if either Codex or OpenCode ships a resolved-path traversal check that rejects junctions, junctions stop being a viable deploy mechanism for that tool and real-directory copies (or per-tool `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` style env escapes) become necessary.
 
