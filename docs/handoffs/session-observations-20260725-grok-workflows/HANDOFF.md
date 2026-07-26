@@ -6,7 +6,7 @@ current_terminal_id: noterm
 produced_at: 2026-07-25T22:05:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 35a0613
+accurate_as_of_head: 2922011652eb472ed6379542cfba67454cc97722   # corrected 2026-07-25T22:15Z (was 35a0613, stale; see work-stream handoff revision 1 for root cause)
 ---
 
 # Session observations — 2026-07-25 grok-workflows session

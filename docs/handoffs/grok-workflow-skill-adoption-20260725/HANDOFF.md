@@ -6,7 +6,10 @@ current_terminal_id: noterm
 produced_at: 2026-07-25T21:30:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 1ca97f48ed13f819488dba67283b621934e07975
+accurate_as_of_head: 2922011652eb472ed6379542cfba67454cc97722   # corrected 2026-07-25T22:15Z (see revision 1)
+assigned_to: grok
+assigned_at: 2026-07-25T22:15:00Z
+assigned_by: 019f9b00-75fc-7290-9a2d-080c3d3c529b
 ---
 
 # Handoff — Grok workflow adoption POC for 4 recommended skills
@@ -132,34 +135,17 @@ Decide whether to add Grok workflow (`workflow` tool / Rhai scripts) as an **opt
 
 ## Open decisions (explicit, framed as questions)
 
-### D1. What falsifier threshold defines "the POC proves the model"?
+### D1. ~~What falsifier threshold defines "the POC proves the model"?~~ **RESOLVED 2026-07-25 — option (C).**
 
-- **Question:** AC-WWW-POC-01's falsifier lists 4 failure modes. Which combination of survivors defines success?
-- **Options:**
-  - (A) All 4 must pass — strictest; POC must match inline quality AND speed AND resume AND expressibility
-  - (B) Quality + expressibility must pass; speed and resume are nice-to-have — pragmatic; accepts some latency for durability
-  - (C) Quality + resume must pass; speed is allowed to be 2-3× slower — prioritizes the async/journal value prop
-- **Selection criterion:** the operator's actual reason for wanting workflows. If the reason is "I want to walk away from long research" → (C). If the reason is "I want faster research" → workflows are the wrong tool (per the wiki: workflows don't improve per-agent speed).
-- **Currently leads:** (C) — the wiki research established that workflow's unique value is async + journal resume, not speed. But this is the operator's call.
-- **Evidence that would change the lead:** if the operator says "I actually want speed," the recommendation inverts — workflows are the wrong tool and this handoff should be closed WONTFIX.
+**Resolution:** Quality + resume must pass; speed allowed 2-3× slower than inline baseline. Rationale: workflow's unique value is async + journal resume, not speed. The wiki research established this; the operator confirmed the framing. Proceed with the POC under this falsifier.
 
-### D2. Does the operator want to claim this work for a specific host?
+### D2. ~~Does the operator want to claim this work for a specific host?~~ **RESOLVED 2026-07-25 — claimed for `grok`.**
 
-- **Question:** Should `assigned_to: grok` be set on this handoff, or leave it unclaimed for any host/agent to pick up?
-- **Options:**
-  - (A) Claim for `grok` — Grok Build is the workflow runtime host; only Grok can author/test Rhai scripts
-  - (B) Leave unclaimed — let any host pick it up
-- **Selection criterion:** whether non-Grok hosts (Claude, Codex) can usefully contribute. They cannot test Rhai scripts (no workflow runtime), so (A) is the principled answer.
-- **Currently leads:** (A) — but leaving unset for now per the optional-assignment default. Operator can set it on pickup.
+**Resolution:** Set `assigned_to: grok` in the chain header. Only Grok Build can author/test Rhai scripts (no workflow runtime on Claude/Codex), so the claim is informational — it tells other hosts "don't pick this up, you can't execute it." The "decision" was a non-decision; claiming immediately is correct by default for any Rhai-bound handoff.
 
-### D3. Should the POC be one run or three?
+### D3. ~~Should the POC be one run or three?~~ **RESOLVED 2026-07-25 — three runs.**
 
-- **Question:** AC-WWW-POC-01 acceptance says "one real run." The wiki falsifier rule for the `/www` skill itself says "within 6 months, if consistently invoked as just /web, retire." Should the POC require 3 successful runs before unlocking AC-DEBRIEF-01?
-- **Options:**
-  - (A) One run is enough — if it passes all 4 falsifier checks, the model is proven
-  - (B) Three runs on different topics — guards against topic-specific luck
-- **Selection criterion:** cost of a false positive (proceeding to AC-DEBRIEF-01 on a lucky POC, then having it fail there) vs cost of delay (3 runs × ~10min = 30min extra).
-- **Currently leads:** (B) — the wiki's own falsifier uses "consistently" language; one run is a weak signal. But (A) is defensible if the operator wants speed.
+**Resolution:** Three runs on different topics, matching the `/www` skill's own falsifier language ("consistently"). One run is a weak signal; three guards against topic-specific luck. Acceptable cost: ~30 min extra.
 
 ## Hard constraints
 
@@ -195,34 +181,27 @@ Decide whether to add Grok workflow (`workflow` tool / Rhai scripts) as an **opt
 
 ## Resumption protocol
 
-1. **Re-verify the tree.** Run `git -C P:/ rev-parse HEAD` and compare to `accurate_as_of_head: 1ca97f48…`. If drifted, re-read the 4 SKILL.md files to confirm line numbers in this handoff still resolve.
+1. **Re-verify the tree.** Run `git -C P:/ rev-parse HEAD` and compare to `accurate_as_of_head: 2922011652…`. If drifted, re-read the 4 SKILL.md files to confirm line numbers in this handoff still resolve.
 2. **Read the canonical concept:** `P:/.data/wiki/concepts/grok-build-workflows-rhai-orchestration.md` (especially "Rhai dialect specifics" and "Failure modes").
 3. **Read the authoring reference:** `C:/Users/brsth/.grok/bundled/skills/create-workflow/SKILL.md` end-to-end.
-4. **Resolve open decision D1** (falsifier threshold) with the operator before writing any Rhai. This determines what "done" means for AC-WWW-POC-01.
-5. **Run the alternatives gate** per `~/.grok/AGENTS.md` § "Alternatives before architectural implementation." Options: (a) workflow, (b) extend inline parallel-M3 dispatch (status quo), (c) external orchestrator (LangGraph/symphony). Selection criterion: async-resume value vs. transition cost vs. host lock-in. Document the chosen option before authoring.
-6. **Only after steps 4-5 resolve:** begin AC-WWW-POC-01 by creating `~/.grok/workflows/www-deep.rhai`.
+4. **Decisions D1-D3 are RESOLVED** (see Open decisions section). The next session does NOT need operator input on falsifier threshold, host claim, or run count. Proceed directly to step 5.
+5. **Run the alternatives gate** per `~/.grok/AGENTS.md` § "Alternatives before architectural implementation." Options: (a) workflow, (b) extend inline parallel-M3 dispatch (status quo), (c) external orchestrator (LangGraph/symphony). Selection criterion: async-resume value vs. transition cost vs. host lock-in. Document the chosen option before authoring. (This was Step 4 in the original protocol; renumbered because D1-D3 no longer need resolution.)
+6. **Only after step 5 resolves:** begin AC-WWW-POC-01 by creating `~/.grok/workflows/www-deep.rhai`. Falsifier = quality + resume must pass; speed allowed 2-3× slower. Three runs on different topics required.
 
 ## Suggested next invocation
 
 Copy-paste for the next session:
 
 ```
-I want to start the /www workflow POC from handoff P:\docs\handoffs\grok-workflow-skill-adoption-20260725\HANDOFF.md.
+I'm picking up the /www workflow POC from handoff P:\docs\handoffs\grok-workflow-skill-adoption-20260725\HANDOFF.md.
 
-First: re-verify the cited SKILL.md line numbers against current HEAD (the
-handoff notes the tree moved mid-session).
+Decisions D1-D3 are resolved (falsifier = quality+resume, claimed for grok, three runs). Skip those.
 
-Second: help me resolve open decision D1 — what falsifier threshold defines
-"the POC proves the model"? My current lean is option (C): quality + resume
-must pass, speed allowed 2-3x slower, because I want the async/walk-away
-value prop, not speed.
+First: re-verify the cited SKILL.md line numbers against current HEAD (the handoff's accurate_as_of_head is 2922011652…; tree may have drifted).
 
-Third: once D1 is resolved, run the alternatives gate
-(~/.grok/AGENTS.md § "Alternatives before architectural implementation")
-for workflow vs. extend-inline vs. external-orchestrator before we author
-any Rhai.
+Second: run the alternatives gate per ~/.grok/AGENTS.md § "Alternatives before architectural implementation" — workflow vs. extend-inline vs. external-orchestrator. Document the chosen option.
 
-Do NOT start writing Rhai until D1 and the alternatives gate are resolved.
+Third: only after the alternatives gate resolves, begin AC-WWW-POC-01 by authoring ~/.grok/workflows/www-deep.rhai. Smoke-test with validate_only:true, then three real runs on different topics with ≥3 sub-areas each.
 ```
 
 ## Last user message (verbatim)
@@ -248,3 +227,10 @@ This handoff is wrong if:
 4. The security incident context turns out to be a live blocker (operator's credentials were not rotated and a POC run would touch them) — pause and rotate first.
 
 If any pattern appears, close the handoff or re-scope before investing in Rhai authoring.
+
+## Revision history
+
+### Revision 1 — 2026-07-25T22:15:00Z — noterm
+- **Corrected:** `accurate_as_of_head` from `1ca97f48…` (stale — sourced from `summary.json.head_commit` at session start) to `2922011652…` (current `git rev-parse HEAD` at correction time). Root cause: `/handoff` SKILL.md previously instructed sourcing this field from `summary.json.head_commit`, which is session-start HEAD and stale by construction on multi-writer shared trees. SKILL.md updated same session to source from `git rev-parse HEAD` at write time.
+- **Resolved:** D1 (falsifier = quality + resume must pass; speed 2-3× slower OK), D2 (claimed for `grok`), D3 (three runs required). All three were open decisions in the original handoff; operator resolved them 2026-07-25T22:00Z.
+- **Reason:** operator pushback on stale header + directive to make decisions rather than defer them. The decisions were straightforward calls the original handoff treated as open questions; resolving them removes 3 artificial blockers from the next session.
