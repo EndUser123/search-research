@@ -1,5 +1,11 @@
 # Vault Log
 
+## User Modeling for Agentic CLIs (disconfirmation upgrade)
+Source: session-2026-07-26 / late subagent merge
+Agent: grok
+Notes: Late-arriving disconfirmation subagent surfaced 3 stronger peer-reviewed sources (P-DPO OpenReview 132 cit, Qian 2021 66 cit, MIT/Penn State ACM CHI 2026). Upgraded concept: disconfirmation table now has 4 peer-reviewed receipts instead of 1, refines ETH Zurich with documentation-substitution reframe, evidence_gaps note per-user-vs-per-project split is untested directly.
+Page: P:/.data/wiki/concepts/user-modeling-for-agentic-clis.md
+
 ## User Modeling for Agentic CLIs: research landscape and operator-profile recommendation
 Source: session-2026-07-26 / www
 Agent: grok
