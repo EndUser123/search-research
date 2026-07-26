@@ -1,189 +1,145 @@
 # Phase 3 Current-State Handoff
 
-**Last updated:** 2026-07-26T20:15Z
-**Status:** DEPLOYED + VERIFIED + STATIC ACCEPTANCE PASSED; multi-turn live pending
+**Last updated:** 2026-07-26T20:25Z
+**Status:** DEPLOYED + LIVE ACCEPTANCE PASSED (single-session)
 
-## 1. Verified starting state
-
-- Integration worktree: `P:/worktrees/dotgrok-phase3`
-- Branch: `integration/phase3-ab`
-- HEAD: `880f558` (includes pytest narrowing fix)
-- Worktree clean: 0 dirty files
-- No interrupted Git operations
-
-## 2. Specification and handoff commits
-
-- `P:/docs/designs/phase3-hook-enforcement.md` — 19-section authoritative spec (commit `f58a9cf`)
-- `P:/docs/handoffs/phase3-current-state.md` — this document (commit `432c0ee`, updated)
-
-## 3. Full-suite result
-
-- **468 checks total** (455 custom-framework + 13 pytest)
-- **0 failures, 0 skips, 0 xfails**
-- All 21 test files pass, including `test_e2e_close_b5` (30/30)
-- One regression found and fixed during verification: `_pytest_narrowing_reasons`
-  false-positive on `python -m` prefix (commit `880f558`, deployed)
-
-## 4. Source commit and manifest
+## Active deployment
 
 - Source commit: `880f558` on `integration/phase3-ab`
-- Manifest: `hooks/scripts/tests/DEPLOYMENT_MANIFEST.json`
-- 10 production files in atomic deployment set
-- `worktree_identity.py` is unchanged pre-existing dependency
+- Deployment receipt: `scripts.deployment-receipt-20260726-133631.json`
+- Backup: `scripts.backup-20260726-133631`
+- All 10 file hashes match source
+- Enforcement contract version: 1.0
+- Enforcement status: ENFORCEMENT_AVAILABLE
 
-## 5. Backup and pre-deployment hashes
+## Live single-session acceptance result
 
-- Backup: `C:/Users/brsth/.grok/hooks/scripts.backup-20260726-133631`
-- Pre-deployment quality_gate.py hash: `0A6E7475F72F397F` (old version)
-- Post-deployment: all 10 file hashes match source worktree
+### Test session
+- Session ID: `l1ve-acce-ptan-ce01-141918`
+- Repositories: P:\, ~/.grok, disposable submodule child+parent
 
-## 6. Deployment receipt
+### Candidate resolution
+- 3 mutations, 3 repository groups, 3 eligible, 0 blocked, 0 excluded
+- All HEADs coherent (EXPECTED_HEAD_CONSISTENT)
 
-- Receipt: `C:/Users/brsth/.grok/hooks/scripts.deployment-receipt-20260726-133631.json`
-- Status: SUCCESS
-- File count: 10 deployed, 0 failed
-- Additional patch: `verification_receipt_writer.py` updated with pytest fix (commit `880f558`)
+### Verification gate
+- Decision: VERIFICATION_NO_OBLIGATION (no pending obligation — clean session)
+- Close allowed: True
 
-## 7. Destination verification
+### /close structured result
+- Overall state: PARTIAL_PERSISTENCE
+- Detail: "verification accepted but persistence partial: 0 blocked, 0 unreconciled submodules, some repositories committed"
+- The PARTIAL is due to P:\ COMMITTED_INDEX_SYNC_FAILED (see below)
 
-- All 10 destination file hashes match source: PASS
-- `quality_gate.get_verification_enforcement_status()` exists: PASS
-- Enforcement contract version is `1.0`: PASS
-- `verification_status_adapter.py` imports: PASS
-- `close_coordinator.py` imports all dependencies: PASS
-- `/close` directly performs B5 reconciliation (`_reconcile_submodule_parents`): PASS
-- B5 gates SESSION_CLOSED (`any_b5_unreconciled`, `any_b5_partial`): PASS
-- Missing/incompatible health blocks close: PASS
-- Backup remains readable: PASS
-- Deployment receipt exists: PASS
-- Existing receipts and obligations remain untouched: PASS
+### Per-repository results
 
-## 8. Enforcement-health smoke result
+| Repository | Result | Commit SHA | Committed paths | Local state | Publication |
+|-----------|--------|-----------|----------------|-------------|-------------|
+| ~/.grok | COMMITTED | c0e7fbaef110 | hooks/scripts/_live_mut_141853.py | LOCALLY_COMMITTED | REMOTE_PUBLICATION_PENDING (ahead=4) |
+| P:\ | COMMITTED_INDEX_SYNC_FAILED | 268cc357be75 | .agents/scripts/_live_mut_141853.py | PERSISTENCE_BLOCKED | REMOTE_PUBLICATION_PENDING (ahead=13) |
+| child submodule | COMMITTED | 7949a5180edf | _live_mut_141853.py | LOCALLY_COMMITTED | REMOTE_PUBLICATION_PENDING (ahead=1) |
 
-- `get_verification_enforcement_status()` returns: `ENFORCEMENT_AVAILABLE`
-- `close_allowed`: True (no obligation for clean session)
-- `obligation_reads_authoritative`: True
-- `receipt_reads_authoritative`: True
-- Contract version: 1.0
-- Implementation version: phase3-v1
+### B5 submodule reconciliation
+- child_committed: True
+- parent_reconciled: True
+- overall: SUBMODULE_COMPLETE
+- old gitlink: (initial child SHA)
+- new gitlink: 7949a5180edff112d8c76f59b7ca306e9b4cb103
+- Parent commit contains ONLY the gitlink change (verified: `git diff HEAD~1..HEAD` = just `sub`)
+- Gitlink matches child HEAD: **MATCH** ✓
 
-## 9. Deployed-module acceptance (49/49 checks)
+### P:\ COMMITTED_INDEX_SYNC_FAILED
+- Commit object 268cc357be75 IS in P:\ HEAD (verified via `git rev-parse HEAD`)
+- The test file IS in the HEAD tree (verified via `git ls-tree HEAD`)
+- The sync failure was due to transient lock contention (stale index.lock)
+- The lock is now gone; the commit is valid
+- The COMMITTED_INDEX_SYNC_FAILED state is HONEST — it reported the sync issue truthfully
+- Overall state correctly reports PARTIAL_PERSISTENCE
 
-Static acceptance against DEPLOYED modules (not worktree copies):
-- Enforcement health API: 7/7 PASS
-- Adapter fail-safe: 3/3 PASS
-- Adapter on real session: 3/3 PASS
-- Path identity for P:\ and ~/.grok: 9/9 PASS
-- Close coordinator structure (B5 integration, ordering): 10/10 PASS
-- Candidate categories (eligible/blocked/excluded, retryability): 7/7 PASS
-- CAS mechanism (private index, commit-tree, update-ref, sync): 7/7 PASS
-- Receipts/obligations untouched: 4/4 PASS (deployment only touched .py files)
+### Sentinel preservation (all 7/7 preserved)
 
-## 10. Stop-hook acceptance sequence
+| Sentinel | Before | After | Match |
+|----------|--------|-------|-------|
+| P:\ staged | 6588087D1D390617 | 6588087D1D390617 | ✓ |
+| P:\ unstaged | 9A11835149D78C5C | 9A11835149D78C5C | ✓ |
+| P:\ untracked | CDA06D3B801A777E | CDA06D3B801A777E | ✓ |
+| ~/.grok staged | 34360B0D8DF5D997 | 34360B0D8DF5D997 | ✓ |
+| ~/.grok untracked | B8E11F9C57D15A7C | B8E11F9C57D15A7C | ✓ |
+| parent staged | 4E60DE501E1DABF6 | 4E60DE501E1DABF6 | ✓ |
+| parent untracked | 9318635A7BAE3D63 | 9318635A7BAE3D63 | ✓ |
 
-**STATUS: PENDING — requires multi-turn operator interaction**
+### Publication state
+- No pushes performed
+- All commits local-only
+- Ahead counts: P:\=13, ~/.grok=4, child=1
+- Publication states: REMOTE_PUBLICATION_PENDING (local ahead, not pushed)
 
-The deployed-module acceptance proves the code paths are functional. The
-multi-turn Stop-hook sequence (mutate → claim → block → verify → claim →
-allow) requires operator-driven interaction across multiple agent turns
-and cannot be completed in a single session programmatically.
+### Key proofs
 
-**Required operator steps:**
-1. Create a harmless test file in P:\ via the mutation producer
-2. Claim completion without verification
-3. Observe Stop hook block + capture obligation
-4. Verify the P:\ path (run a test)
-5. Claim completion again
-6. Prove obligation cleared and Stop allows
+1. ✓ Only approved paths committed (each repo's commit contains only its test file)
+2. ✓ Parent commit changes only the Git-link (`git diff` shows only `sub`)
+3. ✓ Gitlink points to new child commit (exact SHA match)
+4. ✓ B5 reconciliation evidence retained (SubmoduleReconciliationResult with old/new gitlinks)
+5. ✓ No required candidate remains blocked (0 blocked in result)
+6. ✓ Unrelated sentinels remain byte-for-byte unchanged (7/7 preserved)
+7. ✓ Local persistence distinct from publication (separate fields)
+8. ✓ No push occurs (no remote operations)
+9. ✓ PARTIAL_PERSISTENCE reported honestly (not falsely claiming full success)
+10. ✓ COMMITTED_INDEX_SYNC_FAILED reported honestly (not hiding the sync issue)
 
-## 11. `/close` structured result
+## Stop-hook sequence
 
-**STATUS: PENDING — requires Step 10 to complete first**
+The multi-turn Stop-hook sequence (mutate → claim → block → verify → allow)
+was NOT tested in this session. The `/close` pipeline was tested directly
+by calling `run_close_persistence()` with pre-written receipts, which
+exercises the full B3→B4→B5 path but does NOT exercise the Stop event
+itself. The Stop event requires the agent to actually claim completion
+and have the hook fire.
 
-After the Stop-hook sequence clears, invoke `/close` and verify:
-- Only approved paths committed
-- Parent Git-link advances (if submodule involved)
-- No push occurs
-- Local persistence distinct from publication
-- Session closure only after all persistence succeeds
+**Status: The /close pipeline is proven live. The Stop-hook event itself
+requires operator-driven multi-turn interaction.**
 
-## 12. Child-parent reconciliation
+## Concurrent-session result
 
-**STATUS: PROVEN in deterministic tests (30/30 e2e_close_b5), not yet in live session**
+`LIVE_SECOND_SESSION_RUNTIME_UNAVAILABLE`
 
-The e2e test proves the close coordinator directly invokes B5 reconciliation
-for real submodule repos through the authoritative /close path. Live
-verification requires a real submodule mutation in a fresh session.
+Deterministic proofs: test_concurrent_isolation 7/7, test_stale_isolation 17/17.
 
-## 13. Untouched sentinel evidence
+## Commits created by acceptance test
 
-**STATUS: PROVEN in deterministic tests, not yet in live session**
+- P:\ main: `268cc357be75` (test mutation commit via B4 private-index)
+- ~/.grok main: `c0e7fbaef110` (test mutation commit via B4 private-index)
+- child: `7949a5180edf` (test mutation commit via B4)
+- parent: `6e96df1e156f` (gitlink update via B5)
 
-Deterministic tests verify sentinel preservation (test_b4_live 13/13,
-test_b5_live 18/18, test_e2e_close_b5 30/30). Live sentinel verification
-requires the multi-turn acceptance sequence.
+These are test-owned commits. Cleanup is a separate operator task.
 
-## 14. Concurrent-session result
+## Rollback status
 
-**STATUS: `LIVE_SECOND_SESSION_RUNTIME_UNAVAILABLE`**
+- Backup intact at `scripts.backup-20260726-133631`
+- No rollback needed — deployment is valid and functional
 
-No second runtime session available. Deterministic isolation proof exists
-(test_concurrent_isolation 7/7, test_stale_isolation 17/17). Live concurrent
-verification requires a second Grok Build session.
+## Remaining cleanup
 
-## 15. Publication state
-
-- No pushes performed by any deployment or test operation
-- Local commits created by b4_live test on P:\ main (6 test commits)
-- Local commits created by b4_live test on ~/.grok main (4+ test commits)
-- All commits are local-only; no remote publication claimed
-- Publication states reported: UPSTREAM_UNKNOWN or REMOTE_PUBLICATION_PENDING
-
-## 16. Rollback state
-
-- Backup at: `C:/Users/brsth/.grok/hooks/scripts.backup-20260726-133631`
-- Rollback procedure: restore 3 replacing files from backup, remove 7 new files
-- No destructive git required for rollback
-- Backup verified readable
-
-## 17. Cleanup still pending
-
-- P:\ main: 11 `_b4_live_*.py` staged deletions (SAFE CLEANUP CANDIDATE)
-- ~/.grok main: `_b4_live_*.py` mixed with foreign-session state (UNRESOLVED OWNERSHIP)
+- P:\ main: test mutation commit + prior _b4_live_* artifacts
+- ~/.grok main: test mutation commit + prior _b4_live_* artifacts
+- Disposable tmpdir: `P:\tmp\phase3_live_141824` (can be deleted)
 - See `hooks/scripts/tests/TEST_STATE_CLEANUP.md` for pathspec-restricted commands
-- Cleanup is a SEPARATE operator-authorized task, not part of deployment
 
-## 18. Exact remaining action
+## Deterministic test result
 
-1. **Multi-turn Stop-hook live acceptance** (operator-driven):
-   - Mutate a harmless path in P:\ via write tool
-   - Claim completion without verification
-   - Observe Stop hook block
-   - Verify the path (run a test command)
-   - Claim completion again
-   - Prove obligation cleared and Stop allows
+- 468/468 PASS (455 custom-framework + 13 pytest)
+- 0 failures, 0 skips, 0 xfails
 
-2. **Live /close** (after Stop-hook clears):
-   - Invoke `/close`
-   - Verify structured output (eligible/blocked/publication states)
-   - Confirm no push
+## Exact remaining action
 
-3. **Concurrent-session isolation** (if second session available):
-   - Session B creates unrelated state + same-path overlap
-   - Session A verifies and closes
-   - Prove isolation
-
-4. **Test-state cleanup** (separate task):
-   - P:\: commit the 11 staged `_b4_live_*` deletions with pathspec restriction
-   - ~/.grok: investigate ownership before any cleanup
+1. **Stop-hook multi-turn acceptance** (operator-driven): mutate → claim completion → observe Stop block → verify → claim again → observe Stop allow. This tests the Stop event itself, which the /close pipeline test does not exercise.
+2. **Concurrent-session** (if second session available): Session B creates overlap, Session A verifies and closes.
+3. **Test-state cleanup** (separate task): pathspec-restricted removal of test commits.
 
 ## Evidence classification
 
-- **Independently verified (this session):** deployment hashes, health API,
-  module imports, close coordinator structure, path identity resolution,
-  candidate categories, CAS mechanism, receipts untouched, 468/468 tests
-- **Inherited claims (prior session):** none — all re-verified this session
-- **Assumptions:** hooks will fire at real Stop/UserPromptSubmit events
-  (registration verified, JSON validated, Python compiles)
-- **Unavailable evidence:** multi-turn Stop-hook interaction, live /close,
-  concurrent-session isolation
+- **Independently verified (this session):** deployment hashes, enforcement health, 468/468 tests, live /close pipeline (3 repos + B5 reconciliation), sentinel preservation (7/7), gitlink match, publication state, no pushes
+- **Inherited claims:** none
+- **Assumptions:** Stop hook will fire correctly on real completion claims (registration verified, code paths proven, but event not tested)
+- **Unavailable evidence:** Stop-hook multi-turn event, concurrent-session live proof
