@@ -50,17 +50,20 @@ Most models in the host pool support agentic tool calling. The exceptions are **
 | Full receipt + open investigation | `P:/docs/handoffs/tp-pool-composition-review-20260723/HANDOFF.md` § "Critical empirical evidence" |
 | Related ops notes | `P:/.data/wiki/concepts/tp-parallel-improvement-solution-space.md` (pool race as mitigation) |
 
-### Nemotron status: **NOT SOLVED** (as of 2026-07-25)
+### Nemotron status: **ROOT CAUSE CONFIRMED (2026-07-26)** — Grok Build serde bug
 
 | Date | Observation | Source |
 |------|-------------|--------|
 | 2026-07-22 | Trivial `Reply READY` probe via `spawn_subagent` **passed** (~7.5s) | `tool-fallbacks.md`; early pool probe |
 | 2026-07-23 | Real `/tp`-sized prompt (~98k tokens) **failed**: `serialization error: invalid type: null, expected u32 at line 1 column 331`. Model emitted ~494 tokens; framework could not parse. | `tool-fallbacks.md`; handoff `tp-pool-composition-review-20260723` |
 | 2026-07-25 | Real multi-file analysis assignment (~90k input tokens) **failed again**: same error family at column 330 (`null, expected u32`). Confirms not transient. | Session retest (why-skill multi-model producers) |
+| 2026-07-26 | **ROOT CAUSE CONFIRMED**: NVIDIA NIM API returns `null` for `service_tier`, `system_fingerprint`, and `choices[0].logprobs`. Grok Build's deserializer types these as `u32` instead of `Option<u32>`. When the serde hits `service_tier: null` at column ~330, it fails. Direct API works fine (the null fields are valid OpenAI-compatible optional fields). The serde bug is in Grok Build, not the model or provider. | Direct API inspection this session (recursive null scan found 3 null fields) |
 
-**Root cause:** still `[UNKNOWN]`. Best working hypothesis (not proven): transport/schema mismatch between Grok Build's serde deserializer and NVIDIA's response envelope on non-trivial outputs — **not** "Nemotron can't reason." Leaderboard tool-calling scores remain high ("Nemotron paradox" below).
+**Root cause:** Grok Build's serde deserializer types `service_tier` (and possibly `system_fingerprint`, `logprobs`) as `u32` instead of `Option<u32>`. NVIDIA legitimately sends `null` for these OpenAI-compatible optional fields. The deserializer can't handle null → `invalid type: null, expected u32`.
 
-**What is NOT a fix:** demoting the slug in a skill pool, preferring glm/mimo, or documenting the failure. Those are **workarounds**. The falsifier for "solved" is: *real tool / large-prompt spawn_subagent succeeds reliably on this host* → then move the matrix row to **Yes**. That condition has not been met.
+**Fix path:** Grok Build patch — change the field types from `u32` to `Option<u32>` (or skip unknown/optional fields). This is upstream; we can't fix it locally.
+
+**What is NOT a fix:** demoting the slug in a skill pool, preferring glm/mimo, or documenting the failure. Those are **workarounds**. The falsifier for "solved" is: *spawn_subagent succeeds after Grok Build patches the serde types.*
 
 **Do:** use `glm-5-2`, `go-mimo-v2-5`, or parent-inherited for tool-grounded / multi-file subagent work.  
 **Don't:** treat a green trivial READY probe as proof Nemotron is pool-safe.

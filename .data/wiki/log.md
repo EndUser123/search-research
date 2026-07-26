@@ -1,5 +1,17 @@
 # Vault Log
 
+## extract-moves-not-conditions-tp-enhancements
+Source: session-20260725
+Agent: grok
+Notes: Decision: /tp 3 enhancements (decomposition/tiered output/uncertainty surfacing); the extract-moves-not-conditions principle
+Page: P:/.data/wiki/concepts/extract-moves-not-conditions-tp-enhancements.md
+
+## coupling-inventory-as-mandatory-design-section
+Source: session-20260725
+Agent: grok
+Notes: Decision: /design coupling inventory gate (3-layer writer/reviewer/critical-friend enforcement); refines raising-coding-best-practices
+Page: P:/.data/wiki/concepts/coupling-inventory-as-mandatory-design-section.md
+
 ## Research: structural enforcement for skipped-under-load rules on Grok Build
 Source: session-2026-07-26-www-enforcement
 Agent: grok

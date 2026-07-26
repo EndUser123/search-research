@@ -1,5 +1,10 @@
 # gitleaks baseline — confirmed historical noise (placeholders, tests, docs, examples, backups)
 # Auto-generated 2026-06-29. Real-looking values are deliberately NOT baselined so they stay visible in `detect`.
+# 2026-07-26 addition: star-history.com sealed_token in ingested UditAkhourii/adhd README
+# (public chart-embed token, not a real API key; upstream content we don't control)
+.data/wiki/sources/github.com/000-UditAkhourii-adhd.md:generic-api-key:233
+.data/wiki/sources/github.com/000-UditAkhourii-adhd.md:generic-api-key:234
+.data/wiki/sources/github.com/000-UditAkhourii-adhd.md:generic-api-key:235
 d4d3bddd5582082d5a66d1ddb3274c5d9a40901b:scripts/README.md:sidekiq-secret:47
 d4d3bddd5582082d5a66d1ddb3274c5d9a40901b:scripts/README.md:generic-api-key:574
 212d676dacaaa2091eeba762961e36cbefbfdbe5:.claude/.artifacts/console_335aa7aa-bdf7-4b27-9ccf-83514bf3fdd1/pre-mortem/pre-mortem-20260522_184927/p3.md:claude-proxy-key:23
