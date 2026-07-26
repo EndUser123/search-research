@@ -1,5 +1,17 @@
 # Vault Log
 
+## model-tool-calling-capability-matrix updated
+Source: session-2026-07-26 / empirical nemotron testing
+Agent: grok
+Notes: Empirically tested all 4 nemotron variants. or-nemotron-ultra-free (OpenRouter) works for both trivial and real tool-grounded prompts. nvidia-nemotron-3-ultra fails on tool prompts even with stream_tool_calls=false. zen variant broken (proxy issue).
+Page: P:/.data/wiki/concepts/model-tool-calling-capability-matrix.md
+
+## Theatrical contrition / over-apologetic response patterns (research)
+Source: www (web: arxiv 2507.02745 Ashktorab, 2502.08177 SycEval, 2602.23971 AISI, 2607.10411 EGDP, 2509.21305 Vennemeyer; springer Harland/Turner; seangoedecke.com; lesswrong nostalgebraist; turntrout.com; patronus.ai)
+Agent: grok
+Notes: New concept theatrical-contrition-and-over-apologetic-response-patterns.md consolidates UX-optimization angle: explanatory > empathic > rote apology in technical contexts; EGDP-style structured templates as the structural fix.
+Page: wiki/concepts/theatrical-contrition-and-over-apologetic-response-patterns.md
+
 ## adaptive-orchestration-task-shape-classification
 Source: session-019f9d1f /www research
 Agent: grok

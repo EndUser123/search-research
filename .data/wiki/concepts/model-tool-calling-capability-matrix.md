@@ -16,11 +16,13 @@ summary: >
   Most models in the host pool support agentic tool calling. Exceptions are
   transport/parser failures, not missing model capability. DiffusionGemma:
   thinking-mode breaks the agent framework parser — use direct API for
-  no-tool reads only. Nemotron-3-ultra: trivial READY probes pass, but real
-  tool/large-prompt spawn_subagent fails with serde errors (null expected
-  u32) — partial fix 2026-07-26 (`stream_tool_calls = false`) works for
-  trivial no-tool prompts but real tool-grounded spawns still fail same-day;
-  use glm/mimo/parent for tool work, direct API for any nemotron use.
+  no-tool reads only. Nemotron-3-ultra: **NVIDIA direct endpoint fails on
+  tool-grounded spawn_subagent even with `stream_tool_calls = false`**
+  (null-typed-as-u32 serde error on real prompts, empirically verified
+  2026-07-26); **use `or-nemotron-ultra-free` (OpenRouter proxy) instead —
+  same model, empirically verified working for both trivial (3.9s) and real
+  tool-grounded spawns (7.2s, full output).** `zen-nemotron-3-ultra-free`
+  (OpenCode Zen) is broken with a different serde error (`missing field id`).
   Canonical host matrix for tool-call routing.
 agent: grok
 host: both
