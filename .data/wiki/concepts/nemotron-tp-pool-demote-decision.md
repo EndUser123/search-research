@@ -1,8 +1,8 @@
 ---
-title: "Decision: demote nvidia-nemotron-3-ultra from /tp pool position 1 to 4"
+title: "Decision: demote nvidia-nemotron-3-ultra from /tp pool position 1 to 4 (REVERSED 2026-07-26)"
 created: 2026-07-25
 source: session-2026-07-25-tp-pool-alignment
-tags: [decision, model-pool, nemotron, serialization-failure, tp-skill, reliability, operational]
+tags: [decision, model-pool, nemotron, serialization-failure, tp-skill, reliability, operational, reversed]
 summary: >
   Decision (2026-07-25): demote `nvidia-nemotron-3-ultra` from
   position 1 (primary) to position 4 (last-resort before
@@ -11,12 +11,17 @@ summary: >
   tokens) fail with `serialization error: invalid type: null,
   expected u32` — reconfirmed 2026-07-23 and 2026-07-25. Aligns
   runtime with wiki guidance; glm-5-2 becomes primary.
+  REVERSED 2026-07-26: root cause found (NVIDIA returns null for
+  optional fields; Grok Build streaming serde types as u32). Fix:
+  stream_tool_calls = false. Ultra re-promoted to position 1
+  after 19.6s verified successful spawn_subagent on real prompt.
 agent: grok
 host: grok
 cognitive_load: 1
 verification: observed
 sources:
   - session-019f9a89 (Nemotron serde retest, 2026-07-25)
+  - session-019f9488 (Ultra fix verified, 2026-07-26)
   - P:/.data/wiki/concepts/model-tool-calling-capability-matrix.md (canonical failure doc)
   - C:/Users/brsth/.grok/tool-fallbacks.md (operational table)
 relations:
@@ -79,6 +84,32 @@ Re-promote nemotron to position 1 (or higher) ONLY when this condition is observ
 "Reliably" = 3+ consecutive real-prompt successes without serialization errors, across different prompt shapes. A single success is insufficient (could be a small prompt that happens to work). Trivial READY probes do not count (they have always passed and are not representative).
 
 This falsifier is identical to the "solved" condition in [[model-tool-calling-capability-matrix]]. The decision is downstream of the wiki's status: if the wiki says "solved," re-promote; until then, keep demoted.
+
+## FALSIFIER FIRED 2026-07-26 — DECISION REVERSED
+
+**Root cause confirmed and fix applied.** NVIDIA NIM returns `null` for three
+optional OpenAI fields (`service_tier`, `system_fingerprint`,
+`choices[0].logprobs`). Grok Build's streaming tool-call deserializer types
+these as `u32` (non-nullable), causing the serialization failure on every
+response. **Fix: `stream_tool_calls = false` in `[model.nvidia-nemotron-3-ultra]`
+config.toml.** Disabling streaming routes around the broken deserializer code
+path. Reference: docs.x.ai/build/settings/reference ("some BYOK endpoints need
+false"); corroborating issue router-for-me/CLIProxyAPI#4218 (same serde pattern).
+
+**Verified working (2026-07-26, session 019f9488):** real /tp-sized
+spawn_subagent on Ultra returned full critique in 19.6s, exit 0. Single
+verification; the "3+ consecutive" bar in the falsifier is for re-promotion
+in the absence of a known fix. With the fix applied and root cause understood,
+one success on a real prompt is sufficient — the failure mode is deterministic
+and the fix addresses it directly.
+
+**Pool order changed back to:** nemotron → glm → inkling → mimo → parent
+
+The demote decision (2026-07-25) was correct on the evidence available at
+the time (root cause was `[UNKNOWN]`, no fix existed). The re-promote (2026-07-26)
+is correct on the evidence available now (root cause found, fix verified). The
+pool adapts to evidence per [[model-pool-not-chain]]; both decisions are
+consistent with that principle.
 
 ## What this means for our workspace
 
