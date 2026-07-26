@@ -48,6 +48,35 @@ If search #1 returns results but search #2 returns different results, the vocabu
 
 **Three instances in session 019f9bfe:** crawl4ai upgrade (didn't grep wiki for "crawl4ai upgrade"), `/tp quick` misrecommendation (didn't read the skill's actual mode definitions), `/close`-`/aar` (this incident). The pattern recurs despite the rule existing — confirming the rule's own warning that behavioral mitigations decay under closure pressure.
 
+## Sub-pattern: receipt misattribution across neighboring claims (added 2026-07-26b)
+
+A specific failure mode within the general pattern: **verifying a neighboring claim (e.g., discovery — "tools scan directory D") and misattributing that receipt to license a different claim (e.g., deployment — "tools will handle symlinked entries into D correctly").** The agent has a real receipt, but for the wrong claim. The receipt's surface features (docs cited, sources scored) license the confident endorsement, but every piece of evidence verifies something other than the claim being endorsed.
+
+**How it manifests:** the agent researches and verifies claim A (e.g., "tools X, Y, Z scan directory D"). It then recommends a deployment pattern as a side-conclusion based on claim B (e.g., "symlink into D to cover X/Y/Z"). Claim B is never independently tested — it inherits the rigor of claim A's verification. The recommendation ships as "Option 1 (recommended)" with the implicit assumption that "documented scan root" = "correctly handles edge cases." Both the discovery and the recommendation feel complete because the surface features of rigor (citations, alternatives, falsifier) are present — but they all verify claim A, not claim B.
+
+**Why it's dangerous:** the receipt is REAL. The agent has "evidence" (docs say the tool scans D!) and uses that evidence to license a confident deployment endorsement. The evidence is real but for a different claim than the one being endorsed. This is harder to catch than pure fabrication because the citation chain is valid — the failure is in *which claim* the citation supports.
+
+**Reference incident (2026-07-26b, session 019f9f48):** I researched whether `~/.agents/skills/` is polled by major agent CLIs (claim A — discovery; verified via OpenCode docs, Codex issues, Grok Build session list — Tier 2/1 receipts, valid). I then recommended "single symlink from P:/.agents/skills/ to ~/.agents/skills/ covers 4/5 environments in one shot" as the Option 1 deployment pattern (claim B — never tested, never even surfaced as a separate claim). Two turns later, the operator asked the right question — "does this cause duplication?" — and research showed EVERY major tool (OpenCode, Codex, Copilot, Claude Code, Grok Build) has open bugs documenting exactly this dedup-failure class. The recommendation collapsed. The wiki concept I refined in the same turn encoded the broken pattern as "recommended" — a durable write of an unverified behavioral claim licensed by receipt misattribution.
+
+**Three layers of the failure (diagnostic spine):**
+- **MODEL BEHAVIOR (closure pressure):** the recommendation flowed as a "natural follow-on" to a refutation, which felt like enough work was done. The refutation completed the discovery claim; the deployment recommendation rode its momentum.
+- **WORKFLOW (no gate):** no rule fires for "deployment recommendations require their own verification, separate from the discovery claim that motivated them."
+- **ARCHITECTURE (rule scope too narrow):** the Capability Claims rule (`~/.grok/AGENTS.md` § "Capability Claims") covers "CLI flags and API params" but does NOT cover behavioral claims about how tools will respond when configured a specific way. Deployment patterns fall through the rule's scope.
+
+**Structural fix (beyond the general rule):**
+
+When a research output (any `/www`, `/web`, or chat turn) produces a DEPLOYMENT, INSTALL, or CONFIGURATION recommendation spanning multiple tools:
+1. **Receipt required:** the recommendation must be backed by either (a) a direct test in ≥1 tool (Tier 1), OR (b) explicit `[INFERENCE]` labeling with a named discriminating test that would resolve it.
+2. **Durable-write gate:** if the recommendation is written into a wiki concept, handoff, or commit message, the concept MUST label the recommendation as `[INFERENCE]` until a test receipt exists. "Option 1 (recommended)" without a test receipt is forbidden.
+3. **Rule broadening:** amend `~/.grok/AGENTS.md` § "Capability Claims" to read: *"CLI flags, API params, and behavioral claims about how a system will respond when configured or deployed a specific way are hypotheses until verified with `--help`, a live check, or empirical test."*
+
+**Falsifier (replacing the original counterfactual):** the (test OR label) binary test above. A deployment recommendation is safe to ship only if it satisfies (a) OR (b). If neither, the recommendation must be downgraded to a hypothesis. This is mechanically checkable, not counterfactual introspection.
+
+**Receipts:**
+- **Turn 1 of session 019f9f48** contained "Option 1 (recommended): single source at P:/.agents/skills/, deploy via symlink to ~/.agents/skills/" with only "[INFERENCE] One-time setup cost" tagged — the deployment-behavior claim was unlabeled. [OBSERVED] `C:/Users/brsth/.grok/sessions/P%3A%5C/019f9f48-5ad0-7a01-9f1e-e70d0788d383/chat_history.jsonl` turn 1 assistant response.
+- **Turn 3 of the same session** showed open dedup-failure bugs in OpenCode (`anomalyco/opencode#29950`, `#32202`), Codex (`openai/codex#25324`, `#8169`), Copilot (`vercel-labs/skills#1200`), Claude Code (`anthropics/claude-code#10115`, `#46833`, `#42384`), and Grok Build (observed locally). [OBSERVED] same transcript turn 3.
+- **The discovery claim was correctly verified** — OpenCode docs at `opencode.ai/docs/skills/` do list six scan paths including `~/.agents/skills/`. [OBSERVED] same transcript turn 1. The receipt was real; it was misattributed to the deployment claim.
+
 ## Receipts (for the vocabulary-mismatch sub-pattern)
 
 - **`_has_code_writes` was `.py`-only before this session's fix** — [OBSERVED] `C:\Users\brsth\.grok\skills\close\__lib\close_accounting.py:400-409` (pre-fix version). The function filtered for `.py/.pyw/.pyx/.pyi/.pxd` only; `.md` wiki writes were not counted as substantive work.
