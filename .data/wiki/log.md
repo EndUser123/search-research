@@ -1,5 +1,11 @@
 # Vault Log
 
+## scope-matching-verification-discipline
+Source: session-20260726
+Agent: grok
+Notes: /www: verification ceiling + two-layer defense
+Page: P:/.data/wiki/concepts/scope-matching-verification-discipline.md
+
 ## Receipt-misattribution sub-pattern (why RCA)
 Source: why RCA on session 019f9f48 turn 1
 Agent: grok
