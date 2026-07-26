@@ -23,6 +23,8 @@ accurate_as_of_head: 39ec391
 
 5. **The receipt writer's auto-inference (Layer A) is the highest-leverage fix.** It turns the most common pytest invocation (`pytest tests/test_foo.py`) from empty-scope (blocked) into inferred-scope (passes) — without weakening the security model. Full pipeline test still needed.
 
+6. **The close scanner's AAR detection is an undocumented contract gap.** The inline AAR wrote `aar-report.md` + `_run.json` + `completion-receipt.json` to the artifacts directory, but the close scanner's `_validate_aar_completion` expects a preprocess packet directory + report hash validation. Scanner reported "No AAR source detected" even after completion. Next session: reconcile inline-AAR format against scanner validation, or have the scanner accept a simpler inline marker.
+
 ## Source
 
 Session 019f9b6f, 2026-07-25/26. Operator + Grok.
