@@ -69,28 +69,34 @@ Encoded as AGENTS.md § "Trust-escalation rung (agent autonomy level)" — curre
 
 ### ~~Item 5: Behavioral smoke tests~~ ✅ DONE 2026-07-26
 
-Smoke test for `_map_pytest_file_to_sources` written at `C:/Users/brsth/.grok/hooks/scripts/tests/test_file_inference_smoke.py` — 8/8 tests pass, covering: basic inference, no-import case, from-import form, security gate (unmodified source not inferred), no-.py-arg case, and regex fallback for SyntaxError.
+**Isolated function smoke test DONE:** `test_file_inference_smoke.py` — 8/8 pass, covering: basic inference, no-import case, from-import form, security gate, regex fallback.
 
-**What:** Neither `/refine` nor the 3-check readiness gates have been exercised end-to-end against real tasks. Structural correctness verified (greps, test suite, validators). Behavioral correctness NOT verified.
-
-**How to test:**
-- `/refine "some real rough task"` — validate INVEST gate + 4-dim check + field expansion
-- Invoke `/go` or `/plan-writer` on a vague input — validate the readiness gate fires and suggests `/refine`
-- Write a handoff with a `[NEEDS CLARIFICATION]` marker missing its Resolution field — validate `validate_refinement_markers` catches it
-
-**Effort:** 15-30 min
+**Full pipeline test still NEEDED (NEXT):** the isolated function works, but the end-to-end pipeline (PreToolUse hook captures fingerprint → PostToolUse receipt writer binds scope via `_map_pytest_file_to_sources` → Stop hook checks obligation satisfaction) has NOT been exercised. Test: modify a `.py` file, run `pytest tests/test_foo.py`, observe the receipt has `scope_basis: TEST_FILE_TO_SOURCE_INFERENCE` and `claimed_scope_refs` containing the modified file. 5 min in the next session that touches a `.py` file.
 
 ### ~~Item 6: Dimension standardization~~ ✅ DONE 2026-07-26
 
 All 4 downstream readiness gates (go, plan-writer, design, refactor) now use the same standard 4-dimension set: Completeness / Clarity / Testability / Correctness. Matches /refine's own 4-dimension check.
 
-**What:** The 4 downstream gates use slightly different dimensions (design uses Clarity where others use Testability; none includes Correctness). The red-team flagged this as RC-2 (REVISE).
+### Sibling agent changes awareness (NEXT — fresh session)
 
-**Why deferred:** Needs runtime evidence to decide which dimension set is optimal. The red-team recommended standardizing on `/refine`'s 4-dimension set, but this should wait until behavioral smoke tests (item 5) show whether the current variation is a problem in practice.
+While this session worked, concurrent agents shipped:
+- `skills/close/__lib/close_runner.py` — new close runner with attempt-receipt system (separate from verification receipts; no collision)
+- `skills/aar/__lib/completion_receipt.py` — AAR completion receipts (separate system; no collision)
+- `skills/wiki/scripts/validate_wiki_entry.py` — modified (may change wiki validation behavior)
+- `skills/close/SKILL.md`, `skills/close/__lib/validate_close_receipt.py` — close changes
 
-**Effort:** Medium (4 file edits once the decision is made)
+These don't touch the verification receipt system or the files this session modified (preflight confirmed). But next session should read these changes before relying on `/close` or `/aar` behavior.
 
-### 7. Cross-family critic for /red-team (from /why RCA)
+### 30-day post-deployment review of Stop hook fix (LATER — trigger: 2026-08-25)
+
+The design doc's falsifier F1: review shadow-log data 30 days after deployment. Metrics to check:
+- Does `SCOPE_NOT_COVERED` appear less frequently (auto-inference catching the gap)?
+- Does average re-blocks-per-obligation drop from ~5 to <2?
+- Does any reason code dominate unexpectedly?
+
+If the auto-inference produces false positives at >10% rate, tighten the inference gates.
+
+### 7. Cross-family critic for /red-team (LATER)
 
 **What:** The `/why` RCA on the red-team's severity miscalibration identified that same-agent red-team is structurally weak (correlated errors). The unbuilt `/red-team` cross-family adversarial mode would decorrelate errors by using a different model family for the critic specialist.
 
