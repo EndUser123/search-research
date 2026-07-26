@@ -484,6 +484,7 @@ Recommended cadence (manual, not scheduled):
 - **At session start** if prior session touched wiki: run `wiki_health_check.py --json`. 5 min.
 - **Monthly**: full Phase-1 check, review 3-5 worst-stale pages, update/archive/TODO. 30-45 min.
 - **After bulk ingest** (≥5 new pages): `qmd update` to refresh semantic index. 30 sec.
+- **After bulk ingest (≥5 new pages) — also run `audit_buried_facts.py`** to surface candidates for the principle #11 split (decision-time facts that should be their own pages). The audit is a heuristic scan; review the top 5-10 candidates manually and split any that fail the keyword test (would a 2-4 word query for the fact surface it?). 10-15 min.
 - **Quarterly**: re-baseline QMD relevance score, compare against `qmd-baseline-*.json`. Drop ≥0.05 = semantic drift. Also run `qmd update` (not `qmd update --collection wiki` — that syntax is wrong; `update` takes positional or no args) to refresh the full index against any corpus growth since the last reindex.
 
 **Reality check:** none of this is scheduled on the Grok side. Each bullet is

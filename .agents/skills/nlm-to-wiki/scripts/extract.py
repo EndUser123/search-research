@@ -64,22 +64,41 @@ def log(msg: str) -> None:
 def studio_create(notebook_id: str, artifact: str, profile: str,
                    fmt: str | None, prompt: str | None,
                    desc: str | None) -> str | None:
-    """Create artifact, return its ID."""
-    cmd = ["nlm", "studio", "create", artifact, notebook_id, "--profile", profile, "--confirm", "--json"]
-    if fmt:
-        cmd.extend(["--format", fmt])
-    if prompt:
-        cmd.extend(["--prompt", prompt])
-    if desc:
-        cmd.extend(["--description", desc])
+    """Create artifact, return its ID.
+
+    NOTE: nlm v0.9+ uses separate top-level commands per artifact type, not
+    `nlm studio create`. Verified 2026-07-25 against nlm 0.9.0:
+      - Report:     `nlm report create <nb> --format "..." --prompt "..." --json`
+      - Data-Table: `nlm data-table create <nb> "<description>" --json`
+      - Audio:      `nlm audio create <nb> ...`
+      - etc.
+    The `artifact` arg here selects which command to build.
+    """
+    if artifact == "report":
+        cmd = ["nlm", "report", "create", notebook_id,
+               "--profile", profile, "--confirm", "--json"]
+        if fmt:
+            cmd.extend(["--format", fmt])
+        if prompt:
+            cmd.extend(["--prompt", prompt])
+    elif artifact == "data-table":
+        if not desc:
+            log("  data-table requires --description; skipping")
+            return None
+        cmd = ["nlm", "data-table", "create", notebook_id, desc,
+               "--profile", profile, "--confirm", "--json"]
+    else:
+        log(f"  unsupported artifact type: {artifact}")
+        return None
+
     rc, out, err = run(cmd, timeout=120)
     if rc != 0:
         log(f"  {artifact} create failed rc={rc}: {(err or out).strip()[:300]}")
         return None
     try:
         data = json.loads(out)
-        # Status may be different keys depending on nlm version
-        return data.get("artifact_id") or data.get("id")
+        # Different keys across nlm versions; try the common ones
+        return data.get("artifact_id") or data.get("id") or data.get("task_id")
     except json.JSONDecodeError:
         log(f"  {artifact} create output not JSON: {out.strip()[:200]}")
         return None
@@ -116,11 +135,15 @@ def poll_status(notebook_id: str, artifact_id: str, profile: str,
 
 def download_artifact(notebook_id: str, artifact_id: str, artifact_kind: str,
                        profile: str, out_path: Path) -> bool:
-    """Download artifact to out_path. artifact_kind: report | data-table."""
-    rc, out, err = run(
-        ["nlm", "download", artifact_kind, notebook_id,
-         "--profile", profile, "--output", str(out_path)],
-        timeout=300)
+    """Download artifact to out_path. artifact_kind: report | data-table.
+
+    nlm download subcommands: `nlm download report <nb> --id <artifact_id> -o <path>`
+    NOTE: download subcommands do NOT accept --profile in nlm 0.9+; profile comes
+    from NOTEBOOKLM_PROFILE env var or default. Verified 2026-07-25.
+    """
+    cmd = ["nlm", "download", artifact_kind, notebook_id,
+           "--id", artifact_id, "--output", str(out_path)]
+    rc, out, err = run(cmd, timeout=300)
     if rc != 0:
         log(f"  download {artifact_kind} failed: {(err or out).strip()[:200]}")
         return False

@@ -164,6 +164,38 @@ def process_cluster(cluster: dict, prefix: str, profile: str, state: dict, state
     return record
 
 
+def reconcile_state(state: dict, profile: str) -> int:
+    """Re-verify any completed entry whose actual count is missing or looks stale.
+
+    Pilot-seed pattern and crash-resume both can leave entries with actual=None
+    or status='pilot'. This self-heals by re-running verify_source_count for any
+    completed entry that lacks a confirmed actual count.
+
+    Returns count of entries reconciled.
+    """
+    fixed = 0
+    for cid_str, rec in state.get("notebooks", {}).items():
+        nb_id = rec.get("notebook_id")
+        expected = rec.get("expected")
+        actual = rec.get("actual")
+        if not nb_id or not expected:
+            continue
+        if actual == expected:
+            continue  # already confirmed
+        log(f"reconcile: cluster {cid_str} has actual={actual}, expected={expected}; re-verifying...")
+        new_actual = verify_source_count(nb_id, profile, expected, max_polls=3, initial_wait=15)
+        if new_actual == expected:
+            rec["actual"] = new_actual
+            rec["status"] = "ok"
+            if int(cid_str) not in state.get("completed", []):
+                state.setdefault("completed", []).append(int(cid_str))
+            fixed += 1
+            log(f"  reconciled: {new_actual}/{expected} ok")
+        else:
+            log(f"  still mismatched: {new_actual}/{expected}")
+    return fixed
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("clusters", type=Path, help="clusters.json from cluster.py")
@@ -188,6 +220,14 @@ def main() -> int:
 
     state = load_state(args.state)
     state_path = args.state if args.all else None  # only checkpoint in --all mode
+
+    # Self-heal: re-verify any completed entries whose actual count is missing.
+    # Catches pilot-seed gaps and crash-resume artifacts. Cheap (skips entries
+    # already confirmed); only re-runs verify for entries that need it.
+    if state.get("notebooks"):
+        fixed = reconcile_state(state, args.profile)
+        if fixed and state_path:
+            save_state(state, state_path)
 
     if args.pilot is not None:
         cluster = next((c for c in clusters if c["cluster_id"] == args.pilot), None)

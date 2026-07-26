@@ -166,14 +166,25 @@ def parse_rss(path: Path):
     tree = ET.parse(path)
     root = tree.getroot()
     # Strip namespaces for item lookups
-    items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
+    items = root.findall(".//item")
+    if not items:
+        items = root.findall(".//{http://www.w3.org/2005/Atom}entry")
     for item in items:
-        title_el = item.find("title") or item.find("{http://www.w3.org/2005/Atom}title")
-        link_el = item.find("link") or item.find("{http://www.w3.org/2005/Atom}link")
-        guid_el = item.find("guid") or item.find("{http://www.w3.org/2005/Atom}id")
+        # NOTE: do NOT use `or` chaining on XML elements — Element.__bool__ is
+        # False when the element has no children, so `a or b` always evaluates b.
+        # Use explicit `is not None` checks.
+        title_el = item.find("title")
+        if title_el is None:
+            title_el = item.find("{http://www.w3.org/2005/Atom}title")
+        link_el = item.find("link")
+        if link_el is None:
+            link_el = item.find("{http://www.w3.org/2005/Atom}link")
+        guid_el = item.find("guid")
+        if guid_el is None:
+            guid_el = item.find("{http://www.w3.org/2005/Atom}id")
         url = ""
         if link_el is not None:
-            url = link_el.text or link_el.get("href") or ""
+            url = link_el.text or (link_el.get("href") or "")
         title = title_el.text if title_el is not None else ""
         guid = guid_el.text if guid_el is not None else hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
         yield {

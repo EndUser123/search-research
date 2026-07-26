@@ -7,6 +7,19 @@ produced_at: 2026-07-24T22:20:22Z
 status: open
 handoff_type: investigation
 accurate_as_of_head: 854968a52b8922603ff67822cd11cf1fb20b8c76
+re_scoped_at: 2026-07-26T01:30:00Z
+re_scope_note: |
+  Session 019f9a3c (2026-07-25) added 15 new WL:* notebooks (URL list clustered
+  via nlm-bulk-ingest). The "at least 3 notebooks" premise at line 27 is now
+  stale; there are at least 18. The 15 WL:* notebooks are themed clusters
+  (Local AI, Multi-Agent Orchestration, AI Coding, Claude Skills, Claude Code,
+  Health×2, Model Reviews, GitHub Trending, NotebookLM/Google AI, Anthropic,
+  Canadian Politics, Weight Loss, Misc/HFY, Options Trading, Geopolitics) and
+  likely belong to a "WL:*" tag category rather than the consolidation's
+  proposed taxonomy. The consolidation should either (a) treat WL:* as
+  out-of-scope (they were intentionally created themed) or (b) absorb them
+  into the taxonomy. Reference:
+  P:/docs/handoffs/notebooklm-bulk-ingest-and-wiki-roundtrip-20260725/HANDOFF.md
 ---
 
 ## Objective
