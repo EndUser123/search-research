@@ -1,5 +1,11 @@
 # Vault Log
 
+## adaptive-orchestration-task-shape-classification
+Source: session-019f9d1f /www research
+Agent: grok
+Notes: /go ceremony classifier validated by 1074 transcript scan
+Page: .data/wiki/concepts/adaptive-orchestration-task-shape-classification.md
+
 ## Proactive AI volunteering mechanisms: research base and three-mechanism ladder
 Source: session-2026-07-26 / /www proactive AI research
 Agent: grok
