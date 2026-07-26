@@ -82,7 +82,7 @@ The existing model concepts (`model-fleet-provider-pools`, `model-selection-from
 | `ccr-ornith` | **Yes** | Verified 2026-07-22: probe-verified spawn_subagent + tool calls (slow: 31s) | Tool-grounded reads, slow but free |
 | `go-mimo-v2-5` (MiniMax) | **Yes** | Probe-verified 2026-07-22 spawn_subagent; llm-stats MCP Atlas 74.2% | Tool-grounded reads, fast + paid |
 | `glm-5-2` | **Yes** | Probe-verified 2026-07-22; llm-stats MCP Atlas 76.8%, Terminal-Bench 82.7% | Reasoning + tool-grounded (ration: scarce) |
-| `nvidia-nemotron-3-ultra` | **Partial** (unsolved) | Trivial READY OK; **serialization-fails on real tool / large prompts** (`invalid type: null, expected u32`) — reconfirmed 2026-07-23 and 2026-07-25 | Simple prompts only; **not** tool-grounded or multi-file analysis via spawn |
+| `nvidia-nemotron-3-ultra` | **Broken via spawn (Grok Build serde bug)** | Root cause confirmed 2026-07-26: NVIDIA returns `null` for `service_tier`, `system_fingerprint`, `choices[0].logprobs` (valid OpenAI optional fields). Grok Build serde types them as `u32` → fails on null. Direct API works. NOT prompt-size dependent. See status section above for full evidence. | Direct API only. Not spawn_subagent until Grok Build patches serde (`u32` → `Option<u32>`). |
 | `nvidia-diffusiongemma-26b` | **No (via agent framework)** | Direct API works for no-tool reads; spawn_subagent + headless `--tools` both fail (thinking-mode conflict) | **No-tool tasks only** (batch reads, file summarization via `dgemma_read.py`) |
 | `gemini-3.5-flash` / `2.5-flash` | **Yes** (not in host pool yet, but reference) | llm-stats MCP Atlas 83.6%, Terminal-Bench 76.2% | If added: strong tool-grounded option |
 | `gemini-3.1-pro` | **Yes** (reference) | llm-stats MCP Atlas 69.2%, TAU-bench Retail 99.3% | If added: top-tier tool use |
@@ -151,7 +151,7 @@ Stage 0.5 (new): if the task needs tools, filter the pool to agent-compatible me
 
 ## Conflicts / caveats
 
-- **Nemotron paradox (OPEN — not solved as of 2026-07-25):** llm-stats ranks nemotron-family models highly for tool calling (MCP Atlas 80%+ for some variants), but on THIS host nemotron serialization-fails on real tool tasks and large prompts (`invalid type: null, expected u32`). Retested 2026-07-25; still fails. Likely transport/schema mismatch between the host agent framework and Nvidias API, not a model capability issue. Flagged as `[UNKNOWN]`, needs deeper diagnosis. Workarounds only: demote from pools, use glm/mimo/parent.
+- **Nemotron paradox (RESOLVED 2026-07-26):** llm-stats ranks nemotron-family models highly for tool calling (MCP Atlas 80%+ for some variants). On this host, spawn_subagent failed with `invalid type: null, expected u32`. Root cause confirmed: NVIDIA's API returns `null` for three optional fields (`service_tier`, `system_fingerprint`, `choices[0].logprobs`). Grok Build's serde types these as `u32` (non-nullable) instead of `Option<u32>` (nullable). The model's tool-calling capability is fine — direct API works. The failure is purely in Grok Build's response parser. Fix: Grok Build patches the serde types. Until then: direct API only, not spawn_subagent.
 - **Qwen/DeepSeek on host:** both families have strong tool-calling reputations (KDnuggets, llm-stats) but fail spawn_subagent on this host (401, serialization). Same likely transport issue.
 - **The matrix is host-specific.** A model that fails tool use on Grok Build might work fine on Claude Code or via opencode/PI. The capability exists; the transport matters.
 
