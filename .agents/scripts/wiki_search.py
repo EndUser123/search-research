@@ -155,7 +155,18 @@ class WikiSearch:
         col = self._connect()
         try:
             docs = col.list_documents()
-            return [getattr(d, "document_id", d.get("document_id", "?")) for d in docs]
+            out: list[str] = []
+            for d in docs:
+                # qmd 0.1.2 returns list[str]; older versions may return objects/dicts.
+                # Short-circuit on str before any attribute access — getattr()'s
+                # default is evaluated eagerly, so d.get() on a str raises AttributeError.
+                if isinstance(d, str):
+                    out.append(d)
+                elif isinstance(d, dict):
+                    out.append(d.get("document_id", "?"))
+                else:
+                    out.append(getattr(d, "document_id", "?"))
+            return out
         except Exception as e:
             raise WikiSearchError(f"list_documents failed: {e}") from e
 
