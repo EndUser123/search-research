@@ -1,0 +1,47 @@
+---
+title: "Advisory vs Mandatory Triggers — When to Enforce Structurally"
+created: 2026-07-24
+source: session-2026-07-24
+tags: [governance, enforcement, hooks, skills, trigger-design]
+summary: >
+  The split: mandatory (structural enforcement) for triggers that prevent
+  data loss or silent code breakage; advisory (suggestion) for triggers
+  that surface useful context. The line is blast radius, not importance.
+agent: grok
+host: grok
+cognitive_load: 1
+---
+
+## Decision
+
+When designing proactive triggers (for `/www`, `/go`, or any skill), the
+enforcement level is determined by **blast radius if skipped**:
+
+- **Mandatory** (hook, skill step, or preflight gate): data loss, silent code
+  breakage, irreversible operations
+- **Advisory** (suggestion in skill text): missing useful context, competitive
+  analysis, domain knowledge gaps
+
+## Rationale
+
+The operator's governance model has one rule for this: "when something prevents
+a documented failure class, make it structural, not advisory." The preflight
+mandate's origin story proves this: the rule existed in prose, didn't fire,
+five failures resulted. Advisory reproduces that failure mode.
+
+## Alternatives rejected
+
+1. **All advisory** — rejected because it reproduces the preflight failure
+2. **All mandatory** — rejected because it over-gates informational triggers
+   (competitive analysis doesn't need to block implementation)
+
+## Falsifier
+
+If mandatory triggers consistently fire on false positives (blocking work that
+didn't need blocking), the blast-radius threshold is too sensitive and should
+be raised to irreversible-only.
+
+## Related
+
+- [[preflight-mandate]]@related
+- [[operator-collaboration-style-and-leverage]]@related

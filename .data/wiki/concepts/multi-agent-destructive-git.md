@@ -1,0 +1,56 @@
+---
+title: "Multi-agent destructive git: force-push and reset --hard are categorically wrong on shared repos"
+created: 2026-07-21
+source: AAR reports 8 (019f8507), 11 (ec84a662)
+sources:
+  - P:/.artifacts/grok-aar/.../20260721-224551/aar-report.md (R8 L2)
+  - P:/.artifacts/grok-aar/.../20260721-220000/aar-report.md (R11 L1)
+tags: [git, destructive, force-push, multi-agent, shared-repo, concurrent-sessions]
+host: both
+agent: grok
+verification: multi-session-observed
+cognitive_load: 2
+summary: >
+  On a host with multiple concurrent sessions sharing one git repo,
+  force-push and reset --hard are categorically wrong. They silently
+  overwrite other sessions' unpushed work. Forward-fixing commits are
+  always the right approach, even when history gets cluttered.
+---
+
+# Multi-agent destructive git: force-push and reset --hard are categorically wrong on shared repos
+
+## The rule
+
+On a multi-agent shared repo:
+- **Never** `git push --force` or `git push --force-with-lease`
+- **Never** `git reset --hard` (other sessions may have uncommitted work)
+- **Never** `git rebase -i` on shared branches (rewrites commit hashes)
+- **Never** `git commit --amend` on pushed commits
+
+**Use instead:** forward-fixing commits. Cluttered history is the cost of safety.
+
+## Why
+
+When 5 sessions share one repo, a force-push from session A wipes any commits sessions B-E pushed between A's last fetch and push. The damage is silent — no error message, no warning. The other sessions discover their work is gone when they next push or pull.
+
+`reset --hard` is equally dangerous: it destroys working-tree state that may belong to another session's in-progress edit.
+
+## Evidence
+
+- **R8 L2** (session 019f8507): 2 force-pushes in one session on a repo with 4 other active sessions. Operator corrected: "We should not do destructive git commands. Ever."
+- **R11 L1** (session ec84a662): File-edit reversals detected on 4 handoff files targeted by destructive git commands after editing.
+
+## Exception
+
+`git commit --amend` is acceptable on LOCAL-ONLY commits that have NOT been pushed. Once pushed, the commit is shared — amend becomes destructive.
+
+## Related
+
+- [[auto-commit-authority-isolation]] — concurrent-session commit safety
+- [[git-mv-search-replace-capture-bug]] — adjacent git workflow failure
+
+## Auto-related
+
+- [[auto-commit-authority-isolation]]
+- [[are-there-repos-or-solutions-to-claude-code-gettin]]
+
