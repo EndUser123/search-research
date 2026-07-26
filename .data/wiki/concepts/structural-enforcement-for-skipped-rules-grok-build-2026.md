@@ -6,6 +6,11 @@ sources:
   - https://workos.com/blog/ai-agent-tool-misuse (Paktiti, Apr 2026) — three misuse categories, tool-chain sequence detection
   - https://www.endorlabs.com/learn/introducing-agent-governance-using-hooks-to-bring-visibility-to-ai-coding-agents (Haynes, May 2026) — regex-is-not-jailbreakable, 29 default policies
   - https://hidekazu-konishi.com/entry/claude_code_hooks_complete_guide.html (Konishi, Jun 2026) — canonical hook reference, JSON shapes, anti-patterns
+  - https://www.truefoundry.com/blog/jit-context-just-in-time-context-agents (Boyu Wang, Jun 2026) — JIT context as named pattern; references-over-payloads; stripped-agent-beats-loaded-agent case
+  - https://mikhail.io/2025/10/claude-code-skills/ (Mikhail Shilkov, Oct 2025) — reverse-engineered Claude Code Skill tool; body loads only on invocation
+  - https://claudefa.st/blog/tools/hooks/skill-activation-hook (Claude Fast, updated Jul 2026) — production UserPromptSubmit hook that injects short recommendations, NOT full body
+  - https://forum.cursor.com/t/a-deep-dive-into-cursor-rules-0-45/60721 (Mar 2025) — Cursor injects only rule descriptions; body via fetch_rules
+  - https://aider.chat/docs/usage/conventions.html (Aider docs) — conventions loaded once via /read, prompt-cached
   - https://github.com/disler/claude-code-hooks-mastery — working PostToolUse validators, decision:block pattern
   - https://galileo.ai/blog/why-llm-as-a-judge-fails (Wells, Feb 2026) — 93% reliability failure, jury-of-3, binary verdicts
   - https://www.theunwindai.com/p/why-your-agent-rules-are-making-it-dumber-and-how-to-fix-it (Saboo, Mar 2026) — hierarchical context, 39% multi-turn drop
@@ -63,9 +68,15 @@ Measured, not theoretical: a 331KB AGENTS.md consumes 81% of a 128K window (open
 
 ### 2. UserPromptSubmit rule-injection is the canonical just-in-time mechanism
 
-A `command` UserPromptSubmit hook reads the prompt + recent transcript, matches keywords against a rule map, and injects only the relevant rule slice via stdout (which is fed to the model). Working pattern documented: "a single hook can inject the current freeze status as context *and* reject any prompt that asks to deploy" (hidekazu-konishi §7.7, Jun 2026). claudefa.st (Jan 2026): "matches keywords in your input against a rules file and injects the right skill."
+**CORRECTION (2026-07-26 follow-up research):** the original framing of this section implied injecting the full SKILL.md body. That is wrong. Production systems (Claude Code, Cursor, claudefa.st, Aider) universally inject a **thin catalog entry** (name + description, ~50 tokens), NOT the full body. The body loads on-demand when the model invokes the skill. Always-inject-full-file causes context rot (recall degrades as token count grows, Anthropic/Chroma research), per-step cost compounding in agent loops (~450K tokens for 15K body × 30 steps), and a documented case where a loaded agent performed WORSE than a stripped prototype (truefoundry).
 
-**Feasibility on Grok Build: HIGH.** UserPromptSubmit is a supported event; the hook is a `command` script. Low false-positive risk (keyword match is deterministic; mis-injection just adds a rule the model didn't need, which is harmless). This directly addresses the 800-line problem by surfacing the right rule at the right moment without loading the whole file.
+The stale-cache problem is **not solved by always-inject — it is solved by never caching the body in the first place.** If the body is fetched at invocation via a tool/read, the model always sees current disk state by construction; there is nothing to go stale.
+
+**Revised mechanism #2:** A UserPromptSubmit hook should inject a thin recommendation (name + description + "invoke via tool"), not the body. This matches Claude Code's native Skill tool behavior (frontmatter only in the system prompt; body loads on Skill tool call). For Grok Build, the system-reminder skill catalog already provides this — the description in the catalog IS the thin entry. The remaining gap is narrower than originally framed: ensure the framework loads the body fresh on each invocation (verify this is the behavior), and rely on operator `r reload` in `/skills` when the runtime catalog itself is stale.
+
+A `command` UserPromptSubmit hook reads the prompt + recent transcript, matches keywords against a rule map, injects only the relevant rule slice via stdout (which is fed to the model). Working pattern documented: "a single hook can inject the current freeze status as context *and* reject any prompt that asks to deploy" (hidekazu-konishi §7.7, Jun 2026). claudefa.st (Jan 2026): "matches keywords in your input against a rules file and injects the right skill."
+
+**Feasibility on Grok Build: HIGH** for thin-slice injection. Low FP risk (keyword match is deterministic; mis-injection just adds a rule the model didn't need, which is harmless). This directly addresses the 800-line problem by surfacing the right rule at the right moment without loading the whole file. **Do NOT use this to inject full SKILL.md bodies** — that causes context rot and is not what any production system does.
 
 ### 3. PreToolUse regex gates are the standard for lexical patterns; Class C quoting is detectable
 
