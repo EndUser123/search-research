@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-26
 cognitive_load: 3
-summary: Auto-generated index of 979 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 978 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-26 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 979 across 21 scopes.
+**Total skills:** 978 across 21 scopes.
 
 ## How to use this catalog
 
@@ -97,14 +97,13 @@ Auto-generated on 2026-07-26 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **resume-cursor** | ✓ | — | Resume or continue work from a recent Cursor CLI or Cursor Desktop session. Use when the user switched from Cursor, says... | `~/.grok/bundled/skills/resume-cursor/SKILL.md` |
 | **review** | ✓ | — | Run a reviewer subagent against uncommitted local changes, a named branch, or a GitHub PR. Local and branch modes write ... | `~/.grok/bundled/skills/review/SKILL.md` |
 
-## grok-installed-plugins (27 skills)
+## grok-installed-plugins (26 skills)
 
 | Skill | G | C | Description (truncated) | Path |
 |---|---|---|---|---|
 | **browsing** _[superpowers-chrome-b518017c]_ | ✓ | — | Use when you need direct browser control - teaches Chrome DevTools Protocol for controlling existing browser sessions, m... | `~/.grok/installed-plugins/superpowers-chrome-b518017c/skills/browsing/SKILL.md` |
 | **brainstorming** _[superpowers-21e2a56d]_ | ✓ | — | "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying... | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/brainstorming/SKILL.md` |
 | **dispatching-parallel-agents** _[superpowers-21e2a56d]_ | ✓ | — | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/dispatching-parallel-agents/SKILL.md` |
-| **executing-plans** _[superpowers-21e2a56d]_ | ✓ | — | Use when you have a written implementation plan to execute in a separate session with review checkpoints | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/executing-plans/SKILL.md` |
 | **finishing-a-development-branch** _[superpowers-21e2a56d]_ | ✓ | — | Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completio... | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/finishing-a-development-branch/SKILL.md` |
 | **receiving-code-review** _[superpowers-21e2a56d]_ | ✓ | — | Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or techni... | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/receiving-code-review/SKILL.md` |
 | **requesting-code-review** _[superpowers-21e2a56d]_ | ✓ | — | Use when completing tasks, implementing major features, or before merging to verify work meets requirements | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/requesting-code-review/SKILL.md` |
