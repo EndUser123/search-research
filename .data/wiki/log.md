@@ -1,5 +1,11 @@
 # Vault Log
 
+## Research vs design vs architect skills + /www self-assessment
+Source: session-2026-07-26 / /www meta-run
+Agent: grok
+Notes: Field taxonomy: 4-stage separation (Research → Architecture → Design → Implementation). /www measured at 585 lines, 9 mandatory rules, 3 enhancement batches, Round 2.5 alone 1181 words — past MindStudio inverted-U inflection. Recommendation: keep disconfirmation + ledger + wait-all gate; pare Round 2.5 ingestion triggers + mid-research contradiction check + example invocation.
+Page: P:/.data/wiki/concepts/research-vs-design-vs-architect-skills-and-www-self-assessment.md
+
 ## scope-matching-verification-discipline
 Source: session-20260726
 Agent: grok
