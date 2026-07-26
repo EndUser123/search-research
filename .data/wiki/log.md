@@ -1,5 +1,35 @@
 # Vault Log
 
+## Documented deferral: when documentation substitutes for action
+Source: session-2026-07-25 (via /aar Phase 9.5 auto-promotion)
+Agent: grok
+Notes: Phase 9.5 auto-promoted lesson L1 from AAR of session 019f9b00. Three instances of the agent documenting a diagnosed defect for 'the next session' instead of fixing it in the same turn when the fix was cheap (stale accurate_as_of_head, /aar skip, D1-D3 deferral). Same failure class as narrative-as-signal, applied to agent's own process. Same-turn fix rule + detection-signal phrases. INVESTIGATE lifecycle: needs cross-session evidence before AGENTS.md rule promotion.
+Page: wiki/concepts/documented-deferral-substitutes-for-action.md
+
+## Grok workflows: community sentiment + security incident + bcherny quantified wins
+Source: session-2026-07-25 (via /www run 3)
+Agent: grok
+Notes: /www gap-fill run 3 on existing grok-build-workflows-rhai-orchestration concept. Added: community sentiment section (HN + r/ClaudeAI praise patterns: visibility, context-mgmt, long-task correctness; criticisms: cost, primitive-proliferation confusion, token-burn suspicion), two new failure modes (primitive-proliferation confusion, Grok-specific repo-upload security incident Jul 12-16 verified across 5+ sources), bcherny Anthropic-internal quantified wins (SDK startup -61%, CPU/mem 2-10x, false-positive prompts -45%, 10K+ LOC deleted). 434 lines, validator PASS. Run 3 of 3 in /www ledger.
+Page: wiki/concepts/grok-build-workflows-rhai-orchestration.md
+
+## [2026-07-25] ingest | Agentic workflows: Grok / Claude Code / Codex orchestration best practices
+Source: session-2026-07-25
+Agent: grok
+Notes: Updated /www run 3: community sentiment + security incident + bcherny quantified wins (session 019f9b00)
+Page: wiki/concepts/grok-build-workflows-rhai-orchestration.md
+
+## ADHD parallel-frame divergent ideation integration
+Source: session-20260725
+Agent: grok
+Notes: Refines brainstorming-ideation-with-llms; analyzes UditAkhourii/adhd technique integration with /tp, /design, brainstorming
+Page: P:/.data/wiki/concepts/adhd-parallel-frame-divergent-ideation-integration.md
+
+## [2026-07-25] ingest | Documented deferral: when documentation substitutes for action
+Source: session-2026-07-25
+Agent: grok
+Notes: AAR auto-promoted lesson L1 from session 019f9b00
+Page: wiki/concepts/documented-deferral-substitutes-for-action.md
+
 ## New wiki concept: lexical-vs-semantic-verification-gap
 Source: session-019f9a89-why-v3-ab-test
 Agent: grok
@@ -4958,4 +4988,10 @@ Agent: grok
 - **Example Domain** (P:\.data\wiki\sources\example.com\000-.md)
   - URL: https://example.com
   - SHA256: fea0da776d1c2e68dfd88bab21228628968e567f744b4b228ed32ac0b3b7e729
+  - Source: crawl-ingest (ingested)
+
+## 2026-07-25
+- **UditAkhourii/adhd** (P:\.data\wiki\sources\github.com\000-UditAkhourii-adhd.md)
+  - URL: https://github.com/UditAkhourii/adhd
+  - SHA256: 1a3d51bb130ee804ff3c1d91e39ed68ccb29efafcd72b9f60ba6e859c9c992cf
   - Source: crawl-ingest (ingested)
