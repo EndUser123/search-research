@@ -42,7 +42,7 @@ def run(cmd: list[str], timeout: int = 180) -> tuple[int, str, str]:
 
 
 def log(msg: str) -> None:
-    print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+    print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True, file=sys.stderr)
 
 
 def list_sources(notebook_id: str, profile: str) -> list[dict]:
