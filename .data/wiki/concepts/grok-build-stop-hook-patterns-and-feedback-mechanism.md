@@ -45,13 +45,32 @@ relations:
 
 ## Key Findings
 
-### 1. Grok Build v0.2.107: Stop hooks can feed feedback back to the model
+### 1. Grok Build v0.2.107: Stop hooks can feed feedback back to the model — THREE mechanisms, documented in our own docs
 
-The changelog states Stop hooks "can now keep the agent running by feeding feedback back to the model instead of ending the turn." This is NOT the same as exit-2 blocking. With exit-2, the agent sees the stderr message and must decide what to do. With the feedback mechanism, the hook output becomes a new turn — the agent continues automatically with the feedback as context.
+From `~/.grok/docs/user-guide/10-hooks.md` § "Stop Decision Control" (lines 251-262), three ways a Stop hook can keep the agent working:
 
-This is the mechanism that enables true auto-continue self-correction: hook runs tests → tests fail → hook feeds failure output as feedback → agent sees failures and revises → hook runs tests again → repeat until green or max iterations.
+**Mechanism A — Exit code 2 + stderr (what quality_gate.py uses today):**
+Exit 2 blocks the stop. Stderr text becomes the feedback the model sees. This is the "error" path — the model sees it as a hook error, not structured feedback.
 
-**Status:** the exact wire format for this feedback mechanism is not documented beyond the changelog. The judge2020 gist (reverse-engineered Grok Build source) is the ground truth for how the Stop event dispatches hook output.
+**Mechanism B — JSON stdout with `decision: "block"` + `reason`:**
+```json
+{"decision": "block", "reason": "tests failed: test_foo.py::test_bar returned exit code 1"}
+```
+Blocks with the reason as feedback. Cleaner than exit-2-stderr but still framed as a block.
+
+**Mechanism C — JSON stdout with `additionalContext` (the v0.2.107 addition):**
+```json
+{"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": "Run the linter before finishing"}}
+```
+Also keeps the agent working, but surfaced as "hook feedback" rather than a hook error. This is the cleanest UX — the model sees structured guidance, not an error block.
+
+**Loop prevention (documented):** `stopHookActive` is `true` when the agent is already continuing due to a previous stop-hook block this turn. After **8 continuations** (blocks or non-error feedback) in one turn the gate is overridden and the turn ends. The counter is per-turn: the next user prompt starts fresh.
+
+**Input fields (documented):** the hook input includes `stopHookActive` (boolean — check this to avoid infinite loops) and `lastAssistantMessage` (the text of the agent's final response — hooks can act on it without parsing the transcript).
+
+**Wire format note:** Grok's stdin envelope uses camelCase keys throughout (`stopHookActive`, `hookEventName`, `lastAssistantMessage`) where Claude Code uses snake_case (`stop_hook_active`, `hook_event_name`). Hooks registered through the grok-agent-sdk convert both to snake_case automatically.
+
+**Recommendation for quality_gate.py:** switch from exit-2-stderr (Mechanism A) to JSON stdout `additionalContext` (Mechanism C). Same blocking behavior, cleaner UX — feedback appears as structured hook guidance instead of an error. The model would see "Run pytest on sanitize_config.py before finishing" as a nudge rather than a red error block.
 
 ### 2. Community implementations are scarce
 
@@ -118,7 +137,7 @@ This concept is wrong if:
 ## Receipts (mechanism + local claims)
 
 - **"quality_gate.py already does what critic_stop.py does":** receipt — `~/.grok/hooks/quality-gate.json` lines 69-79 register `quality_gate.py` on Stop with 60s timeout; `critic_stop.py` runs the same ruff+pytest pattern. Reading both scripts confirms functional overlap.
-- **"v0.2.107 changelog states Stop hooks can feed feedback back":** [INFERENCE] — the changelog was cited by the subagent but not directly read this session. The judge2020 gist (cited as source) reportedly contains the reverse-engineered dispatch code, but was also not directly read. The exact wire format is [UNKNOWN].
+- **"v0.2.107 changelog states Stop hooks can feed feedback back":** receipt — `~/.grok/docs/user-guide/10-hooks.md` lines 251-262 document three mechanisms: exit-2-stderr, `{"decision":"block","reason":...}` stdout, and `{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":"..."}}` stdout. `stopHookActive` boolean in stdin input, 8-continuation cap. All directly read this session.
 - **"Only dcg ships a real Grok-native hook":** [INFERENCE] — based on subagent web search results; the subagent searched GitHub, Reddit, HN, and blog posts. Not independently verified by direct GitHub API query.
 - **"fbakkensen quality-gate.ps5 uses stop_hook_active guard":** [INFERENCE] — cited from subagent's reading of the blog post URL; not directly read this session.
 - **"Snorkel paradox: self-correction degrades easy tasks":** [INFERENCE] — cited from subagent's summary of the Snorkel blog post; the original study was not read.
