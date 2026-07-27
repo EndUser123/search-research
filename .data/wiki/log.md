@@ -1,5 +1,17 @@
 # Vault Log
 
+## Self-improving agent systems deep-dive
+Source: session-2026-07-27 / SI-03 repo research
+Agent: grok
+Notes: 20 techniques extracted from 4 repos. Lowest-effort: Self-Debug, Dynamic Cheatsheet, CRITIC hook, Self-Correct Loop (all Low ~150-200 lines). Updated wiki concept with findings table.
+Page: P:/.data/wiki/concepts/self-improving-agent-systems-techniques-and-workspace-gaps.md
+
+## --concept
+Source: single-repo-verification-false-negative-on-multi-repo-workspace
+Agent: --action
+Notes: created
+Page: --source
+
 ## Markdown/Mermaid rendering in agentic CLIs + stop-narrative 4x recurrence evidence
 Source: wiki (session 019f9f48; web: termaid, glow, cursor.com, grok CLI changelog)
 Agent: grok

@@ -108,6 +108,21 @@ Decision-science prompt ported to LLMs to elicit error-checking. Immediately app
 - **selfimproving-agent.github.io** — living survey: https://selfimproving-agent.github.io/
 - **teacherpeterpan/self-correction-llm-papers** — canonical paper list: https://github.com/teacherpeterpan/self-correction-llm-papers
 
+### Deep-dive findings (SI-03, 2026-07-27)
+
+20 techniques extracted from the four repos. Lowest-effort + highest-value for our workspace:
+
+| Technique | Effort | What it does | Maps to |
+|---|---|---|---|
+| Self-Debug (Chen 2023) | Low (~150 lines) | Run code, capture errors, feed traceback back for self-correction | /verify + pytest hooks |
+| Dynamic Cheatsheet | Low (~200 lines) | Build compressed context from retrieved data, update iteratively | /go context engineering |
+| CRITIC hook | Low (~150 lines) | Stop hook runs verification tools (pytest, ruff), feeds failures back | hooks + MCP tools |
+| Self-Correct Loop | Low (~200 lines) | Wrap code gen with test-driven revision (max 5 iterations) | /verify + pre-commit hooks |
+| OPRO optimizer | Medium (~300 lines) | LLM proposes improved system prompts from failed trajectories | /tp + AGENTS.md |
+| A-MEM agentic memory | Medium (~350 lines) | LLM decides what to store, index, retrieve | wiki + skills |
+
+Full 20-technique list in handoff `self-improvement-design-work-20260726` and the SI-03 subagent output.
+
 ## Honest trade-offs
 
 **Like:** self-improvement is the highest-leverage work for an agent fleet; each improvement compounds across all future sessions; the workspace already has the substrate (wiki, skills, hooks, AGENTS.md) that most implementations lack.
