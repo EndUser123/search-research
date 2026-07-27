@@ -1,7 +1,7 @@
 # Phase 3 Current-State Handoff
 
-**Last updated:** 2026-07-26T20:25Z
-**Status:** DEPLOYED + LIVE ACCEPTANCE PASSED (single-session)
+**Last updated:** 2026-07-27T01:05Z (corrected by acceptance audit session 019f9d1f)
+**Status:** DEPLOYED + DETERMINISTIC SUITE GREEN + HANDOFF P:\ CLAIM CORRECTED (live Stop/concurrent pending)
 
 ## Active deployment
 
@@ -36,7 +36,7 @@
 | Repository | Result | Commit SHA | Committed paths | Local state | Publication |
 |-----------|--------|-----------|----------------|-------------|-------------|
 | ~/.grok | COMMITTED | c0e7fbaef110 | hooks/scripts/_live_mut_141853.py | LOCALLY_COMMITTED | REMOTE_PUBLICATION_PENDING (ahead=4) |
-| P:\ | COMMITTED_INDEX_SYNC_FAILED | 268cc357be75 | .agents/scripts/_live_mut_141853.py | PERSISTENCE_BLOCKED | REMOTE_PUBLICATION_PENDING (ahead=13) |
+| P:\ | COMMITTED_INDEX_SYNC_FAILED | 268cc357be75 (DANGLING — never linked to ref) | .agents/scripts/_live_mut_141853.py | PERSISTENCE_BLOCKED | REMOTE_PUBLICATION_PENDING (ahead=13) |
 | child submodule | COMMITTED | 7949a5180edf | _live_mut_141853.py | LOCALLY_COMMITTED | REMOTE_PUBLICATION_PENDING (ahead=1) |
 
 ### B5 submodule reconciliation
@@ -48,13 +48,29 @@
 - Parent commit contains ONLY the gitlink change (verified: `git diff HEAD~1..HEAD` = just `sub`)
 - Gitlink matches child HEAD: **MATCH** ✓
 
-### P:\ COMMITTED_INDEX_SYNC_FAILED
-- Commit object 268cc357be75 IS in P:\ HEAD (verified via `git rev-parse HEAD`)
-- The test file IS in the HEAD tree (verified via `git ls-tree HEAD`)
-- The sync failure was due to transient lock contention (stale index.lock)
-- The lock is now gone; the commit is valid
-- The COMMITTED_INDEX_SYNC_FAILED state is HONEST — it reported the sync issue truthfully
-- Overall state correctly reports PARTIAL_PERSISTENCE
+### P:\ COMMITTED_INDEX_SYNC_FAILED — CORRECTED 2026-07-27
+
+**Prior handoff claim (FALSE):** "Commit object 268cc357be75 IS in P:\ HEAD"
+**Corrected finding (verified 2026-07-27T00:49Z):**
+
+- `268cc357be75` exists **only as a dangling commit** (`git cat-file -t` → `commit`),
+  but is **NOT in any ref** and **NOT in the reflog** (`git log --all --oneline | grep 268cc357` → empty;
+  `git reflog --all` → no trace).
+- Current P:\ HEAD is `41e36f5` (sibling sessions moved it forward after the acceptance test).
+- The test mutation file `.agents/scripts/_live_mut_141853.py` is **NOT in the working tree**
+  and **NOT in the HEAD tree** (`git ls-tree HEAD -- .agents/scripts/_live_mut_141853.py` → empty).
+- No `.git/index.lock` exists (confirmed: `ls .git/index.lock` → "no index.lock").
+- P:\ repository is in a **safe, coherent state** — HEAD valid, no stale lock, no orphaned test file in tree.
+- The dangling commit `268cc357be75` will be cleaned by git GC; no manual action needed.
+
+**Interpretation:** the CAS engine created the commit object, but the shared-index sync
+(ref update) failed under lock contention. The `COMMITTED_INDEX_SYNC_FAILED` state was
+**honest** — it correctly reported the failure. The prior handoff then **mischaracterized**
+the failure as "commit reached HEAD" when it never did. The actual outcome is complete
+persistence failure for P:\ (not partial), truthfully reported.
+
+**No recovery action needed:** the repository is already safe. There is nothing to retry —
+the test mutation was never persisted and the repo has no damage from the failed attempt.
 
 ### Sentinel preservation (all 7/7 preserved)
 
@@ -86,6 +102,7 @@
 8. ✓ No push occurs (no remote operations)
 9. ✓ PARTIAL_PERSISTENCE reported honestly (not falsely claiming full success)
 10. ✓ COMMITTED_INDEX_SYNC_FAILED reported honestly (not hiding the sync issue)
+11. ✗ CORRECTED: prior handoff interpretation "commit IS in P:\ HEAD" was FALSE — see corrected section above
 
 ## Stop-hook sequence
 
@@ -143,3 +160,87 @@ These are test-owned commits. Cleanup is a separate operator task.
 - **Inherited claims:** none
 - **Assumptions:** Stop hook will fire correctly on real completion claims (registration verified, code paths proven, but event not tested)
 - **Unavailable evidence:** Stop-hook multi-turn event, concurrent-session live proof
+
+---
+
+## Acceptance audit 2026-07-27T01:05Z (session 019f9d1f)
+
+### Corrections applied
+
+1. **P:\ persistence claim corrected.** Prior handoff stated commit `268cc357be75` "IS in P:\ HEAD."
+   Verified finding: the commit exists only as a **dangling object** — never linked to any ref,
+   absent from reflog, test file absent from working tree and HEAD tree. The
+   `COMMITTED_INDEX_SYNC_FAILED` state was honest; the handoff interpretation was false.
+   Repository is safe and coherent. No recovery action needed.
+
+2. **Test pollution documented (from undocumented 15:29 acceptance attempt).**
+   Session `f1na-lacc-pt2-152942` ran an acceptance attempt at 15:29:42 that is NOT documented
+   in the prior handoff. It left test files in production paths:
+
+   | Path | Size | Content |
+   |------|------|---------|
+   | `P:/.agents/scripts/_fin_mut_152942.py` | 24 B | `# final acceptance ~/.grok` |
+   | `P:/.agents/scripts/_fin_sent_staged_152942.py` | 20 B | (sentinel) |
+   | `P:/.agents/scripts/_fin_stophook_test_152942.py` | 180 B | Stop-hook test trigger, session `f1na-lacc-pt2-152942` |
+   | `C:/Users/brsth/.grok/hooks/scripts/_fin_mut_152942.py` | 29 B | **IN DEPLOYED HOOKS DIR** — test pollution in production |
+
+   The file in the deployed hooks directory is harmless (comment-only, no executable code)
+   but is test pollution that should be cleaned. Per Part 6 spec: **not cleaned automatically**.
+
+3. **~/.grok persistence confirmed.** Commit `c0e7fbaef110` IS in ~/.grok history
+   (`git log --all --oneline | grep c0e7fba` → found, message: "wip: session files (l1ve-acc)
+   via B4 private-index"). This persistence worked correctly.
+
+### Deterministic suite re-confirmed (this session)
+
+- **21/21 test files pass, 0 failures** (run from `P:/worktrees/dotgrok-phase3/hooks/scripts/tests/`)
+- Individual check count confirmed via `test_defect_fixes.py`: "RESULTS: 40/40 passed, 0 failed"
+- Total assertion count consistent with prior 468/468 claim
+- Runner script: `P:/tmp/phase3_run_tests.py`
+
+### Stop hook status
+
+- Quality-gate Stop hook IS registered (`~/.grok/hooks/quality-gate.json` → Stop → `quality_gate.py`)
+- IS firing per active surface snapshot (`### Stop` section lists `quality_gate.py`)
+- NOT disabled (disabled-hooks file is empty)
+- **Conclusion: Stop hook is active and testable in a live session**
+
+### What remains (cannot be completed in a single-agent session)
+
+| Part | Status | Blocker |
+|------|--------|---------|
+| Part 2: Stop-hook multi-turn | NOT TESTED | Requires multi-turn Stop/re-entry cycles (mutate → block → verify → re-claim × 3 repos). The Stop hook fires when the agent ends a turn; the block returns as user_query; continuation requires operator to relay the block back. |
+| Part 3: Live /close after Stop allows | BLOCKED on Part 2 | Must follow Part 2 clearing |
+| Part 4: Concurrent-session isolation | NOT TESTED | Requires a **genuinely distinct second Grok Build session** (spec: "Do not simulate by merely changing a session ID"). The implementing LLM cannot open a second session. |
+| Part 5: Stale-output challenge | BLOCKED on Part 4 | Must run during the two-session test |
+
+### Operator actions required
+
+**For Part 2 (Stop-hook multi-turn):**
+1. In this session, the agent makes 3 controlled test mutations (one per repo: P:\, ~/.grok, disposable child).
+2. Agent attempts to end turn → Stop hook blocks (unverified mutations).
+3. Operator relays the Stop block text back as a new message.
+4. Agent verifies one path, attempts to end → Stop blocks again (2 paths unverified).
+5. Repeat until all 3 verified → Stop allows.
+6. Agent runs live `/close`.
+
+**For Part 4 (concurrent-session):**
+1. Operator opens a second Grok Build session (Session B).
+2. Session B creates: unrelated staged/unstaged/untracked state + one same-path overlap with Session A.
+3. Session A (this session or a fresh one) verifies and closes.
+4. Prove Session B receipts cannot satisfy Session A's obligation.
+5. Resolve overlap, retry.
+
+### Final verdict (this audit)
+
+**PHASE_3_BLOCKED_OPERATOR_ACTION**
+
+Rationale:
+- Deterministic suite: ✅ 21/21 pass
+- Deployment: ✅ live, Stop hook firing
+- Live /close pipeline: ✅ proven (3 repos, B5 reconciliation, sentinel preservation)
+- P:\ persistence: honestly failed (COMMITTED_INDEX_SYNC_FAILED), handoff corrected
+- Stop-hook multi-turn: ❌ requires operator-driven Stop/re-entry cycles
+- Concurrent-session: ❌ requires operator to open a second Grok Build session
+- No active lock blocks the work
+- No rollback needed
