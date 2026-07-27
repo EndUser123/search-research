@@ -115,6 +115,17 @@ This concept is wrong if:
 
 ## Sources
 
+## Receipts (mechanism + local claims)
+
+- **"quality_gate.py already does what critic_stop.py does":** receipt — `~/.grok/hooks/quality-gate.json` lines 69-79 register `quality_gate.py` on Stop with 60s timeout; `critic_stop.py` runs the same ruff+pytest pattern. Reading both scripts confirms functional overlap.
+- **"v0.2.107 changelog states Stop hooks can feed feedback back":** [INFERENCE] — the changelog was cited by the subagent but not directly read this session. The judge2020 gist (cited as source) reportedly contains the reverse-engineered dispatch code, but was also not directly read. The exact wire format is [UNKNOWN].
+- **"Only dcg ships a real Grok-native hook":** [INFERENCE] — based on subagent web search results; the subagent searched GitHub, Reddit, HN, and blog posts. Not independently verified by direct GitHub API query.
+- **"fbakkensen quality-gate.ps5 uses stop_hook_active guard":** [INFERENCE] — cited from subagent's reading of the blog post URL; not directly read this session.
+- **"Snorkel paradox: self-correction degrades easy tasks":** [INFERENCE] — cited from subagent's summary of the Snorkel blog post; the original study was not read.
+- **"self_correct_loop.py shipped as a library, not a hook":** receipt — file at `~/.grok/hooks/scripts/self_correct_loop.py`, 6/6 tests pass (commit this session), not wired in any hooks.json.
+
+## Sources
+
 - Grok Build hooks docs — https://docs.x.ai/build/features/hooks
 - Grok Build changelog — https://x.ai/build/changelog
 - dcg (destructive command guard) — https://github.com/Dicklesworthstone/destructive_command_guard
