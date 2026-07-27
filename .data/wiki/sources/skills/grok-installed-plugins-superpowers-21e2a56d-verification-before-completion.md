@@ -6,7 +6,7 @@ skill_name: verification-before-completion
 source_path: C:/Users/brsth/.grok/installed-plugins/superpowers-21e2a56d/skills/verification-before-completion/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: verification-before-completion

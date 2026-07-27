@@ -6,7 +6,7 @@ skill_name: sqa
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/sqa/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: sqa

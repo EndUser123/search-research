@@ -6,7 +6,7 @@ skill_name: writing-hookify-rules
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/hookify/41fc4f13c253/skills/writing-rules/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: writing-hookify-rules

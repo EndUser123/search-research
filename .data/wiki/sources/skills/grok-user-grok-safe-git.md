@@ -5,7 +5,7 @@ skill_name: grok-safe-git
 source_path: C:/Users/brsth/.grok/skills/grok-safe-git/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: grok-safe-git

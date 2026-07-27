@@ -6,7 +6,7 @@ skill_name: install-trailer-stripper
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/quickstop/plugins/commventional/skills/install-trailer-stripper/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: install-trailer-stripper

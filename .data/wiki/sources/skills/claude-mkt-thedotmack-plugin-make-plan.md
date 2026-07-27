@@ -6,7 +6,7 @@ skill_name: make-plan
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/thedotmack/plugin/skills/make-plan/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: make-plan

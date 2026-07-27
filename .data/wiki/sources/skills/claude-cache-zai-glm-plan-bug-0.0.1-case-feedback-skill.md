@@ -6,7 +6,7 @@ skill_name: case-feedback-skill
 source_path: C:/Users/brsth/.claude/plugins/cache/zai-coding-plugins/glm-plan-bug/0.0.1/skills/case-feedback-skill/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: case-feedback-skill

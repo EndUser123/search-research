@@ -6,7 +6,7 @@ skill_name: executing-plans
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/executing-plans/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: executing-plans

@@ -5,7 +5,7 @@ skill_name: cc-model-router
 source_path: P:/packages/.claude-marketplace/plugins/cc-model-router/SKILL.md
 grok_enabled: true
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: cc-model-router

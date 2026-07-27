@@ -5,7 +5,7 @@ skill_name: skillopt
 source_path: C:/Users/brsth/.codex/skills/skillopt/SKILL.md
 grok_enabled: n/a
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: skillopt

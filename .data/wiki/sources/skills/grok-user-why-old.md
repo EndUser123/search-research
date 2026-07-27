@@ -5,7 +5,7 @@ skill_name: why-old
 source_path: C:/Users/brsth/.grok/skills/why-old/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: why-old

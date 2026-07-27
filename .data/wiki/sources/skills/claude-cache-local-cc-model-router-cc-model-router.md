@@ -6,7 +6,7 @@ skill_name: cc-model-router
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-model-router/0.2.25/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: cc-model-router

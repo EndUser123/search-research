@@ -15,6 +15,12 @@ get compressed on first read and lose specificity by decision time. Putting
 this meta-rule here (where it has 100% presence) addresses the root cause
 directly. See `wiki/concepts/llm-instruction-non-compliance-activation-gap-2026.md`.
 
+## Maintenance reminders
+
+- Run `/skill-prune` monthly or when the skill catalog exceeds 1000 entries (currently ~980)
+- Run `/recover` immediately when a file is missing after concurrent agent activity
+- Run `python P:/.data/wiki/scripts/index_skills.py --audit` quarterly to detect stale/duplicate/orphan skills
+
 ## Search Topology (read before any existence/absence claim)
 
 `P:\` is a multi-root workspace. Code for one subsystem is split across these

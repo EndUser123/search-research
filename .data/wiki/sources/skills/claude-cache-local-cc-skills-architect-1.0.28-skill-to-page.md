@@ -6,7 +6,7 @@ skill_name: skill-to-page
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-architect/1.0.28/skills/skill-to-page/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: skill-to-page

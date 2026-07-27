@@ -6,7 +6,7 @@ skill_name: tldr-overview
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/tldr-overview/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: tldr-overview

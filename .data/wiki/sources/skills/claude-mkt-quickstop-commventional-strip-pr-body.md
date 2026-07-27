@@ -6,7 +6,7 @@ skill_name: strip-pr-body
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/quickstop/plugins/commventional/skills/strip-pr-body/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: strip-pr-body

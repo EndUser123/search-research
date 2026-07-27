@@ -6,7 +6,7 @@ skill_name: finishing-a-development-branch
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/finishing-a-development-branch/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: finishing-a-development-branch

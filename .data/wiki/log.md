@@ -1,5 +1,11 @@
 # Vault Log
 
+## nlm-to-wiki optimization opportunities
+Source: wiki-2026-07-27
+Agent: grok
+Notes: 5 ranked optimizations from live timing data: parallel export (6x), parallel synthesis (5x), embedding cache (60x re-sync)
+Page: wiki/concepts/nlm-to-wiki-optimization-opportunities.md
+
 ## Stateful skills need a maintenance surface
 Source: wiki-2026-07-27
 Agent: grok

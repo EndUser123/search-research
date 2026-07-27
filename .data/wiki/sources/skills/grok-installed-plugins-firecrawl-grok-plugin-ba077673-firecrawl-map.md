@@ -6,7 +6,7 @@ skill_name: firecrawl-map
 source_path: C:/Users/brsth/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-map/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: firecrawl-map

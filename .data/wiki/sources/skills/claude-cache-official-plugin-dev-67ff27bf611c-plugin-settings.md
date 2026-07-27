@@ -6,7 +6,7 @@ skill_name: plugin-settings
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/67ff27bf611c/skills/plugin-settings/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: plugin-settings

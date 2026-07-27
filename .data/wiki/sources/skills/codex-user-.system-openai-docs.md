@@ -6,7 +6,7 @@ skill_name: "openai-docs"
 source_path: C:/Users/brsth/.codex/skills/.system/openai-docs/SKILL.md
 grok_enabled: n/a
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: "openai-docs"

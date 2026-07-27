@@ -6,7 +6,7 @@ skill_name: export-session
 source_path: P:/packages/.claude-marketplace/plugins/search-research/skills/export-session/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: export-session

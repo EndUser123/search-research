@@ -6,7 +6,7 @@ skill_name: execution-clarity
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-thinking/skills/execution-clarity/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: execution-clarity

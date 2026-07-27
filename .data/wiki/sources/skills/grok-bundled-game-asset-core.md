@@ -5,7 +5,7 @@ skill_name: game-asset-core
 source_path: C:/Users/brsth/.grok/bundled/skills/game-asset-core/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: game-asset-core

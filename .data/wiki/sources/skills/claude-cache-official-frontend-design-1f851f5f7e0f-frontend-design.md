@@ -6,7 +6,7 @@ skill_name: frontend-design
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/frontend-design/1f851f5f7e0f/skills/frontend-design/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: frontend-design

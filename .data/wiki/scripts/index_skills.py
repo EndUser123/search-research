@@ -19,6 +19,7 @@ in the actual SKILL.md file; the stub is a searchable pointer.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import tomllib
@@ -429,7 +430,70 @@ def write_catalog(entries: list[SkillEntry]) -> None:
     CATALOG_PATH.write_text("\n".join(lines), encoding="utf-8")
 
 
+def audit_skills(entries: list[SkillEntry]) -> None:
+    """Audit the catalog for duplicates, stale entries, and orphan skills.
+
+    Prints findings to stdout. Does NOT modify files — proposals only.
+    This extends index_skills.py from a pure indexer to a lifecycle tool.
+    """
+    print("\n" + "=" * 70)
+    print("SKILL AUDIT")
+    print("=" * 70)
+
+    # 1. Duplicate skills (same name across scopes)
+    by_name: dict[str, list[SkillEntry]] = {}
+    for e in entries:
+        by_name.setdefault(e.name, []).append(e)
+    dups = {n: ents for n, ents in by_name.items() if len(ents) > 1}
+    print(f"\n--- Duplicates ({len(dups)} names appear in multiple scopes) ---")
+    for name, ents in sorted(dups.items()):
+        scopes = ", ".join(f"{e.scope}({'✓' if e.grok_state == '✓' else '✗'})" for e in ents)
+        canonical = next((e for e in ents if e.scope == "grok-agents"), None)
+        canonical_note = f" → canonical: {canonical.path}" if canonical else ""
+        print(f"  {name}: {scopes}{canonical_note}")
+
+    # 2. Disabled skills still indexed
+    disabled = [e for e in entries if e.grok_state == "✗" and e.scope != "codex-user"]
+    print(f"\n--- Disabled in Grok ({len(disabled)} skills) ---")
+    for e in disabled[:20]:
+        print(f"  {e.name} [{e.scope}] {e.path[:80]}")
+    if len(disabled) > 20:
+        print(f"  ... and {len(disabled) - 20} more")
+
+    # 3. Orphan skills (SKILL.md exists but references scripts/files that don't exist)
+    orphans = []
+    for e in entries:
+        if not e.path:
+            continue
+        skill_dir = Path(e.path).parent
+        skill_text = Path(e.path).read_text(encoding="utf-8", errors="replace")
+        # Find referenced scripts
+        script_refs = re.findall(r"scripts/([\w_]+\.py)", skill_text)
+        for ref in script_refs:
+            ref_path = skill_dir / "scripts" / ref
+            if not ref_path.exists():
+                orphans.append(f"{e.name}: missing scripts/{ref}")
+    print(f"\n--- Orphan references ({len(orphans)} missing scripts) ---")
+    for o in orphans[:15]:
+        print(f"  {o}")
+    if len(orphans) > 15:
+        print(f"  ... and {len(orphans) - 15} more")
+
+    # 4. Summary
+    print(f"\n--- Audit summary ---")
+    print(f"  Total skills: {len(entries)}")
+    print(f"  Duplicate names: {len(dups)}")
+    print(f"  Disabled in Grok: {len(disabled)}")
+    print(f"  Orphan references: {len(orphans)}")
+    print(f"  Canonical (.agents/skills): {sum(1 for e in entries if e.scope == 'grok-agents')}")
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--audit", action="store_true",
+                    help="Run lifecycle audit (duplicates, stale, orphans) after indexing")
+    args = ap.parse_args()
+
     STUBS_DIR.mkdir(parents=True, exist_ok=True)
     # Clear old stubs to handle deletions
     for old in STUBS_DIR.glob("*.md"):
@@ -453,6 +517,9 @@ def main() -> None:
     print(f"\nTotal: {len(all_entries)} skills")
     print(f"Stubs written to: {STUBS_DIR}")
     print(f"Catalog written to: {CATALOG_PATH}")
+
+    if args.audit:
+        audit_skills(all_entries)
 
 
 if __name__ == "__main__":

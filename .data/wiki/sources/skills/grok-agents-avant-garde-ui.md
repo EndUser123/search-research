@@ -5,7 +5,7 @@ skill_name: avant-garde-ui
 source_path: P:/.agents/skills/avant-garde-ui/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: avant-garde-ui

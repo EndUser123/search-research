@@ -6,7 +6,7 @@ skill_name: check
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-lab/skills/check/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: check

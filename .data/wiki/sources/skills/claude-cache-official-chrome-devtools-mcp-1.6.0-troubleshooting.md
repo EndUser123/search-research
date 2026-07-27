@@ -6,7 +6,7 @@ skill_name: troubleshooting
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/chrome-devtools-mcp/1.6.0/skills/troubleshooting/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-26
+indexed_date: 2026-07-27
 ---
 
 # Skill: troubleshooting
