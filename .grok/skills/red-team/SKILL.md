@@ -58,7 +58,17 @@ could go wrong. Standard roster:
 | security | Data leaks, access control gaps, injection vectors |
 | scope/gap | What the system doesn't cover, missing patterns, bypass paths |
 | performance | Timeouts, bottlenecks, resource leaks, N+1 |
-| workflow | Process gaps, missing gates, operator friction |
+| workflow | Process gaps, missing gates, operator friction, **post-commit hygiene** (version bumps, cache rebuilds, wiki-write-back gates, state-file cleanup), **feedback-loop completeness** (does the system re-verify after changes? does it close the loop?) |
+| meta/self-reflection | **What attack surfaces did the other specialists' scopes MISS?** This specialist runs LAST (after all others return) and reviews: (1) which steps/phases of the target were NOT covered by any specialist's scope; (2) whether any specialist's findings hint at a deeper systemic issue the specialist wasn't scoped to investigate; (3) whether the target's own self-assessment (falsifier, provenance) has blind spots. This is the adaptive, open-ended layer — it catches what deterministic scope allocation misses. |
+
+**Post-commit hygiene scope (added 2026-07-27):** the workflow specialist MUST check whether the target handles: (a) version bumps on edits, (b) cache rebuilds after config changes, (c) wiki-write-back quality gates (does the write go through /why Step 15-style review?), (d) state-file cleanup/migration on retirement, (e) commit-message quality. This scope was missing from the original roster, allowing gaps in /skill-dev (no version bump, no wiki gate) to go undetected until manual /tp review.
+
+**Meta/self-reflection specialist dispatch rules:**
+- Runs AFTER all other specialists return (Step 3 verification complete)
+- Receives: the target + ALL other specialists' finding summaries (not full JSON, just titles + severities)
+- Does NOT re-investigate the same surfaces — its job is to find what was MISSED
+- If it finds nothing, that's a valid result (the other specialists were comprehensive)
+- If it finds a gap, add it as a standalone finding with `severity: ADVISORY` (it's a coverage gap, not a target defect)
 
 ### Step 2 — Dispatch specialists (parallel)
 
