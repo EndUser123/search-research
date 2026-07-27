@@ -27,7 +27,6 @@ import re
 import subprocess
 import sys
 import time
-from datetime import date
 from pathlib import Path
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
@@ -179,31 +178,83 @@ def call_dgemma(prompt: str, timeout: int) -> tuple[str, str]:
 
 
 def synth_cluster(cluster: dict, members: list[dict], backend: str, model: str | None,
-                  per_member_chars: int, max_members: int) -> tuple[dict | None, str]:
-    """Synthesize one cluster. Returns (parsed_concept_record, error)."""
+                  per_member_chars: int, max_members: int,
+                  max_retries: int = 2) -> tuple[dict | None, str]:
+    """Synthesize one cluster with retry + cross-backend fallback.
+
+    Returns (parsed_concept_record, error). Resilience layers:
+    1. Retry the primary backend on transient empty/unparseable output (max_retries).
+    2. Fall through to the secondary backend (mmx↔dgemma) if primary exhausted.
+    3. One final retry on the primary after the secondary fails.
+
+    Transient failure modes this catches:
+    - mmx empty-response blips (rate-limit pressure, momentary backend hiccup)
+    - dgemma unparseable output (intermittent prose-instead-of-JSON)
+    - Network timeouts on either backend
+
+    Proven necessary: during pilot sync (session 019fa276), cluster
+    'claude-video-videos' was lost when both backends failed transiently in
+    the same ~40s window. Re-probe 5 min later succeeded on both. This
+    retry logic would have recovered it inline.
+    """
+    import time as _time
+
     if not members:
         return None, "no transcript members"
     context = build_context(members, per_member_chars, max_members)
     prompt = SYNTH_PROMPT.format(hint=cluster.get("name", ""), n=len(members), context=context)
 
-    text, err = "", ""
-    if backend == "mmx":
-        text, err = call_mmx(prompt, model, timeout=180)
+    def _try_parse(text: str) -> dict | None:
+        """Extract JSON; return None if unparseable."""
         if not text:
-            print(f"    mmx failed ({err}); trying dgemma fallback", file=sys.stderr)
-            text, err = call_dgemma(prompt, timeout=180)
+            return None
+        return extract_json(text)
+
+    # Determine primary + secondary backends
+    if backend == "mmx":
+        primary, secondary = "mmx", "dgemma"
     elif backend == "dgemma":
-        text, err = call_dgemma(prompt, timeout=180)
+        primary, secondary = "dgemma", "mmx"
     else:
         return None, f"unknown backend {backend}"
 
-    if not text:
-        return None, err
+    def _call(backend_name: str) -> tuple[str, str]:
+        if backend_name == "mmx":
+            return call_mmx(prompt, model, timeout=180)
+        return call_dgemma(prompt, timeout=180)
 
-    rec = extract_json(text)
-    if rec is None:
-        return None, f"could not parse JSON from LLM output (len {len(text)})"
-    return rec, ""
+    errors: list[str] = []
+    # Layer 1: primary backend with retries on transient empty/unparseable
+    for attempt in range(1, max_retries + 1):
+        text, err = _call(primary)
+        rec = _try_parse(text)
+        if rec is not None:
+            return rec, ""
+        errors.append(f"{primary} attempt {attempt}: {err or 'unparseable JSON'}")
+        if attempt < max_retries:
+            print(f"    {primary} attempt {attempt} failed ({err[:60]}); retrying in 5s...",
+                  file=sys.stderr)
+            _time.sleep(5)
+
+    # Layer 2: secondary backend (single attempt)
+    print(f"    {primary} exhausted ({max_retries} attempts); trying {secondary} fallback",
+          file=sys.stderr)
+    text, err = _call(secondary)
+    rec = _try_parse(text)
+    if rec is not None:
+        return rec, ""
+    errors.append(f"{secondary}: {err or 'unparseable JSON'}")
+
+    # Layer 3: one final primary retry after secondary fails
+    print(f"    {secondary} also failed; final {primary} retry in 10s...", file=sys.stderr)
+    _time.sleep(10)
+    text, err = _call(primary)
+    rec = _try_parse(text)
+    if rec is not None:
+        return rec, ""
+    errors.append(f"{primary} final retry: {err or 'unparseable JSON'}")
+
+    return None, " | ".join(errors)
 
 
 def extract_json(text: str) -> dict | None:
@@ -282,6 +333,8 @@ def main() -> int:
     ap.add_argument("--model", default=None, help="override model id for mmx backend")
     ap.add_argument("--per-member-chars", type=int, default=1200)
     ap.add_argument("--max-members", type=int, default=20)
+    ap.add_argument("--max-retries", type=int, default=2,
+                    help="max attempts per backend before cross-fallback (default 2)")
     ap.add_argument("--limit", type=int, default=None, help="synthesize only first N clusters (testing)")
     ap.add_argument("-o", "--output", type=Path, default=Path("concepts.json"))
     args = ap.parse_args()
@@ -300,7 +353,8 @@ def main() -> int:
         members = gather_members(c, args.transcripts_dir)
         print(f"[{cid}] {name} ({len(members)} transcripts)...", file=sys.stderr)
         parsed, err = synth_cluster(c, members, args.backend, args.model,
-                                    args.per_member_chars, args.max_members)
+                                    args.per_member_chars, args.max_members,
+                                    max_retries=args.max_retries)
         if parsed is None:
             print(f"    FAIL: {err}", file=sys.stderr)
             failed.append({"cluster_id": cid, "name": name, "error": err})
