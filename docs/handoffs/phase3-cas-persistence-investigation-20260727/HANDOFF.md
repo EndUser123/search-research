@@ -19,8 +19,17 @@ Investigate why the B4 CAS commit engine (and B5 submodule reconciliation) produ
 
 ## Status
 
-FIX VERIFIED — Mode A, post-CAS sync, and Mode C all fixed and deployed.
-Live smoke test confirms commits survive in refs. (2026-07-27T14:30Z)
+ALL FIXES DEPLOYED AND VERIFIED — B4 (3 fixes) + B5 (1 fix). Full suite 22/22.
+Live smoke test confirms commits survive in refs. (2026-07-27T17:08Z)
+
+### Fixes applied
+
+| Fix | Commit | Files | Deployed |
+|-----|--------|-------|----------|
+| Mode A (B4 freshness barrier) | `e849e40` | `commit_coordinator.py` | ✅ hash-verified |
+| Post-CAS sync removal | `e849e40` | `commit_coordinator.py` | ✅ hash-verified |
+| Mode C (phantom SHA guard) | `e849e40` | `close_coordinator.py` | ✅ hash-verified |
+| B5 same race window | `34cb5e4` | `submodule_coordinator.py` | ✅ hash-verified |
 
 ## Producing context
 
