@@ -1,6 +1,54 @@
 # Vault Log
 
 ## --concept
+Source: compaction-inherited-diagnosis-unverified-propagation
+Agent: --action
+Notes: created
+Page: --source
+
+## Claude AI Side Hustle Implementation
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-ai-side-hustle-implementation.md
+
+## Anthropic Collaborative AI Tools
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/anthropic-collaborative-ai-tools.md
+
+## Claude Loop Engineering
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-loop-engineering.md
+
+## AI Prompting Optimization Techniques
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/ai-prompting-optimization-techniques.md
+
+## Frontier AI Model Benchmarks and Rankings
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/frontier-ai-model-benchmarks-and-rankings.md
+
+## Claude Operational Best Practices
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-operational-best-practices.md
+
+## Claude Skills Overview
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-skills-overview.md
+
+## --concept
 Source: skill-management-in-agentic-systems-research-survey
 Agent: --action
 Notes: created
