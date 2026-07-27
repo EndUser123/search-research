@@ -124,3 +124,25 @@ This handoff is wrong if:
 - Skill registered: system-reminder shows `/packet` in the skill catalog
 - Smoke test: `packet-019fa48a_sig.md` and `packet-019fa48a_full.md` at `P:/.claude/.artifacts/`
 - /review run_dir: `P:/.artifacts/grok-build-terminal/grok-review/packet/20260727-154541/`
+
+---
+
+## Revision 2 — 2026-07-27T22:35:00Z (session 019fa48a)
+
+**Trigger:** all 4 CORR bugs fixed. /packet is now production-ready (pending the 8 non-blocking risks).
+
+**What changed since Revision 1:**
+- CORR-001 fixed: render_full_turn now gates full text on role (`ev.role is not Role.TOOL_RESULT`). Verified: 315 tool_result stubs, 0 full-text leaks.
+- CORR-002 fixed: dead redaction loop removed. Redaction count now uses `count_redactions()` during the render pass.
+- CORR-003 fixed: `resolve_transcript_path` guards `iterdir()` with `is_dir()` check.
+- CORR-004 fixed: `parse_transcript` wrapped in try/except for `TranscriptParseError` and `OSError`.
+- /tp SKILL.md forbidden-types block added (prevents fabricated-fatigue recommendations)
+- Nemotron moved to Hard exclusions in /tp fallback table (consistent with go-kimi-k3 placement)
+- All fixes verified: 8/8 checks passed (AST parse, CORR gates present, functional run, no leaks)
+
+**Updated status:** OPEN — 4 bugs fixed. 8 non-blocking risks remain (documented in FINDINGS.md). Skill is production-ready for filtered conversation export.
+
+**Remaining open items:**
+- 8 risks from /review (CORR-005/006/007/008, MAINT-001 through MAINT-006) — all non-blocking, documented in FINDINGS.md
+- /packet needs real-world testing on sessions other than this one
+- PATH_KEYS refinement (url_keys column for web tools) — build-time item
