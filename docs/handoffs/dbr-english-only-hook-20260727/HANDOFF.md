@@ -3,10 +3,19 @@ thread_id: dbr-english-only-hook-20260727
 current_session_id: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
 current_terminal_id: P%3A%5C
 produced_at: 2026-07-27T16:10:00Z
-status: open
+closed_at: 2026-07-27T16:45:00Z
+status: closed
+closed_by_session: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
+closed_by_commit: 77c35fd
 handoff_type: investigation
-accurate_as_of_head: f3ad24c (P:) / 88b4a72 (~/.grok)
+accurate_as_of_head: f3ad24c (P:) / 77c35fd (~/.grok)
 parent_handoff_path: P:/docs/handoffs/qmd-non-english-20260726/HANDOFF.md
+---
+
+## CLOSURE NOTE (2026-07-27)
+
+**RESOLVED.** Commit `77c35fd` shipped both hooks + AGENTS.md rule + 10 detection tests. The hooks are live in `~/.grok/hooks/dbr-language.json`. Detection verified: Chinese, Russian, and mixed-language content triggers; English, code blocks, blockquotes, paths, and YAML frontmatter are exempt. The remaining 273 qmd Chinese docstring lines (from the parent handoff) are the first translation remediation target.
+
 ---
 
 # DBR hook: detect non-English output, enforce English-only, translate saved non-English material
