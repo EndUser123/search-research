@@ -78,12 +78,12 @@ def notebook_title(nb_id: str, profile: str) -> str:
 
 def collect_metrics(nb_id: str, profile: str, sync_result: dict | None = None) -> dict:
     """Collect all pipeline metrics for a notebook."""
-    sources = list_sources(nb_id, profile)
-    n_sources = len(sources)
-    status_counts = Counter(s.get("status", "?") for s in sources)
-
     manifest = load_manifest()
     entry = manifest.get("notebooks", {}).get(nb_id, {})
+    sources = list_sources(nb_id, profile)
+    n_sources = len(sources) if sources else len(entry.get("source_ids", []))
+    status_counts = Counter(s.get("status", "?") for s in sources) if sources else Counter()
+
     slugs = entry.get("concept_slugs", [])
 
     # Transcript files (all notebooks; filtered below)
@@ -141,7 +141,7 @@ def collect_metrics(nb_id: str, profile: str, sync_result: dict | None = None) -
 
     return {
         "notebook_id": nb_id,
-        "notebook_title": notebook_title(nb_id, profile),
+        "notebook_title": entry.get("title") or notebook_title(nb_id, profile),
         "n_sources": n_sources,
         "n_transcripts": len(nb_tx_ids),
         "n_unrecoverable": status_counts.get(3, 0),
@@ -162,10 +162,47 @@ def collect_metrics(nb_id: str, profile: str, sync_result: dict | None = None) -
             "waste": sum(1 for s in sizes if s < 50),
             "thin": sum(1 for s in sizes if s < 200),
             "long": sum(1 for s in sizes if s > 5000),
+            "raw": sizes,
         } if sizes else None,
         "last_synced": entry.get("last_synced_at", "—"),
         "pipeline": entry.get("pipeline", "—"),
     }
+
+
+# --- visual helpers (pure Unicode, zero dependencies) -------------------
+
+SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
+BAR_BLOCK = "█"
+BAR_LIGHT = "░"
+
+
+def sparkline(values: list[int], bins: int = 16) -> str:
+    """Render a Unicode sparkline histogram from a list of values."""
+    if not values:
+        return ""
+    lo, hi = min(values), max(values)
+    if hi == lo:
+        return SPARK_BLOCKS[3] * min(len(values), bins)
+    bucket_size = (hi - lo) / bins
+    counts = [0] * bins
+    for v in values:
+        idx = min(int((v - lo) / bucket_size), bins - 1)
+        counts[idx] += 1
+    max_c = max(counts) if counts else 1
+    return "".join(SPARK_BLOCKS[min(int(c / max_c * 7), 7)] if c > 0 else " " for c in counts)
+
+
+def bar_chart(value: int, max_val: int, width: int = 24) -> str:
+    """Render a horizontal Unicode bar: ████████████████░░░░░░░░"""
+    if max_val == 0:
+        return BAR_LIGHT * width
+    filled = int(value / max_val * width)
+    return BAR_BLOCK * filled + BAR_LIGHT * (width - filled)
+
+
+def file_link(slug: str) -> str:
+    """Render a clickable file:/// URI for a concept page slug."""
+    return f"file:///P:/.data/wiki/concepts/{slug}.md"
 
 
 # --- report rendering (progressive disclosure) ---------------------------
@@ -174,8 +211,8 @@ def render_report(m: dict, verbose: bool = False) -> str:
     """Render metrics as a progressive-disclosure report.
 
     Level 1: outcome summary (4 lines, scannable in 2s)
-    Level 2: drill-in detail (cluster table, coverage, quality)
-    Level 3: full data (verbose flag: size histogram, per-cluster detail)
+    Level 2: drill-in detail (cluster bar chart, sparkline, coverage)
+    Level 3: full data (verbose flag: per-cluster detail with clickable links)
     """
     lines = []
 
@@ -210,21 +247,22 @@ def render_report(m: dict, verbose: bool = False) -> str:
     lines.append("")
 
     if not verbose:
-        lines.append("  (Run with --verbose for cluster breakdown and size distribution)")
+        lines.append("  (Run with --verbose for cluster bar chart and size sparkline)")
         return "\n".join(lines)
 
-    # === LEVEL 2: cluster distribution ===
+    # === LEVEL 2: cluster distribution (ASCII bar chart) ===
     lines.append("-" * 60)
     lines.append("CLUSTER DISTRIBUTION")
     lines.append("-" * 60)
-    lines.append(f"{'Sources':>8}  {'Citations':>10}  {'Title'}")
-    lines.append("")
-    for c in sorted(m["cluster_data"], key=lambda x: -x["member_count"]):
-        lines.append(f"{c['member_count']:>8}  {c['citation_count']:>10}  {c['title']}")
+    sorted_clusters = sorted(m["cluster_data"], key=lambda x: -x["member_count"])
+    max_members = max((c["member_count"] for c in sorted_clusters), default=1)
+    for c in sorted_clusters:
+        bar = bar_chart(c["member_count"], max_members)
+        lines.append(f"  {bar} {c['member_count']:>3}  {c['citation_count']:>3} cites  {c['title']}")
     # Balance indicator
-    if m["cluster_data"]:
-        max_c = max(c["member_count"] for c in m["cluster_data"])
-        min_c = min(c["member_count"] for c in m["cluster_data"])
+    if sorted_clusters:
+        max_c = max(c["member_count"] for c in sorted_clusters)
+        min_c = min(c["member_count"] for c in sorted_clusters)
         ratio = max_c / min_c if min_c else float("inf")
         lines.append("")
         if ratio > 10:
@@ -234,12 +272,13 @@ def render_report(m: dict, verbose: bool = False) -> str:
             lines.append(f"  Cluster balance: {ratio:.1f}x ratio (healthy)")
     lines.append("")
 
-    # === LEVEL 2: transcript size distribution ===
+    # === LEVEL 2: transcript size distribution (sparkline) ===
     if m["transcript_sizes"]:
         ts = m["transcript_sizes"]
         lines.append("-" * 60)
         lines.append("TRANSCRIPT SIZE DISTRIBUTION")
         lines.append("-" * 60)
+        lines.append(f"  {sparkline(_get_raw_sizes(m))}")
         lines.append(f"  Min: {ts['min']} words   Max: {ts['max']} words   "
                      f"Median: {ts['median']} words")
         lines.append(f"  <50 words (waste): {ts['waste']}   "
@@ -247,17 +286,25 @@ def render_report(m: dict, verbose: bool = False) -> str:
                      f">5000 (long): {ts['long']}")
         lines.append("")
 
-    # === LEVEL 3: per-cluster detail (verbose) ===
+    # === LEVEL 3: per-cluster detail with clickable links ===
     lines.append("-" * 60)
-    lines.append("PER-CLUSTER DETAIL")
+    lines.append("PER-CLUSTER DETAIL (click slug to open)")
     lines.append("-" * 60)
-    for c in sorted(m["cluster_data"], key=lambda x: -x["member_count"]):
+    for c in sorted_clusters:
         lines.append(f"  {c['title']}")
-        lines.append(f"    slug: {c['slug']}")
+        lines.append(f"    {file_link(c['slug'])}")
         lines.append(f"    members: {c['member_count']}  citations: {c['citation_count']}")
         lines.append("")
 
     return "\n".join(lines)
+
+
+def _get_raw_sizes(m: dict) -> list[int]:
+    """Extract raw word counts for sparkline from metrics."""
+    ts = m.get("transcript_sizes")
+    if not ts:
+        return []
+    return ts.get("raw", [])
 
 
 def main() -> int:
