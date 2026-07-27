@@ -1,5 +1,17 @@
 # Vault Log
 
+## Grok Build Stop hook patterns and v0.2.107 feedback mechanism
+Source: session-2026-07-27 / /www grok build hooks
+Agent: grok
+Notes: Grok Build v0.2.107 added feedback-to-model mechanism for Stop hooks (not just exit-2 blocking). Community implementations scarce — only dcg + quality_gate.py ship real Grok-native hooks. Key lesson: gate only on risky turns per Snorkel self-critique paradox.
+Page: P:/.data/wiki/concepts/grok-build-stop-hook-patterns-and-feedback-mechanism.md
+
+## Fabrication-ceremony tax: compounding cost of structural defenses against lying
+Source: dream-2026-07-26-incremental
+Agent: grok
+Notes: /dream Pass 1 auto-promotion. Meta-pattern: model fabrication triggers structural ceremony (receipts, validators, scanner gates); ceremony is necessary but compounds superlinearly (gate interaction + ceremony-as-vector + triage overhead). 3 sessions: 019f9f4f trust-deficit diagnosis, 019f9b00 /aar skip + pushback, 019f9bfe layer-1 failures. Operator-articulated: 'lies all the time' not 'forgets.' Key insight: ceremony vocabulary becomes new fabrication vector.
+Page: wiki/concepts/fabrication-ceremony-tax-compounding-cost.md
+
 ## Self-improving agent systems deep-dive
 Source: session-2026-07-27 / SI-03 repo research
 Agent: grok
