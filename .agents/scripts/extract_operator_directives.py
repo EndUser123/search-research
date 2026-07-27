@@ -46,7 +46,7 @@ PREFERENCE_SIGNALS = [
     (r"\blast resort\b", "last resort"),
     (r"\bnot tied to\b", "not tied to"),
     (r"\bexplicit(?:ly)?\s+(?:ask|request|approve)\b", "explicit-only"),
-    (r"\bI want\b", "I want"),
+    (r"\bi want\b", "I want"),  # lowercased: text is lowercased before matching
     (r"\bwe should\b", "we should"),
     (r"\bwe need\b", "we need"),
     (r"\bfrom now on\b", "from now on"),
@@ -63,7 +63,7 @@ CONTEXT_SIGNALS = [
     (r"\bopenrouter\b", "openrouter"),
     (r"\bopen router\b", "openrouter"),
     (r"\bor-nemotron\b", "or-nemotron"),
-    (r"\bPI\b(?!\s*[,\.])", "PI"),  # PI as standalone word, not sentence punctuation
+    (r"\bpi\b(?!\s*[,\.])", "PI"),  # lowercased: matches "pi" as standalone word
     (r"\bpi -p\b", "PI-CLI"),
     (r"\bnemotron\b", "nemotron"),
     (r"\bglm\b", "glm"),

@@ -33,14 +33,17 @@ relations:
 > ask the operator before recommending — do not assume "no directive" means
 > "any option is fine."
 
-## Why this concept exists
+## Decision context
 
 Session 019fa48a: the operator said "I told you that before" when I recommended
 OpenRouter for Nemotron routing. The preference (use opencode/PI, avoid
 OpenRouter) had been stated in prior sessions but was never promoted to a
 durable artifact. I couldn't find what wasn't captured. This concept is the
-structural fix: it is the single place where confirmed operator routing
-directives live, queryable by qmd, loadable by any session.
+structural fix (see [[mechanical-enforcement-over-behavioral-reminder]] for the
+architectural decision behind it): it is the single place where confirmed
+operator routing directives live, queryable by qmd, loadable by any session.
+It complements [[model-tool-calling-capability-matrix]] (technical capability)
+and [[model-pool-selection-policy-speed-quota-diversity]] (cost/quota routing).
 
 **The capture mechanism:** `P:/.agents/scripts/extract_operator_directives.py`
 scans prior session transcripts for operator-stated preference/directive
