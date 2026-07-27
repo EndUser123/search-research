@@ -1,5 +1,77 @@
 # Vault Log
 
+## Video-to-wiki pipeline report: metrics and framework
+Source: wiki-2026-07-27
+Agent: grok
+Notes: Pilot metrics + 3-tier reporting framework for video-to-knowledge pipelines
+Page: wiki/concepts/video-to-wiki-pipeline-report-metrics-and-framework.md
+
+## Claude AI Side Hustle Approaches
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-ai-side-hustle-approaches.md
+
+## Claude Trading System Integration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-trading-system-integration.md
+
+## Claude Tag Multiplayer Collaboration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-tag-multiplayer-collaboration.md
+
+## Claude Loop Engineering
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-loop-engineering.md
+
+## Prompt Engineering for Next-Generation AI Models
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/prompt-engineering-for-next-generation-ai-models.md
+
+## Claude Design Skills
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-design-skills.md
+
+## AI Model Performance Benchmarks
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/ai-model-performance-benchmarks.md
+
+## Claude Code Usage Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-code-usage-patterns.md
+
+## AI-Powered Video Editing Integration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/ai-powered-video-editing-integration.md
+
+## Claude Skills Overview
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-skills-overview.md
+
+## --concept
+Source: conversation-distillation-review-packet-export
+Agent: --source
+Notes: session-019fa48a
+Page: --note
+
 ## --concept
 Source: compaction-inherited-diagnosis-unverified-propagation
 Agent: --action
