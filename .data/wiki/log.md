@@ -1,5 +1,35 @@
 # Vault Log
 
+## --concept
+Source: fabricated-fatigue-llm-session-end-recommendations
+Agent: --source
+Notes: session-019fa48a /wiki
+Page: --note
+
+## [2026-07-27] ingest | Handoff fragmentation under recurrence: single-writer-per-file produces N authoritative files for one workstream
+Source: session-2026-07-27
+Agent: grok
+Notes: Handoff fragmentation under recurrence finding
+Page: wiki/concepts/handoff-fragmentation-under-recurrence.md
+
+## --concept
+Source: handoff-fragmentation-under-recurrence
+Agent: --session
+Notes: 019fa5a1
+Page: --summary
+
+## Agentic SDLC lifecycle validated end-to-end
+Source: session-019fa39d AAR Q11
+Agent: grok
+Notes: Empirical validation: 9-skill cascade (why→www→design→go→check→review→wiki→handoff) chained naturally without manual bridging. /close failure was skill-internal, not lifecycle-level.
+Page: P:/.data/wiki/concepts/agentic-sdlc-lifecycle-validated-end-to-end.md
+
+## --concept
+Source: agents-md-construction-best-practices
+Agent: --source
+Notes: session-019fa48a /www
+Page: --note
+
 ## Terminal visual enhancements for agentic CLIs
 Source: wiki-2026-07-27
 Agent: grok

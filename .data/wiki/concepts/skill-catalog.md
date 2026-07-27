@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-27
 cognitive_load: 3
-summary: Auto-generated index of 980 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 984 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-27 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 980 across 21 scopes.
+**Total skills:** 984 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-07-27 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (38 skills)
+## grok-user (40 skills)
 
 | Skill | G | C | Description (truncated) | Path |
 |---|---|---|---|---|
@@ -55,13 +55,15 @@ Auto-generated on 2026-07-27 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **marketplace-bridge** | ✓ | — | Pulls AI-skill listings from four public marketplaces (SkillsMP, SkillHub, ClawHub, skills.sh), fetches each skill's SKI... | `~/.grok/skills/marketplace-bridge/SKILL.md` |
 | **mmx** | ✓ | — | Run MiniMax CLI (mmx) for a cross-model second opinion or web search via the MiniMax index. Conductor evaluates assignme... | `~/.grok/skills/mmx/SKILL.md` |
 | **model-benchmark** | ✓ | — | Latency benchmark, quality scoring, cost tracking, and telemetry for the model fleet. Sends standardized prompts to each... | `~/.grok/skills/model-benchmark/SKILL.md` |
-| **notice** | ✓ | — | Mid-conversation high-confidence observation surfacing. Fires when mechanical triggers match (error state, task boundary... | `~/.grok/skills/notice/SKILL.md` |
+| **notice** | ✓ | — | Mid-conversation adaptive observation surfacing. Uses LLM judgment to detect patterns worth surfacing (error states, tas... | `~/.grok/skills/notice/SKILL.md` |
+| **packet** | ✓ | — | Export a filtered, tool-simplified view of a Grok session conversation into a markdown file another LLM can read cold fo... | `~/.grok/skills/packet/SKILL.md` |
 | **plan-writer** | ✓ | — | Comprehensive implementation plans from a spec or requirements. Owns the full planning workflow: when to plan (objective... | `~/.grok/skills/plan-writer/SKILL.md` |
 | **prompt-patterns** | ✓ | — | Reference skill for structural prompting techniques. Loads when writing or improving SKILL.md files, AGENTS.md rules, ha... | `~/.grok/skills/prompt-patterns/SKILL.md` |
 | **refactor** | ✓ | — |  | `~/.grok/skills/refactor/SKILL.md` |
 | **refine** | ✓ | — | Turn a rough task or vague handoff into an implementation-ready handoff by inspecting the codebase. Pre-plan stage: tigh... | `~/.grok/skills/refine/SKILL.md` |
 | **review** | ✓ | — | Intelligent code/package review with verified findings on disk. Auto-infers target (local diff, branch, PR, or package p... | `~/.grok/skills/review/SKILL.md` |
 | **search-fleet** | ✓ | — | Capability-routed multi-backend search with RRF aggregation. Reads the tool registry at ~/.grok/search-fleet.toml, class... | `~/.grok/skills/search-fleet/SKILL.md` |
+| **skill-dev** | ✓ | — | Measure and improve Grok skills from evidence. Two modes: (1) measure — evaluate marginal contribution of active skills ... | `~/.grok/skills/skill-dev/SKILL.md` |
 | **tasks** | ✓ | — | Read and write Claude Code's persistent task store at ~/.claude/tasks/project-main-tasks/. Use when the user asks to tra... | `~/.grok/skills/tasks/SKILL.md` |
 | **tp** | ✓ | — | Critical-friend / thought-partner. Default /tp is a two-lens critique: a fresh subagent generates the critique (differen... | `~/.grok/skills/tp/SKILL.md` |
 | **wargame** | ✓ | — | Content discipline for plans where observation is expensive, ambiguity is high, or the decision is hard to reverse. Forc... | `~/.grok/skills/wargame/SKILL.md` |
@@ -135,11 +137,12 @@ Auto-generated on 2026-07-27 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | `P:/.grok/skills/check/SKILL.md` |
 | **red-team** | ✓ | — | Multi-agent adversarial review of any proposal, solution, design, or implementation before commitment. Planner → special... | `P:/.grok/skills/red-team/SKILL.md` |
 
-## grok-agents (8 skills)
+## grok-agents (10 skills)
 
 | Skill | G | C | Description (truncated) | Path |
 |---|---|---|---|---|
 | **avant-garde-ui** | ✓ | — | Senior frontend architect and avant-garde UI designer persona for design-intent work. Use when the user wants to create ... | `P:/.agents/skills/avant-garde-ui/SKILL.md` |
+| **config-audit** | ✓ | — | Audit and optimize Grok Build configuration (AGENTS.md, config.toml, plugin settings, MCP servers) against best practice... | `P:/.agents/skills/config-audit/SKILL.md` |
 | **contract-status** | ✓ | — | Show contract system health dashboard (writer + Stop stats) | `P:/.agents/skills/contract-status/SKILL.md` |
 | **nlm-bulk-ingest** | ✓ | — | Cluster a large list of URLs (YouTube videos, web pages, PDFs) into themed NotebookLM notebooks under the per-notebook s... | `P:/.agents/skills/nlm-bulk-ingest/SKILL.md` |
 | **nlm-to-wiki** | ✓ | — | Sync NotebookLM notebook content into the wiki vault as SCHEMA-compliant concept pages with full 4-hop provenance (conce... | `P:/.agents/skills/nlm-to-wiki/SKILL.md` |
@@ -147,6 +150,7 @@ Auto-generated on 2026-07-27 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **preflight** | ✓ | — | Build an evidence-backed inventory of existing implementations, callers, registrations, state/default consumers, caches,... | `P:/.agents/skills/preflight/SKILL.md` |
 | **recover** | ✓ | — | Recover deleted, overwritten, or missing files using git history, session transcripts, and checkpoint snapshots. Use whe... | `P:/.agents/skills/recover/SKILL.md` |
 | **skill-prune** | ✓ | — | Knowledge hygiene for skills and wiki concepts — detect stale, duplicate, and drifted entries. Proposes merges, archives... | `P:/.agents/skills/skill-prune/SKILL.md` |
+| **workspace-health** | ✓ | — | System health checks and workspace validation for Grok Build. Runs health checks across the workspace: git state, skill ... | `P:/.agents/skills/workspace-health/SKILL.md` |
 
 ## claude-user (4 skills)
 
