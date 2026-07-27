@@ -6,7 +6,7 @@ current_terminal_id: grok-019f9f48
 produced_at: 2026-07-26T20:10:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: a84b745
+accurate_as_of_head: b8a60566506b271e21e946eead0db0910c662672
 ---
 
 # Session 019f9f48 shipped work + open items — handoff
@@ -113,3 +113,57 @@ OPEN. Session-shipped-work consolidation + open-items capture. The anti-fawning 
 ## Falsifier
 
 This handoff is wrong if a fresh session cannot reconstruct what this session shipped without reading the transcript. If the read-first list is insufficient, the cross-references are broken.
+
+---
+
+## Revision 1 — 20260726T233000Z (session 019f9f48-5ad0-7a01-9f1e-e70d0788d383)
+
+**Trigger:** auto-update — substantial session work happened after the original handoff was written at turn ~22. Session is now at turn ~38.
+
+**What changed since the original:**
+
+The session continued well past the original handoff's cutoff. Five new handoffs were created, two skill improvements were shipped, and the `~/.grok` repo was committed and pushed. The original handoff's "shipped artifacts" and "open items" sections are now incomplete.
+
+**New handoffs created (5):**
+
+| Handoff | Topic | Commit |
+|---|---|---|
+| `close-format-enforcement-gate-20260726` | Validator extension to enforce canonical close-report format (structural gate against freeform output) | `eb25425` |
+| `skill-recommendation-hook-20260726` | Stop hook that proactively recommends skills (/check, /review, /why) when trigger conditions are met mid-session | `90bdf23` |
+| `check-speed-optimization-20260726` | Diagnose and fix 13min `/check` wall clock — root cause: repeated reads of large files by verifier subagents | `3a0e9aa` |
+| `stop-narrative-detector-20260726` | Mechanical gate for fabricated session-end constraints (4th instance of the go-home-narrative pattern this session) | `15cdfcb` |
+| `session-observations-019f9f48-20260726` (already existed, now stale too) | Observations and seeds from the session | `14b3cb1` |
+
+**New skill improvements shipped:**
+
+1. **`/close` SKILL.md** — added `## What's at risk (synthesis)` section between Persistence boundary and Actionable insights. Grounded in loss aversion (Kahneman). Forces the LLM to synthesize what the operator should actually worry about before closing. Commit `e212b95` on `dotgrok.git`.
+
+2. **`/handoff` SKILL.md** — three enhancements:
+   - **Auto-update mode** (commit `2bfb89f`): default `/handoff` (no args) scans the session, updates stale handoffs with revision blocks, creates new handoffs for uncovered streams
+   - **Inline critic-friend review** (commit `31597f4`): every handoff and wiki write gets a cold-start readability check before reporting (7-point checklist)
+   - **Wiki/decision auto-promotion** (commit `31597f4`): scan session for durable findings/decisions, create or update wiki concepts and ADRs automatically
+
+**`~/.grok` repo committed and pushed:**
+- `e212b95` — close/SKILL.md format improvement
+- `2bfb89f` — handoff auto-update mode
+- `31597f4` — handoff critic review + wiki promotion
+
+All changes in the `~/.grok` repo are now backed up to `EndUser123/dotgrok.git`. The risk identified in the /tp review (untracked filesystem writes) is resolved.
+
+**Updated open items:**
+
+The original handoff listed 2 known limitations (validator scope gap, /why Step 14 gap). The session added 5 more open work items, each with its own dedicated handoff:
+- Anti-fawning structural fix → `anti-fawning-opportunity-20260726`
+- Close format enforcement → `close-format-enforcement-gate-20260726`
+- Skill recommendation hook → `skill-recommendation-hook-20260726`
+- /check speed optimization → `check-speed-optimization-20260726`
+- Stop-narrative detector → `stop-narrative-detector-20260726`
+
+**Updated evidence:**
+- Total commits this session (P:/ repo): `cdac5f1`, `eae1396`, `728aa05`, `1d66a1d`, `a84b745`, `dc2f8c5`, `14b3cb1`, `eb25425`, `90bdf23`, `3a0e9aa`, `15cdfcb` (11 commits)
+- Total commits this session (~/.grok repo): `e212b95`, `2bfb89f`, `31597f4` (3 commits)
+- Total handoffs: 7 (anti-fawning, shipped-work, session-observations, close-format-enforcement, skill-recommendation-hook, check-speed-optimization, stop-narrative-detector)
+- AAR: complete (`P:/.artifacts/aar/aar-current-session/aar-019f9f48/aar-report.md`)
+- /check: PASS (3/3 verifiers passed)
+
+**Status update:** The session's full output is now captured across 7 handoffs + this revision. The original handoff's artifact inventory is superseded by this revision block for anything after turn 22.
