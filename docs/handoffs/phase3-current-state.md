@@ -301,25 +301,49 @@ None can satisfy a new obligation because the causal ordering check requires non
 
 ### Final verdict (this audit)
 
-**PHASE_3_LIVE_ACCEPTANCE_COMPLETE**
+**PHASE_3_LIVE_ACCEPTANCE_NEEDS_FIX**
 
-All Phase 3 mechanisms proven live:
+Core Phase 3 mechanisms are proven live, but the full spec acceptance requires
+a fresh session to achieve SESSION_CLOSED and a non-tmp child path for 3-path
+obligation testing.
+
+#### Proven live
 
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
-| Stop hook blocks incomplete verification | ✅ | Part 2 Step 3: blocked with obligation |
-| Partial verification remains blocked | ✅ | Part 2 Steps 6-7: ruff (static_analysis) < runtime_hook requirement |
-| Complete verification allows | ✅ | Part 2 Steps 13-14: runtime_hook verifier → obligation cleared → allow |
-| Live /close pipeline | ✅ (prior session) | ~/.grok committed, child committed, B5 SUBMODULE_COMPLETE, 7/7 sentinels |
-| Verification gate in /close | ✅ (this session) | VERIFICATION_NO_OBLIGATION, has_pending_obligation=False |
-| P:\ partial synchronization | ✅ N/A | Prior "in HEAD" claim was FALSE; dangling commit; repo safe; no recovery needed |
-| Child and parent reconciliation | ✅ | Prior session: gitlink match proven |
-| Concurrent-session isolation | ✅ | Part 4: 5 isolation properties verified with real second session |
-| Stale output filtering | ✅ | Part 5: 4 challenge tests pass |
-| Deterministic suite | ✅ | 21/21 pass |
-| No false publication claims | ✅ | No pushes occurred; all commits local-only |
+| Stop hook blocks incomplete verification | ✅ | Part 2: blocked with obligation (trace log 01:19:50Z) |
+| Partial verification remains blocked | ✅ | ruff (static_analysis) < runtime_hook requirement |
+| Complete verification allows | ✅ | runtime_hook verifier → obligation cleared → allow (01:34:08Z) |
+| Concurrent-session isolation (5 properties) | ✅ | Part 4: session_id rejection, sentinel exclusion, foreign index, ownership non-transfer, overlap fingerprint mismatch |
+| Stale-output filtering | ✅ | Part 5: 3 nonce groups in live receipts; stale nonce receipts rejected by scope/capability/nonce checks |
+| Deterministic suite (pre and post) | ✅ | 21/21 pass both runs |
+| No false publication claims | ✅ | No pushes occurred |
 
-**Caveat:** Part 3 /close persistence was tested under accumulated-state conditions
-(2069 candidates from a full day's work). The pipeline itself is proven from the prior
-session's acceptance. A fresh-session /close rerun would close this gap but does not
-represent a code defect — the close coordinator's conservative blocking is correct behavior.
+#### Gaps requiring fix
+
+| Gap | Root cause | Fix |
+|-----|-----------|-----|
+| Part 2: child path never entered obligation | `EXCLUDED_PATH_PREFIXES = ("p:/tmp/")` filters disposable dirs from code-modification tracking | Use a non-tmp child path (e.g. `P:/.agents/phase3_child/`) |
+| Part 2: incremental per-path verification not cleanly separated | Filename collision (`_p2a_mut.py` in both repos) caused receipt writer to credit both paths from one verification | Use unique filenames per repo (`_mut_p.py`, `_mut_g.py`, `_mut_c.py`) |
+| Part 3: SESSION_CLOSED never achieved | Session 019f9d1f accumulated 2069 mutation candidates over a full day of work; close coordinator correctly blocks | Fresh session with minimal state |
+| Part 4 Steps 9-10: close retry after overlap resolution | Same accumulated-state blocker as Part 3 | Fresh session |
+| Part 5: stale event not injected DURING two-session test | Proved via post-hoc analysis of live receipt data instead | Minor: the filtering was exercised live during Part 2's multi-pass Stop |
+
+#### Design finding (Part 2 child exclusion)
+
+The `EXCLUDED_PATH_PREFIXES = ("p:/tmp/", ...)` filter in `quality_gate.py:169`
+intentionally excludes disposable/temp directories from code-modification tracking.
+This prevents the Stop hook from blocking on writes to test fixtures in `P:/tmp/`.
+As a consequence, a disposable submodule child placed in `P:/tmp/` cannot
+participate in the Stop-hook verification gate. For full 3-path obligation
+testing, the child must be in a non-excluded location.
+
+#### What a fresh session needs to complete
+
+1. Start a new Grok Build session
+2. Create a child repo at a non-tmp path
+3. Create exactly 3 mutations (one per repo, unique filenames)
+4. Claim completion → Stop blocks with 3-path obligation
+5. Verify each path incrementally (proving partial blocks)
+6. Run /close → should achieve SESSION_CLOSED with only 3 candidates
+7. Run the same Part 4 overlap test with Session B
