@@ -1,5 +1,83 @@
 # Vault Log
 
+## --concept
+Source: skill-management-in-agentic-systems-research-survey
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
+Source: local-config-dataclass-for-circular-import-boundary
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
+Source: cross-module-call-graph-audit-false-negative
+Agent: --action
+Notes: created
+Page: --source
+
+## Handoff: wiki-query-stop-hook-20260727
+Source: session-019fa39d
+Agent: grok
+Notes: Handoff for the wiki-query Stop hook implementation. Design complete (3 rounds + critical friend), 5 units COMMIT_THIS_SESSION ready. Design doc in temp. Shadow mode default. nlm-class reproduction as Unit 7.
+Page: P:\docs\handoffs\wiki-query-stop-hook-20260727\HANDOFF.md
+
+## /design speedup: --fast mode + parallel pre-write
+Source: session-019f9a3c /go implementation
+Agent: grok
+Notes: Decision concept: 4 research-backed speedups implemented in /design SKILL.md. --fast mode (2-round default), Step 0.9 (parallel pre-write), parallel review, model cascading. Parallel section drafting rejected. Commits 76b4634, 0d9a41b. /review found 2 interaction gaps (R-001, R-002) accepted as caveats.
+Page: P:/.data/wiki/concepts/design-skill-speedup-fast-mode-parallel-prewrite.md
+
+## Skill domain map
+Source: session-2026-07-27
+Agent: grok
+Notes: 13 domains, 60 Grok skills, 50 Claude-only gaps
+Page: wiki/concepts/skill-domain-map.md
+
+## LLM synthesis quality and speed techniques
+Source: session-019f9a3c /www follow-up
+Agent: grok
+Notes: /www on synthesis quality, speed, constrained generation, iterative refinement. 4 findings: (1) input diversity + synthesis prompt > technique, (2) prefix caching + cascading + speculative decoding are near-lossless speedups, (3) outline helps but rigid JSON hurts prose, (4) 2-round default sufficient, 3+ overkill. Practical synthesis for /design: 2-round + cascading + parallel pre-write + outline + structured metadata. 4 parallel subagents.
+Page: P:/.data/wiki/concepts/llm-synthesis-quality-and-speed-techniques.md
+
+## Claude AI Side Hustles
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-ai-side-hustles.md
+
+## Claude Tag Team Collaboration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-tag-team-collaboration.md
+
+## AI Model Benchmarking Performance
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/ai-model-benchmarking-performance.md
+
+## Claude Operational Best Practices
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-operational-best-practices.md
+
+## Claude-Powered Video Editing Workflows
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-powered-video-editing-workflows.md
+
+## Claude Skills
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL-Pilot: Claude Skills & Code
+Page: wiki/concepts/claude-skills.md
+
 ## nlm-to-wiki optimization opportunities
 Source: wiki-2026-07-27
 Agent: grok
