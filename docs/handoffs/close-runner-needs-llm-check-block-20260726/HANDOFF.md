@@ -1,13 +1,27 @@
 ---
 thread_id: close-runner-needs-llm-check-block-20260726
 parent_handoff_path: P:/docs/handoffs/close-scanner-bugs/HANDOFF.md
-current_session_id: 019f9bfe-1b89-7602-9384-0212224ff30b
+current_session_id: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
 current_terminal_id: P%3A%5C
 produced_at: 2026-07-27T00:45:00Z
-status: open
+produced_at: 2026-07-27T17:40:00Z
+status: closed
+closed_at: 2026-07-27T17:40:00Z
+closed_by_session: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
+closed_by_commit: 9b92ee5
 handoff_type: investigation
 accurate_as_of_head: 25b93e102fd5e0c89391852e1ba92b949705c2d7
 ---
+
+## CLOSURE NOTE (2026-07-27)
+
+**RESOLVED.** Commit `9b92ee5` moved `needs_llm_check` from `DISALLOWED_GATE_STATES` to `ALLOWED_GATE_STATES` in `close_runner.py:47-48`. The runner now accepts `needs_llm_check` as a valid terminal state per SKILL.md line 108. Regression test `test_gates_needs_llm_check_accepted` added. 8/8 gate-validation tests pass; 351/353 total (2 pre-existing failures unrelated to this fix).
+
+The fix was applied after a /why RCA (this session) revealed the root cause: the scanner was working as designed; the runner was enforcing a stricter contract than the spec defines. See wiki concept `[[compaction-inherited-diagnosis-unverified-propagation]]` for the cross-session failure mode that delayed the fix.
+
+---
+
+
 
 # close_runner.py rejects `needs_llm_check` gates — should emit one-line verdict per SKILL.md
 
