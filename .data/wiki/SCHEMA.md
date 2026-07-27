@@ -296,7 +296,18 @@ Speculative links are seeds for future pages.
    **Single-call alternative:** `python .../wiki_ingest.py --post-write <page-path> --notes "<1-line>"` runs all post-write steps in order — verify → `qmd update` → auto-link → contradiction-scan → log-append. Steps run in strict order; failures are reported in JSON status but do not abort the chain. Prefer this driver for bulk ingest; use the individual scripts for ad-hoc operations.
 7. Append to `log.md` (§6 format).
 8. Run QMD update if available: `qmd update` to refresh the semantic index.
-9. Report: pages written (title → path) and pages skipped.
+9. **Post-write qmd verification (mandatory):** after steps 6-8, verify the
+   page is actually in the qmd index by searching for its title:
+   `qmd search --collection wiki --query "<concept title>" --top-k 3`.
+   If the new concept does NOT appear in the results, add it explicitly:
+   `qmd document add --collection wiki --document-id <slug> --markdown-file <path>`.
+   This catches the ~2% of writes where `wiki_after_write.py`'s auto-indexing
+   silently fails (malformed frontmatter, encoding issues, race conditions
+   with concurrent indexers, or the post-write driver reporting `ok` without
+   actually indexing). A concept that passes validation but isn't in qmd is
+   invisible to semantic search — equivalent to not existing for any future
+   session that queries the vault.
+10. Report: pages written (title → path) and pages skipped.
 
 **Bulk file ingest** (when ingesting from Downloads, transcripts, or other directories):
 1. Pre-phase: run manifest script (`wiki_manifest.py`) to SHA256-hash all files and dedup against `log.md`. Output: manifest JSON with `{path, hash, size, status, tier}`.
