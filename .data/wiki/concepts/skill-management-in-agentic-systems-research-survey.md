@@ -162,6 +162,27 @@ This survey is wrong if:
 - **Our skill count (39) is below the routing-degradation threshold.** SkillRouter's problem may not be our problem yet. Test: measure misrouting incidents from the /tp critique log; if near-zero, routing accuracy isn't the constraint.
 - **The "measure" mode requires infrastructure we don't have.** Retrospective MEC needs per-skill session traces (which skill fired, was its output used). We may not log this. Test: check whether /aar or /tp critique log captures per-skill usage.
 
+## Receipts
+
+**External research sources (all cited with arxiv IDs or repo URLs):**
+- SLIM (Shen et al. 2026): https://arxiv.org/html/2605.10923v1 — read via web_fetch this session; the retain/retire/expand operations + leave-one-skill-out MEC estimation are described in §4.2-4.3
+- SLIM repo: https://github.com/ejhshen/SLIM — cited in the paper; not directly inspected
+- CODESKILL (Li et al. 2026): https://arxiv.org/abs/2605.25430 — cited from search results; paper body not directly read (abstract + search snippet)
+- SkillRouter (Zheng et al. 2026): https://arxiv.org/html/2603.22455v2 — cited from search results; paper body not directly read
+- Externalization review (Zhou et al. 2026): https://arxiv.org/html/2604.08224 — cited from search results; paper body not directly read
+- addyosmani deprecation-and-migration: https://github.com/addyosmani/agent-skills/blob/main/skills/deprecation-and-migration/SKILL.md — cited from search results; not directly read
+
+**Internal workspace evidence:**
+- `C:/Users/brsth/.grok/skills/close/__lib/close_runner.py:47-48` — the BUG-03 fix (commit 9b92ee5) that motivated this research
+- `P:/.data/wiki/concepts/skill-lifecycle-toolkit.md` — the 5 transferable techniques (now merged into skill-development-portfolio)
+- `P:/.data/wiki/concepts/skill-development-portfolio.md` — Techniques 1-12 (pre-existing) + 13-18 (merged this session)
+- `P:/docs/handoffs/skill-consolidation-20260722/HANDOFF.md` — the original 3-mode plan that this research narrowed to measure+improve
+
+**Tier assignments:**
+- SLIM paper content: Tier 2 (peer-reviewed reference, read via web_fetch)
+- CODESKILL, SkillRouter, Externalization review: Tier 4 (cited from search snippets, not directly read — labeled as such above)
+- Internal workspace evidence: Tier 1 (directly inspected this session)
+
 ## Cold-start protocol
 
 ```powershell

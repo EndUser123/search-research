@@ -15,7 +15,7 @@ host: both
 agent: grok
 verification: cross_referenced_to_actual_skills
 cognitive_load: 4
-summary: "What our skill-writing and skill-improving skills actually do, what's unique about our portfolio, and how to choose the right one. Covers /create-skill, /skill-write, /skill-audit, /improve, /debrief, /aar, /tp, /www in their skill-development capacity. Documents 12 techniques unique to our portfolio that aren't in industry best practices."
+summary: "What our skill-writing and skill-improving skills actually do, what's unique about our portfolio, and how to choose the right one. Covers /create-skill, /skill-write, /skill-audit, /improve, /debrief, /aar, /tp, /www in their skill-development capacity. Documents 18 techniques unique to our portfolio that aren't in industry best practices (12 original + 6 lifecycle techniques merged from skill-lifecycle-toolkit 2026-07-27)."
 ---
 
 # Skill-development portfolio
