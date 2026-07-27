@@ -59,6 +59,9 @@ The workspace has **many** review-type skills across Grok, Claude, and plugins:
 | `requesting-code-review` | Post-implementation review trigger | superpowers | Workflow trigger, not a review engine |
 | `receiving-code-review` | Process review feedback | superpowers | Workflow handler, not a review engine |
 | `verification-before-completion` | Pre-claim verification | superpowers + .agents | Overlaps /check |
+| `review_bundle` | Decision-ready review bundles for external architectural review | Claude-only | Overlaps /review Step 6 (durable copy) |
+| `risks` | Fast pessimistic pass on un-actioned proposal | Claude-only | Overlaps /red-team pessimistic-pass mode |
+| `review-pr` | Multi-agent PR review (Claude) | Claude-only | DEPRECATED already; absorbed by /review |
 | `skill-audit` | Audit skill against quality rubric | Claude-only | Worth porting for /skill-prune |
 | `epistemic-check` | Validate Q&A against epistemic contract | Claude-only | Niche; defer |
 | `sqa` | 11-layer sequential quality analysis | Claude-only | Heavy; defer |
