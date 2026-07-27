@@ -1,5 +1,29 @@
 # Vault Log
 
+## Auto-test Stop hooks and property-based testing for AI-generated code
+Source: session-2026-07-27 / /www auto-test + mutation/PBT research
+Agent: grok
+Notes: Auto-test in Stop hook saves turns via additionalContext JSON. PBT (Hypothesis) catches 81% vs 69% for unit tests on AI code — solves tautological-test blind spot. Mutation testing too slow for hooks; use CI. Recommendation: extend quality_gate.py to run tests + emit additionalContext + check stopHookActive.
+Page: P:/.data/wiki/concepts/auto-test-stop-hooks-and-property-based-testing.md
+
+## LLM instruction non-compliance activation gap
+Source: session-2026-07-27
+Agent: grok
+Notes: Why agents read skills but don't follow them; CLAUDE.md outperforms skills for always-on rules
+Page: wiki/concepts/llm-instruction-non-compliance-activation-gap-2026.md
+
+## Enforcing KB consultation before action: methods
+Source: session-019f9a3c /www research
+Agent: grok
+Notes: /www on how practitioners force agents to check docs before acting. 3 tiers (hard/soft/adaptive); hard preferred. Reflection fails without external grounding. Risk-tiered escalation beats confidence-based. Wiki claims externally corroborated. 4 parallel subagents + disconfirmation pass.
+Page: P:/.data/wiki/concepts/enforcing-kb-consultation-before-action-methods.md
+
+## Error-handling loops skip the wiki-query step
+Source: session-019f9a3c /why RCA
+Agent: grok
+Notes: /why on nlm-to-wiki session that declared 'operator must do OAuth' without querying wiki. Distinct trigger from search-before-proposing: error-handling is diagnosis-shaped, not proposal-shaped. Cross-model review (glm-5-2) passed 3/3.
+Page: P:/.data/wiki/concepts/error-handling-loops-skip-wiki-query.md
+
 ## Grok Build Stop hook patterns and v0.2.107 feedback mechanism
 Source: session-2026-07-27 / /www grok build hooks
 Agent: grok
