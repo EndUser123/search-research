@@ -2,6 +2,10 @@
 title: "Skill lifecycle toolkit: create, audit, improve, and retire skills on Grok Build"
 created: 2026-07-22
 source: session-019f8a66 (skill consolidation analysis + /tp review)
+status: superseded
+superseded_by: wiki/concepts/skill-development-portfolio.md
+superseded_date: 2026-07-27
+superseded_reason: "Techniques 13-18 merged into skill-development-portfolio.md to consolidate the single source of truth. The portfolio now has all 18 techniques + the DEPRECATED convention + the routing table."
 sources:
   - P:/docs/handoffs/skill-consolidation-20260722/HANDOFF.md
   - P:/.data/wiki/concepts/skill-development-portfolio.md
@@ -21,7 +25,9 @@ summary: "The skill lifecycle on Grok Build: which skill to use for each job (cr
 
 # Skill lifecycle toolkit
 
-## The lifecycle
+> **⚠️ SUPERSEDED (2026-07-27):** This concept's 5 transferable techniques (TDD for skills, held-out validation, description optimization, pressure testing, rationalization tables) + the DEPRECATED convention have been merged into [[skill-development-portfolio]] (Techniques 13-18). This file is preserved as reference but the portfolio is now the single source of truth for skill-development techniques. Do not update this file — update the portfolio instead.
+
+## Decision context
 
 ```
 CREATE --------------- AUDIT --------------- IMPROVE --------------- RETIRE

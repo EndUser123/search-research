@@ -176,6 +176,46 @@ These are techniques we've developed or adopted that are NOT in the standard ski
 - Phase 3 persists improvements (durable change)
 **Failure mode it prevents:** skill ossification — skills that never get improved because no one thinks to research how
 
+## Q2b: Lifecycle techniques (merged from skill-lifecycle-toolkit 2026-07-27)
+
+These 5 techniques + the DEPRECATED convention were originally documented in a parallel concept (`skill-lifecycle-toolkit.md`). Merged here to consolidate the single source of truth.
+
+### Technique 13: DEPRECATED-description convention (retiring skills)
+
+**What it does:** when retiring a skill, prepend `DEPRECATED — use /<replacement> instead.` to the `description` frontmatter field. Keep the body intact as fallback reference.
+**Why over archive (Move-Item):** frontmatter edit is atomic and non-locking on Windows (avoids file-lock IOException); the catalog scanner still sees the entry with its redirection; recoverable by reverting the edit.
+**Existing examples:** `check-work/SKILL.md`, `code-review/SKILL.md`
+
+### Technique 14: TDD for skills (RED-GREEN-REFACTOR)
+
+**Source:** superpowers `writing-skills` (ENABLED on Grok Build)
+**What it does:** if you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
+**The cycle:** RED (run pressure scenario without skill, document failures) → GREEN (write skill addressing those failures) → REFACTOR (find rationalizations to skip, add counters, re-test).
+
+### Technique 15: Held-out validation
+
+**Source:** `skillopt` (Codex-native)
+**What it does:** only accept a skill improvement if it wins on examples NOT used to drive the edit. Prevents overfitting to specific test cases.
+**Procedure:** split evidence into training (drive the edit) and held-out (validate). Score baseline on both. Apply edit. Score candidate on both. Accept only if: improves on ≥1 dimension, no regression on others, gain supported by held-out.
+
+### Technique 16: Description optimization
+
+**Source:** `skill-write` (cc-skills-architect) + `skill-creator` (Anthropic marketplace)
+**What it does:** the `description` frontmatter field is the ONLY signal the model sees at selection time. Optimize for trigger accuracy using train/test split.
+**Procedure:** generate 20 eval queries (8-10 should-trigger, 8-10 should-not-trigger). Split 60/40 train/held-out. Evaluate, propose improvements, re-evaluate on both. Select by TEST score, not train.
+
+### Technique 17: Pressure testing for discipline skills
+
+**Source:** superpowers `writing-skills`
+**What it does:** discipline-enforcing skills need to resist rationalization. Test under pressure, not neutral conditions.
+**Pressure types:** time, sunk cost, authority, exhaustion. Combine 2-3. Run scenario with skill loaded; observe compliance vs rationalization. Capture rationalizations, add counters, re-test.
+
+### Technique 18: Rationalization tables
+
+**Source:** superpowers `writing-skills`
+**What it does:** agents find loopholes under pressure. Capture every rationalization explicitly and counter it in the skill body.
+**Pattern:** each excuse gets a row: `| Excuse | Reality |`. "Too simple to test" → "Simple code breaks. Test takes 30 seconds."
+
 ## Q3: Are we doing anything unique that should be documented?
 
 **Yes — the 12 techniques above.** Most are already documented across individual wiki concepts and AGENTS.md rules. The techniques index at [[skill-techniques-index]] consolidates them. What was missing before this session:
