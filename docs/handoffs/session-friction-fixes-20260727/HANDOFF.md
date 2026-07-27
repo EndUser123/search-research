@@ -17,18 +17,19 @@ Fix two recurring friction points from session 019f9f4f: (1) qmd search query pa
 
 ## Status
 
-OPEN — both need investigation before fix.
+SF-01: ✅ RESOLVED 2026-07-27 (root cause confirmed, fix applied, recovery script created).
+SF-02: ✅ RESOLVED 2026-07-27 (retry-with-backoff helper added to grok-safe-git).
 
 ## Task packets
 
-### SF-01: Fix qmd search query parser
+### SF-01: Fix qmd search query parser — ✅ RESOLVED
 
 - **problem:** `qmd search --query "concurrent git commit collision multi-agent shared filesystem"` fails with `{"error":"no such column: <keyword>"}` on queries containing commas or certain SQL-like keywords. Failed 5+ times this session.
-- **root cause hypothesis:** the query string is being interpolated into a SQL query without escaping; keywords like "end", "agent", "flagellation", "improving" are interpreted as column names.
-- **in scope:** qmd's query parser (in the qmd Python package at `site-packages/qmd/`)
-- **out of scope:** changing qmd's search algorithm; only fixing the query parsing
-- **acceptance:** `qmd search --query "any string with commas, keywords, or special chars"` returns results without SQL errors
-- **falsifier:** the fix breaks existing working queries
+- **root cause (CONFIRMED Tier 1, 2026-07-27):** NOT SQL injection (the original hypothesis). The query was already parameterized via `?`. The actual cause: FTS5's MATCH expression parser interprets query-syntax characters (`-`, `:`, `^`, `"`, `*`, `(`, `)`) in the raw user query. A query like "build-vs-port" is misparsed — the hyphens trigger FTS5 query-syntax interpretation, and `vs` is treated as a column reference against the single-column `chunks_fts(text)` table, producing `no such column: vs`.
+- **discriminating test (receipt):** `"build vs port"` (spaces) ✅ works; `"build-vs-port"` (hyphens) ❌ fails; `"vs"` (bare) ✅ works. Trigger isolated to FTS5 special characters, not the word "vs" itself.
+- **fix applied:** added `_sanitize_fts5_query()` to `site-packages/qmd/core/collection.py` — wraps the query in double quotes (FTS5 phrase query), disabling syntax interpretation. Patched `_bm25_search` and `_check_strong_signal` to call it. Verified: original failing query now returns 3 results.
+- **recovery:** `python P:/.agents/scripts/qmd_fts5_patch.py` — idempotent re-applier. Run after any `pip install --upgrade qmd`. Detects already-patched state and exits 0.
+- **wiki concept:** `P:/.data/wiki/concepts/fts5-query-syntax-escaping-required.md` (the systemic pattern — affects any tool using FTS5 MATCH with user input).
 
 ### SF-02: Git index lock contention mitigation
 
