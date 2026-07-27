@@ -275,10 +275,10 @@ spawn_subagent(
 )
 ```
 
-**Model selection for verifiers — tiered routing (F5):**
+**Model selection for verifiers — tiered routing (MANDATORY, not optional):**
 
 Route verifiers to the cheapest model that can do the job. The concern type
-determines the tier:
+determines the tier. **This is mandatory, not a suggestion** — using parent-inherited Grok for doc-only verifiers wastes ~4x the necessary latency (observed: 802s contract verifier vs 151s wiki verifier on the same session).
 
 | Concern type | Recommended model | Why |
 |-------------|-------------------|-----|
@@ -454,6 +454,8 @@ you can re-run the actual check yourself. Constraints: read-only git only (no
 commit/push/reset/clean/stash/checkout); no modifications to tracked files;
 scratch scripts go in `$runDir/results/` or `$env:TEMP/`. Full allowed /
 disallowed list is in Step 3 of the orchestrator's SKILL.md.
+
+**Read-once discipline (mandatory for verifier efficiency):** Read each file ONCE. If you need to reference a specific line later, cite it from your context — do NOT re-read the file. Repeated reads of large files (AGENTS.md, SKILL.md) are the #1 cause of slow /check runs (observed: 13min wall clock from one verifier doing 57 tool calls, many of which were re-reads). The evidence packet provides objective signals — use those instead of re-reading source when possible.
 
 **If the orchestrator passed an evidence packet path** (a JSON file under
 `$runDir/packets/evidence-packet.json`), read it FIRST. It contains
