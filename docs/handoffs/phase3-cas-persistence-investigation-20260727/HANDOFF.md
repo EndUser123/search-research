@@ -19,7 +19,8 @@ Investigate why the B4 CAS commit engine (and B5 submodule reconciliation) produ
 
 ## Status
 
-OPEN — Mode A and Mode B root causes FOUND (2026-07-27T13:48Z). Both are the same defect: freshness barrier race between `commit-tree` and `update-ref`. Fix is INV-CAS-01 (move commit-tree after freshness check) or INV-CAS-03 (post-commit verification in close coordinator).
+FIX VERIFIED — Mode A, post-CAS sync, and Mode C all fixed and deployed.
+Live smoke test confirms commits survive in refs. (2026-07-27T14:30Z)
 
 ## Producing context
 
