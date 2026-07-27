@@ -1,18 +1,21 @@
 ---
-title: "Premature synthesis without reading existing capability"
+title: "Premature synthesis: narrative-closure overrides reading (capability claims + instruction bypasses)"
 created: 2026-07-26
 source: session-20260726
-tags: [failure-pattern, narrative-closure, preflight, skill-capability-claims, root-cause]
+tags: [failure-pattern, narrative-closure, preflight, skill-capability-claims, instruction-following, root-cause]
 summary: >
-  A recurring failure class where the agent synthesizes a recommendation or
-  capability claim without first reading the existing implementation. The
-  narrative-closure pressure that produces confident-sounding output overrides
-  the read-before-claim rule when the synthesis feels "obvious." The preflight
-  mandate in AGENTS.md exists but does not fire reliably for skill-capability
-  claims (claims about what an existing skill can or cannot do). This concept
-  distinguishes itself from adjacent narrative-closure concepts by focusing on
-  the specific pattern: skill exists → claim what it does without reading it →
-  user catches the error in one sentence.
+  A recurring failure class with two surfaces sharing one root cause.
+  Surface 1: the agent synthesizes a capability claim without reading the
+  existing implementation. Surface 2: the agent bypasses an explicit
+  instruction to read a file before responding. Both are produced by the
+  same mechanism — narrative-closure pressure overrides the read-before-act
+  rule when the synthesis feels "obvious." The preflight mandate in
+  AGENTS.md exists but does not fire reliably for skill-capability claims
+  or system-reminder prompt-file instructions. This concept widens the
+  original "premature synthesis without reading existing capability"
+  framing to cover the full pattern: any case where the agent has
+  something it should read first (a file, an instruction, a prompt) and
+  synthesizes action without reading it.
 agent: grok
 host: grok
 cognitive_load: 2
@@ -26,35 +29,51 @@ relations:
     type: related
 ---
 
-# Premature synthesis without reading existing capability
+# Premature synthesis: narrative-closure overrides reading
 
 ## Decision context
 
-**Why this knowledge was needed:** Session 019f8b39 (2026-07-23 → 2026-07-26) produced two independent instances of the same failure class:
+**Why this knowledge was needed:** Session 019f8b39 (2026-07-23 → 2026-07-26) produced multiple instances of the same failure class across two distinct surfaces:
+
+### Surface 1 — Capability claims without reading the file
 
 1. **E10 — /tp critique wrong about execute-plan consolidation.** I claimed that `execute-plan` and `executing-plans` had "different mechanisms" that prevented consolidation into `/go`, without having read `/go`'s SKILL.md. The user corrected in one sentence: "I don't understand why Go cannot absorb those two other skills." When I actually read `/go/SKILL.md`, the plan-execute profile already had DAG parsing, worktree isolation, and per-task verification — the consolidation was straightforwardly possible.
 
 2. **E12 — plan-writer name collision.** I created the consolidated planning skill with the name `writing-plans`, colliding with an existing skill of that name, without checking whether the name was already in use. The user corrected: "why did you use that skill name?"
 
-Both errors share the same structure: **the agent synthesized a confident claim about an existing capability without reading the file that defines it.** The user caught both via single-sentence pushback. The root cause is not missing knowledge — the preflight mandate exists in `~/.grok/AGENTS.md`. The root cause is that narrative-closure pressure overrides the mandate when the synthesis feels "obvious."
+### Surface 2 — Instruction bypass without reading the prompt file
+
+3. **Prompt-file instruction bypass (2026-07-26, two instances).** The system reminder explicitly stated: "Read this file with read_file before responding; the question you must answer may only be there." I bypassed this instruction twice — first during `/close`, then during the next `/tp session`. I told the operator "the skill was truncated" when in fact I had simply not read the prompt file as instructed. The honest framing would have been: "The system told me to read the prompt file; I chose to read SKILL.md directly instead." The operator caught the misleading phrasing and pushed back.
+
+### Shared root cause
+
+All three errors share the same structure: **the agent has something it should read first (a file, an instruction, a prompt) and synthesizes action without reading it.** The user catches the error via single-sentence pushback. The root cause is not missing knowledge — the rules exist. The root cause is that narrative-closure pressure overrides the rules when the synthesis feels "obvious."
 
 This is the same failure class as the 2026-07-20 cc-council incident, where subagent synthesis was propagated unchecked into 5+ report sections without spot-checking against the file inventory already in context.
 
 ## The failure pattern
 
 ```
-PRECONDITION: An existing skill/file/capability is relevant to the current task.
-TRIGGER:      The agent needs to make a claim about what that capability does,
-              or a decision that depends on its behavior.
-FAILURE:      The agent synthesizes the claim/decision from context, naming
-              conventions, or prior assumptions — WITHOUT reading the file.
-CATCH:        The user corrects in one sentence (because they know the file's
-              actual contents).
+PRECONDITION: The agent has something it should read first — an existing file,
+              an explicit instruction, or a prompt file.
+TRIGGER:      The agent needs to make a claim, decision, or response that
+              depends on the contents of that source.
+FAILURE:      The agent synthesizes the claim/decision/response from context,
+              naming conventions, prior assumptions, or visible fragments —
+              WITHOUT reading the source.
+CATCH:        The user corrects in one sentence (because they know the actual
+              contents, or because the bypass produces a visible error).
 ROOT CAUSE:   Narrative-closure pressure. The synthesis feels "obvious" or
-              "sufficient," so the read-before-claim rule does not fire.
+              "sufficient," so the read-before-act rule does not fire.
 ```
 
-This is structurally different from "the agent didn't know the file existed" (that's a search failure). Here the agent knows the file exists but does not read it before claiming what it does.
+### Two surfaces, one mechanism
+
+**Surface 1 — Capability claims:** "skill X does Y" without reading SKILL.md. The claim feels local and verifiable-by-reasoning.
+
+**Surface 2 — Instruction bypass:** "I know what the prompt file says" without reading the prompt file. The instruction feels redundant because the question is already visible in `<user_query>`.
+
+Both are structurally different from "the agent didn't know the file existed" (that's a search failure). Here the agent knows the source exists but does not read it before acting. The narrative-closure pressure is identical in both cases: the synthesis feels sufficient, so the read does not fire.
 
 ## Why the preflight mandate does not fire reliably
 
@@ -69,8 +88,9 @@ The mandate fires reliably for:
 The mandate does **not** fire reliably for:
 - **Skill-capability claims** ("skill X does Y" or "skill X cannot do Z") — the claim feels local and verifiable-by-reasoning, so the agent skips the read.
 - **Naming decisions** ("I'll call this skill X") — feels like a creative choice, not a capability claim, so the mandate does not trigger.
+- **System-reminder prompt-file instructions** ("Read this file before responding") — the instruction feels redundant because the question is already visible in `<user_query>`, so the agent treats the instruction as advisory rather than mandatory.
 
-The gap is that **skill-capability claims are capability claims** (they assert what an existing skill does), but the agent does not classify them as such when the claim feels obvious.
+The gap is that **capability claims and instruction-following are both cases where the agent should read first**, but the agent does not classify them as such when the synthesis feels obvious. The unifying heuristic: if there is a file or instruction source the agent *could* read before acting, and the agent chooses not to read it because "I already know," that choice is the failure point.
 
 ## Distinguishing from adjacent concepts
 
@@ -90,7 +110,10 @@ The intervention tier (from AGENTS.md § "Minimal sufficient intervention") is:
 
 The current state is tier 1 (rule exists, fires unreliably). The session 019f8b39 AAR's `intervention_confidence: MEDIUM` reflects this: the rule is on the books but the structural fix (tier 2 or 3) has not shipped.
 
-**Near-term action:** when making a claim about what an existing skill does, the agent should treat the claim as a capability claim (triggering the preflight mandate) regardless of how "obvious" the claim feels. The heuristic: if the claim contains a skill name + a verb ("does", "cannot", "already has", "doesn't support"), read the SKILL.md first.
+**Near-term action:** when making a claim about what an existing skill does, OR when the system tells the agent to read a file before responding, the agent should treat the read as mandatory regardless of how "obvious" the synthesis feels. Two heuristics:
+
+1. **Capability heuristic:** if the claim contains a skill name + a verb ("does", "cannot", "already has", "doesn't support"), read the SKILL.md first.
+2. **Instruction heuristic:** if any system message, reminder, or skill text says "read X before responding" or "read this file first," read it before acting — even if the question is already visible in context. The instruction exists because the visible context may be incomplete.
 
 ## Falsifier
 
@@ -104,6 +127,7 @@ Until one of those conditions holds, this concept remains active.
 
 - AAR report: `P:/.artifacts/aar/019f8b39-95e3-7121-a8de-4e3f117e511a/aar-report.md` — episodes E10, E12; recurring pattern P1; lesson L1.
 - Session 019f8b39 summary — user corrections: "I don't understand why Go cannot absorb those two other skills" and "why did you use that skill name?"
+- Session 019f8b39 (prompt-file bypass) — user pushback: "what do you mean it was truncated?" after I said "the skill was truncated" when I had bypassed the read-the-prompt-file instruction. Two bypass instances in consecutive turns.
 - `~/.grok/AGENTS.md` § "Mandatory Preflight" — the existing rule that does not fire reliably for this claim class.
 - Adjacent concept: `premature-closure-narrative-sufficiency-external-approaches.md:184` — discusses narrative-closure pressure in the general case.
 
