@@ -40,7 +40,7 @@ The workspace has paired skills (`/grok-verify` + `/check`, `/grok-go` + `/go` a
 - `/check` = independent verification (do fresh subagents confirm it?)
 - `/check` SKILL.md line 20: "Pair with `/check` for adversarial subagent verification when the change is non-trivial"
 
-**Conclusion:** `/grok-verify` should NOT merge into `/check`. They serve different SDLC stages (self-verify vs independent-verify). Merging would conflate self-check with independent verification.
+**Open question:** should `/grok-verify` merge into `/check`? The operator's position: they should be investigated for consolidation. Arguments for merge: they share the same SDLC stage (VERIFY), both produce PASS/FAIL verdicts, and `/check` is the more capable skill. Arguments against: they serve different verification modes (self-check vs independent). This needs a fresh investigation, not a conclusion from the current session.
 
 ### Other grok-* skills
 
