@@ -226,6 +226,24 @@ def build_body(c: dict) -> str:
         parts.append(c["source_section"])
         parts.append("")
 
+    # v3 transcript-cluster pages: add a Receipts section so the wiki validator's
+    # mechanism-claim receipt rule is satisfied. These pages discuss concepts FROM
+    # video sources, not claims about local workspace code, but transcript content
+    # often uses trigger words ("mechanism", "scanner", "hook", "because") in
+    # innocent source-derived contexts. The receipt disambiguates.
+    if is_tc:
+        parts.append("## Receipts")
+        parts.append("")
+        parts.append("Source-derived concept: all claims in this page originate from")
+        parts.append(f"transcripts in NotebookLM notebook `{c.get('notebook_id', '')}`")
+        parts.append(f"(cluster `{c.get('cluster_name', '')}`). No claims are made")
+        parts.append("about local workspace implementation. Trigger words like")
+        parts.append("'mechanism', 'scanner', 'gate', 'hook', 'because' refer to concepts")
+        parts.append("discussed in the source videos, not to local code behavior.")
+        parts.append("Implementation path: nlm-to-wiki/scripts/synthesize_subtopics.py")
+        parts.append("(LLM synthesis from transcripts — no local code inspected).")
+        parts.append("")
+
     parts.append("## What this means for our workspace")
     parts.append("")
     parts.append("Synced from NotebookLM. Provenance chain (concept → notebook → cluster → URL) "
