@@ -19,7 +19,7 @@ Investigate why the B4 CAS commit engine (and B5 submodule reconciliation) produ
 
 ## Status
 
-OPEN
+OPEN — Mode A root cause FOUND and reproduced (2026-07-27T13:20Z). Mode B investigation pending.
 
 ## Producing context
 
@@ -58,6 +58,19 @@ OPEN
 - [FACT] The child repo has a `.git` **directory** (not a `.git` file pointing to a worktree gitdir), confirming it's a standalone repository with its own object store. (Verified 2026-07-27T12:58Z)
 
 - [FACT] The deterministic suite passes: 21/21 test files, 0 failures, run twice (pre- and post-acceptance). (Verified 2026-07-27T00:52Z and 2026-07-27T05:22Z)
+
+### Mode A root cause — FOUND and reproduced (2026-07-27T13:20Z)
+
+- [FACT] Root cause location: `commit_coordinator.py` lines 396-435. The commit path is: `commit-tree` (line 396, creates object) → freshness barrier (line 415, checks HEAD) → `update-ref` (line 430, links to ref).
+- [FACT] The race window: between `commit-tree` (line 396) and `update-ref` (line 430), the freshness barrier at line 415 re-checks HEAD. If HEAD moved (sibling session committed), the function returns `COMMIT_OBJECT_CREATED_CAS_FAILED` with `commit_sha = new_commit[:12]` — but `update-ref` is never reached, so the commit object dangles.
+- [FACT] Reproduction: `P:/tmp/trace_mode_a.py` simulated a sibling commit between `commit-tree` and `update-ref`. Result: commit object `ff49fac6ef1f` created, NOT in `git log --all`, IS in `cat-file -t` → confirmed dangling. `COMMIT_OBJECT_CREATED_CAS_FAILED` returned with the dangling SHA.
+- [FACT] Close coordinator propagation bug: `close_coordinator.py` line 423 `commit_sha=rr.commit_sha or ""` copies the dangling SHA into `RepoCloseResult` regardless of `result_state`. Line 381 correctly marks `local_state = PERSISTENCE_BLOCKED` for non-COMMITTED states, but the `commit_sha` field still contains the phantom SHA.
+- [INFERENCE] This explains all 3 Mode A occurrences: P:\ (`268cc357be75`), P:\ worktree (`eff9bc3`), ~/.grok (`0c4cd3e`) — all were created during concurrent sibling session activity on the shared working tree.
+- [INFERENCE] The deterministic tests don't catch this because they run in isolation (no concurrent commits), so the freshness barrier never triggers.
+
+### Mode B root cause — investigation pending
+
+- [UNKNOWN] Session 2's child (`c3fb5b1`) and parent (`6c7f7a4`) commits don't exist as objects at all. This is more severe than Mode A — not even a dangling commit. Requires reading `submodule_coordinator.py` to determine whether the git operation was never run, the SHA was synthesized, or an error was swallowed.
 
 ## Current state
 
