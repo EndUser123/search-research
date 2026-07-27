@@ -111,6 +111,15 @@ synthesizes locally, so every claim traces to a verbatim source excerpt. See
 ## Usage
 
 ```bash
+# DEFAULT (no args): list notebooks with sync status, then pick one
+python P:/.agents/skills/nlm-to-wiki/scripts/sync.py
+# → prints a status table (notebook × synced/transcripts/pages)
+# → run again with --notebook <id> to sync the one you want
+
+# Status only (no sync)
+python P:/.agents/skills/nlm-to-wiki/scripts/sync.py --status
+python P:/.agents/skills/nlm-to-wiki/scripts/sync.py --status --min-sources 50
+
 # Sync one notebook (the canonical case)
 python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
     --notebook <uuid> \
@@ -142,6 +151,22 @@ python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
     --notebook <uuid> \
     --enrich-vision --max-subtopics 12 --synth-backend mmx
 ```
+
+## Agent invocation pattern (when invoked as `/nlm-to-wiki`)
+
+When the skill is invoked without a target notebook, the agent should:
+
+1. Run `python sync.py --status` to produce the notebook status table.
+2. Use `ask_user_question` to let the operator pick. Offer common choices:
+   - The notebook with the most unsynced sources
+   - Any notebook already partially synced (transcripts > 0, pages = 0)
+   - "All qualifying notebooks" (`--all` with `--min-sources` filter)
+   - Other (operator types a notebook ID)
+3. On selection, run `python sync.py --notebook <id> --dry-run` first, then
+   the full sync if the dry-run output looks right.
+
+Do not auto-run `--all` without explicit operator confirmation — 87
+notebooks at ~15-25 min each is multi-hour work.
 
 ## Decision points
 
@@ -212,6 +237,49 @@ The sync manifest at `P:/.data/wiki/_state/nlm-sync-manifest.json` records
   against existing pages (refines any that already exist from prior sync)
 
 This makes `nlm-to-wiki sync` idempotent and safe to schedule.
+
+## Maintenance and cleanup
+
+The skill accumulates state: the manifest (`_state/nlm-sync-manifest.json`),
+transcript files (`sources/transcripts/`), concept pages (`concepts/`), and
+keyframes (`sources/keyframes/`). Notebooks get deleted, sources get removed,
+v2→v3 migrations leave stale slugs. `maintenance.py` audits and repairs.
+
+```bash
+# Audit (read-only, safe) — report all mismatches
+python P:/.agents/skills/nlm-to-wiki/scripts/maintenance.py --audit
+
+# Status + audit in one pass (the routine health check)
+python P:/.agents/skills/nlm-to-wiki/scripts/maintenance.py --audit --disk-report
+
+# Fix stale manifest concept_slugs (pages deleted but slugs remain)
+python maintenance.py --fix-stale-slugs --confirm
+
+# Remove transcripts whose notebook was deleted from NotebookLM
+python maintenance.py --remove-orphaned-transcripts --confirm
+
+# Prune ALL state for a deleted notebook (manifest + transcripts + concept pages)
+# Concept pages are moved to _state/nlm-trash/<uuid>/, not deleted outright.
+python maintenance.py --prune-notebook <uuid> --confirm
+
+# Apply all safe fixes in one pass
+python maintenance.py --all-fixes --confirm
+```
+
+**Safety model:** every destructive command requires `--confirm`. Without it,
+the command runs as a dry-run and reports what it *would* change. `--prune-notebook`
+is the most destructive (removes concept pages too) — concept pages are moved
+to `_state/nlm-trash/<uuid>/` for recovery, never outright deleted.
+
+**When to run maintenance:**
+
+| Trigger | Command |
+|---|---|
+| After deleting wiki concept pages manually | `--fix-stale-slugs` clears dangling manifest refs |
+| After a notebook is deleted from NotebookLM | `--remove-orphaned-transcripts` + `--prune-notebook <id>` |
+| Monthly health check | `--audit --disk-report` (read-only) |
+| Before a large re-sync | `--all-fixes` to start from clean state |
+| Disk pressure on `sources/` | `--disk-report` shows per-notebook transcript size |
 
 ## References
 

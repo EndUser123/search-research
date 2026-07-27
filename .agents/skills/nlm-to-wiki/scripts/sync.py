@@ -318,15 +318,88 @@ def save_state(state: dict, path: Path | None) -> None:
     os.replace(tmp, path)
 
 
+def list_notebooks(profile: str) -> list[dict]:
+    """Return the account's notebooks (id, title, source_count)."""
+    rc, out, _ = run(["nlm", "notebook", "list", "--profile", profile, "--json"], timeout=120)
+    if rc != 0:
+        return []
+    try:
+        data = json.loads(out)
+        return data if isinstance(data, list) else data.get("notebooks", [])
+    except json.JSONDecodeError:
+        return []
+
+
+def notebook_status(profile: str, min_sources: int = 10) -> list[dict]:
+    """Build a status table: notebook × {synced?, transcripts, concept_pages}.
+
+    Filters to notebooks with >= min_sources (skips test/worker junk).
+    """
+    nbs = list_notebooks(profile)
+    manifest = load_manifest()
+    transcripts_dir = WIKI_VAULT / "sources" / "transcripts"
+    rows = []
+    for nb in nbs:
+        nid = nb.get("id")
+        sc = nb.get("source_count") or 0
+        if sc < min_sources:
+            continue
+        m = manifest["notebooks"].get(nid, {})
+        # Count transcripts whose frontmatter notebook_id matches
+        n_tx = 0
+        if transcripts_dir.exists():
+            for f in transcripts_dir.glob("*.md"):
+                try:
+                    head = f.read_text(encoding="utf-8")[:600]
+                    if f"notebook_id: {nid}" in head:
+                        n_tx += 1
+                except (OSError, UnicodeDecodeError):
+                    continue
+        rows.append({
+            "notebook_id": nid,
+            "title": nb.get("title", "")[:60],
+            "source_count": sc,
+            "last_synced": m.get("last_synced_at", "—"),
+            "pipeline": m.get("pipeline", "—"),
+            "concept_pages": len(m.get("concept_slugs", [])),
+            "transcripts": n_tx,
+            "synced": bool(m),
+        })
+    rows.sort(key=lambda r: -r["source_count"])
+    return rows
+
+
+def print_status(profile: str, min_sources: int) -> int:
+    """Print notebook sync status as a table; return 0."""
+    rows = notebook_status(profile, min_sources)
+    if not rows:
+        log("No notebooks found (or none meet --min-sources threshold).")
+        return 0
+    print(f"\n{'notebook_id':<14} {'srcs':>5} {'synced':<10} {'tx':>5} {'pages':>5} {'pipeline':<22} {'title'}")
+    print("-" * 110)
+    for r in rows:
+        flag = "yes" if r["synced"] else "—"
+        print(f"{r['notebook_id'][:12]:<14} {r['source_count']:>5} {flag:<10} "
+              f"{r['transcripts']:>5} {r['concept_pages']:>5} {r['pipeline']:<22} {r['title']}")
+    print(f"\n{len(rows)} notebooks (>= {min_sources} sources). "
+          f"Synced: {sum(1 for r in rows if r['synced'])}. "
+          f"Run `python sync.py --notebook <id>` to sync one, or `--all` for everything.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    g = ap.add_mutually_exclusive_group(required=True)
+    g = ap.add_mutually_exclusive_group(required=False)  # no-arg → status picker
     g.add_argument("--notebook")
     g.add_argument("--all", action="store_true")
     g.add_argument("--from-clusters", type=Path, metavar="CLUSTERS_JSON")
+    g.add_argument("--status", action="store_true",
+                   help="print notebook sync status table and exit (also the default when no target given)")
     ap.add_argument("--profile", default="codex")
     ap.add_argument("--state", type=Path, help="resume-state file for --all / --from-clusters")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--min-sources", type=int, default=10,
+                    help="status filter: skip notebooks with fewer sources (default 10)")
     ap.add_argument("--enrich-vision", action="store_true",
                     help="v3: run crv vision enrichment on high-scene-change videos (opt-in)")
     ap.add_argument("--max-subtopics", type=int, default=10,
@@ -334,6 +407,19 @@ def main() -> int:
     ap.add_argument("--synth-backend", choices=["mmx", "dgemma"], default=None,
                     help="v3: LLM backend for sub-topic synthesis (default mmx)")
     args = ap.parse_args()
+
+    # No target → status picker (the friendly default)
+    if not (args.notebook or args.all or args.from_clusters or args.status):
+        if not ensure_auth(args.profile):
+            log(f"FATAL: auth failed for profile '{args.profile}'")
+            return 2
+        return print_status(args.profile, args.min_sources)
+
+    if args.status:
+        if not ensure_auth(args.profile):
+            log(f"FATAL: auth failed for profile '{args.profile}'")
+            return 2
+        return print_status(args.profile, args.min_sources)
 
     if not ensure_auth(args.profile):
         log(f"FATAL: auth failed for profile '{args.profile}'")
