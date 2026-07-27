@@ -16,7 +16,7 @@ host: both
 agent: grok
 verification: cross_referenced_to_existing_concepts
 cognitive_load: 4
-summary: "Curated index of 19 reusable techniques we've developed or adopted across our skill portfolio. Each technique has: what it prevents, where it's implemented, and how to apply it to a new skill. Use this when designing or improving any skill — scan the list for techniques that fit the failure modes you're addressing."
+summary: "Curated index of 42 reusable techniques we've developed or adopted across our skill portfolio. Each technique has: what it prevents, where it's implemented, and how to apply it to a new skill. Use this when designing or improving any skill — scan the list for techniques that fit the failure modes you're addressing."
 ---
 
 # Skill techniques index: reusable patterns
@@ -357,4 +357,87 @@ Unlike the skill catalog (which is auto-generated), this index requires human/ag
 
 - [[skill-enforcement-layers]]
 - [[claude-code-skill-failure-patterns]]
+
+---
+
+## Techniques added 2026-07-27 (session 019fa23d)
+
+### T33. Transcript evidence scan (mechanical error extraction)
+
+**Prevents:** model recall missing friction that the transcript mechanically contains
+**Implemented in:** `/tp` Step 0; `/check` Step 0.5 (preprocessor)
+**How to apply:** before any session-review or verification pass, `Select-String` the transcript for error patterns (`exit != 0`, `Traceback`, `Denied by permission`, `timed out`, `SyntaxError`, etc.). Produce a deduplicated count table. Feed into the review passes as grounded evidence.
+**Cost:** 1 tool call, ~2s; produces ~10-30 line evidence table
+**Wiki concept:** [[visible-output-contracts-for-behavioral-skill-steps]]
+
+### T34. Session-arc scan (transcript as external memory)
+
+**Prevents:** context-window compaction causing loss of early-session workstream visibility
+**Implemented in:** `/tp` Step 0 (session-arc scan)
+**How to apply:** `Select-String` the transcript for workstream boundaries (`user_query`, skill invocations, Stop-hook blocks/allows). Produce a timeline table with line numbers. The model sees the full session arc in ~20-30 lines regardless of context-window state.
+**Cost:** 1 tool call, ~1s; produces ~20-30 line timeline
+**Wiki concept:** [[session-arc-scan-transcript-as-external-memory]]
+
+### T35. Matrix model (two-dimensional finding classification)
+
+**Prevents:** false either/or when a finding spans two orthogonal dimensions (content type × time horizon)
+**Implemented in:** `/tp session` matrix model
+**How to apply:** tag each finding on two orthogonal dimensions (e.g., content type: CONTINUE/STOP/FRICTION/OPPORTUNITY/SURPRISE/LEARNED/OBLIGATION × time horizon: NOW/NEXT/LATER/NOTED). Each finding appears ONCE with both tags. Group output by the dimension the operator scans first.
+**Cost:** ~1s extra thought per finding (assigning 2 tags instead of 1)
+**Wiki concept:** [[matrix-model-for-session-review-content-type-x-time-horizon]]
+
+### T36. NOTED table (visible home for no-action observations)
+
+**Prevents:** observations that need no action silently disappearing from the review
+**Implemented in:** `/tp session` NOTED table
+**How to apply:** render a separate table BEFORE the actionable recommendations list, containing CONTINUE/LEARNED findings and anything with horizon NOTED. The operator sees they were observed — no silent disappearance, no anxiety about "did we miss something?"
+**Cost:** ~5 lines of output table
+**Wiki concept:** [[matrix-model-for-session-review-content-type-x-time-horizon]] § NOTED
+
+### T37. Enhanced recommendation format (TYPE + effort + total)
+
+**Prevents:** operator approving actions without knowing cost or type
+**Implemented in:** `/tp session` recommendation list
+**How to apply:** each recommendation carries `[TYPE]` (FIX/STOP/CAPTURE/VERIFY/RESEARCH), effort (S/M/L), and confidence (H/M/L). Include a `Total estimated effort` line before the `0 - Proceed` prompt. The operator gets a one-glance cost signal.
+**Cost:** ~1s extra per recommendation to assign type + effort
+
+### T38. Visible-output contract for behavioral steps
+
+**Prevents:** mandatory skill steps being silently skipped (the step produces no visible evidence)
+**Implemented in:** `/why` Step 0.5 (pattern-library query receipt)
+**How to apply:** every step labeled "mandatory" must emit a receipt in the output: the actual command run + its result (hit count, file path, exit code). A "no match" without the receipt means the step was skipped. Same receipt discipline as evidence tiers.
+**Cost:** 1 line of output per mandatory step
+**Wiki concept:** [[visible-output-contracts-for-behavioral-skill-steps]]
+
+### T39. Dead-code detection (grep callers before profiling)
+
+**Prevents:** optimizing computation that no consumer reads
+**Implemented in:** `/refactor` Step 4.1 item 5
+**How to apply:** for each function in scope, grep for callers across the target tree. Functions with zero callers (outside tests) get flagged as dead code before any profiling or optimization work begins.
+**Cost:** 1 grep per function; catches the write-only-field pattern
+**Wiki concept:** [[skip-write-only-computation-over-cache-or-budget]]
+
+### T40. Constant-drift detection (shared constants across files)
+
+**Prevents:** silent disagreement when the same constant is defined independently in multiple files
+**Implemented in:** `/refactor` Step 4.1 item 6
+**How to apply:** grep for `^[A-Z_]+\s*=` patterns across files in scope. Same constant name in ≥2 files → flag as P1 drift risk. Module-level constant names are exact-match, so false positives are near-zero.
+**Cost:** 1 grep across all scope files
+**Wiki concept:** [[refactoring-deployed-infrastructure-finding-classes]] § Class 3
+
+### T41. Deployment verification (source≠deployed check)
+
+**Prevents:** refactor passing tests in source worktree but deployed copy diverging
+**Implemented in:** `/refactor` Step 6b + `deployment_target` field in seams.json
+**How to apply:** when the target has a deployed copy separate from source, each seam's verify step includes: (1) copy source→deployed, (2) hash-verify both match, (3) smoke-test the deployed artifact.
+**Cost:** ~30s per seam for copy + hash + smoke-test
+**Wiki concept:** [[refactoring-deployed-infrastructure-finding-classes]] § Class 1
+
+### T42. Risk-of-change secondary sort
+
+**Prevents:** executing highest-risk structural changes before confidence-building trivial changes
+**Implemented in:** `/refactor` Step 4.2
+**How to apply:** within the same priority class, sort seams by risk: S (pure deletion/additive) → M (import/signature change) → L (behavioral logic in load-bearing path). S-risk seams execute first to build confidence.
+**Cost:** 1 secondary sort; zero runtime cost
+**Wiki concept:** [[refactoring-deployed-infrastructure-finding-classes]] § Class 4
 
