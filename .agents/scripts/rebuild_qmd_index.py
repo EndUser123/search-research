@@ -1,25 +1,40 @@
 """Rebuild qmd wiki index — re-indexes any wiki concept files not yet in the qmd collection.
 
 Usage:
-    python P:/.agents/scripts/rebuild_qmd_index.py
+    python P:/.agents/scripts/rebuild_qmd_index.py [--cpu]
 
-Forces CPU mode (CUDA_VISIBLE_DEVICES=-1) to avoid GPU OOM on the Qwen3-Embedding model
-when processing large batches. CPU is slower (~5s/file) but reliable.
+By default uses GPU with torch.cuda.empty_cache() between batches to avoid OOM.
+Pass --cpu to force CPU mode (slower but reliable if GPU is unavailable or contested).
 
 The script:
 1. Lists all .md files in P:/.data/wiki/concepts/
 2. Checks which are already indexed in the qmd 'wiki' collection
-3. Adds unindexed files in batches of 5 with a 1s pause between batches
+3. Adds unindexed files in batches of 5
+4. Between batches: clears GPU cache (default) or sleeps 1s (--cpu)
 
 Run when wiki search quality degrades (qmd search returns stale/missing results).
 The wiki index should match the file count in P:/.data/wiki/concepts/.
 """
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # force CPU to avoid GPU OOM
-
-import qmd
+import sys
 from pathlib import Path
 import time
+
+# Parse --cpu flag before importing torch/qmd
+force_cpu = "--cpu" in sys.argv
+if force_cpu:
+    import os
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+import qmd
+
+def _clear_gpu_cache():
+    """Release fragmented VRAM between batches to prevent OOM."""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except ImportError:
+        pass
 
 client = qmd.connect()
 coll = client.collection("wiki")
@@ -37,7 +52,8 @@ for doc_id in coll.list_documents():
         indexed_ids.add(str(doc_id))
 
 unindexed = [f for f in wiki_files if f.stem not in indexed_ids]
-print(f"Current: {current_count} indexed, {len(unindexed)} remaining (CPU mode)")
+mode = "CPU" if force_cpu else "GPU+cache-clear"
+print(f"Current: {current_count} indexed, {len(unindexed)} remaining ({mode})")
 
 BATCH_SIZE = 5
 total_added = 0
@@ -61,9 +77,18 @@ for i in range(0, len(unindexed), BATCH_SIZE):
             print(f"  + {f.name}")
         except Exception as e:
             total_errors += 1
-            print(f"  ERROR {f.name}: {str(e)[:60]}")
+            err_str = str(e)[:80]
+            if "out of memory" in err_str.lower():
+                print(f"  OOM {f.name} — try --cpu mode")
+            else:
+                print(f"  ERROR {f.name}: {err_str}")
 
-    time.sleep(1)
+    # Between batches: clear GPU cache (default) or sleep (CPU mode)
+    if force_cpu:
+        time.sleep(1)
+    else:
+        _clear_gpu_cache()
+        time.sleep(0.5)  # shorter pause for GPU since cache clear handles memory
 
 final_count = coll.info().document_count
 print(f"\nDone: {total_added} added, {total_errors} errors")
