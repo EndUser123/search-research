@@ -272,11 +272,38 @@ def _state_yaml(value: str) -> str:
     return "n/a"
 
 
-def write_stub(entry: SkillEntry) -> Path:
-    """Write a lightweight stub file for qmd indexing."""
+def write_stub(entry: SkillEntry, full_body: bool = False) -> Path:
+    """Write a lightweight stub file for qmd indexing.
+
+    Args:
+        entry: the skill entry to write
+        full_body: if True, include the full SKILL.md body (after frontmatter)
+            so qmd indexes the actual techniques/procedures, not just the
+            description. Opt-in via --full-body flag. Stubs without --full-body
+            remain frontmatter-only pointers (prevents drift, original design).
+    """
     slug = slugify(entry.scope, entry.plugin, entry.name)
     path = STUBS_DIR / f"{slug}.md"
     plugin_note = f"plugin: {entry.plugin}\n" if entry.plugin else ""
+
+    if full_body:
+        # Read the source SKILL.md and extract the body (after frontmatter)
+        body_text = ""
+        try:
+            src = Path(entry.path)
+            if src.exists():
+                raw = src.read_text(encoding="utf-8", errors="replace")
+                fm_match = _FRONTMATTER_RE.match(raw)
+                if fm_match:
+                    body_text = raw[fm_match.end():].strip()
+                else:
+                    body_text = raw.strip()
+                # Cap at ~8000 chars to bound qmd index size per skill
+                if len(body_text) > 8000:
+                    body_text = body_text[:7997] + "\n..."
+        except (OSError, UnicodeDecodeError):
+            body_text = "(could not read source body)"
+
     content = f"""---
 type: skill-reference
 scope: {entry.scope}
@@ -297,6 +324,14 @@ indexed_date: {date.today().isoformat()}
 > This is a lightweight pointer for semantic search. The authoritative source
 > is the SKILL.md file at the path above. Regenerate with
 > `python P:/.data/wiki/scripts/index_skills.py`.
+"""
+    if full_body and body_text:
+        content += f"""
+---
+
+## Full body (indexed for semantic search)
+
+{body_text}
 """
     path.write_text(content, encoding="utf-8")
     return path
@@ -492,6 +527,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--audit", action="store_true",
                     help="Run lifecycle audit (duplicates, stale, orphans) after indexing")
+    ap.add_argument("--full-body", action="store_true",
+                    help="Include full SKILL.md body (after frontmatter) in stubs for "
+                         "deeper semantic search. Caps at 8000 chars per skill. "
+                         "Default: frontmatter-only stubs (lighter, prevents drift).")
     args = ap.parse_args()
 
     STUBS_DIR.mkdir(parents=True, exist_ok=True)
@@ -509,13 +548,17 @@ def main() -> None:
     for scope, root, plugin_rel in SCOPES:
         entries = scan_scope(scope, root, plugin_rel, grok_disabled, claude_enabled)
         for e in entries:
-            write_stub(e)
+            write_stub(e, full_body=args.full_body)
         all_entries.extend(entries)
         print(f"{scope}: {len(entries)} skills")
 
     write_catalog(all_entries)
     print(f"\nTotal: {len(all_entries)} skills")
     print(f"Stubs written to: {STUBS_DIR}")
+    if args.full_body:
+        print("Mode: FULL BODY (techniques/procedures indexed for semantic search)")
+    else:
+        print("Mode: frontmatter-only (use --full-body for deeper indexing)")
     print(f"Catalog written to: {CATALOG_PATH}")
 
     if args.audit:
