@@ -267,8 +267,24 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         # Rebuild qmd index for the new pages
         qmd_reindex(write_summary["written"])
 
-        # Stage G: auto-generate pipeline report (progressive disclosure)
-        log("Stage G: generate pipeline report...")
+        # Stage G: rename notebook with [INGESTED] prefix for visual tracking
+        if not title.startswith("[INGESTED]"):
+            log("Stage G: rename notebook with [INGESTED] prefix...")
+            new_title = f"[INGESTED] - {title}"
+            rc, _, err = run(["nlm", "notebook", "rename", nb_id, new_title,
+                              "--profile", profile], timeout=60)
+            if rc == 0:
+                log(f"  renamed: {title} → {new_title}")
+                manifest["notebooks"][nb_id]["original_title"] = title
+                manifest["notebooks"][nb_id]["title"] = new_title
+                save_manifest(manifest)
+            else:
+                log(f"WARN rename rc={rc}: {err[:200]}; continuing")
+        else:
+            log("Stage G: already prefixed [INGESTED], skipping rename")
+
+        # Stage H: auto-generate pipeline report (progressive disclosure)
+        log("Stage H: generate pipeline report...")
         sync_duration = time.time() - sync_start_time if sync_start_time else None
         report_cmd = ["python", str(SCRIPTS / "report.py"),
                       "--notebook", nb_id, "--profile", profile]
