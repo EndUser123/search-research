@@ -154,7 +154,15 @@ python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
 
 ## Agent invocation pattern (when invoked as `/nlm-to-wiki`)
 
-When the skill is invoked without a target notebook, the agent should:
+**Step 0 — help short-circuit.** If the argument is `-h`, `-help`, `--help`,
+or `help` (case-insensitive), read `references/help.md` and present its
+contents (Quick reference table, Common questions, Troubleshooting). Do NOT
+run the sync pipeline, call `nlm`, or ask which notebook to sync. Stop after
+presenting the help resource. This makes `/nlm-to-wiki -h` the fast path for
+"how do I use this?" without side effects.
+
+**Step 1 — no args: status picker.** When invoked without a target notebook
+(and not a help request), the agent should:
 
 1. Run `python sync.py --status` to produce the notebook status table.
 2. Use `ask_user_question` to let the operator pick. Offer common choices:
@@ -169,8 +177,9 @@ Do not auto-run `--all` without explicit operator confirmation — 87
 notebooks at ~15-25 min each is multi-hour work.
 
 For the full cheat-sheet, FAQ, and troubleshooting table, see
-`references/help.md`. Key pointer: auth expiry recovers silently via
-`nlm login --profile codex` (~10s, no operator intervention).
+`references/help.md` (or run `/nlm-to-wiki -h`). Key pointer: auth expiry
+recovers silently via `nlm login --profile codex` (~10s, no operator
+intervention).
 
 ## Decision points
 
