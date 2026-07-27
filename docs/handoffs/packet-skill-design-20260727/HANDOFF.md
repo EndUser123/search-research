@@ -98,3 +98,29 @@ This handoff is wrong if:
 ## Other outstanding streams
 
 - **Cross-transport model matrix testing** (`cross-transport-model-matrix-20260726`) — would extend the Nemotron serde finding to all models × all transports. Independent of `/packet`.
+
+---
+
+## Revision 1 — 2026-07-27T22:10:00Z (session 019fa48a)
+
+**Trigger:** /packet skill was BUILT after the original handoff was written. The handoff says "build not started" — that's now stale. /review found 4 bugs that need fixing.
+
+**What changed since the original:**
+- /packet skill built at `~/.grok/skills/packet/` (filter.py, render.py, redact.py, export.py, SKILL.md)
+- Smoke-tested successfully on this session (695/703 turns kept, both _sig.md and _full.md produced)
+- /review run produced 20 findings: 4 bugs, 8 risks, 4 suggestions, 2 nits
+- FINDINGS.md at `P:/.artifacts/grok-build-terminal/grok-review/packet/20260727-154541/FINDINGS.md`
+
+**Updated status:** OPEN — skill built and smoke-tested, but 4 bugs need fixing before production use.
+
+**New open items:**
+- CORR-001 (bug, conf 0.92): render_full_turn dumps full tool_result text — fix: gate on role
+- CORR-002 (bug, conf 0.88): dead redaction loop double-counts — fix: use count_redactions() instead
+- CORR-003 (bug, conf 0.90): resolve_transcript_path crashes if sessions dir missing — fix: guard iterdir
+- CORR-004 (bug, conf 0.86): TranscriptParseError not caught — fix: wrap in try/except
+- 8 risks (CORR-005/006/007/008, MAINT-001/002/003/004/005/006) — documented in FINDINGS.md
+
+**Updated evidence:**
+- Skill registered: system-reminder shows `/packet` in the skill catalog
+- Smoke test: `packet-019fa48a_sig.md` and `packet-019fa48a_full.md` at `P:/.claude/.artifacts/`
+- /review run_dir: `P:/.artifacts/grok-build-terminal/grok-review/packet/20260727-154541/`
