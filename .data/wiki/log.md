@@ -1,5 +1,29 @@
 # Vault Log
 
+## Terminal visual enhancements for agentic CLIs
+Source: wiki-2026-07-27
+Agent: grok
+Notes: 3 pure-Unicode enhancements (bar chart, sparkline, clickable links) + dual-mode + progressive disclosure
+Page: wiki/concepts/terminal-visual-enhancements-for-agentic-clis.md
+
+## --concept
+Source: mechanical-enforcement-over-behavioral-reminder
+Agent: --source
+Notes: session-019fa48a /wiki
+Page: --note
+
+## --concept
+Source: operator-model-routing-directives
+Agent: --source
+Notes: session-019fa48a /why capture-failure fix
+Page: --note
+
+## --concept
+Source: fts5-query-syntax-escaping-required
+Agent: --source
+Notes: session-019fa48a /why
+Page: --note
+
 ## Video-to-wiki pipeline report: metrics and framework
 Source: wiki-2026-07-27
 Agent: grok
