@@ -70,31 +70,44 @@ default; the actual nlm rate limit tolerance is unknown (the wiki's
 
 ## Ranked optimization opportunities
 
-### Opt 1: Parallel transcript export — HIGH impact, LOW risk
+### Opt 1: Parallel transcript export — HIGH impact, MEDIUM risk (rate-limited)
 
 **Current:** `export_transcripts.py` lines 149-167 — strictly serial:
 `fetch_content → atomic_write → time.sleep(spacing)`.
 
-**Fix:** `concurrent.futures.ThreadPoolExecutor(max_workers=6)` wrapping
+**Fix:** `concurrent.futures.ThreadPoolExecutor(max_workers=3)` wrapping
 `fetch_content`. Each worker handles one source ID; atomic writes are
-already thread-safe (tmp + os.replace). Reduce spacing to 0.25s per worker
-(effective ~1.5s aggregate with 6 workers).
+already thread-safe (tmp + os.replace).
 
-**Projected speedup:** 188 sources at 3.2s serial = 10.1 min → with 6
-workers ≈ 1.7 min (**6x faster**).
+**Tested worker ceiling: 3, not 6.** The yt-is benchmarking corpus
+(`P:/packages/yt-is/docs/operations/hot-path-throughput-next-test-plan.md`,
+hundreds of runs) empirically established 3 workers per account as the
+maximum. The 3+3 shape (3 Pro + 3 Free) reached `4123.28` VPH — the
+historical ceiling. The 4+4 shape "regressed hard" to `1149.72` VPH with
+`source_age_cliff=333` (sources aging out before fetch) and
+`command_failed` spikes. **6 workers would trigger the same cliff failures
+that yt-is documented.**
 
-**Risk:** nlm may rate-limit aggressive parallelism. Mitigation: probe with
-6 parallel calls first; if any return 429, fall back to 3 workers. The
-crash-resume (file-exists check) already handles partial failures, so a
-rate-limit midpoint isn't destructive — re-run continues from where it
-stopped.
+**Projected speedup:** 188 sources at 3.2s serial = 10.1 min → with 3
+workers ≈ 3.5 min (**~3x faster**).
+
+**Dynamic adjustment (already proven in yt-is):**
+- Start at 2 workers (conservative, below ceiling).
+- Monitor `command_failed` rate in first 20 sources; if 0 failures, raise to 3.
+- On any 429 or `source_age_cliff`: drop to 1 (serial) and continue.
+- Never exceed 3 without yt-is-style benchmarking proving read-only tolerance.
+
+**Original projection corrected:** an earlier version of this concept
+projected "6 workers → 6x speedup" without checking the yt-is data. That
+was a receipt-rule failure — the projection was `[INFERENCE]` labeled as
+`[FACT]`. The yt-is benchmark data was on disk the entire time and
+disproved it. The 3-worker ceiling is `[OBSERVED]` across hundreds of runs.
 
 **Evidence the rate limit tolerates moderate parallelism:** the
 [[notebooklm-cli-operational-gotchas]] documents `nlm source add --youtube`
 as bulk-repeatable (hundreds of URLs in one call), suggesting the backend
-handles concurrent source operations, not just serial ones. [INFERENCE] —
-read operations (`source content`) likely have equal or higher limits than
-write operations (`source add`).
+handles concurrent source operations. The yt-is 3+3 ceiling confirms 3
+concurrent `source content` read operations per account is safe.
 
 ### Opt 2: Parallel cluster synthesis — MEDIUM impact, LOW risk
 
@@ -168,15 +181,16 @@ where none are, saves ~30% of export time.
 
 ## Combined projection
 
-| Scenario | Current | After Opt 1+2 | After Opt 1+2+3 |
+| Scenario | Current | After Opt 1+2 (3 workers) | After Opt 1+2+3 |
 |---|---|---|---|
-| First sync (188 sources) | ~14 min | ~3 min | ~3 min |
-| Re-sync, 1 source added | ~14 min | ~3 min | ~25s |
-| Bulk run (15 notebooks × 288 avg) | ~5 hours | ~75 min | ~75 min |
+| First sync (188 sources) | ~14 min | ~5 min | ~5 min |
+| Re-sync, 1 source added | ~14 min | ~5 min | ~25s |
+| Bulk run (15 notebooks × 288 avg) | ~5 hours | ~105 min | ~105 min |
 
-Opt 1 and Opt 2 together cut the first-sync time by ~5x and the bulk run
-from multi-hour to ~75 min. Opt 3 makes incremental re-syncs nearly free.
-Opt 4 and Opt 5 are refinements that pay off later.
+Opt 1 (capped at 3 workers per the yt-is ceiling) and Opt 2 together cut
+the first-sync time by ~3x and the bulk run from multi-hour to ~105 min.
+Opt 3 makes incremental re-syncs nearly free. Opt 4 and Opt 5 are
+refinements that pay off later.
 
 ## What this means for our workspace
 
