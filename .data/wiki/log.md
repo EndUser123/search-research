@@ -1,5 +1,17 @@
 # Vault Log
 
+## Markdown/Mermaid rendering in agentic CLIs + stop-narrative 4x recurrence evidence
+Source: wiki (session 019f9f48; web: termaid, glow, cursor.com, grok CLI changelog)
+Agent: grok
+Notes: New concept markdown-mermaid-rendering-agentic-clis-windows-11.md + updated go-home-narrative with 4x recurrence evidence from session 019f9f48
+Page: wiki/concepts/markdown-mermaid-rendering-agentic-clis-windows-11.md
+
+## Self-improving agent systems: techniques, frameworks, and workspace gaps
+Source: session-2026-07-26 / /www self-improvement research
+Agent: grok
+Notes: Workspace already implements Reflexion/Voyager/CRITIC/accumulated-rules. Five gaps: improvement kata, self-evolving skills, proactive anticipation, curiosity-driven exploration, Could-You-Be-Wrong prompt. 59 sourced findings, 4 key repos for deeper investigation.
+Page: P:/.data/wiki/concepts/self-improving-agent-systems-techniques-and-workspace-gaps.md
+
 ## --concept
 Source: dream-pass1-auto-promotion-act-on-high-confidence
 Agent: --action
