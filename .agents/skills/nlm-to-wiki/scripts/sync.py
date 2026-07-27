@@ -138,13 +138,22 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         ["python", str(SCRIPTS / "export_transcripts.py"),
          "--notebook", nb_id, "--profile", profile,
          "--out", str(transcripts_dir)], timeout=5400)
-    if rc != 0:
+    # rc=0: all succeeded. rc=5: partial failure (some sources couldn't be fetched —
+    # common for status=3 sources that NotebookLM failed to index). Non-fatal: the
+    # succeeded transcripts are still valuable; crash-resume handles gaps on re-run.
+    # Only rc=2 (fatal: no sources / auth failure) aborts the pipeline.
+    if rc == 2:
         log(f"FATAL export_transcripts rc={rc}: {err[:400]}")
         return {"notebook_id": nb_id, "title": title, "status": "export_failed", "error": err[:400]}
+    if rc == 5:
+        log(f"WARN export_transcripts rc=5 (partial failure — some sources status=3); continuing with succeeded transcripts")
+    elif rc != 0:
+        log(f"WARN export_transcripts rc={rc}: {err[:300]}; continuing")
     export_result = json.loads(out)
     n_exported = export_result.get("exported", 0)
     n_skipped = export_result.get("skipped", 0)
-    log(f"  exported {n_exported} new, {n_skipped} already present")
+    n_failed = export_result.get("failed", 0)
+    log(f"  exported {n_exported} new, {n_skipped} already present, {n_failed} failed (status=3/unrecoverable)")
 
     # Stage A2 (optional): vision enrichment (high-scene-change videos only)
     if enrich_vision:

@@ -99,6 +99,65 @@ def fetch_content(source_id: str, profile: str) -> tuple[str, str]:
     return "", (err or out or f"rc={rc}").strip()[:300]
 
 
+def fetch_via_ytdlp(source: dict) -> tuple[str, str]:
+    """Recover a transcript via yt-dlp when NotebookLM failed to index it.
+
+    Triggered for sources with status=3 (NotebookLM import failure). Recovers
+    the YouTube video ID from the source title when NotebookLM stored the raw
+    URL as the title (happens when it couldn't parse the video metadata). Falls
+    back to yt-dlp's auto-subtitle download.
+
+    Returns (transcript_text, error_message). Empty transcript + non-empty
+    error means recovery failed (video unavailable, no captions, or no URL
+    recoverable from the title).
+    """
+    import re as _re
+    title = source.get("title", "")
+    # Extract 11-char YouTube video ID from URL-shaped titles
+    m = _re.search(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})", title)
+    if not m:
+        return "", f"no video_id in title (title is descriptive, not a URL)"
+    vid = m.group(1)
+    url = f"https://www.youtube.com/watch?v={vid}"
+
+    # Fetch auto-generated captions via yt-dlp (no video download)
+    rc, out, err = run(
+        ["yt-dlp", "--write-auto-sub", "--sub-lang", "en", "--skip-download",
+         "--sub-format", "vtt", "-o", "-", url],
+        timeout=60)
+    if rc != 0 or not out.strip():
+        # Try manual subs as fallback
+        rc, out, err = run(
+            ["yt-dlp", "--write-sub", "--sub-lang", "en", "--skip-download",
+             "--sub-format", "vtt", "-o", "-", url],
+            timeout=60)
+    if rc != 0 or not out.strip():
+        return "", f"yt-dlp failed for {vid}: {(err or 'no captions').strip()[:150]}"
+
+    # Strip VTT timestamps + tags to produce plain text
+    lines = []
+    seen = set()
+    for line in out.splitlines():
+        line = line.strip()
+        if not line or line.startswith(("WEBVTT", "Kind:", "Language:", "NOTE")):
+            continue
+        if "-->" in line:  # timestamp line
+            continue
+        if line.startswith("<"):  # VTT cue tag
+            continue
+        if line.isdigit():  # cue index
+            continue
+        # Deduplicate consecutive repeated lines (auto-caption artifact)
+        clean = _re.sub(r"<[^>]+>", "", line).strip()
+        if clean and clean not in seen:
+            seen.add(clean)
+            lines.append(clean)
+    text = " ".join(lines)
+    if len(text) < 10:
+        return "", f"yt-dlp captions too short for {vid} ({len(text)} chars)"
+    return text, ""
+
+
 def atomic_write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -162,11 +221,18 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
         log(f"  [{i}/{len(sources)}] export {sid[:12]} ({title})")
         content, err = fetch_content(sid, profile)
         if not content:
-            failed += 1
-            errors.append(f"{sid}: {err}")
-            log(f"    FAIL: {err[:120]}")
-            time.sleep(spacing)
-            continue
+            # yt-dlp fallback for sources NotebookLM failed to index (status=3).
+            # Recovers the video ID from URL-shaped titles; fetches auto-captions.
+            log(f"    nlm failed ({err[:80]}); trying yt-dlp fallback...")
+            content, ytdlp_err = fetch_via_ytdlp(src)
+            if content:
+                log(f"    yt-dlp recovered ({len(content)} chars)")
+            else:
+                failed += 1
+                errors.append(f"{sid}: nlm={err}; ytdlp={ytdlp_err}")
+                log(f"    FAIL (both): {ytdlp_err[:120]}")
+                time.sleep(spacing)
+                continue
         atomic_write(out_path, build_transcript_md(src, notebook_id, content))
         exported += 1
         time.sleep(spacing)
