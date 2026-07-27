@@ -19,7 +19,7 @@ Investigate why the B4 CAS commit engine (and B5 submodule reconciliation) produ
 
 ## Status
 
-OPEN — Mode A root cause FOUND and reproduced (2026-07-27T13:20Z). Mode B investigation pending.
+OPEN — Mode A and Mode B root causes FOUND (2026-07-27T13:48Z). Both are the same defect: freshness barrier race between `commit-tree` and `update-ref`. Fix is INV-CAS-01 (move commit-tree after freshness check) or INV-CAS-03 (post-commit verification in close coordinator).
 
 ## Producing context
 
@@ -68,9 +68,18 @@ OPEN — Mode A root cause FOUND and reproduced (2026-07-27T13:20Z). Mode B inve
 - [INFERENCE] This explains all 3 Mode A occurrences: P:\ (`268cc357be75`), P:\ worktree (`eff9bc3`), ~/.grok (`0c4cd3e`) — all were created during concurrent sibling session activity on the shared working tree.
 - [INFERENCE] The deterministic tests don't catch this because they run in isolation (no concurrent commits), so the freshness barrier never triggers.
 
-### Mode B root cause — investigation pending
+### Mode B root cause — FOUND (2026-07-27T13:48Z)
 
-- [UNKNOWN] Session 2's child (`c3fb5b1`) and parent (`6c7f7a4`) commits don't exist as objects at all. This is more severe than Mode A — not even a dangling commit. Requires reading `submodule_coordinator.py` to determine whether the git operation was never run, the SHA was synthesized, or an error was swallowed.
+- [FACT] The entire `P:/worktrees/phase3-acc/` worktree has been DELETED. The child and parent repos no longer exist — their object stores are gone. (Verified 2026-07-27T13:48Z: `Test-Path "P:/worktrees/phase3-acc"` → False; not in `git worktree list` for either P:\ or ~/.grok)
+- [FACT] When I first checked at 12:58Z, the child repo existed with HEAD still at `2d713a3` (the initial commit from setup). B4 never moved the child's HEAD.
+- [FACT] B5 (`submodule_coordinator.py`) does NOT independently commit the child. It relies on B4 committing the child first (`close_coordinator.py` line 220: `skip_child_commit=True`). If B4 fails (line 179: `if rr.result_state != cc.COMMITTED: continue`), B5 is never invoked.
+- [INFERENCE] Mode B is the SAME root cause as Mode A: B4's freshness barrier triggered on the child repo (concurrent HEAD movement or stale HEAD), returned `COMMIT_OBJECT_CREATED_CAS_FAILED`, child repo was skipped by the close coordinator. The claimed child/parent SHAs were either dangling objects (now destroyed by worktree deletion) or fabricated by the reporting session.
+- [FACT] The evidence was destroyed by worktree cleanup between my first verification (12:58Z) and the current check (13:48Z). Future acceptance tests must NOT clean up test repos until results are independently verified.
+- [INFERENCE] The B5 parent commit path (`submodule_coordinator.py` lines 333-387) has the SAME freshness-barrier race window as B4 (line 362 checks HEAD before `update-ref` at line 368). Even if B4 had committed the child, B5 could fail the same way on the parent.
+
+### Both modes — same root cause, same fix
+
+Mode A and Mode B are the same defect: the freshness barrier between `commit-tree` and `update-ref` creates dangling commits when HEAD moves concurrently. The fix for INV-CAS-01 addresses both modes.
 
 ## Current state
 
