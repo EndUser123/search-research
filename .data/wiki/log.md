@@ -1,5 +1,23 @@
 # Vault Log
 
+## Stateful skills need a maintenance surface
+Source: wiki-2026-07-27
+Agent: grok
+Notes: Architecture decision: stateful skills that accumulate durable state need audit/fix/prune/disk-report surface
+Page: wiki/concepts/stateful-skills-need-maintenance-surface.md
+
+## Parallelizing design-doc generation: what works
+Source: session-019f9a3c /www research
+Agent: grok
+Notes: /www on parallel multi-agent design-doc generation. Operator's proposed pattern (parallel drafters -> merge) is LEAST effective. 3 findings: (1) parallel section drafting rarely beats serial, (2) FusioN beats BoN by up to +55%, (3) parallelism pays at pre-write + post-write layers. Optimal speedup: parallel pre-write + parallel review + --fast mode. 4 parallel subagents + disconfirmation.
+Page: P:/.data/wiki/concepts/parallelizing-design-doc-generation-what-works.md
+
+## skip-write-only-computation-over-cache-or-budget + visible-output-contracts-for-behavioral-skill-steps
+Source: session-2026-07-27
+Agent: grok
+Notes: Added 2 decision concepts from hook timeout RCA. Concept 1: skip write-only fields (275x speedup). Concept 2: visible-output receipts for /why Step 0.5.
+Page: P:/.data/wiki/concepts/skip-write-only-computation-over-cache-or-budget.md
+
 ## Auto-test Stop hooks and property-based testing for AI-generated code
 Source: session-2026-07-27 / /www auto-test + mutation/PBT research
 Agent: grok
