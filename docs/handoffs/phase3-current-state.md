@@ -1,7 +1,7 @@
 # Phase 3 Current-State Handoff
 
-**Last updated:** 2026-07-27T01:05Z (corrected by acceptance audit session 019f9d1f)
-**Status:** DEPLOYED + DETERMINISTIC SUITE GREEN + HANDOFF P:\ CLAIM CORRECTED (live Stop/concurrent pending)
+**Last updated:** 2026-07-27T14:30Z (B4 fixes deployed and verified)
+**Status:** B4 FIXED + DEPLOYED — Mode A/B/C resolved, live smoke test passes, ready for acceptance re-run
 
 ## Active deployment
 
