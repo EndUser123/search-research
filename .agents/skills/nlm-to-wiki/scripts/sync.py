@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sync.py — orchestrator for the full nlm-to-wiki pipeline.
+"""sync.py — orchestrator for the full nlm-to-wiki v3 pipeline.
 
 Usage:
   # Single notebook (canonical case)
@@ -11,11 +11,17 @@ Usage:
   # From nlm-bulk-ingest clusters.json (round-trip)
   python sync.py --from-clusters clusters.json --profile codex --state sync-state.json
 
-  # Dry run (extract + parse + reconcile, no writes)
+  # Dry run (export + cluster + synthesize + reconcile, no page writes)
   python sync.py --notebook <uuid> --dry-run
+
+  # v3: with optional vision enrichment (high-scene-change videos only)
+  python sync.py --notebook <uuid> --enrich-vision --max-subtopics 12
 
 Per-notebook crash-resumable via --state. Skips notebooks whose source_ids
 haven't changed since last sync (manifest-gated).
+
+Pipeline (v3): export transcripts → cluster into sub-topics → synthesize
+concept pages per sub-topic (LLM) → reconcile → write+validate → link/log.
 """
 from __future__ import annotations
 
@@ -103,8 +109,15 @@ def save_manifest(m: dict) -> None:
 
 
 def sync_one(nb_id: str, profile: str, dry_run: bool,
-             clusters_path: Path | None) -> dict:
-    """Run the full 6-stage pipeline on one notebook. Returns result record."""
+             clusters_path: Path | None,
+             enrich_vision: bool = False,
+             max_subtopics: int = 10,
+             synth_backend: str | None = None) -> dict:
+    """Run the full v3 pipeline on one notebook. Returns result record.
+
+    Pipeline: export transcripts → cluster → synthesize → reconcile →
+    write pages → link/log/manifest. Vision enrichment is opt-in.
+    """
     title = notebook_title(nb_id, profile)
     log(f"=== Sync: {title} ({nb_id}) ===")
 
@@ -116,41 +129,77 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         log(f"SKIP (source_ids unchanged since last sync)")
         return {"notebook_id": nb_id, "title": title, "status": "skipped_unchanged"}
 
-    # Stage A: extract (Report + Data-Table)
+    # Transcripts are durable (wiki/sources/transcripts/); cluster+synthesize use tmp.
+    transcripts_dir = WIKI_VAULT / "sources" / "transcripts"
+
+    # Stage A: export transcripts (v3 — raw source content, not Report synthesis)
+    log("Stage A: export transcripts...")
+    rc, out, err = run(
+        ["python", str(SCRIPTS / "export_transcripts.py"),
+         "--notebook", nb_id, "--profile", profile,
+         "--out", str(transcripts_dir)], timeout=5400)
+    if rc != 0:
+        log(f"FATAL export_transcripts rc={rc}: {err[:400]}")
+        return {"notebook_id": nb_id, "title": title, "status": "export_failed", "error": err[:400]}
+    export_result = json.loads(out)
+    n_exported = export_result.get("exported", 0)
+    n_skipped = export_result.get("skipped", 0)
+    log(f"  exported {n_exported} new, {n_skipped} already present")
+
+    # Stage A2 (optional): vision enrichment (high-scene-change videos only)
+    if enrich_vision:
+        log("Stage A2: vision enrichment (high-scene-change only)...")
+        rc, out, err = run(
+            ["python", str(SCRIPTS / "enrich_vision.py"),
+             "--notebook", nb_id, "--profile", profile,
+             "--transcripts-dir", str(transcripts_dir)], timeout=7200)
+        if rc != 0:
+            log(f"WARN enrich_vision rc={rc}: {err[:300]}; continuing without vision")
+        else:
+            vis = json.loads(out)
+            log(f"  enriched {vis.get('enriched', 0)}, skipped {vis.get('skipped_low_density', 0)}")
+
     with tempfile.TemporaryDirectory(prefix=f"nlm-sync-{nb_id[:8]}-") as td:
         tmp_dir = Path(td)
-        log("Stage A: extract (Report + Data-Table)...")
-        rc, out, err = run(
-            ["python", str(SCRIPTS / "extract.py"),
-             "--notebook", nb_id, "--profile", profile,
-             "--out-dir", str(tmp_dir)], timeout=1800)
-        if rc != 0:
-            log(f"FATAL extract rc={rc}: {err[:400]}")
-            return {"notebook_id": nb_id, "title": title, "status": "extract_failed", "error": err[:400]}
-        extract_result = json.loads(out)
-        report_path = Path(extract_result["report"]["path"])
-        dt_path = Path(extract_result["data_table"]["path"]) if extract_result["data_table"].get("path") else None
 
-        # Stage B: parse
-        log("Stage B: parse report + data-table...")
-        parse_cmd = ["python", str(SCRIPTS / "parse_report.py"),
-                     "--report", str(report_path),
-                     "--notebook", nb_id, "--notebook-title", title]
-        if dt_path:
-            parse_cmd.extend(["--data-table", str(dt_path)])
-        rc, out, err = run(parse_cmd, timeout=300)
+        # Stage B: cluster transcripts into sub-topics
+        log(f"Stage B: cluster transcripts (max {max_subtopics} sub-topics)...")
+        subtopics_path = tmp_dir / "subtopics.json"
+        rc, out, err = run(
+            ["python", str(SCRIPTS / "cluster_transcripts.py"),
+             "--transcripts-dir", str(transcripts_dir),
+             "--max-subtopics", str(max_subtopics),
+             "--notebook", nb_id,
+             "-o", str(subtopics_path)], timeout=900)
         if rc != 0:
-            log(f"FATAL parse rc={rc}: {err[:400]}")
-            return {"notebook_id": nb_id, "title": title, "status": "parse_failed", "error": err[:400]}
+            log(f"FATAL cluster_transcripts rc={rc}: {err[:400]}")
+            return {"notebook_id": nb_id, "title": title, "status": "cluster_failed", "error": err[:400]}
+        cluster_result = json.loads(subtopics_path.read_text(encoding="utf-8"))
+        n_clusters = cluster_result.get("cluster_count", 0)
+        log(f"  {n_clusters} sub-topic clusters")
+        if n_clusters == 0:
+            return {"notebook_id": nb_id, "title": title, "status": "no_clusters"}
+
+        # Stage C: synthesize concept pages per sub-topic
+        log("Stage C: synthesize sub-topic concept pages...")
         concepts_path = tmp_dir / "concepts.json"
-        concepts_path.write_text(out, encoding="utf-8")
-        concepts = json.loads(out)
-        log(f"  parsed {len(concepts)} concepts")
+        synth_cmd = ["python", str(SCRIPTS / "synthesize_subtopics.py"),
+                     "--subtopics", str(subtopics_path),
+                     "--transcripts-dir", str(transcripts_dir),
+                     "--notebook", nb_id, "--notebook-title", title,
+                     "-o", str(concepts_path)]
+        if synth_backend:
+            synth_cmd.extend(["--backend", synth_backend])
+        rc, out, err = run(synth_cmd, timeout=3600)
+        if rc != 0:
+            log(f"WARN synthesize rc={rc}: {err[:300]} (partial output may exist)")
+        concepts = json.loads(concepts_path.read_text(encoding="utf-8"))
+        log(f"  synthesized {len(concepts)} concept pages")
         if not concepts:
             return {"notebook_id": nb_id, "title": title, "status": "no_concepts"}
 
-        # Stage C: reconcile
-        log("Stage C: reconcile against existing wiki...")
+        # Stage D: reconcile
+        log("Stage D: reconcile against existing wiki...")
         rc, out, err = run(
             ["python", str(SCRIPTS / "reconcile.py"),
              "--input", str(concepts_path)], timeout=300)
@@ -164,31 +213,19 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         n_refine = sum(1 for c in reconciled if c.get("disposition") == "refines")
         log(f"  {n_new} new, {n_refine} refines")
 
-        # Stage D: expand citations (skip on dry-run; saves API calls)
-        enriched_path = reconciled_path
-        if not dry_run:
-            log("Stage D: expand citations...")
-            enriched_path = tmp_dir / "enriched.json"
-            rc, out, err = run(
-                ["python", str(SCRIPTS / "expand_citations.py"),
-                 "--input", str(reconciled_path),
-                 "--output", str(enriched_path),
-                 "--notebook", nb_id, "--profile", profile], timeout=1800)
-            if rc != 0:
-                log(f"WARN expand_citations rc={rc}: {err[:300]}; using un-enriched")
-                enriched_path = reconciled_path
-
         if dry_run:
             log("DRY RUN — not writing pages")
             return {"notebook_id": nb_id, "title": title, "status": "dry_run",
                     "concepts_new": n_new, "concepts_refines": n_refine,
+                    "transcripts_exported": n_exported,
+                    "clusters": n_clusters,
                     "sample_titles": [c["title"] for c in reconciled[:5]]}
 
         # Stage E: write pages (with validation)
         log("Stage E: write + validate pages...")
         staging = tmp_dir / "failed-pages"
         write_cmd = ["python", str(SCRIPTS / "write_pages.py"),
-                     "--input", str(enriched_path),
+                     "--input", str(reconciled_path),
                      "--vault", str(WIKI_VAULT),
                      "--staging", str(staging)]
         if clusters_path:
@@ -212,6 +249,7 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
             "last_synced_at": date.today().isoformat(),
             "source_hash": source_hash,
             "source_ids": source_ids,
+            "pipeline": "v3-transcript-cluster",
             "concept_slugs": [w["slug"] for w in write_summary["written"]],
         }
         save_manifest(manifest)
@@ -221,6 +259,7 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         return {
             "notebook_id": nb_id, "title": title, "status": "synced",
             "written": n_written, "failed_validation": n_failed,
+            "transcripts_exported": n_exported,
             "url": f"https://notebooklm.google.com/notebook/{nb_id}",
         }
 
@@ -288,6 +327,12 @@ def main() -> int:
     ap.add_argument("--profile", default="codex")
     ap.add_argument("--state", type=Path, help="resume-state file for --all / --from-clusters")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--enrich-vision", action="store_true",
+                    help="v3: run crv vision enrichment on high-scene-change videos (opt-in)")
+    ap.add_argument("--max-subtopics", type=int, default=10,
+                    help="v3: max sub-topic clusters per notebook (default 10)")
+    ap.add_argument("--synth-backend", choices=["mmx", "dgemma"], default=None,
+                    help="v3: LLM backend for sub-topic synthesis (default mmx)")
     args = ap.parse_args()
 
     if not ensure_auth(args.profile):
@@ -335,7 +380,10 @@ def main() -> int:
         if nb_id in state.get("synced", []):
             log(f"SKIP (already in state.synced): {nb_id}")
             continue
-        result = sync_one(nb_id, args.profile, args.dry_run, args.from_clusters)
+        result = sync_one(nb_id, args.profile, args.dry_run, args.from_clusters,
+                          enrich_vision=args.enrich_vision,
+                          max_subtopics=args.max_subtopics,
+                          synth_backend=args.synth_backend)
         state.setdefault("results", []).append(result)
         if result.get("status") in ("synced", "skipped_unchanged", "dry_run"):
             state.setdefault("synced", []).append(nb_id)

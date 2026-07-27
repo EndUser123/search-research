@@ -41,12 +41,24 @@ def build_frontmatter(c: dict, cluster_info: dict | None) -> str:
     if cluster_info and cluster_info.get("name"):
         tags.append(cluster_info["name"].split("-")[0])
 
-    # sources list — the notebook itself, plus data-table source IDs
+    # sources list
+    is_transcript_cluster = c.get("source_mode") == "transcript-cluster"
     sources_yaml = [f'"NotebookLM notebook {c["notebook_id"]}" ({c.get("notebook_title", "")}, synced {today})']
-    for cit in c.get("citations", []):
-        sid = cit.get("source_id")
-        if sid and sid not in ("", "(from data-table)"):
-            sources_yaml.append(f'"NotebookLM source {sid}" (synced {today})')
+    if is_transcript_cluster:
+        # v3: list the contributing source transcripts with their URLs (hop-4)
+        for ms in c.get("member_sources", []):
+            url = (ms.get("url") or "").strip()
+            stitle = (ms.get("source_title") or ms.get("source_id") or "").replace('"', "'")
+            if url and url != "null":
+                sources_yaml.append(f'"{stitle}" ({url}, transcript synced {today})')
+            else:
+                sources_yaml.append(f'"NotebookLM source {ms.get("source_id", "")}" ({stitle}, synced {today})')
+    else:
+        # v2: data-table source IDs
+        for cit in c.get("citations", []):
+            sid = cit.get("source_id")
+            if sid and sid not in ("", "(from data-table)"):
+                sources_yaml.append(f'"NotebookLM source {sid}" (synced {today})')
 
     # relations
     relations_yaml = ""
@@ -78,6 +90,15 @@ relations:
         chain_yaml += f"      name: {cluster_info.get('name', '')}\n"
         if cluster_info.get("source_path"):
             chain_yaml += f"      source_path: {cluster_info['source_path']}\n"
+    # v3 transcript-cluster: append source_url hops (hop-4) for members with URLs
+    if is_transcript_cluster:
+        seen_urls: set[str] = set()
+        for ms in c.get("member_sources", []):
+            url = (ms.get("url") or "").strip()
+            if url and url != "null" and url not in seen_urls:
+                seen_urls.add(url)
+                stitle = (ms.get("source_title") or "").replace('"', "'")
+                chain_yaml += f"    - level: source_url\n      url: {url}\n      title: {stitle}\n"
 
     # Build summary — prefer definition, fall back to first detail that looks like one
     defn = (c.get("definition") or "").strip()
@@ -129,9 +150,18 @@ def build_body(c: dict) -> str:
             parts.append(d_str.replace("**Definition:**", "**Definition:**").strip())
             parts.append("")
             break
-    parts.append(f"Extracted from NotebookLM notebook *{c.get('notebook_title', '')}* via Report + Data-Table artifacts. "
-                 f"The notebook contains sources on this topic; the concept page distills the Report + Data-Table "
-                 f"Studio artifacts generated from those sources.")
+    is_tc = c.get("source_mode") == "transcript-cluster"
+    if is_tc:
+        n_members = c.get("member_count") or len(c.get("member_sources", []))
+        parts.append(f"Synthesized from **{n_members} contributing transcripts** in NotebookLM notebook "
+                     f"*{c.get('notebook_title', '')}*, clustered into the \"{c.get('cluster_name', '')}\" "
+                     f"sub-topic. Each claim below cites the specific transcript (source_id + title) that "
+                     f"supports it; the frontmatter provenance chain carries the full concept → notebook → "
+                     f"cluster → source URL hops.")
+    else:
+        parts.append(f"Extracted from NotebookLM notebook *{c.get('notebook_title', '')}* via Report + Data-Table artifacts. "
+                     f"The notebook contains sources on this topic; the concept page distills the Report + Data-Table "
+                     f"Studio artifacts generated from those sources.")
     parts.append("")
     parts.append("**Why this matters:** concepts synced from NotebookLM carry provenance back to the source "
                  "material (notebook → cluster → original URL when invoked via `--from-clusters`). A reader "
@@ -171,21 +201,24 @@ def build_body(c: dict) -> str:
         parts.append("")
 
     if c.get("citations"):
-        parts.append("## Citations")
+        parts.append("## Citations" if not is_tc else "## Citations (from contributing transcripts)")
         parts.append("")
         for cit in c["citations"][:10]:
             claim = cit.get("claim", "")
             sid = cit.get("source_id", "")
+            stitle = cit.get("source_title", "")
             ctx = cit.get("expanded_context") or cit.get("cited_text", "")
             parts.append(f"- **Claim:** {claim}")
-            if sid:
+            if stitle:
+                parts.append(f"  - Source: {stitle}" + (f" (`{sid}`)" if sid else ""))
+            elif sid:
                 parts.append(f"  - Source: `{sid}`")
             if ctx:
                 parts.append(f"  - Context: {ctx[:500]}")
         parts.append("")
 
-    # Source extract — the raw Report markdown for this concept, for depth
-    if c.get("source_section"):
+    # Source extract — v2 only (raw Report markdown); v3 has no Report artifact
+    if c.get("source_section") and not is_tc:
         parts.append("## Source extract (from Report)")
         parts.append("")
         parts.append("> Verbatim section from the NotebookLM Report artifact:")
@@ -258,7 +291,14 @@ def main() -> int:
     failed: list[dict] = []
 
     for c in concepts:
-        cluster_info = cluster_lookup.get(c.get("notebook_id"))
+        # v3 transcript-cluster records carry their own cluster provenance;
+        # v2 records look it up via clusters-json notebook_id mapping.
+        if c.get("source_mode") == "transcript-cluster":
+            cluster_info = {"cluster_id": c.get("cluster_id"),
+                            "name": c.get("cluster_name"),
+                            "source_path": None}
+        else:
+            cluster_info = cluster_lookup.get(c.get("notebook_id"))
         frontmatter = build_frontmatter(c, cluster_info)
         body = build_body(c)
         content = frontmatter + "\n\n" + body

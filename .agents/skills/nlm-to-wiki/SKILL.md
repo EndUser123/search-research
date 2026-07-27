@@ -3,10 +3,13 @@ name: nlm-to-wiki
 description: >
   Sync NotebookLM notebook content into the wiki vault as SCHEMA-compliant
   concept pages with full 4-hop provenance (concept → notebook → cluster →
-  original source URL). Uses Report + Data-Table artifacts (not chat) for
-  structured, citable extraction. Branches as `refines` on collision with
-  existing concepts rather than overwriting. Composes with nlm-bulk-ingest
-  via --from-clusters for full round-trip from raw URL list to wiki concepts.
+  original source URL). v3 exports raw source transcripts via `nlm source
+  content` (not NotebookLM synthesis), clusters them into sub-topics within
+  each notebook, and synthesizes a concept page per sub-topic with per-claim
+  citations. Optional vision enrichment for high-scene-change videos via crv.
+  Branches as `refines` on collision with existing concepts rather than
+  overwriting. Composes with nlm-bulk-ingest via --from-clusters for full
+  round-trip from raw URL list to wiki concepts.
 host: both
 ---
 
@@ -19,7 +22,8 @@ URL the concept came from.
 Built to round-trip with `[[nlm-bulk-ingest]]`:
 
 ```
-URL list → nlm-bulk-ingest → 15 notebooks → nlm-to-wiki → ~50-150 wiki concept pages
+URL list → nlm-bulk-ingest → 15 notebooks → nlm-to-wiki → ~5-15 sub-topic
+                                          (v3: transcript export) wiki concept pages
                                                                 with provenance back to original URLs
 ```
 
@@ -38,7 +42,7 @@ URL list → nlm-bulk-ingest → 15 notebooks → nlm-to-wiki → ~50-150 wiki c
 | Update an existing wiki concept | `/wiki update <slug>` |
 | One-off Q&A against sources | `nlm notebook query` (no persistence needed) |
 
-## The pipeline (6 stages)
+## The pipeline (v3)
 
 ```
 INPUT                     AUTH + SNAPSHOT
@@ -47,23 +51,33 @@ INPUT                     AUTH + SNAPSHOT
 ──from-clusters <path>    snapshot current source_ids for re-sync gate
                                           │
                                           ▼
-                          EXTRACT (Stage A)
-                          ─────────────────
-                          nlm report create --format "Create Your Own"
-                            (concept extraction prompt, 5-15 min)
-                          nlm data-table create
-                            (tabular facts, 5-15 min)
-                          poll studio status until both complete
+                          EXPORT TRANSCRIPTS (Stage A)
+                          ─────────────────────────────
+                          for each source: nlm source content <id>
+                            → raw transcript (NOT NotebookLM synthesis)
+                          → wiki/sources/transcripts/<source_id>.md
+                            (provenance frontmatter; crash-resumable)
+                                          │
+                          [optional] ──enrich-vision ──▶ crv keyframes
+                            for high-scene-change videos only (threshold)
                                           │
                                           ▼
-                          PARSE (Stage B)
-                          ───────────────
-                          parse report markdown → concept records
-                          parse data-table CSV → fact records
-                          merge: each concept absorbs matching facts
+                          CLUSTER (Stage B)
+                          ────────────────
+                          embed transcript text (all-MiniLM-L6-v2)
+                          HDBSCAN two-pass + greedy merge
+                            → 5-15 sub-topics per notebook (--max-subtopics)
                                           │
                                           ▼
-                          RECONCILE (Stage C)
+                          SYNTHESIZE (Stage C)
+                          ─────────────────────────
+                          for each sub-topic cluster:
+                            LLM (MiniMax via mmx CLI) synthesizes a concept
+                            page from the contributing transcripts
+                            each claim cites source_id + title + excerpt
+                                          │
+                                          ▼
+                          RECONCILE (Stage D)
                           ────────────────
                           for each candidate concept:
                             qmd search vault for similar concepts
@@ -73,26 +87,26 @@ INPUT                     AUTH + SNAPSHOT
                               mark as new
                                           │
                                           ▼
-                          EXPAND CITATIONS (Stage D)
-                          ─────────────────────────
-                          for each cited_text span:
-                            SourceFulltext.find_citation_context()
-                            expand to full surrounding paragraph
-                                            │
-                                            ▼
                           WRITE (Stage E)
                           ────────────────
                           emit SCHEMA-compliant frontmatter
-                          (passes validate_wiki_entry.py)
+                          (4-hop provenance: concept → notebook → cluster → URL)
+                          passes validate_wiki_entry.py
                           atomic write per page
-                                            │
-                                            ▼
+                                          │
+                                          ▼
                           LINK + LOG (Stage F)
                           ────────────────────
                           wiki_after_write.py for [[wikilinks]]
                           append to wiki log
                           update sync manifest
 ```
+
+**Why transcripts, not synthesis:** NotebookLM's Report + Data-Table
+artifacts *synthesize* a narrative essay from the sources, losing transcript
+fidelity. v3 exports the primary content (raw transcripts) and clusters +
+synthesizes locally, so every claim traces to a verbatim source excerpt. See
+[[video-to-wiki-pipeline-transcript-extraction-multimodal]].
 
 ## Usage
 
@@ -114,26 +128,33 @@ python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
     --profile codex \
     --state sync-state.json
 
-# Dry run — parse + reconcile, no writes
+# Dry run — export + cluster + synthesize + reconcile, no page writes
 python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
     --notebook <uuid> \
     --dry-run
 
 # Re-sync (skips notebooks whose source_ids haven't changed)
 python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
+    --notebook <uuid>
+
+# v3: with optional vision enrichment + custom sub-topic count
+python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
     --notebook <uuid> \
-    --resync
+    --enrich-vision --max-subtopics 12 --synth-backend mmx
 ```
 
 ## Decision points
 
 | Decision | Default | When to change |
 |---|---|---|
-| Extraction primitive | Report + Data-Table hybrid | `--quick` flag falls back to chat query for fast iteration |
-| Similarity threshold for `refines` | 0.75 (cosine on embeddings) | `--threshold 0.85` for stricter matching; `--threshold 0.6` for more aggressive branching |
+| Extraction primitive | Raw transcript export (`nlm source content`) | — (v2 Report+Data-Table was wrong; superseded) |
+| Sub-topic cluster count | 10 (`--max-subtopics`) | 5-15 range; raise for broader themes, lower for granular concepts |
+| HDBSCAN min_cluster_size | 5 (transcript-tuned) | Higher (8-15) for notebooks with many sources; see `cluster_transcripts.py --min-cluster-size` |
+| Synthesis LLM backend | mmx (MiniMax-M2.7) | `--synth-backend dgemma` for the free fallback; switch if pages are thin |
+| Vision enrichment | Off (opt-in `--enrich-vision`) | Enable for notebooks with visual content (tutorials, demos); talking-head videos auto-skip |
+| Scene-change threshold | 10 keyframes | `enrich_vision.py --threshold`; lower to enrich more videos |
+| Similarity threshold for `refines` | 0.75 (cosine on embeddings) | `--threshold 0.85` for stricter matching |
 | Notebook profile | `codex` on this host | Matches `[[nlm-bulk-ingest]]` default |
-| Vault target | `P:/.data/wiki/concepts/` | Override via `--vault <path>` for testing |
-| Concepts per notebook | 5-20 (extraction prompt enforces) | Edit prompt in `references/extraction-prompts.md` |
 
 ## Provenance model (4-hop chain)
 
@@ -170,8 +191,9 @@ A reader can click from any wiki concept → notebook → cluster → exact YouT
 
 All the [[notebooklm-cli-operational-gotchas]] apply:
 - `nlm login --check` lies about auth; `nlm login --profile <name>` recovers silently
-- Studio generation has rate limits; retry with exponential backoff
-- `cited_text` from query responses is a snippet, not a full passage — Stage D expands it
+- `nlm source content` is rate-limited; export_transcripts paces at 1.5s spacing by default (`--spacing`)
+- `nlm source content` returns the raw indexed text — no AI processing; this is the correct v3 primitive
+- Large notebooks (191+ sources) take ~5-10 min to export; crash-resumable (re-run skips completed sources)
 
 ## Validation gate
 
@@ -185,9 +207,9 @@ fix or discard.
 The sync manifest at `P:/.data/wiki/_state/nlm-sync-manifest.json` records
 `source_ids` per notebook. On re-sync:
 
-- Source IDs unchanged → skip extraction entirely, report "no new sources"
-- Source IDs changed → re-extract, then dedup against existing pages (refines
-  any that already exist from prior sync)
+- Source IDs unchanged → skip export entirely, report "no new sources"
+- Source IDs changed → re-export + re-cluster + re-synthesize, then dedup
+  against existing pages (refines any that already exist from prior sync)
 
 This makes `nlm-to-wiki sync` idempotent and safe to schedule.
 
