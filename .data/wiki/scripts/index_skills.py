@@ -301,7 +301,7 @@ def write_stub(entry: SkillEntry, full_body: bool = False) -> Path:
                 # Cap at ~8000 chars to bound qmd index size per skill
                 if len(body_text) > 8000:
                     body_text = body_text[:7997] + "\n..."
-        except (OSError, UnicodeDecodeError):
+        except OSError:
             body_text = "(could not read source body)"
 
     content = f"""---
