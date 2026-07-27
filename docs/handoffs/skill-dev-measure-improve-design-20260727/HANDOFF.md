@@ -3,10 +3,21 @@ thread_id: skill-dev-measure-improve-design-20260727
 current_session_id: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
 current_terminal_id: P%3A%5C
 produced_at: 2026-07-27T17:30:00Z
-status: open
+closed_at: 2026-07-27T18:15:00Z
+status: closed
+closed_by_session: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
+closed_by_commit: ddca4bc
 handoff_type: investigation
-accurate_as_of_head: 0481182 (P:) / 0d9a41b (~/.grok)
+accurate_as_of_head: 0481182 (P:) / ddca4bc (~/.grok)
 ---
+
+## CLOSURE NOTE (2026-07-27)
+
+**RESOLVED.** Commit `ddca4bc` created `/skill-dev` v1.0 with measure + improve modes. The skill implements retrospective MEC (SLIM adapted to non-RL), held-out validation, and the self-improvement boundary. Also shipped: `index_skills.py --full-body` flag (commit `668e619`), create-skill routing note (commit `df11389`), and the skill-development-portfolio merge (commit `45aafbf`).
+
+---
+
+
 
 # /skill-dev design: measure-mode + improve-mode (not the 3-mode god-skill)
 
