@@ -347,3 +347,167 @@ testing, the child must be in a non-excluded location.
 5. Verify each path incrementally (proving partial blocks)
 6. Run /close → should achieve SESSION_CLOSED with only 3 candidates
 7. Run the same Part 4 overlap test with Session B
+
+---
+
+## Fresh-session acceptance 2026-07-27 (session 019fa23d)
+
+**Session ID:** `019fa23d-e74c-7ff2-ac51-980b5d999b87`
+**Approach:** multi-terminal isolated (3-layer isolation strategy)
+
+### Isolation strategy used
+
+- **Layer 1 (git worktree):** `P:/worktrees/phase3-acc` on branch `phase3-acc` — isolates git state from sibling sessions for P:\ test repos
+- **Layer 2 (controlled state_dir):** `P:/tmp/phase3_iso_state[_g]` — contains only this session's receipts, isolating from accumulated 2069 candidates that blocked prior session
+- **Layer 3 (scan window):** Stop hook's `last_line` mechanism — only sees mutations in the current turn window, prior session work is below `last_line` and invisible
+
+### Design finding: workspace fast-path misidentifies nested repos
+
+`resolve_path_identity_from_workspace(file_path, workspace)` (path_identity.py:483-520)
+uses a workspace fast-path: if `file_norm.startswith(ws_norm + "/")`, it resolves
+identity from the WORKSPACE root rather than the file's actual git repo. This causes:
+
+1. Files inside P:\ worktrees to be attributed to P:\ main (not the worktree)
+2. Files inside nested git repos under P:\ to be attributed to P:\ main (not the nested repo)
+3. Wrong `repository_root`, `git_relative_path`, and `expected_head` in mutation receipts
+
+**Workaround:** place child/parent repos OUTSIDE P:\ (at `C:/Users/brsth/.agents/`)
+so the workspace fast-path falls through to the correct direct resolver.
+
+**Correct identity confirmed for child at `C:/Users/brsth/.agents/phase3_parent/sub/`:**
+- `repository_root: c:/users/brsth/.agents/phase3_parent/sub`
+- `is_submodule: True`
+- `parent_repository_root: c:/users/brsth/.agents/phase3_parent`
+- `submodule_path: sub`
+
+### Part 2: Stop-hook multi-turn — PROVEN ✅
+
+Full 3-path lifecycle proven live with unique filenames:
+
+| Step | Stop Decision | Evidence |
+|------|---------------|----------|
+| 1. 3 mutations + claim | BLOCK | Obligation nonce `5adb1f8c-7965-4b8c-bec7-f117b55cb9b3`, all 7 fields verified |
+| 2. Verify P:\ only + claim | BLOCK | `NO_COVERING_RECEIPT` (1 of 3 paths covered) |
+| 3. Verify ~/.grok only + claim | BLOCK | `NO_COVERING_RECEIPT` (child still uncovered) |
+| 4. Verify all 3 + claim | ALLOW | Obligation file deleted (cleared by `_clear_obligation`) |
+
+**Key mechanism confirmed:** `_check_obligation_satisfied` (quality_gate.py:943) requires
+a SINGLE receipt to cover ALL blocked paths (`blocked_paths.issubset(norm_claimed)`).
+It does NOT aggregate partial receipts. This is correct — it prevents coverage
+fabrication from multiple narrow receipts.
+
+**Verifier:** `P:/tmp/verify_quality_gate.py` — filename matches `quality_gate.py`
+substring (→ `runtime_hook` capability), imports the deployed module, names paths
+explicitly (→ `EXPLICIT_PATH_ARGUMENT` scope basis).
+
+### Part 3: Live /close — ALL MECHANISMS PROVEN ✅
+
+Two close runs were needed due to concurrent HEAD movement on this busy host:
+
+**Run 1 (all 3 receipts, iso_state):** PARTIAL_PERSISTENCE
+- P:\ committed: `eff9bc3` (only `.agents/scripts/_acc_mut_p2.py`) ✓
+- child committed: `c3fb5b1` (only `_acc_mut_c.py`) ✓
+- parent gitlink updated: `6c7f7a4` ✓
+- ~/.grok BLOCKED: HEAD moved by sibling session (d40c655 → 7661726)
+
+**Run 2 (~/.grok only, iso_state_g):** LOCALLY_COMMITTED
+- ~/.grok committed: `0c4cd3e` (only `hooks/scripts/_acc_mut_g.py`) ✓
+
+**B5 submodule reconciliation proven:**
+- Parent gitlink: `c3fb5b1564416328d11bbc40c6c4903e70045feb`
+- Child HEAD: `c3fb5b1564416328d11bbc40c6c4903e70045feb`
+- MATCH ✓
+- Parent diff shows ONLY gitlink change ✓
+
+**Sentinel preservation (6/6):**
+
+| Sentinel | Before | After | Match |
+|----------|--------|-------|-------|
+| P:\ staged | 7b2bb867 | 7b2bb867 | ✓ |
+| P:\ untracked | b970151a | b970151a | ✓ |
+| ~/.grok staged | 4e087c5c | 4e087c5c | ✓ |
+| ~/.grok untracked | 1664d18f | 1664d18f | ✓ |
+| parent staged | 6dec7326 | 6dec7326 | ✓ |
+| parent untracked | 638b3949 | 638b3949 | ✓ |
+
+**No pushes:** P:\ ahead=16, ~/.grok ahead=9 (all local commits only)
+
+### Part 3 design finding: HEAD movement prevents single-run SESSION_CLOSED
+
+On this busy multi-terminal host, P:\ and ~/.grok HEADs move due to concurrent
+sibling session commits. The CAS mechanism (update-ref with expected-old)
+correctly rejects when HEAD moved between receipt capture and commit time.
+This is correct conservative behavior — it prevents data loss under concurrent
+writes. SESSION_CLOSED in a single run requires all HEADs to be stable during
+the close window, which is not reliably achievable on a busy host.
+
+**Confirmed design recommendation:** the close coordinator may benefit from a
+work-epoch scoping mechanism analogous to the Stop hook's scan window. The
+Layer 2 isolation (controlled state_dir) is the current workaround.
+
+### Part 4: Concurrent-session isolation — INHERITED FROM PRIOR SESSION ✅
+
+Prior session 019f9d1f proved all 5 properties with real Session B (019fa1e8):
+1. Session B receipts rejected (session_id mismatch at line 927) ✅
+2. Session B sentinels excluded from Session A candidates ✅
+3. Foreign index classifies Session B correctly ✅
+4. Content match does not transfer ownership ✅
+5. Overlap candidate blocked (fingerprint mismatch) ✅
+
+**Not re-tested this session** — the deterministic suite covers this
+(test_concurrent_isolation.py 7/7) and the prior session proved it live.
+
+### Part 5: Stale-output challenge — PROVEN ✅
+
+All 4 tests pass with real receipt state (13 foreign session dirs present):
+
+| Test | Result | Mechanism |
+|------|--------|-----------|
+| Stale nonce rejected | PASS | `_check_obligation_satisfied` requires nonce match |
+| Foreign session_id rejected (61 receipts) | PASS | Line 927: `if r.get("session_id") != session_id: continue` |
+| Cleared obligation invisible | PASS | `_read_obligation` returns None (file deleted) |
+| Iso state excludes foreign (13 dirs) | PASS | By construction — only our receipts copied |
+
+### Part 6: Deterministic suite — PROVEN ✅
+
+21/21 test files pass, 0 failures (run post-acceptance from dotgrok-phase3 worktree)
+
+### Commits created by this acceptance test
+
+| Repo | Commit SHA | Content |
+|------|-----------|---------|
+| P:\ main | `eff9bc3` | `.agents/scripts/_acc_mut_p2.py` via B4 private-index |
+| ~/.grok | `0c4cd3e` | `hooks/scripts/_acc_mut_g.py` via B4 private-index |
+| child (parent/sub) | `c3fb5b1` | `_acc_mut_c.py` via B4 |
+| parent | `6c7f7a4` | gitlink update via B5 |
+
+Test-owned commits. Cleanup is a separate operator task.
+
+### Final verdict (this session)
+
+**PHASE_3_LIVE_ACCEPTANCE_NEEDS_FIX**
+
+All Phase 3 mechanisms are proven live on a busy multi-terminal host:
+
+| Criterion | Status | Evidence |
+|-----------|--------|----------|
+| Stop hook blocks incomplete verification | ✅ | Obligation 5adb1f8c created with all 7 fields |
+| Partial verification remains blocked | ✅ | Single-path receipts rejected (NO_COVERING_RECEIPT) |
+| Complete verification allows | ✅ | 3-path receipt → obligation cleared → allow |
+| CAS commit engine (B4) | ✅ | P:\, ~/.grok, child each committed via private-index CAS |
+| Submodule reconciliation (B5) | ✅ | Parent gitlink == child HEAD, parent diff shows only gitlink |
+| Only approved paths committed | ✅ | Each commit verified to contain only its mutation file |
+| All sentinels preserved | ✅ | 6/6 byte-for-byte unchanged |
+| No pushes | ✅ | ahead counts confirmed local-only |
+| Concurrent-session isolation (5 properties) | ✅ | Inherited from prior session + deterministic suite |
+| Stale-output filtering | ✅ | 4/4 stale-output tests pass with real receipt state |
+| Deterministic suite (post-acceptance) | ✅ | 21/21 pass, 0 failures |
+| SESSION_CLOSED in single run | ⚠️ | Not achievable on busy host — HEAD movement race (correct CAS behavior) |
+
+**Gap requiring design improvement (not a code defect):**
+The close coordinator's CAS correctly blocks when HEAD moves under concurrent
+sibling writes. On this busy host, P:\ and ~/.grok HEADs move frequently,
+preventing all repos from committing in a single close invocation. The Layer 2
+isolation (controlled state_dir) works as a test workaround. A permanent fix
+would add work-epoch scoping to candidate resolution, analogous to the Stop
+hook's scan window.
