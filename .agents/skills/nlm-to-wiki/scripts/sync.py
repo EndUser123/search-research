@@ -118,6 +118,8 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
     Pipeline: export transcripts → cluster → synthesize → reconcile →
     write pages → link/log/manifest. Vision enrichment is opt-in.
     """
+    import time as _time
+    sync_start_time = _time.time()
     title = notebook_title(nb_id, profile)
     log(f"=== Sync: {title} ({nb_id}) ===")
 
@@ -126,7 +128,7 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
     manifest = load_manifest()
     prior = manifest["notebooks"].get(nb_id, {})
     if prior.get("source_hash") == source_hash and source_hash:
-        log(f"SKIP (source_ids unchanged since last sync)")
+        log("SKIP (source_ids unchanged since last sync)")
         return {"notebook_id": nb_id, "title": title, "status": "skipped_unchanged"}
 
     # Transcripts are durable (wiki/sources/transcripts/); cluster+synthesize use tmp.
@@ -146,7 +148,7 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         log(f"FATAL export_transcripts rc={rc}: {err[:400]}")
         return {"notebook_id": nb_id, "title": title, "status": "export_failed", "error": err[:400]}
     if rc == 5:
-        log(f"WARN export_transcripts rc=5 (partial failure — some sources status=3); continuing with succeeded transcripts")
+        log("WARN export_transcripts rc=5 (partial failure — some sources status=3); continuing with succeeded transcripts")
     elif rc != 0:
         log(f"WARN export_transcripts rc={rc}: {err[:300]}; continuing")
     export_result = json.loads(out)
@@ -264,6 +266,18 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         save_manifest(manifest)
         # Rebuild qmd index for the new pages
         qmd_reindex(write_summary["written"])
+
+        # Stage G: auto-generate pipeline report (progressive disclosure)
+        log("Stage G: generate pipeline report...")
+        sync_duration = time.time() - sync_start_time if sync_start_time else None
+        report_cmd = ["python", str(SCRIPTS / "report.py"),
+                      "--notebook", nb_id, "--profile", profile]
+        if sync_duration:
+            report_cmd.extend(["--duration", str(sync_duration)])
+        rc, out, _ = run(report_cmd, timeout=120)
+        if rc == 0 and out.strip():
+            # Print the Level 1 + Level 2 summary to stderr (sync logs go to stderr)
+            print(out.strip(), file=sys.stderr)
 
         return {
             "notebook_id": nb_id, "title": title, "status": "synced",
