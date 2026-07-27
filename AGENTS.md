@@ -1,5 +1,20 @@
 # AGENTS.md
 
+## Skill-specific instructions override general heuristics
+
+When a skill (e.g., `/close`, `/why`, `/refine`, `/handoff`) gives a specific
+instruction like "commit and push before declaring the gate satisfied" or
+"follow these 15 steps," follow it exactly. Do not compress the skill into a
+mental summary and then apply a general rule (like "push is Tier 3") instead.
+The skill author already considered the exceptions. If the general rule and
+the skill conflict, **the skill wins.**
+
+This rule exists because skills and AGENTS.md are both just prompt — the
+difference is presence. AGENTS.md is in context 100% of the time; skill bodies
+get compressed on first read and lose specificity by decision time. Putting
+this meta-rule here (where it has 100% presence) addresses the root cause
+directly. See `wiki/concepts/llm-instruction-non-compliance-activation-gap-2026.md`.
+
 ## Search Topology (read before any existence/absence claim)
 
 `P:\` is a multi-root workspace. Code for one subsystem is split across these
