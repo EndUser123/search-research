@@ -139,6 +139,33 @@ This design is wrong if:
 - The advisory messages become noise (fire too often)
 - The periodic self-check consumes too many tokens
 
+### Tier 2.5: Regex → LLM-judge upgrade (when data justifies it)
+
+**Current state:** `behavioral_check.py` uses regex/substring matching (Layer 1 only). Logging was added 2026-07-28 to accumulate true-positive rate data at `~/.grok/hooks/state/behavioral-check-log.jsonl`.
+
+**Upgrade trigger:** when false-positive rate from the log becomes painful (rough threshold: >30% of detections are false positives across ≥50 detections). Before that, regex is sufficient.
+
+**Upgrade design:** two-layer architecture (validated by community research 2026-07-28):
+- Layer 1: regex/substring (current, ~1ms, high recall, triggers on ~5% of turns)
+- Layer 2: LLM-as-judge called ONLY on Layer 1 hits (~200ms, high precision)
+  - Fast model (Haiku-class or DiffusionGemma via `dgemma_read.py` for zero-cost)
+  - Structured JSON output: `{violation: bool, type: string, reason: string}`
+  - Biased toward "allow" to protect UX
+  - Implemented as CLI call from within the Stop hook script (Grok Build supports `command` hooks only, not `type: "prompt"`)
+
+**When NOT to upgrade:** if the pattern space stays small (<15 patterns) and false-positive rate stays low. Regex + logging may be the permanent steady state.
+
+**Research basis:** @u1's two-layer architecture (youmind.com synthesis), waitdeadai/no-sycophancy (pure deterministic approach), RAGAS answer-relevancy (embedding alternative), Llama Guard 3 (F1=0.94 but requires GPU). See wiki: `enforcement-hierarchy-and-compaction-strategy.md` and `non-regex-hook-optimizations.md`.
+
+**Data check command:** when evaluating whether to upgrade:
+```powershell
+$log = Get-Content ~/.grok/hooks/state/behavioral-check-log.jsonl | ConvertFrom-Json
+$detections = $log.Count
+$uniqueSessions = ($log.session_id | Sort-Object -Unique).Count
+Write-Host "Detections: $detections across $uniqueSessions sessions"
+# Manual false-positive audit: sample 10 entries, check transcript for whether a write followed
+```
+
 ## Related
 
 - Wiki: [[model-fit-and-post-hoc-behavioral-detection]]
