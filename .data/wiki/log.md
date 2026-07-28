@@ -1,5 +1,389 @@
 # Vault Log
 
+## --agent
+Source: grok
+Agent: --session
+Notes: 019fa5a1
+Page: --page
+
+## Cardiovascular Health Targets and Age-Related Considerations
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/cardiovascular-health-targets-and-age-related-considerations.md
+
+## Beef Price Drivers and Supply Constraints
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/beef-price-drivers-and-supply-constraints.md
+
+## MOTS-C Mitochondrial Peptide
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/mots-c-mitochondrial-peptide.md
+
+## Metabolic Targeting of Cancer Cell Fuel Sources
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/metabolic-targeting-of-cancer-cell-fuel-sources.md
+
+## Dog Reactivity Training Techniques
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/dog-reactivity-training-techniques.md
+
+## Sleep Apnea Non-CPAP Interventions
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/sleep-apnea-non-cpap-interventions.md
+
+## Carnivore Diet Outcomes and Comparative Diet Debates
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/carnivore-diet-outcomes-and-comparative-diet-debates.md
+
+## Metabolic Status as Determinant of Cancer and Dementia Risk
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/metabolic-status-as-determinant-of-cancer-and-dementia-risk.md
+
+## Internal ADHD Experiences and Hidden Manifestations
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health (ADHD/Sleep/Cancer)
+Page: wiki/concepts/internal-adhd-experiences-and-hidden-manifestations.md
+
+## Custom Skills Overview
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/custom-skills-overview.md
+
+## AI System Evaluation and Security Frameworks
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/ai-system-evaluation-and-security-frameworks.md
+
+## LangGraph Tool Args Validation Middleware
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/langgraph-tool-args-validation-middleware.md
+
+## NVIDIA NeMo Guardrails
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/nvidia-nemo-guardrails.md
+
+## Claude Code Guardrails
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/claude-code-guardrails.md
+
+## Tool Binding and Choice Control
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/tool-binding-and-choice-control.md
+
+## Claude Code Skills Development
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/claude-code-skills-development.md
+
+## LLM Agent Reliability and Testing Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/llm-agent-reliability-and-testing-patterns.md
+
+## Claude Code Execution Control Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/claude-code-execution-control-patterns.md
+
+## Claude Code Hooks System
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Mastering Claude Skills
+Page: wiki/concepts/claude-code-hooks-system.md
+
+## GDPR Compliance Requirements for AI Systems
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Claude Code - Observability & Logging
+Page: wiki/concepts/gdpr-compliance-requirements-for-ai-systems.md
+
+## OpenTelemetry Structured Logging Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Claude Code - Observability & Logging
+Page: wiki/concepts/opentelemetry-structured-logging-patterns.md
+
+## Vibe Coding Tools and Workflows
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/vibe-coding-tools-and-workflows.md
+
+## Agent Skills Architecture
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/agent-skills-architecture.md
+
+## Agent Skills Documentation Pattern
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/agent-skills-documentation-pattern.md
+
+## Vibe-Coding Prompt Template
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/vibe-coding-prompt-template.md
+
+## Claude MCP Server Management
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-mcp-server-management.md
+
+## CLI-Based AI Coding Agents
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/cli-based-ai-coding-agents.md
+
+## Claude Code Extensibility and Configuration
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-code-extensibility-and-configuration.md
+
+## Claude Code CLI Tool
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-code-cli-tool.md
+
+## Free AI Coding Model Alternatives to Opus
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/free-ai-coding-model-alternatives-to-opus.md
+
+## Parallel Agent Session Management
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/parallel-agent-session-management.md
+
+## AI Tool Integration and Workflow Orchestration
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/ai-tool-integration-and-workflow-orchestration.md
+
+## Local Audio AI Models
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/local-audio-ai-models.md
+
+## Kimi K2.7 Code Mixture-of-Experts Architecture
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/kimi-k27-code-mixture-of-experts-architecture.md
+
+## AI Image Generation Models And Workflows
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/ai-image-generation-models-and-workflows.md
+
+## Automated Model Routing for LLM Coding Tasks
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/automated-model-routing-for-llm-coding-tasks.md
+
+## Open-Source Developer Inventory and Security Tools
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/open-source-developer-inventory-and-security-tools.md
+
+## Free Open Source Self Hosted Tools
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/free-open-source-self-hosted-tools.md
+
+## Free AI Video Generation Tools
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - WL: AI Coding & Tooling
+Page: wiki/concepts/free-ai-video-generation-tools.md
+
+## CLI Vibe Coding Workflow Techniques
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/cli-vibe-coding-workflow-techniques.md
+
+## Claude Agent Skills
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-agent-skills.md
+
+## Skill Documentation Structure
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/skill-documentation-structure.md
+
+## Vibe-Coding Prompt Templates
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/vibe-coding-prompt-templates.md
+
+## Cookie Handling in AI Agent Web Interactions
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/cookie-handling-in-ai-agent-web-interactions.md
+
+## Open Source CLI AI Coding Agents
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/open-source-cli-ai-coding-agents.md
+
+## Claude Code Configuration and Settings
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-code-configuration-and-settings.md
+
+## AI CLI Tools and Coding Agents
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/ai-cli-tools-and-coding-agents.md
+
+## GDPR Compliance Requirements for AI Agents
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Observability & Logging
+Page: wiki/concepts/gdpr-compliance-requirements-for-ai-agents.md
+
+## OpenTelemetry Logging Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Observability & Logging
+Page: wiki/concepts/opentelemetry-logging-patterns.md
+
+## Claude Code Hooks
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Skills and Features Reference Guide
+Page: wiki/concepts/claude-code-hooks.md
+
+## Antigravity Codes Platform
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code and QMD: Persistent Knowledge Architecture
+Page: wiki/concepts/antigravity-codes-platform.md
+
+## Karpathy-Style Knowledge Base Workflow
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code and QMD: Persistent Knowledge Architecture
+Page: wiki/concepts/karpathy-style-knowledge-base-workflow.md
+
+## CLAUDE.md Configuration Files
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code and QMD: Persistent Knowledge Architecture
+Page: wiki/concepts/claudemd-configuration-files.md
+
+## Claude Code Obsidian Integration Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code and QMD: Persistent Knowledge Architecture
+Page: wiki/concepts/claude-code-obsidian-integration-patterns.md
+
+## Claude Code External Integration Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code and QMD: Persistent Knowledge Architecture
+Page: wiki/concepts/claude-code-external-integration-patterns.md
+
+## LLM Wiki Knowledge Pattern
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code and QMD: Persistent Knowledge Architecture
+Page: wiki/concepts/llm-wiki-knowledge-pattern.md
+
+## Claude Code Integration with Obsidian Knowledge Bases
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code and QMD: Persistent Knowledge Architecture
+Page: wiki/concepts/claude-code-integration-with-obsidian-knowledge-bases.md
+
+## Self-Feedback Iterative Refinement
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Iterative AI Refinement and Multi-Agent Debate Frameworks
+Page: wiki/concepts/self-feedback-iterative-refinement.md
+
+## Verification Techniques for LLM Reliability
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Iterative AI Refinement and Multi-Agent Debate Frameworks
+Page: wiki/concepts/verification-techniques-for-llm-reliability.md
+
+## Iterative Refinement in LLM Code Generation
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Iterative AI Refinement and Multi-Agent Debate Frameworks
+Page: wiki/concepts/iterative-refinement-in-llm-code-generation.md
+
+## Multi-Agent Code Review Systems
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Iterative AI Refinement and Multi-Agent Debate Frameworks
+Page: wiki/concepts/multi-agent-code-review-systems.md
+
+## AI Agent Schema Standards
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook high-quality GitHub profile landing pages
+Page: wiki/concepts/ai-agent-schema-standards.md
+
+## Digital Video Production Fundamentals
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook high-quality GitHub profile landing pages
+Page: wiki/concepts/digital-video-production-fundamentals.md
+
 ## Self-Regulated Study Loop Systems
 Source: nlm-sync-2026-07-28
 Agent: grok
