@@ -2,6 +2,7 @@
 title: "subagent-dispatch"
 node_type: capability
 created: 2026-07-28
+domain: infrastructure
 provides: [fresh-lens-spawn, model-pool-selection, inline-fallback-disclosure]
 ---
 

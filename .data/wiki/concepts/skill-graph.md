@@ -196,6 +196,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | Capability | Skills |
 |------------|--------|
 | `design-doc-production` | `design` |
+| `plan-writing` | `plan-writer` |
 
 ### discovery
 
@@ -205,11 +206,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `evidence-backed-inventory` | `preflight` |
 | `marketplace-skill-discovery` | `marketplace-bridge` |
 | `multi-backend-search` | `web` |
-| `plan-writing` | `plan-writer` |
 | `rrf-aggregation` | `search-fleet` |
 | `rrf-merge` | `web` |
 | `source-authority-discovery` | `grok-discovery` |
-| `subagent-dispatch` | `www` |
 | `task-refinement` | `refine` |
 | `web-ingestion` | `crawl4ai` |
 | `wiki-web-wiki-research` | `www` |
@@ -233,6 +232,12 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 |------------|--------|
 | `image-generation-guidance` | `imagine` |
 | `structural-refactor` | `refactor` |
+
+### infrastructure
+
+| Capability | Skills |
+|------------|--------|
+| `subagent-dispatch` | `check`, `debrief`, `grok-parallel`, `review`, `tp`, `www` |
 
 ### knowledge
 
@@ -258,7 +263,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `session-close-accounting` | `close` |
 | `session-export` | `packet` |
 | `session-retrospective` | `debrief` |
-| `subagent-dispatch` | `debrief` |
 | `value-accounting` | `aar` |
 
 ### orchestration
@@ -272,7 +276,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `parallel-fan-out` | `grok-parallel` |
 | `parallel-implement-dispatch` | `go` |
 | `safe-git-preflight-dispatch` | `go` |
-| `subagent-dispatch` | `grok-parallel` |
 | `verify-dispatch` | `go` |
 
 ### review
@@ -283,7 +286,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `content-discipline-for-plans` | `wargame` |
 | `critical-friend-critique` | `tp` |
 | `session-opportunity-review` | `tp` |
-| `subagent-dispatch` | `review`, `tp` |
 | `system-exploration` | `tp` |
 | `verified-findings-on-disk` | `review` |
 
@@ -304,7 +306,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 |------------|--------|
 | `completion-gate` | `grok-verify` |
 | `session-verification` | `check` |
-| `subagent-dispatch` | `check` |
 
 
 ## Per-skill edges
@@ -4532,6 +4533,36 @@ Every capability the skill fleet declares via `provides:` frontmatter:
   ],
   "reverse": {
     "provider_consumers": {
+      "exa": [
+        "aar",
+        "agy",
+        "codex",
+        "crawl4ai",
+        "create-skill",
+        "design",
+        "dream",
+        "go",
+        "grok-parallel",
+        "grok-verify",
+        "handoff",
+        "imagine",
+        "mmx",
+        "model-benchmark",
+        "notice",
+        "packet",
+        "plan-writer",
+        "prompt-patterns",
+        "refactor",
+        "refine",
+        "review",
+        "search-fleet",
+        "skill-dev",
+        "tasks",
+        "todo",
+        "web",
+        "why-old",
+        "wiki"
+      ],
       "gh": [
         "aar",
         "agy",
@@ -4565,36 +4596,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "why-old",
         "wiki",
         "www"
-      ],
-      "exa": [
-        "aar",
-        "agy",
-        "codex",
-        "crawl4ai",
-        "create-skill",
-        "design",
-        "dream",
-        "go",
-        "grok-parallel",
-        "grok-verify",
-        "handoff",
-        "imagine",
-        "mmx",
-        "model-benchmark",
-        "notice",
-        "packet",
-        "plan-writer",
-        "prompt-patterns",
-        "refactor",
-        "refine",
-        "review",
-        "search-fleet",
-        "skill-dev",
-        "tasks",
-        "todo",
-        "web",
-        "why-old",
-        "wiki"
       ],
       "nlm": [
         "aar",
@@ -4650,15 +4651,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "go",
         "web"
       ],
-      "ddg": [
-        "search-fleet",
-        "tp",
-        "web",
-        "www"
-      ],
-      "perplexity": [
+      "tavily": [
         "search-fleet",
         "web"
+      ],
+      "pwm": [
+        "perplexity-web-mcp",
+        "search-fleet"
       ],
       "search-research": [
         "prospect",
@@ -4666,17 +4665,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "web",
         "why"
       ],
+      "ddg": [
+        "search-fleet",
+        "tp",
+        "web",
+        "www"
+      ],
       "reddit": [
         "search-fleet",
         "todo",
         "web",
         "www"
       ],
-      "pwm": [
-        "perplexity-web-mcp",
-        "search-fleet"
-      ],
-      "tavily": [
+      "perplexity": [
         "search-fleet",
         "web"
       ],
@@ -4695,10 +4696,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "web",
         "www"
       ],
-      "stackexchange": [
+      "duckduckgo": [
         "web"
       ],
-      "duckduckgo": [
+      "stackexchange": [
         "web"
       ],
       "github-issues": [
@@ -4715,162 +4716,34 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ]
     },
     "skill_callers": {
-      "go": [
+      "close": [
         "aar",
-        "ai-api",
-        "avant-garde-ui",
-        "brainstorming",
-        "build",
         "check",
         "claude-audit",
-        "close",
-        "code",
-        "code-review",
-        "codebase-to-course",
         "debrief",
-        "debt",
-        "design",
         "doc-compiler",
-        "docs",
         "dream",
-        "execute-plan",
-        "finishing-a-development-branch",
         "fullstack-dev",
-        "gitingest",
-        "gitpack",
-        "google-ai-usage-monitor",
-        "grok-go",
-        "grok-parallel",
-        "grok-sdlc",
+        "grok-safe-git",
+        "grok-verify",
         "handoff",
-        "implement",
-        "lmc",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mlc",
-        "model-benchmark",
+        "maintain",
         "notice",
-        "plan-writer",
         "planning",
-        "pr-babysit",
-        "prime",
-        "reason",
-        "recap",
-        "red-team",
-        "refactor",
-        "refine",
-        "research",
-        "review",
-        "rns",
-        "ship",
-        "skeptic",
-        "skill-to-page",
-        "skill-write",
-        "todo",
-        "tot",
-        "tp",
-        "using-git-worktrees",
-        "wargame",
-        "why",
-        "why-old",
-        "www",
-        "zoom-out"
-      ],
-      "tp": [
-        "aar",
-        "ai-api",
-        "ai-probe-nim",
-        "bf",
-        "close",
-        "config-audit",
-        "design",
-        "dream",
-        "fullstack-dev",
-        "go",
-        "handoff",
-        "id",
-        "marketplace-bridge",
-        "mmx",
-        "model-benchmark",
-        "model-discover",
-        "notice",
-        "plan-writer",
-        "red-team",
-        "refactor",
-        "refine",
-        "review",
-        "skill-dev",
-        "skill-to-page",
-        "tdd",
-        "todo",
-        "web",
-        "why",
-        "why-old",
-        "workspace-health",
-        "www"
-      ],
-      "red-team": [
-        "aar",
-        "claude-audit",
-        "close",
-        "debrief",
-        "design",
-        "dream",
-        "gitpack",
-        "improve",
-        "notice",
-        "pre-mortem",
-        "preflight",
-        "retro",
-        "review",
-        "risks",
-        "skill-audit",
-        "skill-dev",
-        "tp",
-        "why",
-        "why-old",
-        "www"
-      ],
-      "refine": [
-        "aar",
-        "brainstorming",
-        "debrief",
-        "design",
-        "dream",
-        "go",
-        "handoff",
-        "keep",
-        "mermaid-c4",
-        "minimax-music-gen",
-        "mlc",
-        "model-benchmark",
-        "note",
-        "plan-writer",
+        "pptx",
         "probe",
-        "prompt_refiner",
         "red-team",
         "refactor",
         "review",
-        "s",
-        "sequential-thinking",
+        "skill-dev",
+        "skill-to-page",
+        "team",
+        "todo",
         "tp",
-        "wargame",
-        "www"
-      ],
-      "packet": [
-        "aar",
-        "ai-api",
-        "ai-cli",
-        "check",
-        "close",
-        "code",
-        "design",
-        "go",
-        "improve",
-        "planning",
-        "preflight",
-        "review",
-        "why"
+        "trace",
+        "writing-skills",
+        "www",
+        "yt-selenium"
       ],
       "why": [
         "aar",
@@ -5105,73 +4978,114 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "yt-nlm",
         "yt-selenium"
       ],
-      "handoff": [
+      "wiki": [
         "aar",
         "ask",
-        "behave",
         "check",
-        "chs",
+        "claude-audit",
         "close",
-        "code",
+        "config-audit",
+        "crawl",
+        "crawl4ai",
+        "create-skill",
         "debrief",
         "design",
+        "doc-compiler",
         "dream",
-        "find",
-        "fullstack-dev",
+        "gitpack",
         "go",
-        "grok-route",
-        "grok-verify",
+        "grok-safe-git",
+        "handoff",
         "improve",
+        "main",
         "maintain",
+        "model-benchmark",
+        "model-discover",
+        "nlm-bulk-ingest",
+        "nlm-to-wiki",
         "notice",
         "packet",
         "plan-writer",
-        "planning",
         "prompt-patterns",
         "prospect",
-        "recap",
+        "qmd-wiki",
+        "red-team",
         "refactor",
         "refine",
         "review",
-        "rns",
-        "s",
+        "search-fleet",
         "skill-dev",
+        "skill-prune",
         "todo",
         "tp",
-        "trace",
+        "ut",
+        "ux",
         "wargame",
+        "web",
         "why",
         "workspace-health",
-        "writing-plans"
+        "www"
       ],
-      "close": [
+      "go": [
         "aar",
+        "ai-api",
+        "avant-garde-ui",
+        "brainstorming",
+        "build",
         "check",
         "claude-audit",
+        "close",
+        "code",
+        "code-review",
+        "codebase-to-course",
         "debrief",
+        "debt",
+        "design",
         "doc-compiler",
+        "docs",
         "dream",
+        "execute-plan",
+        "finishing-a-development-branch",
         "fullstack-dev",
-        "grok-safe-git",
-        "grok-verify",
+        "gitingest",
+        "gitpack",
+        "google-ai-usage-monitor",
+        "grok-go",
+        "grok-parallel",
+        "grok-sdlc",
         "handoff",
-        "maintain",
+        "implement",
+        "lmc",
+        "minimax-music-gen",
+        "minimax-music-playlist",
+        "mlc",
+        "model-benchmark",
         "notice",
+        "plan-writer",
         "planning",
-        "pptx",
-        "probe",
+        "pr-babysit",
+        "prime",
+        "reason",
+        "recap",
         "red-team",
         "refactor",
+        "refine",
+        "research",
         "review",
-        "skill-dev",
+        "rns",
+        "ship",
+        "skeptic",
         "skill-to-page",
-        "team",
+        "skill-write",
         "todo",
+        "tot",
         "tp",
-        "trace",
-        "writing-skills",
+        "using-git-worktrees",
+        "wargame",
+        "why",
+        "why-old",
         "www",
-        "yt-selenium"
+        "zoom-out"
       ],
       "review": [
         "aar",
@@ -5348,53 +5262,161 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "wiki",
         "www"
       ],
-      "wiki": [
+      "red-team": [
         "aar",
-        "ask",
-        "check",
         "claude-audit",
         "close",
-        "config-audit",
-        "crawl",
-        "crawl4ai",
-        "create-skill",
         "debrief",
         "design",
-        "doc-compiler",
         "dream",
         "gitpack",
-        "go",
-        "grok-safe-git",
-        "handoff",
         "improve",
-        "main",
+        "notice",
+        "pre-mortem",
+        "preflight",
+        "retro",
+        "review",
+        "risks",
+        "skill-audit",
+        "skill-dev",
+        "tp",
+        "why",
+        "why-old",
+        "www"
+      ],
+      "handoff": [
+        "aar",
+        "ask",
+        "behave",
+        "check",
+        "chs",
+        "close",
+        "code",
+        "debrief",
+        "design",
+        "dream",
+        "find",
+        "fullstack-dev",
+        "go",
+        "grok-route",
+        "grok-verify",
+        "improve",
         "maintain",
-        "model-benchmark",
-        "model-discover",
-        "nlm-bulk-ingest",
-        "nlm-to-wiki",
         "notice",
         "packet",
         "plan-writer",
+        "planning",
         "prompt-patterns",
         "prospect",
-        "qmd-wiki",
+        "recap",
+        "refactor",
+        "refine",
+        "review",
+        "rns",
+        "s",
+        "skill-dev",
+        "todo",
+        "tp",
+        "trace",
+        "wargame",
+        "why",
+        "workspace-health",
+        "writing-plans"
+      ],
+      "refine": [
+        "aar",
+        "brainstorming",
+        "debrief",
+        "design",
+        "dream",
+        "go",
+        "handoff",
+        "keep",
+        "mermaid-c4",
+        "minimax-music-gen",
+        "mlc",
+        "model-benchmark",
+        "note",
+        "plan-writer",
+        "probe",
+        "prompt_refiner",
+        "red-team",
+        "refactor",
+        "review",
+        "s",
+        "sequential-thinking",
+        "tp",
+        "wargame",
+        "www"
+      ],
+      "packet": [
+        "aar",
+        "ai-api",
+        "ai-cli",
+        "check",
+        "close",
+        "code",
+        "design",
+        "go",
+        "improve",
+        "planning",
+        "preflight",
+        "review",
+        "why"
+      ],
+      "tp": [
+        "aar",
+        "ai-api",
+        "ai-probe-nim",
+        "bf",
+        "close",
+        "config-audit",
+        "design",
+        "dream",
+        "fullstack-dev",
+        "go",
+        "handoff",
+        "id",
+        "marketplace-bridge",
+        "mmx",
+        "model-benchmark",
+        "model-discover",
+        "notice",
+        "plan-writer",
         "red-team",
         "refactor",
         "refine",
         "review",
-        "search-fleet",
         "skill-dev",
-        "skill-prune",
+        "skill-to-page",
+        "tdd",
         "todo",
-        "tp",
-        "ut",
-        "ux",
-        "wargame",
         "web",
         "why",
+        "why-old",
         "workspace-health",
         "www"
+      ],
+      "debrief": [
+        "agy",
+        "behave",
+        "claude-audit",
+        "close",
+        "codex",
+        "dream",
+        "export-session",
+        "friction",
+        "go",
+        "handoff",
+        "improve",
+        "lmc",
+        "mlc",
+        "recap",
+        "red-team",
+        "retro",
+        "skill-audit",
+        "top-problems",
+        "tp"
       ],
       "web": [
         "agy",
@@ -5429,27 +5451,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "www",
         "yt-is",
         "yt-selenium"
-      ],
-      "debrief": [
-        "agy",
-        "behave",
-        "claude-audit",
-        "close",
-        "codex",
-        "dream",
-        "export-session",
-        "friction",
-        "go",
-        "handoff",
-        "improve",
-        "lmc",
-        "mlc",
-        "recap",
-        "red-team",
-        "retro",
-        "skill-audit",
-        "top-problems",
-        "tp"
       ],
       "aar": [
         "close",
@@ -5497,8 +5498,18 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "red-team",
         "tp"
       ],
+      "plan-writer": [
+        "design",
+        "go",
+        "grok-parallel",
+        "refine"
+      ],
       "todo": [
         "design"
+      ],
+      "preflight": [
+        "design",
+        "tp"
       ],
       "mmx": [
         "design",
@@ -5513,16 +5524,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "web",
         "why"
       ],
-      "plan-writer": [
-        "design",
-        "go",
-        "grok-parallel",
-        "refine"
-      ],
-      "preflight": [
-        "design",
-        "tp"
-      ],
       "grok-verify": [
         "go",
         "grok-parallel",
@@ -5535,18 +5536,18 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "grok-parallel",
         "grok-verify"
       ],
-      "grok-parallel": [
+      "grok-safe-git": [
         "go",
-        "notice"
+        "grok-parallel",
+        "grok-verify"
       ],
       "grok-discovery": [
         "go",
         "grok-parallel"
       ],
-      "grok-safe-git": [
+      "grok-parallel": [
         "go",
-        "grok-parallel",
-        "grok-verify"
+        "notice"
       ],
       "recover": [
         "config-audit",
@@ -5598,16 +5599,16 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "red-team",
         "www"
       ],
-      "operator-collaboration-style-and-leverage": [
-        "aar",
-        "dream"
+      "friction-detection-operator-pushback-as-trigger": [
+        "aar"
       ],
       "user-modeling-for-agentic-clis": [
         "aar",
         "notice"
       ],
-      "friction-detection-operator-pushback-as-trigger": [
-        "aar"
+      "operator-collaboration-style-and-leverage": [
+        "aar",
+        "dream"
       ],
       "agentic-sdlc-skill-lifecycle-architecture": [
         "check",
@@ -5624,6 +5625,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "go",
         "prompt-patterns"
       ],
+      "page": [
+        "crawl",
+        "crawl4ai"
+      ],
       "wikilinks": [
         "crawl",
         "crawl4ai",
@@ -5631,20 +5636,16 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "wiki",
         "www"
       ],
-      "page": [
-        "crawl",
-        "crawl4ai"
-      ],
-      "adr-0009-extend-unverified-stance": [
+      "raising-coding-best-practices-in-ai-agents": [
         "design"
       ],
-      "raising-coding-best-practices-in-ai-agents": [
+      "consistency-drift-as-waste-source-in-iterative-refinement": [
         "design"
       ],
       "exemption-logic-as-conflict-signal": [
         "design"
       ],
-      "consistency-drift-as-waste-source-in-iterative-refinement": [
+      "adr-0009-extend-unverified-stance": [
         "design"
       ],
       "llm-synthesis-quality-and-speed-techniques": [
@@ -5662,12 +5663,12 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "fleet-maintenance-skill-design": [
         "maintain"
       ],
-      "model-fleet-provider-pools": [
-        "model-benchmark"
-      ],
       "model-pool-not-chain": [
         "model-benchmark",
         "tp"
+      ],
+      "model-fleet-provider-pools": [
+        "model-benchmark"
       ],
       "mechanisms-for-thought-partner-behavior": [
         "notice"
@@ -5690,16 +5691,16 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "verification-before-completion-principle": [
         "refactor"
       ],
-      "trust-escalation-ladder-autonomous-agent-work": [
-        "refine"
-      ],
-      "task-refinement-interview-detection-template-patterns": [
-        "refine"
-      ],
       "workflow-definition-over-agent-capability": [
         "refine"
       ],
+      "trust-escalation-ladder-autonomous-agent-work": [
+        "refine"
+      ],
       "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
+        "refine"
+      ],
+      "task-refinement-interview-detection-template-patterns": [
         "refine"
       ],
       "skill-techniques-index": [
@@ -5711,32 +5712,32 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "skill-development-portfolio": [
         "skill-dev"
       ],
-      "model-fit-and-post-hoc-behavioral-detection": [
-        "tp"
-      ],
       "analyst-exhibits-pattern-being-analyzed": [
         "tp"
       ],
+      "markdown-mermaid-rendering-agentic-clis-windows-11": [
+        "tp"
+      ],
       "model-tool-calling-capability-matrix": [
+        "tp"
+      ],
+      "model-fit-and-post-hoc-behavioral-detection": [
         "tp"
       ],
       "model-pool-selection-policy-speed-quota-diversity": [
         "check",
         "tp"
       ],
-      "markdown-mermaid-rendering-agentic-clis-windows-11": [
-        "tp"
-      ],
-      "web-search-tool-routing": [
+      "search-tool-landscape-2026": [
         "web"
       ],
-      "search-tool-landscape-2026": [
+      "optimal-multi-backend-search-strategy": [
         "web"
       ],
       "web-research-state-2026": [
         "web"
       ],
-      "optimal-multi-backend-search-strategy": [
+      "web-search-tool-routing": [
         "web"
       ],
       "compaction-inherited-diagnosis-unverified-propagation": [
@@ -5746,11 +5747,11 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "why",
         "why-old"
       ],
-      "multidimensional-root-cause-analysis-ai-agent-failures": [
+      "problem-first-systems-decomposition": [
         "why",
         "why-old"
       ],
-      "problem-first-systems-decomposition": [
+      "multidimensional-root-cause-analysis-ai-agent-failures": [
         "why",
         "why-old"
       ],
@@ -5763,15 +5764,15 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "fabricated-causal-chain-receipt-required": [
         "why-old"
       ],
+      "skill-catalog": [
+        "wiki",
+        "www"
+      ],
       "synchronous-review-direct-write-pattern": [
         "wiki"
       ],
       "inline-conditional-over-dispatch-for-skill-design": [
         "wiki"
-      ],
-      "skill-catalog": [
-        "wiki",
-        "www"
       ],
       "concurrent-cdp-auth-contention": [
         "nlm-to-wiki",
@@ -5793,14 +5794,11 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "structural-enforcement-for-skipped-rules-grok-build-2026": [
         "config-audit"
       ],
-      "notebooklm-source-limits-free-vs-paid": [
-        "nlm-bulk-ingest",
-        "nlm-to-wiki"
-      ],
       "semantic-clustering-bounded-size": [
         "nlm-bulk-ingest"
       ],
-      "video-to-wiki-pipeline-transcript-extraction-multimodal": [
+      "notebooklm-source-limits-free-vs-paid": [
+        "nlm-bulk-ingest",
         "nlm-to-wiki"
       ],
       "nlm-to-wiki-optimization-opportunities": [
@@ -5809,30 +5807,33 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "nlm-bulk-ingest": [
         "nlm-to-wiki"
       ],
-      "nlm-abc12345-concept-two": [
+      "video-to-wiki-pipeline-transcript-extraction-multimodal": [
         "nlm-to-wiki"
       ],
       "nlm-abc12345-concept-one": [
         "nlm-to-wiki"
+      ],
+      "nlm-abc12345-concept-two": [
+        "nlm-to-wiki"
       ]
     },
     "capability_providers": {
-      "opportunity-landscape": [
+      "after-action-review": [
         "aar"
       ],
-      "after-action-review": [
+      "opportunity-landscape": [
         "aar"
       ],
       "value-accounting": [
         "aar"
       ],
+      "gemini-reasoning": [
+        "agy"
+      ],
       "cross-model-second-opinion": [
         "agy",
         "codex",
         "mmx"
-      ],
-      "gemini-reasoning": [
-        "agy"
       ],
       "gate-resolution": [
         "close"
@@ -5849,6 +5850,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "skill-scaffolding": [
         "create-skill"
       ],
+      "session-retrospective": [
+        "debrief"
+      ],
       "subagent-dispatch": [
         "check",
         "debrief",
@@ -5856,9 +5860,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "review",
         "tp",
         "www"
-      ],
-      "session-retrospective": [
-        "debrief"
       ],
       "design-doc-production": [
         "design"
@@ -5869,16 +5870,16 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "engineering-orchestration": [
         "go"
       ],
-      "discovery-dispatch": [
-        "go"
-      ],
-      "verify-dispatch": [
+      "parallel-implement-dispatch": [
         "go"
       ],
       "safe-git-preflight-dispatch": [
         "go"
       ],
-      "parallel-implement-dispatch": [
+      "discovery-dispatch": [
+        "go"
+      ],
+      "verify-dispatch": [
         "go"
       ],
       "source-authority-discovery": [
@@ -5914,19 +5915,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "marketplace-skill-discovery": [
         "marketplace-bridge"
       ],
-      "minimax-vision": [
-        "mmx"
-      ],
       "minimax-web-search": [
         "mmx"
       ],
-      "latency-benchmark": [
-        "model-benchmark"
+      "minimax-vision": [
+        "mmx"
       ],
       "quality-scoring": [
         "model-benchmark"
       ],
       "cost-tracking": [
+        "model-benchmark"
+      ],
+      "latency-benchmark": [
         "model-benchmark"
       ],
       "model-discovery": [
@@ -5950,10 +5951,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "task-refinement": [
         "refine"
       ],
-      "code-review": [
+      "verified-findings-on-disk": [
         "review"
       ],
-      "verified-findings-on-disk": [
+      "code-review": [
         "review"
       ],
       "capability-routed-search": [
@@ -5974,13 +5975,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "workspace-prioritized-action-list": [
         "todo"
       ],
-      "session-opportunity-review": [
+      "system-exploration": [
         "tp"
       ],
       "critical-friend-critique": [
         "tp"
       ],
-      "system-exploration": [
+      "session-opportunity-review": [
         "tp"
       ],
       "content-discipline-for-plans": [
@@ -5992,19 +5993,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "rrf-merge": [
         "web"
       ],
-      "feedback-to-wiki": [
+      "pattern-library-query": [
         "why"
       ],
       "root-cause-analysis": [
         "why"
       ],
-      "pattern-library-query": [
+      "feedback-to-wiki": [
         "why"
       ],
-      "capability-wiki-query": [
+      "capability-wiki-write": [
         "wiki"
       ],
-      "capability-wiki-write": [
+      "capability-wiki-query": [
         "wiki"
       ],
       "wiki-web-wiki-research": [

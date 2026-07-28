@@ -2,6 +2,7 @@
 title: "wiki-write"
 node_type: capability
 created: 2026-07-28
+domain: knowledge
 ---
 
 # wiki-write

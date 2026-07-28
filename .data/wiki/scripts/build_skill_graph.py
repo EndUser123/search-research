@@ -277,11 +277,32 @@ def generate_markdown(skills: list[SkillNode], reverse: dict) -> str:
         cap_lines.append(f"| `{cap}` | {', '.join(f'`{p}`' for p in sorted(set(providers)))} |")
 
     # Domain-grouped capability view
+    # Read capability domains from contract files in capabilities/
+    # Fall back to providing skill's domain if no contract file exists
+    caps_dir = VAULT / "capabilities"
+    cap_domains: dict[str, str] = {}
+    if caps_dir.exists():
+        for cf in caps_dir.glob("*.md"):
+            try:
+                cf_text = cf.read_text(encoding="utf-8", errors="replace")
+                cf_parts = cf_text.split("---", 2)
+                if len(cf_parts) >= 3:
+                    cf_fm = cf_parts[1]
+                    title_match = __import__("re").search(r'title:\s*"?([^"\n]+)"?', cf_fm)
+                    dom_match = __import__("re").search(r'domain:\s*(\S+)', cf_fm)
+                    if title_match and dom_match:
+                        cap_name = title_match.group(1).strip().lower()
+                        cap_domains[cap_name] = dom_match.group(1).strip().strip("'\"").lower()
+            except Exception:
+                pass
+
     domain_caps: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     for skill in skills:
-        if skill.domain and skill.provides:
+        if skill.provides:
             for cap in skill.provides:
-                domain_caps[skill.domain][cap].append(skill.name)
+                # Use capability's own domain from contract, fall back to skill's domain
+                cap_dom = cap_domains.get(cap, skill.domain if skill.domain else "uncategorized")
+                domain_caps[cap_dom][cap].append(skill.name)
 
     domain_lines = []
     for domain in sorted(domain_caps):
