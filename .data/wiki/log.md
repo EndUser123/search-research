@@ -1,5 +1,137 @@
 # Vault Log
 
+## --agent
+Source: grok
+Agent: --session
+Notes: 019fa5a1
+Page: --page
+
+## Missing decision frameworks: 9 gaps
+Source: wiki-2026-07-28
+Agent: grok
+Notes: Synthesis of 3 research streams: 9 framework categories workspace lacks, ranked by failure class caught
+Page: wiki/concepts/missing-decision-frameworks-9-gaps.md
+
+## Adaptive AI Agent Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/adaptive-ai-agent-systems.md
+
+## Agentic AI System Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/agentic-ai-system-patterns.md
+
+## Autonomous AI Coding Agents
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/autonomous-ai-coding-agents.md
+
+## Vercel Security Checkpoint
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/vercel-security-checkpoint.md
+
+## Claude Code Platform Configuration and Deployment
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-code-platform-configuration-and-deployment.md
+
+## AI Agent Design in Pydantic AI
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/ai-agent-design-in-pydantic-ai.md
+
+## Claude Agent SDK Concepts
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-agent-sdk-concepts.md
+
+## Deterministic Control Patterns in Agentic Coding Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/deterministic-control-patterns-in-agentic-coding-systems.md
+
+## Claude Code Hook System Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-code-hook-system-patterns.md
+
+## Claude Code Hooks
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-code-hooks.md
+
+## AI Agent Design Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/ai-agent-design-patterns.md
+
+## Agentic AI System Architectures
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/agentic-ai-system-architectures.md
+
+## Planning in AI Coding Agents
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/planning-in-ai-coding-agents.md
+
+## Vercel Security Checkpoint
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/vercel-security-checkpoint.md
+
+## Claude Code Shell Integration and Configuration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-code-shell-integration-and-configuration.md
+
+## Pydantic AI Agent Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/pydantic-ai-agent-patterns.md
+
+## Claude Agent SDK Architecture
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-agent-sdk-architecture.md
+
+## Context Compaction and Resumption Continuity in Agentic Coding Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/context-compaction-and-resumption-continuity-in-agentic-codi.md
+
+## Claude Code Hook System
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-code-hook-system.md
+
+## Claude Code Hooks
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Agentic Engineering Playbook
+Page: wiki/concepts/claude-code-hooks.md
+
 ## workspace-infrastructure-investment-priorities-2026
 Source: session-019fa48a
 Agent: grok
