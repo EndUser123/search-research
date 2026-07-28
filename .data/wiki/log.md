@@ -1,5 +1,11 @@
 # Vault Log
 
+## PostToolUse fires on tool-call completion not process completion
+Source: session-20260728
+Agent: grok
+Notes: Auto-backgrounded commands skip receipt capture because PostToolUse fires before process finishes. Fix: pass timeout=180000 to keep foreground.
+Page: wiki/concepts/posttooluse-fires-on-tool-call-completion-not-process-completion.md
+
 ## --agent
 Source: grok
 Agent: --session
