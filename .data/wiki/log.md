@@ -1,5 +1,11 @@
 # Vault Log
 
+## Skill-step receipts checked by hooks
+Source: wiki-2026-07-27
+Agent: grok
+Notes: Design analysis: receipt-checking hooks for skill steps. Catches step-skip under closure pressure; doesn't catch quality. 3 proposals ascending complexity.
+Page: wiki/concepts/skill-step-receipts-checked-by-hooks.md
+
 ## Systematic problem anticipation: methods and existing tools
 Source: wiki-2026-07-27
 Agent: grok
