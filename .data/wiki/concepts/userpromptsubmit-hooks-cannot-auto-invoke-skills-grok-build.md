@@ -1,16 +1,16 @@
 ---
-title: "UserPromptSubmit hooks cannot auto-invoke skills on Grok Build"
+title: "UserPromptSubmit hooks: can run Python, cannot inject context (Grok Build)"
 created: 2026-07-28
 source: session-2026-07-28
 tags: [hooks, userpromptsubmit, grok-build, hook-limitations, passive-events, auto-routing]
 summary: >
-  On Grok Build, UserPromptSubmit hooks are passive-only: stdout is ignored,
-  no context injection, no blocking, no prompt rewrite. A hook that detects
-  a slash command (e.g., /handoff) and auto-creates a file produces an orphan
-  artifact because the agent still receives the original prompt and invokes
-  the skill normally, creating duplicate outputs with no reconciliation
-  mechanism. Auto-command routing requires context injection, which only
-  Claude Code's UserPromptSubmit supports (via additionalContext).
+  On Grok Build, UserPromptSubmit hooks CAN run Python and write files, but
+  stdout is ignored — no context injection back to the model. A hook that
+  detects a slash command (e.g., /handoff) and pre-creates a file IS viable
+  as a pre-processor; the limitation is that it cannot tell the agent "I
+  already handled this" via stdout. The skill must check for existing files.
+  Corrected 2026-07-28 after operator pushback: initial analysis wrongly
+  dismissed the entire approach when only the context-injection path is blocked.
 agent: grok
 host: grok
 cognitive_load: 2
@@ -73,11 +73,37 @@ isn't wired into the next action produces an orphan.
   strips ceremony automatically. This works because it runs *inside* the
   agent's context, not as a side-effect that can't communicate back.
 
-## Decision
+## What IS possible (corrected 2026-07-28 after operator pushback)
 
-**Do not build a UserPromptSubmit hook for auto-command routing on Grok Build.**
-The agent-side pattern (behavioral rules in AGENTS.md, delegation-packet
-detection in `/go`) is the correct layer for this capability.
+The hook CAN run Python and write files. The limitation is narrower than
+initially stated: the hook cannot *inject context back to the model* (stdout
+ignored), but it CAN write side-effect files that the agent reads later.
+
+A UserPromptSubmit hook that detects `/handoff <topic>` and pre-creates a
+handoff file IS viable:
+1. Hook fires, reads prompt from stdin, detects `/handoff`
+2. Python script calls the handoff-creation logic directly
+3. Handoff file is on disk before the agent processes the prompt
+4. Agent receives `/handoff <topic>`, invokes the skill
+5. Skill finds the existing handoff, updates rather than duplicates
+
+The constraint: the hook cannot tell the agent "I already handled this" via
+stdout. But it doesn't need to — the file is on disk and the agent can read
+it. The "duplicate artifact" problem is solvable by having the skill check
+for existing handoffs (which `/handoff` auto-update mode already does).
+
+**What does NOT work:** using the hook to *replace* the skill invocation
+entirely (the prompt still arrives at the agent, the agent still invokes
+the skill). The hook is a pre-processor, not a replacement.
+
+## Decision (corrected)
+
+**Viable with a design constraint.** A UserPromptSubmit hook can pre-create
+handoff files as a side effect. The constraint is that stdout cannot reach
+the model — so the hook can't inject "I handled this" context. The skill
+must check for existing files to avoid duplicates. The original analysis
+over-attributed the stdout limitation to mean "the whole approach is
+non-viable," when only the context-injection path is blocked.
 
 ## Falsifier
 
