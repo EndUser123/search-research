@@ -125,23 +125,21 @@ move out of AGENTS.md into progressive disclosure is a net win.
 
 ## What this means for our workspace
 
-Our `~/.grok/AGENTS.md` is the operator-level instruction file (loaded by Grok
-Build on every session). It currently runs ~1000+ lines. By the instruction-budget
-finding, this is well over the ~150-200 instruction ceiling. The model is already
-degrading uniformly on all instructions.
+**REFACTOR COMPLETED (2026-07-28, session 019fa48a).** Results:
 
-**The progressive-disclosure refactor (not yet done, but validated by this
-research):**
-1. Keep in AGENTS.md: hard rules that apply to EVERY task (search before proposing,
-   no destructive git, file-editing protocol, tool-selection preferences)
-2. Move to wiki concepts: rationale, incident histories, evidence, examples
-3. Replace rationale paragraphs with `[[wikilinks]]`
-4. Move code-style guidelines to hooks/linters where possible
-5. Prune "hotfix" rules that were added once and may no longer be load-bearing
+| Metric | Before | After | Reduction |
+|--------|--------|-------|-----------|
+| Files loaded | 4 (2 Grok + 2 Claude compat) | 2 (Grok only) | Claude compat disabled |
+| Total lines | ~1,679 | ~620 | 63% |
+| Total bytes | ~90KB | ~37KB | 59% |
 
-**This is a large refactor** — not a single-session task. The principle is clear;
-the execution requires per-section evaluation of what's universally applicable
-vs. conditionally relevant.
+**What was done:**
+1. Stripped all reference incidents, falsifier paragraphs, worked examples, and verbose rationale from both files (57-81% per file)
+2. Set `compat.claude.agents = false` and `compat.cursor.agents = false` in config.toml — Claude files no longer loaded (see [[disabling-claude-compat-instruction-loading]])
+3. Ported 1 unique rule from Claude files (replacement default) into Grok AGENTS.md
+4. Verified all rule statements survived via keyword checks; 1 lost rule (filter-repo) caught and restored
+
+**Key lesson from the refactor:** "remove waste" is the right frame, not "hit a line target." The artificial ≤300-line target from the original handoff was wrong — the right answer was 620 lines because that's what remained after removing every piece that doesn't change behavior at inference time. See [[enforcement-hierarchy-and-compaction-strategy]] for the lossless/lossy compaction framework.
 
 ## Falsifier
 
