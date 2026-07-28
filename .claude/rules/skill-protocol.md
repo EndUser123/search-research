@@ -34,10 +34,10 @@ When a skill defines a contract (input schema, output format, required artifacts
 ## Anti-Forgetting Checklist
 
 Before claiming a skill or workflow doesn't exist:
-1. `ls P:/.claude/skills/` for local skills
-2. `ls P:/packages/.claude-marketplace/plugins/` for plugin skills
-3. Grep SKILL.md files for the capability name
-4. Check wiki at `P:/.data/wiki/`
+1. **Check the session skill catalog** (the system reminder at session start lists all invocable skills with absolute paths) — this is the authoritative registry
+2. **Check `P:/.data/wiki/concepts/skill-catalog.md`** — the durable on-disk catalog maintained by `index_skills.py`, covering all scopes including `~/.grok/installed-plugins/`, `~/.claude/plugins/cache/`, and marketplace sources
+3. **Do NOT use filesystem grep to check skill existence** — ripgrep silently skips gitignored directories (`installed-plugins/`, `plugins/cache/`), producing false negatives. Reference incident 2026-07-28: grep for `name: brainstorming` returned zero matches because `installed-plugins/` is gitignored; the skill existed and was in the catalog the entire time.
+4. If filesystem search is still needed after the catalog: use `list_dir` or `Get-ChildItem -Recurse`, not `grep`/`rg`
 
 ## Decision Rule
 
