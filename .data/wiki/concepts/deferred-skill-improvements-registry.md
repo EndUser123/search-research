@@ -63,9 +63,10 @@ Each entry has:
 
 ### Fleet-wide (cross-skill)
 
-| Skill | Improvement | Disposition | Date | Rationale | Trigger | Source |
-|---|---|---|---|---|---|---|
-| fleet-wide | Hook-timeout fleet-level pattern concept | DEFERRED | 2026-07-28 | 19 hits / 10 files in friction taxonomy scan — the only top-10 friction pattern without a dedicated wiki concept. Documented per-hook but no fleet-level pattern page analyzing why hooks timeout and what the common causes are. | A hook timeout that blocks legitimate work, or accumulation of >30 hits across files indicating the pattern is worsening. | session-019fa94a, [[fleet-wide-friction-taxonomy-20260728]] |
+_No entries currently. (The hook-timeout pattern was initially flagged as
+needing a concept, but [[hook-evidence-collection-cost-vs-timeout-tradeoff]]
+already covers it — the friction taxonomy scan's regex missed the concept
+title.)_
 
 ### plan-writer
 
