@@ -154,7 +154,7 @@ def do_worker(worker_id, profile):
             continue
         if r.returncode == 0:
             if "SKIP" in (r.stderr or ""): status = "skipped_unchanged"
-            elif "wrote 0 pages" in (r.stderr or "") or "0 pages" in (r.stderr or ""): status = "synced_0_pages"
+            elif "wrote 0 pages" in (r.stderr or ""): status = "synced_0_pages"
             else: status = "synced"
         else: status = f"failed (rc={r.returncode})"
         fd = _acquire_lock()

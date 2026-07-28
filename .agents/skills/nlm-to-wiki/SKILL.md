@@ -225,12 +225,55 @@ provenance:
 
 A reader can click from any wiki concept → notebook → cluster → exact YouTube video.
 
+## Bulk ingestion (queue-of-work pattern)
+
+For syncing many notebooks in parallel, use the queue-of-work worker at
+`scripts/bin/queue_sync.py`. It decouples work distribution from execution:
+a JSON queue file holds the pending notebooks, and independent worker
+processes claim items, sync them, and report results.
+
+```bash
+# Populate the queue from NotebookLM (notebooks with ≥50 sources)
+python scripts/bin/queue_sync.py --enqueue --profile codex
+
+# Start a worker (run 2-3 of these in separate terminals)
+python scripts/bin/queue_sync.py --worker --worker-id w1 --profile codex
+python scripts/bin/queue_sync.py --worker --worker-id w2 --profile codex
+
+# Check progress
+python scripts/bin/queue_sync.py --status
+
+# Retry failed items (moves them back to pending)
+python scripts/bin/queue_sync.py --retry-failed
+```
+
+**Worker ceiling: 3 concurrent workers max.** The NotebookLM API degrades
+above 3 concurrent sessions. The yt-is benchmark measured 4,123 VPH at a
+3+3 worker shape, but 4+4 regressed to 1,150 VPH with source_age_cliff
+errors. Set `config.workers` in the queue file to match the number of
+worker processes you launch. Default is 2 (safe); raise to 3 for max
+throughput. See [[nlm-to-wiki-optimization-opportunities]].
+
+**⚠ Auth contention (critical):** never run two different sync drivers
+concurrently (e.g., `sync.py --all` alongside queue workers). Each
+`nlm login --profile codex` call invalidates the previous CDP session.
+Two drivers both calling `nlm login` will silently invalidate each other's
+auth, producing 0-page failures with no error. The queue worker is the
+single approved parallel driver — do not mix it with `--all` or manual
+`sync.py` runs. See [[concurrent-cdp-auth-contention]].
+
+**Durable locations:** the queue file lives at
+`P:/.data/wiki/_state/nlm-sync/queue.json` (not `P:/tmp/` — other agents
+clean tmp). The worker script lives at
+`P:/.agents/skills/nlm-to-wiki/scripts/bin/queue_sync.py`.
+
 ## Operational gotchas (inherited)
 
 All the [[notebooklm-cli-operational-gotchas]] apply:
 - `nlm login --check` lies about auth; `nlm login --profile <name>` recovers silently
 - `nlm source content` is rate-limited; export_transcripts paces at 1.5s spacing by default (`--spacing`)
 - `nlm source content` returns the raw indexed text — no AI processing; this is the correct v3 primitive
+- **rc=5 from export is non-fatal:** individual source failures (rc=5) are logged and skipped; the sync continues. Only rc=2 (no sources / auth failure) aborts.
 - Large notebooks (191+ sources) take ~5-10 min to export; crash-resumable (re-run skips completed sources)
 
 ## Validation gate

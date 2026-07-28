@@ -21,6 +21,9 @@ profile is `codex` (= `a.hominidae@gmail.com` on this host).
 | Fix stale manifest slugs | `python maintenance.py --fix-stale-slugs --confirm` |
 | Prune a deleted notebook's state | `python maintenance.py --prune-notebook <uuid> --confirm` |
 | Recover from auth expiry | `nlm login --profile codex` (silent CDP, ~10s, no browser interaction) |
+| Bulk ingestion (queue worker) | `python scripts/bin/queue_sync.py --worker --worker-id w1` |
+| Check bulk queue status | `python scripts/bin/queue_sync.py --status` |
+| Retry failed queue items | `python scripts/bin/queue_sync.py --retry-failed` |
 
 ## Common questions
 
@@ -51,6 +54,19 @@ populated only when `--from-clusters` provides the mapping.
 available MiniMax model. Switch to the free fallback with
 `--synth-backend dgemma` if pages run thin or quota is a concern.
 
+**How many parallel workers should I use?** Maximum **3 concurrent workers**.
+The NotebookLM API degrades above 3 sessions (yt-is benchmark: 3+3 workers
+hit 4,123 VPH; 4+4 regressed to 1,150 VPH). The queue config
+(`config.workers` in `queue.json`) should match the number of worker
+processes you launch. Set `config.workers` in the queue file, then launch
+that many `--worker` processes.
+
+**Can I run `sync.py --all` alongside queue workers?** **No.** Each
+`nlm login --profile codex` call invalidates the previous CDP session.
+Two drivers both calling `nlm login` will silently invalidate each other,
+producing 0-page failures. Use the queue worker as the single parallel
+driver — do not mix it with `--all` or manual `sync.py` runs.
+
 **Where does the data live?**
 
 | Artifact | Path |
@@ -75,6 +91,9 @@ available MiniMax model. Switch to the free fallback with
 | Manifest has stale `concept_slugs` after manual page deletion | Pages were removed but manifest wasn't updated | `python maintenance.py --fix-stale-slugs --confirm` |
 | Transcripts exist for a notebook that's gone from NotebookLM | Notebook was deleted in the UI | `python maintenance.py --remove-orphaned-transcripts --confirm` (or `--prune-notebook <id> --confirm` to also clear manifest + concept pages) |
 | `qmd` not found / reconcile warns | qmd CLI missing or not on PATH | Non-fatal — reconcile continues without dedup; pages may duplicate existing concepts. Install qmd to restore the `refines` branching. |
+| Queue worker produces 0 pages for every notebook | **Auth contention:** another sync driver (old `bulk_sync.py`, manual `sync.py --all`) is running concurrently and both call `nlm login`, invalidating each other's CDP session | Kill the other driver (`Get-Process python` → find the old PID). Verify only queue workers are running. Re-run `--retry-failed`. See [[concurrent-cdp-auth-contention]]. |
+| Export returns rc=5 for some sources | Individual source fetch failure (status=3, video unavailable) | **Non-fatal** — logged and skipped. Sync continues with remaining sources. Only rc=2 (auth/no-sources) aborts. |
+| Worker log shows "synced_0_pages" but citation coverage > 0% | Classification bug: `"0 pages" in stderr` matches any log line containing that string, not just the actual write verdict | Check the concept pages dir for the notebook — pages may have been written despite the misclassification. (Pending fix in `queue_sync.py`.) |
 
 **The auth-recovery recipe is agent-performable.** The single most common
 failure mode (expired session) has a ~10s silent recovery that does NOT

@@ -205,6 +205,8 @@ A bulk run of 40 notebooks is in progress using the queue-of-work pattern.
 | Auto-report (Stage H) | `6b4ce2f` | Progressive-disclosure report after each sync |
 | Report auth fix | `ff46def` | ensure_auth in report.py (was silently returning 0%) |
 | Queue-of-work | `queue_sync.py` | Parallel workers, hot-reload, crash-resume |
+| Auth contention fix | ops (killed old process) | Two concurrent `nlm login` calls invalidate each other's CDP session → silent 0-page failures. Root cause of the initial worker 0-pages wave. Fix: kill the competing driver; use queue_sync as the sole parallel driver. See [[concurrent-cdp-auth-contention]]. |
+| 3-worker ceiling | verified from yt-is benchmark | NotebookLM API degrades above 3 concurrent sessions (3+3=4,123 VPH; 4+4=1,150 VPH). Queue config `workers=3` is the max. |
 
 ### Remaining work
 
