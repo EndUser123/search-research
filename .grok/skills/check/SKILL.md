@@ -399,6 +399,12 @@ final report.
 
 **Auto-/review triggers — fire /review when ANY one is true:**
 
+> **Latency notice (operator-facing):** when any trigger below fires, the orchestrator MUST print a one-line cost notice before starting /review:
+> ```
+> ⏳ Auto-/review will fire (~3-10 min, 2+ specialists). Pass --no-auto-review to skip.
+> ```
+> This surfaces the cost so the operator can intervene for cosmetic/trivial work.
+
 1. **Load-bearing surface** — session touched any of:
    - Hooks (`.claude/hooks/`, plugin `hooks/`, `__lib/router.py`)
    - Plugin manifests (`plugin.json`, `hooks.json`, `marketplace.json`)

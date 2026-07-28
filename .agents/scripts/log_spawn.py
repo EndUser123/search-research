@@ -29,8 +29,29 @@ def main():
     parser.add_argument("--latency", type=float, default=0, help="Wall-clock latency in ms")
     parser.add_argument("--domain", default="spawn", help="Task domain (e.g., critical-friend, code-verification)")
     parser.add_argument("--notes", default="", help="Free-form notes")
-    parser.add_argument("--error-type", default="", help="Error type if failed")
+    parser.add_argument("--error-type", default="", help="Error type if failed (429, serialization, empty, 401, timeout)")
     args = parser.parse_args()
+
+    # When spawn fails, also append to spawn_failures.jsonl for fleet tuning.
+    # This file is independent of the telemetry module and always works.
+    if args.success == "false" or args.error_type:
+        import json as _json
+        from datetime import datetime as _dt
+        _fail_path = Path("P:/.data/spawn_failures.jsonl")
+        try:
+            _fail_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(_fail_path, "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps({
+                    "timestamp": _dt.now().isoformat(),
+                    "model": args.model,
+                    "caller": args.caller,
+                    "error_type": args.error_type or "unknown",
+                    "domain": args.domain,
+                    "notes": args.notes,
+                    "latency_ms": args.latency,
+                }) + "\n")
+        except Exception:
+            pass  # non-blocking
 
     try:
         from telemetry import log_spawn
