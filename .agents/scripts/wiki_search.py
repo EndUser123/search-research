@@ -1,37 +1,41 @@
 #!/usr/bin/env python3
 """
-wiki_search.py — FTS5-only wiki search (stdlib, no qmd dependency).
+wiki_search.py — FTS5-only wiki search and indexing (stdlib, no qmd dependency).
 
-Replaces the qmd-backed shim with direct SQLite FTS5 queries against the
-existing qmd.db. Drops vector search, RRF, query expansion, and reranking
-(evaluated as marginal-or-negative for ~1200 wiki concepts). The per-token
-FTS5 query-quoting fix is ported verbatim from qmd_fts5_patch.py.
+Replaces the qmd-backed shim with direct SQLite FTS5 queries and indexing
+against the existing qmd.db. Drops vector search, RRF, query expansion, and
+reranking (evaluated as marginal-or-negative for ~1200 wiki concepts). The
+per-token FTS5 query-quoting fix is ported verbatim from qmd_fts5_patch.py.
 
-The existing qmd.db at ~/.config/qmd/qmd.db is reused read-only. No new
-indexer is needed — the FTS5 table (documents_fts) is a standard SQLite
-virtual table that stdlib sqlite3 can query directly.
+The existing qmd.db at ~/.config/qmd/qmd.db is reused. Search opens read-only;
+indexing opens read-write. Override the DB path with WIKI_SEARCH_DB env var.
 
 USAGE:
   from wiki_search import WikiSearch
   ws = WikiSearch(collection="wiki")
   results = ws.search("model routing", top_k=5)
+  ws.add_document("my-slug", "P:/.data/wiki/concepts/my-slug.md")
 
   # CLI:
   python wiki_search.py search --collection wiki --query "model routing" --top-k 5
   python wiki_search.py info --collection wiki
+  python wiki_search.py add --collection wiki --doc-id my-slug --markdown-file path/to/file.md
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
-def _sanitize_fts5_query(query: str) -> str:
+def sanitize_fts5_query(query: str) -> str:
     """Escape FTS5 MATCH query-syntax by per-token quoting.
 
     FTS5 MATCH interprets -, :, ^, ", *, (, ) as query-syntax operators.
@@ -50,40 +54,80 @@ def _sanitize_fts5_query(query: str) -> str:
     return " ".join(quoted)
 
 
+# Keep underscore-prefixed alias for backward compat with existing imports
+_sanitize_fts5_query = sanitize_fts5_query
+
+
+def _default_db_path() -> str:
+    """Resolve the database path from env var or default."""
+    env_path = os.environ.get("WIKI_SEARCH_DB")
+    if env_path:
+        return env_path
+    return os.path.expanduser("~/.config/qmd/qmd.db")
+
+
 class WikiSearchError(Exception):
     """Raised when wiki search/index operations fail."""
 
 
 class WikiSearch:
-    """FTS5-only search over the existing qmd.db. No qmd dependency.
+    """FTS5-only search and indexing over the existing qmd.db. No qmd dependency.
 
     Public API matches the previous qmd-backed shim so consumers need no
     changes. Uses stdlib sqlite3 only.
+
+    Supports context manager protocol for automatic connection cleanup:
+
+        with WikiSearch("wiki") as ws:
+            results = ws.search("query")
     """
 
-    def __init__(self, collection: str = "wiki"):
+    def __init__(self, collection: str = "wiki", db_path: str | None = None):
         self.collection_name = collection
+        self._db_path = db_path or _default_db_path()
         self._conn: sqlite3.Connection | None = None
 
+    def __enter__(self) -> WikiSearch:
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
+    def close(self) -> None:
+        """Close the cached read-only connection if open."""
+        if self._conn is not None:
+            self._conn.close()
+            self._conn = None
+
     def _connect(self) -> sqlite3.Connection:
-        """Open read-only connection to the qmd.db SQLite database."""
+        """Open read-only connection to the SQLite database."""
         if self._conn is not None:
             return self._conn
-        db_path = os.path.expanduser("~/.config/qmd/qmd.db")
-        if not os.path.exists(db_path):
+        if not os.path.exists(self._db_path):
             raise WikiSearchError(
-                f"Database not found at {db_path}. "
-                f"Run qmd index at least once, or point WIKI_SEARCH_DB "
+                f"Database not found at {self._db_path}. "
+                f"Run qmd index at least once, or set WIKI_SEARCH_DB "
                 f"to an existing FTS5-enabled SQLite database."
             )
         try:
             self._conn = sqlite3.connect(
-                f"file:{db_path}?mode=ro", uri=True
+                f"file:{self._db_path}?mode=ro", uri=True
             )
             self._conn.row_factory = sqlite3.Row
         except sqlite3.Error as e:
-            raise WikiSearchError(f"Failed to open database {db_path}: {e}") from e
+            raise WikiSearchError(f"Failed to open database {self._db_path}: {e}") from e
         return self._conn
+
+    def _connect_rw(self) -> sqlite3.Connection:
+        """Open read-write connection for indexing operations."""
+        if not os.path.exists(self._db_path):
+            raise WikiSearchError(
+                f"Database not found at {self._db_path}. "
+                f"Set WIKI_SEARCH_DB or create the database first."
+            )
+        conn = sqlite3.connect(self._db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
 
     def search(
         self,
@@ -100,7 +144,7 @@ class WikiSearch:
         """
         conn = self._connect()
         cur = conn.cursor()
-        fts_query = _sanitize_fts5_query(query)
+        fts_query = sanitize_fts5_query(query)
         try:
             cur.execute(
                 "SELECT d.id, d.path, d.title, d.collection, "
@@ -144,40 +188,65 @@ class WikiSearch:
         return results
 
     def add_document(self, doc_id: str, markdown_path: str, metadata: dict | None = None) -> None:
-        """Index a markdown file. Inserts into documents + documents_fts + content.
+        """Index a markdown file into documents + documents_fts + content.
 
-        Requires read-write access to the database (opens in rw mode, not ro).
+        Uses DELETE + INSERT pattern (not INSERT OR REPLACE) to avoid
+        orphaned FTS5 rows when replacing an existing document.
+
+        FTS5 does not support UPDATE, so we DELETE the old FTS row and
+        INSERT a new one with the correct body content.
+
+        Requires read-write access to the database.
         """
-        db_path = os.path.expanduser("~/.config/qmd/qmd.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
         path = Path(markdown_path)
         if not path.exists():
             raise WikiSearchError(f"markdown file not found: {markdown_path}")
         try:
             markdown_content = path.read_text(encoding="utf-8")
-            import hashlib
-            import json
-            from datetime import datetime, timezone
+        except OSError as e:
+            raise WikiSearchError(f"Cannot read file {markdown_path}: {e}") from e
+        except UnicodeDecodeError as e:
+            raise WikiSearchError(f"File {markdown_path} is not valid UTF-8: {e}") from e
 
-            doc_hash = hashlib.sha256(markdown_content.encode()).hexdigest()
-            now = datetime.now(timezone.utc).isoformat()
-            meta_str = json.dumps(metadata) if metadata else "{}"
+        doc_hash = hashlib.sha256(markdown_content.encode()).hexdigest()
+        now = datetime.now(timezone.utc).isoformat()
+        meta_str = json.dumps(metadata) if metadata else "{}"
 
+        conn = self._connect_rw()
+        cur = conn.cursor()
+        try:
+            # Check if document already exists
+            cur.execute(
+                "SELECT id FROM documents WHERE collection = ? AND path = ?",
+                (self.collection_name, doc_id),
+            )
+            existing = cur.fetchone()
+
+            if existing:
+                old_id = existing["id"]
+                # Delete FTS row directly (avoids content-match requirement)
+                cur.execute("DELETE FROM documents_fts WHERE rowid = ?", (old_id,))
+                cur.execute("DELETE FROM documents WHERE id = ?", (old_id,))
+
+            # Insert content hash
             cur.execute(
                 "INSERT OR REPLACE INTO content (hash, doc, created_at) VALUES (?, ?, ?)",
                 (doc_hash, markdown_content, now),
             )
+            # Insert document (trigger auto-creates FTS row with empty body)
             cur.execute(
-                "INSERT OR REPLACE INTO documents "
+                "INSERT INTO documents "
                 "(collection, path, title, hash, created_at, modified_at, active, metadata) "
                 "VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
                 (self.collection_name, doc_id, path.stem, doc_hash, now, now, meta_str),
             )
             doc_rowid = cur.lastrowid
+
+            # Replace the trigger-created FTS row (empty body) with full content.
+            # FTS5 doesn't support UPDATE, so DELETE + INSERT.
+            cur.execute("DELETE FROM documents_fts WHERE rowid = ?", (doc_rowid,))
             cur.execute(
-                "INSERT OR REPLACE INTO documents_fts (rowid, filepath, title, body) "
+                "INSERT INTO documents_fts (rowid, filepath, title, body) "
                 "VALUES (?, ?, ?, ?)",
                 (doc_rowid, str(path), path.stem, markdown_content),
             )
@@ -187,6 +256,44 @@ class WikiSearch:
             raise WikiSearchError(f"add_document failed for '{doc_id}': {e}") from e
         finally:
             conn.close()
+
+    def delete_document(self, doc_id: str) -> None:
+        """Remove a document from the index."""
+        conn = self._connect_rw()
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "SELECT id FROM documents WHERE collection = ? AND path = ?",
+                (self.collection_name, doc_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                return  # already absent
+            cur.execute("DELETE FROM documents_fts WHERE rowid = ?", (row["id"],))
+            cur.execute("DELETE FROM documents WHERE id = ?", (row["id"],))
+            conn.commit()
+        except sqlite3.Error as e:
+            conn.rollback()
+            raise WikiSearchError(f"delete_document failed for '{doc_id}': {e}") from e
+        finally:
+            conn.close()
+
+    def get_document(self, doc_id: str) -> dict[str, Any] | None:
+        """Get document metadata by doc_id."""
+        conn = self._connect()
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "SELECT id, path, title, collection, hash, created_at, modified_at, metadata "
+                "FROM documents WHERE collection = ? AND path = ? AND active = 1",
+                (self.collection_name, doc_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return dict(row)
+        except sqlite3.Error as e:
+            raise WikiSearchError(f"get_document failed for '{doc_id}': {e}") from e
 
     def list_documents(self) -> list[str]:
         """List all document paths in the collection."""
@@ -240,7 +347,6 @@ def _cli_search(args):
     top_k = args.limit if args.limit else args.top_k
     results = ws.search(query, top_k=top_k)
     if args.format == "json":
-        import json as _json
         # Output qmd-compatible JSON format for subprocess callers
         out = []
         for r in results:
@@ -254,9 +360,9 @@ def _cli_search(args):
                 "score": r["score"],
                 "bm25_score": r.get("bm25_score"),
             })
-        print(_json.dumps(out))
+        print(json.dumps(out))
     else:
-        print(f"Search '{args.query}' in '{args.collection}': {len(results)} results")
+        print(f"Search '{query}' in '{args.collection}': {len(results)} results")
         for r in results:
             print(f"  {r['title'][:60]} | score={r['score']:.4f}")
             if r["text"]:
@@ -273,12 +379,17 @@ def _cli_info(args):
     print(f"  Engine: {info['engine']}")
 
 
+def _cli_add(args):
+    ws = WikiSearch(collection=args.collection)
+    ws.add_document(args.doc_id, args.markdown_file)
+    print(f"Indexed: {args.doc_id} from {args.markdown_file}")
+
+
 def _cli_smoke(args):
     """Quick smoke test: info + search."""
     _cli_info(args)
     print()
     # Build a search args namespace manually
-    import argparse
     search_args = argparse.Namespace(
         collection=args.collection,
         query="model routing",
@@ -299,12 +410,17 @@ def main():
     p_search.add_argument("--query", default=None, help="search query (or pass as positional)")
     p_search.add_argument("--top-k", type=int, default=5, help="max results")
     p_search.add_argument("--limit", type=int, default=None, help="alias for --top-k (qmd compat)")
-    p_search.add_argument("--format", choices=["text", "json"], default="text", help="output format")
+    p_search.add_argument("--format", choices=["text", "json"], default="json", help="output format (default: json for qmd compat)")
     p_search.add_argument("positional_query", nargs="?", default=None, help="positional query (qmd compat)")
     p_search.set_defaults(func=_cli_search)
 
     p_info = sub.add_parser("info", help="Show collection info")
     p_info.set_defaults(func=_cli_info)
+
+    p_add = sub.add_parser("add", help="Index a markdown file")
+    p_add.add_argument("--doc-id", required=True, help="document ID (slug)")
+    p_add.add_argument("--markdown-file", required=True, help="path to markdown file")
+    p_add.set_defaults(func=_cli_add)
 
     p_smoke = sub.add_parser("smoke", help="Quick smoke test")
     p_smoke.set_defaults(func=_cli_smoke)
