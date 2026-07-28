@@ -1,5 +1,143 @@
 # Vault Log
 
+## Queue-of-work pattern for nlm-to-wiki
+Source: wiki-2026-07-28
+Agent: grok
+Notes: Architecture decision: decouple work distribution from execution. Workers start/stop independently. Config hot-reload. No kill needed. endjin: 48h→2h.
+Page: wiki/concepts/queue-of-work-pattern-for-nlm-to-wiki.md
+
+## Workspace improvement opportunities (8)
+Source: session-019fa39d /tp fresh-lens scan
+Agent: grok
+Notes: Fresh-lens glm-5-2 scan found 8 improvement opportunities. Keystone: extract wiki-gate into shared __lib (15 skills, divergent criteria). Also: workspace-wide evidence tiers, Step 0.5 hit-rate measurement, scheduler_create for cadence, maintainability review on analytical skills, /debrief consolidation, /close↔/aar contract drift clustering, three-layer enforcement architecture naming.
+Page: P:/.data/wiki/concepts/workspace-improvement-opportunities-20260727.md
+
+## Deepseek D-Spark Speculative Decoding
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/deepseek-d-spark-speculative-decoding.md
+
+## Skill per Hour
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/skill-per-hour.md
+
+## Pharmacologic Interventions for Metabolic Health
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/pharmacologic-interventions-for-metabolic-health.md
+
+## YouTube Video Dialogue and Commentary Formats
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/youtube-video-dialogue-and-commentary-formats.md
+
+## Generative AI Tool Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/generative-ai-tool-patterns.md
+
+## Niacin and GPR109a Receptor Activation
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/niacin-and-gpr109a-receptor-activation.md
+
+## Israel-Palestine Conflict Discourse
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/israel-palestine-conflict-discourse.md
+
+## Wellness Optimization Metrics
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/wellness-optimization-metrics.md
+
+## Government Debt and Fiscal Policy
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/government-debt-and-fiscal-policy.md
+
+## Portable AI Brain Pattern
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WebSync: Watch Later - YouTube
+Page: wiki/concepts/portable-ai-brain-pattern.md
+
+## Smart Glasses Phone Connectivity
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: NotebookLM & Google AI
+Page: wiki/concepts/smart-glasses-phone-connectivity.md
+
+## Agent Harness Engineering
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: NotebookLM & Google AI
+Page: wiki/concepts/agent-harness-engineering.md
+
+## Open-Source Chinese AI Models
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: NotebookLM & Google AI
+Page: wiki/concepts/open-source-chinese-ai-models.md
+
+## NotebookLM Gemini Integration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: NotebookLM & Google AI
+Page: wiki/concepts/notebooklm-gemini-integration.md
+
+## Externalized AI Memory Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: NotebookLM & Google AI
+Page: wiki/concepts/externalized-ai-memory-systems.md
+
+## Jira Ticket to Pull Request Automation
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Local AI Models & GPU
+Page: wiki/concepts/jira-ticket-to-pull-request-automation.md
+
+## Smart Glasses Market Competition
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Local AI Models & GPU
+Page: wiki/concepts/smart-glasses-market-competition.md
+
+## Open-Weight Code Models and Tools
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Local AI Models & GPU
+Page: wiki/concepts/open-weight-code-models-and-tools.md
+
+## Systematic Trading Approaches
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Local AI Models & GPU
+Page: wiki/concepts/systematic-trading-approaches.md
+
+## Quantization and Memory Optimization for Local AI Models
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Local AI Models & GPU
+Page: wiki/concepts/quantization-and-memory-optimization-for-local-ai-models.md
+
+## Routine skill improvement cadence
+Source: session-019fa39d /www research
+Agent: grok
+Notes: Scheduled monthly/quarterly skill health checks using existing skill combinations. Key insight: cadence matters more than technique. Novel combinations explored: /design on skills, /packet+cross-model, /www+skill-dev, /tp on skill framing. 3 parallel subagents + disconfirmation.
+Page: P:/.data/wiki/concepts/routine-skill-improvement-cadence.md
+
 ## Shared-directory contamination pattern
 Source: wiki-2026-07-27
 Agent: grok
