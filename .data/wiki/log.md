@@ -1,5 +1,671 @@
 # Vault Log
 
+## Claude Code Development Capabilities
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Context Memory and Search
+Page: wiki/concepts/claude-code-development-capabilities.md
+
+## Semantic Code Retrieval for Context Management
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Context Memory and Search
+Page: wiki/concepts/semantic-code-retrieval-for-context-management.md
+
+## Agentic RAG Architecture
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Context Memory and Search
+Page: wiki/concepts/agentic-rag-architecture.md
+
+## Context Management in Claude Code
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Context Memory and Search
+Page: wiki/concepts/context-management-in-claude-code.md
+
+## OpenCode Go model auth: Anthropic Messages format
+Source: session-20260728
+Agent: grok
+Notes: Qwen/MiniMax models need x-api-key header not api_key field. Config fix resolved 401. 3 models verified.
+Page: wiki/concepts/opencode-go-model-auth-anthropic-vs-openai-format.md
+
+## Phylo Agent Architecture
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Deep Research Prompts, Methods, Examples
+Page: wiki/concepts/phylo-agent-architecture.md
+
+## LLM Coding Agent Architecture Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Deep Research Prompts, Methods, Examples
+Page: wiki/concepts/llm-coding-agent-architecture-patterns.md
+
+## OpenClaw Agent Architecture
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Deep Research Prompts, Methods, Examples
+Page: wiki/concepts/openclaw-agent-architecture.md
+
+## Sequential Falsification for Hypothesis Validation
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Deep Research Prompts, Methods, Examples
+Page: wiki/concepts/sequential-falsification-for-hypothesis-validation.md
+
+## Loop Engineering for Autonomous Agents
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Deep Research Prompts, Methods, Examples
+Page: wiki/concepts/loop-engineering-for-autonomous-agents.md
+
+## Self-Correction Reflection Loop
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Deep Research Prompts, Methods, Examples
+Page: wiki/concepts/self-correction-reflection-loop.md
+
+## GDPR Compliance Requirements for AI Systems
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Observability & Logging
+Page: wiki/concepts/gdpr-compliance-requirements-for-ai-systems.md
+
+## OpenTelemetry Logging
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Observability & Logging
+Page: wiki/concepts/opentelemetry-logging.md
+
+## Primal Nutrition for Weight Loss
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Testing Buzz by Block: The Limits of Agent Orchestration
+Page: wiki/concepts/primal-nutrition-for-weight-loss.md
+
+## Laguna S 2.1 Local Model Capabilities
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Testing Buzz by Block: The Limits of Agent Orchestration
+Page: wiki/concepts/laguna-s-21-local-model-capabilities.md
+
+## Claude Code Extensibility and Ecosystem
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Testing Buzz by Block: The Limits of Agent Orchestration
+Page: wiki/concepts/claude-code-extensibility-and-ecosystem.md
+
+## Claude Opus 5 Model Overview
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Testing Buzz by Block: The Limits of Agent Orchestration
+Page: wiki/concepts/claude-opus-5-model-overview.md
+
+## Loop Engineering for Claude Code
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Testing Buzz by Block: The Limits of Agent Orchestration
+Page: wiki/concepts/loop-engineering-for-claude-code.md
+
+## CLI Vibe Coding Tools and Configuration
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/cli-vibe-coding-tools-and-configuration.md
+
+## Agent Skills
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/agent-skills.md
+
+## Agent Skill Documentation Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/agent-skill-documentation-patterns.md
+
+## Vibe Prompt Template
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/vibe-prompt-template.md
+
+## Claude Code MCP Server Configuration
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-code-mcp-server-configuration.md
+
+## CLI-Based AI Coding Agents
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/cli-based-ai-coding-agents.md
+
+## Claude Code HTTPS Access and Authentication
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-code-https-access-and-authentication.md
+
+## Claude Code CLI Tool Overview
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Gemini CLI, Jules CLI, and Claude Code
+Page: wiki/concepts/claude-code-cli-tool-overview.md
+
+## AI System Evaluation and Benchmarking Methods
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Engineering the Autonomous Diagnostic: AI Agent Reliability and RCA
+Page: wiki/concepts/ai-system-evaluation-and-benchmarking-methods.md
+
+## AI-Generated Code Anti-Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Engineering the Autonomous Diagnostic: AI Agent Reliability and RCA
+Page: wiki/concepts/ai-generated-code-anti-patterns.md
+
+## AI Agent Security and Observability
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Engineering the Autonomous Diagnostic: AI Agent Reliability and RCA
+Page: wiki/concepts/ai-agent-security-and-observability.md
+
+## Agent Reliability Patterns and Production Validation
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Engineering the Autonomous Diagnostic: AI Agent Reliability and RCA
+Page: wiki/concepts/agent-reliability-patterns-and-production-validation.md
+
+## AI Agent Systems in Software Engineering
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Engineering the Autonomous Diagnostic: AI Agent Reliability and RCA
+Page: wiki/concepts/ai-agent-systems-in-software-engineering.md
+
+## Agentic Self-Correction and Context Management
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook AI Architecture and Decision Record Frameworks
+Page: wiki/concepts/agentic-self-correction-and-context-management.md
+
+## Architecture Decision Records
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook AI Architecture and Decision Record Frameworks
+Page: wiki/concepts/architecture-decision-records.md
+
+## AI Agent Steering and Self-Improvement Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook AI Architecture and Decision Record Frameworks
+Page: wiki/concepts/ai-agent-steering-and-self-improvement-patterns.md
+
+## CLAUDE.md Configuration Practices
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook AI Architecture and Decision Record Frameworks
+Page: wiki/concepts/claudemd-configuration-practices.md
+
+## LLM-based Agent Architectures
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook AI Architecture and Decision Record Frameworks
+Page: wiki/concepts/llm-based-agent-architectures.md
+
+## Claude Code Project Memory
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook AI Architecture and Decision Record Frameworks
+Page: wiki/concepts/claude-code-project-memory.md
+
+## GPU Cloud Rental Specifications
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/gpu-cloud-rental-specifications.md
+
+## Uncensored AI Models
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/uncensored-ai-models.md
+
+## Context Management Trade-offs
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/context-management-trade-offs.md
+
+## Local LLM Inference Optimization
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/local-llm-inference-optimization.md
+
+## Local LLM Inference Engines
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/local-llm-inference-engines.md
+
+## KV Cache Memory Management in LLM Inference
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/kv-cache-memory-management-in-llm-inference.md
+
+## GGUF Quantization for Large Language Models
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/gguf-quantization-for-large-language-models.md
+
+## NVIDIA VRAM Management for Local LLM Inference
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Maximizing LLM Performance and Context via GPU Memory Optimization
+Page: wiki/concepts/nvidia-vram-management-for-local-llm-inference.md
+
+## Custom Skills for Claude
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/custom-skills-for-claude.md
+
+## Security and Reliability Evaluation in AI Systems
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/security-and-reliability-evaluation-in-ai-systems.md
+
+## LangGraph Tool Args Validation
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/langgraph-tool-args-validation.md
+
+## NVIDIA NeMo Guardrails Overview
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/nvidia-nemo-guardrails-overview.md
+
+## Cookie Consent Mechanisms in AI Product Webpages
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/cookie-consent-mechanisms-in-ai-product-webpages.md
+
+## Tool Choice Parameter Control
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/tool-choice-parameter-control.md
+
+## Claude Skills
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/claude-skills.md
+
+## LLM Agent Evaluation and Regression Testing
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/llm-agent-evaluation-and-regression-testing.md
+
+## Programmable Behavioral Control in Claude Code
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/programmable-behavioral-control-in-claude-code.md
+
+## Claude Code Hooks
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Mastering Claude Skills
+Page: wiki/concepts/claude-code-hooks.md
+
+## React Component Library Ecosystem
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Github Awesome
+Page: wiki/concepts/react-component-library-ecosystem.md
+
+## GitHub Trending Video Coverage
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Github Awesome
+Page: wiki/concepts/github-trending-video-coverage.md
+
+## Automated Code Quality Enforcement
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Thinking and Reasoning
+Page: wiki/concepts/automated-code-quality-enforcement.md
+
+## Claude Code Skills and MCP Integration
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Thinking and Reasoning
+Page: wiki/concepts/claude-code-skills-and-mcp-integration.md
+
+## Brave Browser Privacy Controversies and Container Features
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Model Reviews & Benchmarks
+Page: wiki/concepts/brave-browser-privacy-controversies-and-container-features.md
+
+## Windows Customization and Enhancement Approaches
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Model Reviews & Benchmarks
+Page: wiki/concepts/windows-customization-and-enhancement-approaches.md
+
+## AI-Enhanced YouTube Video Workflows
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Model Reviews & Benchmarks
+Page: wiki/concepts/ai-enhanced-youtube-video-workflows.md
+
+## Smart TV App Installation Techniques
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Model Reviews & Benchmarks
+Page: wiki/concepts/smart-tv-app-installation-techniques.md
+
+## Fable 5 Model Capabilities
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Model Reviews & Benchmarks
+Page: wiki/concepts/fable-5-model-capabilities.md
+
+## AI-Powered Faceless Shorts Automation
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Nate Herk | AI Automation
+Page: wiki/concepts/ai-powered-faceless-shorts-automation.md
+
+## Days-to-First-Client Acquisition
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Nate Herk | AI Automation
+Page: wiki/concepts/days-to-first-client-acquisition.md
+
+## AI Agent Development and Sales
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Nate Herk | AI Automation
+Page: wiki/concepts/ai-agent-development-and-sales.md
+
+## n8n AI Agent Architecture
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Nate Herk | AI Automation
+Page: wiki/concepts/n8n-ai-agent-architecture.md
+
+## Rate Limiting in Python Web Scraping
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/rate-limiting-in-python-web-scraping.md
+
+## Video OCR Processing with Python
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/video-ocr-processing-with-python.md
+
+## YouTube HTTPS Access Errors
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/youtube-https-access-errors.md
+
+## Circuit Breaker Pattern
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/circuit-breaker-pattern.md
+
+## Context Caching for Gemini Models
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/context-caching-for-gemini-models.md
+
+## Python Abstract Base Classes
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/python-abstract-base-classes.md
+
+## HTTP 429 Errors in Web Scraping
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/http-429-errors-in-web-scraping.md
+
+## YouTube Transcript Extraction Techniques
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/youtube-transcript-extraction-techniques.md
+
+## Gemini CLI and API Video Understanding Capabilities
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/gemini-cli-and-api-video-understanding-capabilities.md
+
+## GitHub-Hosted YouTube Integration Tools
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Video Pipeline
+Page: wiki/concepts/github-hosted-youtube-integration-tools.md
+
+## OpenTelemetry W3C Context Propagation
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Transcripts and Logs of AI Coding Sessions
+Page: wiki/concepts/opentelemetry-w3c-context-propagation.md
+
+## Claude Code Hooks
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Transcripts and Logs of AI Coding Sessions
+Page: wiki/concepts/claude-code-hooks.md
+
+## PreToolUse Approach in Claude Code
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Transcripts and Logs of AI Coding Sessions
+Page: wiki/concepts/pretooluse-approach-in-claude-code.md
+
+## PreToolUse Authorization Gate
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Transcripts and Logs of AI Coding Sessions
+Page: wiki/concepts/pretooluse-authorization-gate.md
+
+## Tick-Borne Disease Risks and Prevention
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Geopolitics (Israel/Islam/Trump)
+Page: wiki/concepts/tick-borne-disease-risks-and-prevention.md
+
+## Hidden Mechanisms In Institutional Decision-Making
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Geopolitics (Israel/Islam/Trump)
+Page: wiki/concepts/hidden-mechanisms-in-institutional-decision-making.md
+
+## YouTube Content Diversity and Platform Dynamics
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Geopolitics (Israel/Islam/Trump)
+Page: wiki/concepts/youtube-content-diversity-and-platform-dynamics.md
+
+## Multi-Source Perspective on Global Geopolitical Shifts
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Geopolitics (Israel/Islam/Trump)
+Page: wiki/concepts/multi-source-perspective-on-global-geopolitical-shifts.md
+
+## Post-Dennard Scaling Computing Approaches
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Multi-Agent Orchestration
+Page: wiki/concepts/post-dennard-scaling-computing-approaches.md
+
+## Agentic Software Engineering
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Multi-Agent Orchestration
+Page: wiki/concepts/agentic-software-engineering.md
+
+## PrismML Bonsai 27B Model
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Multi-Agent Orchestration
+Page: wiki/concepts/prismml-bonsai-27b-model.md
+
+## Hermes Agent Free Capabilities
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Multi-Agent Orchestration
+Page: wiki/concepts/hermes-agent-free-capabilities.md
+
+## Hermes Agent Configuration System
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Multi-Agent Orchestration
+Page: wiki/concepts/hermes-agent-configuration-system.md
+
+## Thought Collapse in LLMs
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/thought-collapse-in-llms.md
+
+## Structured Output Validation
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/structured-output-validation.md
+
+## MCP Server Design Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/mcp-server-design-patterns.md
+
+## TOON Format for LLM Token Optimization
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/toon-format-for-llm-token-optimization.md
+
+## Reddit Prompt Engineering Community Discourse
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/reddit-prompt-engineering-community-discourse.md
+
+## Claude Code Extension Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/claude-code-extension-patterns.md
+
+## Deterministic Output Control in Agentic CLI Environments
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/deterministic-output-control-in-agentic-cli-environments.md
+
+## Latent Reasoning in Language Models
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/latent-reasoning-in-language-models.md
+
+## GitHub Repository File Structures
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/github-repository-file-structures.md
+
+## Claude Code CLI Agent Configuration and Workflow Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/claude-code-cli-agent-configuration-and-workflow-patterns.md
+
+## Thought Collapse in LLMs
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/thought-collapse-in-llms.md
+
+## Claude API Documentation Resources
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/claude-api-documentation-resources.md
+
+## Model Context Protocol Architecture
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/model-context-protocol-architecture.md
+
+## TOON Data Format for LLM Token Optimization
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/toon-data-format-for-llm-token-optimization.md
+
+## Advanced Prompt Engineering Effectiveness
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/advanced-prompt-engineering-effectiveness.md
+
+## Claude Code Customization Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/claude-code-customization-patterns.md
+
+## Deterministic Output Engineering
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/deterministic-output-engineering.md
+
+## Latent Chain-of-Thought Reasoning
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/latent-chain-of-thought-reasoning.md
+
+## GitHub Repository File Structure Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/github-repository-file-structure-patterns.md
+
+## Claude Code External Tool Integration via MCP
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Skills: Agentic Coding and Prompt Engineering
+Page: wiki/concepts/claude-code-external-tool-integration-via-mcp.md
+
 ## --agent
 Source: grok
 Agent: --session
