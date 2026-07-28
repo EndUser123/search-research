@@ -109,8 +109,8 @@ for decorrelated blind-spot detection. Pool (try order):
 **Do NOT use Claude or Anthropic models** (operator constraint).
 
 If using `spawn_subagent` with a model slug, set `capability_mode="read-only"`.
-If the model fails (max_tokens, transport error), fall back to parent-model for
-that specialist and disclose in synthesis.
+If the model fails (transport error, auth, serialization — not truncation), fall
+back to parent-model for that specialist and disclose in synthesis.
 
 **Model routing for ALL specialists (MANDATORY):** every specialist — not just
 the cross-model one — must have an explicit `model` parameter when spawned.
