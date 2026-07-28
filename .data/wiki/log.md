@@ -1,5 +1,71 @@
 # Vault Log
 
+## Free AI Coding Alternatives
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/free-ai-coding-alternatives.md
+
+## Parallel Agent Session Management
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/parallel-agent-session-management.md
+
+## NotebookLM Enhanced Capabilities
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/notebooklm-enhanced-capabilities.md
+
+## Local Audio Model Capabilities
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/local-audio-model-capabilities.md
+
+## Kimi K2.7 Code MoE Architecture
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/kimi-k27-code-moe-architecture.md
+
+## AI Image and Video Generation Workflows
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/ai-image-and-video-generation-workflows.md
+
+## Automated Model Routing in AI Coding
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/automated-model-routing-in-ai-coding.md
+
+## Free Open-Source Developer Tools
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/free-open-source-developer-tools.md
+
+## Free Open-Source Self-Hosted Software Alternatives
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/free-open-source-self-hosted-software-alternatives.md
+
+## Free Open Source AI Coding Models
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: AI Coding & Tooling
+Page: wiki/concepts/free-open-source-ai-coding-models.md
+
+## research-to-execution-ratio-self-reinforcing-pattern
+Source: session-019fa48a
+Agent: grok
+Notes: Cross-session systemic pattern: research artifacts accumulate faster than execution. Self-reinforcing loop. Detection signal: operator confusion after confirmatory research.
+Page: wiki/concepts/research-to-execution-ratio-self-reinforcing-pattern.md
+
 ## --agent
 Source: grok
 Agent: --session
