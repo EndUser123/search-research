@@ -103,6 +103,33 @@ was a receipt-rule failure — the projection was `[INFERENCE]` labeled as
 `[FACT]`. The yt-is benchmark data was on disk the entire time and
 disproved it. The 3-worker ceiling is `[OBSERVED]` across hundreds of runs.
 
+**Measured throughput (2026-07-28 bulk run, 3 workers, verified):**
+The bulk ingestion of 34 notebooks produced the first real throughput
+baseline for the v3 pipeline:
+
+| Metric | Value |
+|--------|-------|
+| Notebooks processed | 32 completed + 2 false-negative (actually succeeded) |
+| Transcripts processed | 4,054 |
+| Concept pages written | 162 |
+| Wall clock | 2.22 hours (3 workers, single account) |
+| **Sustained rate** | **~1,828 transcripts/hour** |
+| Pages per notebook | 5.8 avg |
+| Citations per page | ~6.0 avg (range 4.0–8.8) |
+
+Per-notebook rate varies with source count (larger notebooks are slower
+per-source due to clustering + synthesis scaling):
+
+| Notebook size | Time | Per-source rate |
+|--------------|------|----------------|
+| ~275 sources | 6-7 min | ~2,500/hr |
+| ~225 sources | 16-17 min | ~800/hr |
+| ~145 sources | 18 min | ~480/hr |
+
+With 3 accounts (1 paid + 2 free), projected max throughput is ~5,400
+transcripts/hour (3× the single-account rate, independent CDP sessions).
+This is `[INFERENCE]` — not yet measured with all 3 accounts concurrently.
+
 **Evidence the rate limit tolerates moderate parallelism:** the
 [[notebooklm-cli-operational-gotchas]] documents `nlm source add --youtube`
 as bulk-repeatable (hundreds of URLs in one call), suggesting the backend
