@@ -236,6 +236,9 @@ processes claim items, sync them, and report results.
 # Populate the queue from NotebookLM (notebooks with ≥50 sources)
 python scripts/bin/queue_sync.py --enqueue --profile codex
 
+# Populate from BOTH accounts (paid + free) in one call
+python scripts/bin/queue_sync.py --enqueue --all-profiles
+
 # Start a worker (run 2-3 of these in separate terminals)
 python scripts/bin/queue_sync.py --worker --worker-id w1 --profile codex
 python scripts/bin/queue_sync.py --worker --worker-id w2 --profile codex
@@ -247,12 +250,36 @@ python scripts/bin/queue_sync.py --status
 python scripts/bin/queue_sync.py --retry-failed
 ```
 
-**Worker ceiling: 3 concurrent workers max.** The NotebookLM API degrades
-above 3 concurrent sessions. The yt-is benchmark measured 4,123 VPH at a
-3+3 worker shape, but 4+4 regressed to 1,150 VPH with source_age_cliff
-errors. Set `config.workers` in the queue file to match the number of
-worker processes you launch. Default is 2 (safe); raise to 3 for max
-throughput. See [[nlm-to-wiki-optimization-opportunities]].
+**Multi-profile support (two NotebookLM accounts):**
+
+This host has two NotebookLM accounts configured as named profiles:
+
+| Profile | Email | Tier | Max sources/notebook |
+|---------|-------|------|---------------------|
+| `codex` | a.hominidae@gmail.com | Paid | 300 |
+| `codex-free` | troup.hominidae@gmail.com | Free | 50 |
+
+Each profile is an independent CDP session — they do NOT contend for auth.
+Workers can freely process notebooks from either account. Use `--all-profiles`
+on enqueue to discover notebooks from both accounts. Each notebook in the
+queue is tagged with its source profile; workers automatically pass the
+correct profile to `sync.py`.
+
+**Worker ceiling: 3 concurrent workers per account.** The NotebookLM API
+degrades above 3 concurrent sessions per account. With 2 accounts, you can
+run up to 6 workers total (3 per account). The yt-is benchmark measured
+4,123 VPH at 3+3 workers on one account; 4+4 regressed to 1,150 VPH.
+Set `config.workers` in the queue file to the total number of worker
+processes you launch. See [[nlm-to-wiki-optimization-opportunities]].
+
+**One-time setup for codex-free:** the profile was created by copying
+credentials from yt-is. If auth expires and silent CDP re-auth fails
+(Chrome doesn't have troup.hominidae session), run:
+```bash
+nlm login --profile codex-free --clear
+```
+This opens a browser window — sign in as troup.hominidae@gmail.com.
+After the one-time login, subsequent re-auth is silent via CDP.
 
 **⚠ Auth contention (critical):** never run two different sync drivers
 concurrently (e.g., `sync.py --all` alongside queue workers). Each

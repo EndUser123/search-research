@@ -22,6 +22,7 @@ profile is `codex` (= `a.hominidae@gmail.com` on this host).
 | Prune a deleted notebook's state | `python maintenance.py --prune-notebook <uuid> --confirm` |
 | Recover from auth expiry | `nlm login --profile codex` (silent CDP, ~10s, no browser interaction) |
 | Bulk ingestion (queue worker) | `python scripts/bin/queue_sync.py --worker --worker-id w1` |
+| Enqueue from both accounts | `python scripts/bin/queue_sync.py --enqueue --all-profiles` |
 | Check bulk queue status | `python scripts/bin/queue_sync.py --status` |
 | Retry failed queue items | `python scripts/bin/queue_sync.py --retry-failed` |
 
@@ -54,12 +55,21 @@ populated only when `--from-clusters` provides the mapping.
 available MiniMax model. Switch to the free fallback with
 `--synth-backend dgemma` if pages run thin or quota is a concern.
 
-**How many parallel workers should I use?** Maximum **3 concurrent workers**.
-The NotebookLM API degrades above 3 sessions (yt-is benchmark: 3+3 workers
-hit 4,123 VPH; 4+4 regressed to 1,150 VPH). The queue config
-(`config.workers` in `queue.json`) should match the number of worker
-processes you launch. Set `config.workers` in the queue file, then launch
-that many `--worker` processes.
+**How many parallel workers should I use?** Maximum **3 concurrent workers
+per account**. This host has two NotebookLM accounts (`codex` = paid,
+`codex-free` = free/troup.hominidae), so you can run up to 6 workers total
+(3 per account). The NotebookLM API degrades above 3 sessions per account
+(yt-is benchmark: 3+3 workers hit 4,123 VPH; 4+4 regressed to 1,150 VPH).
+Set `config.workers` in the queue file to the total number of worker
+processes you launch.
+
+**How do I use the second (free) account?** Use `--all-profiles` on enqueue
+to discover notebooks from both accounts. Each notebook is tagged with its
+source profile; workers automatically use the correct one. The free account
+(`codex-free` = troup.hominidae@gmail.com) has a 50-source-per-notebook
+limit. One-time setup: if auth expires and silent re-auth fails, run
+`nlm login --profile codex-free --clear` and sign in as
+troup.hominidae@gmail.com in the browser window.
 
 **Can I run `sync.py --all` alongside queue workers?** **No.** Each
 `nlm login --profile codex` call invalidates the previous CDP session.

@@ -21,8 +21,15 @@ from datetime import date
 from pathlib import Path
 
 PROFILE_DEFAULT = "codex"
+PROFILE_FREE = "codex-free"  # troup.hominidae@gmail.com (free, 50-source cap)
 MIN_SOURCES = 50
 MAX_RETRIES = 3
+# Profiles known to this host. Each profile is an independent NotebookLM session
+# (separate CDP, separate rate limit). Different profiles do NOT contend for auth.
+PROFILE_META = {
+    "codex": {"email": "a.hominidae@gmail.com", "tier": "paid", "max_sources": 300},
+    "codex-free": {"email": "troup.hominidae@gmail.com", "tier": "free", "max_sources": 50},
+}
 QUEUE_FILE = Path("P:/.data/wiki/_state/nlm-sync/queue.json")
 SYNC_SCRIPT = "P:/.agents/skills/nlm-to-wiki/scripts/sync.py"
 
@@ -60,7 +67,9 @@ def load_queue():
 
 def _empty_queue():
     return {"pending": [], "in_progress": {}, "completed": [], "failed": [], "poisoned": [],
-            "config": {"workers": 1, "profile": PROFILE_DEFAULT, "max_retries": MAX_RETRIES, "min_sources": MIN_SOURCES},
+            "config": {"workers": 1, "profiles": [PROFILE_DEFAULT], "profile": PROFILE_DEFAULT,
+                       "max_retries": MAX_RETRIES, "min_sources": MIN_SOURCES,
+                       "profile_meta": PROFILE_META},
             "created": date.today().isoformat()}
 
 def save_queue(queue):
@@ -77,20 +86,28 @@ def list_notebooks(profile):
         return data if isinstance(data, list) else data.get("notebooks", [])
     except json.JSONDecodeError: return []
 
-def do_enqueue(profile, min_sources):
-    nbs = list_notebooks(profile)
-    candidates = [n for n in nbs if (n.get("source_count") or 0) >= min_sources and not (n.get("title") or "").startswith("[INGESTED]")]
-    candidates.sort(key=lambda n: -(n.get("source_count") or 0))
+def do_enqueue(profiles, min_sources):
+    """Enqueue notebooks from one or more profiles."""
+    if isinstance(profiles, str):
+        profiles = [profiles]
     fd = _acquire_lock()
     try:
         queue = load_queue()
-        already = set(queue.get("pending", [])) | {i["nb_id"] for i in queue.get("completed", [])} | {i["nb_id"] for i in queue.get("failed", [])} | {i["nb_id"] for i in queue.get("poisoned", [])}
-        new_items = [{"nb_id": n["id"], "title": (n.get("title") or "")[:60], "source_count": n.get("source_count", 0)} for n in candidates if n["id"] not in already]
-        if new_items:
-            queue.setdefault("pending", []).extend(new_items)
-            queue["config"]["profile"] = profile
-            save_queue(queue)
-        print(f"[enqueue] {len(new_items)} new notebooks added. Queue: {len(queue['pending'])} pending, {len(queue.get('completed',[]))} completed", flush=True)
+        already = {i["nb_id"] for i in queue.get("pending", [])} | {i["nb_id"] for i in queue.get("completed", [])} | {i["nb_id"] for i in queue.get("failed", [])} | {i["nb_id"] for i in queue.get("poisoned", [])}
+        total_new = 0
+        for prof in profiles:
+            nbs = list_notebooks(prof)
+            candidates = [n for n in nbs if (n.get("source_count") or 0) >= min_sources and not (n.get("title") or "").startswith("[INGESTED]")]
+            candidates.sort(key=lambda n: -(n.get("source_count") or 0))
+            new_items = [{"nb_id": n["id"], "title": (n.get("title") or "")[:60], "source_count": n.get("source_count", 0), "profile": prof} for n in candidates if n["id"] not in already]
+            if new_items:
+                queue.setdefault("pending", []).extend(new_items)
+                already.update(n["nb_id"] for n in new_items)
+                total_new += len(new_items)
+            print(f"[enqueue:{prof}] {len(new_items)} new notebooks ({len(nbs)} total, {len(candidates)} qualifying)", flush=True)
+        queue.setdefault("config", {})["profiles"] = profiles
+        save_queue(queue)
+        print(f"[enqueue] {total_new} new notebooks added across {len(profiles)} profile(s). Queue: {len(queue['pending'])} pending, {len(queue.get('completed',[]))} completed", flush=True)
     finally:
         _release_lock(fd)
 
@@ -125,8 +142,9 @@ def do_worker(worker_id, profile):
         finally:
             _release_lock(fd)
         nb_id = item["nb_id"]; title = item.get("title", ""); sc = item.get("source_count", 0)
-        print(f"[worker:{worker_id}] Claimed: {title[:50]} ({sc} sources)", flush=True)
-        if not ensure_auth(current_profile):
+        item_profile = item.get("profile", current_profile)
+        print(f"[worker:{worker_id}] Claimed: {title[:50]} ({sc} sources, profile={item_profile})", flush=True)
+        if not ensure_auth(item_profile):
             fd = _acquire_lock()
             try:
                 queue = load_queue()
@@ -138,7 +156,7 @@ def do_worker(worker_id, profile):
             break
         start = time.time()
         try:
-            r = subprocess.run(["python", SYNC_SCRIPT, "--notebook", nb_id, "--profile", current_profile], capture_output=True, text=True, timeout=3600, encoding="utf-8")
+            r = subprocess.run(["python", SYNC_SCRIPT, "--notebook", nb_id, "--profile", item_profile], capture_output=True, text=True, timeout=3600, encoding="utf-8")
             elapsed = time.time() - start
         except subprocess.TimeoutExpired:
             elapsed = 3600
@@ -187,13 +205,13 @@ def do_status():
     cfg = queue.get("config",{})
     print(f"\n{'='*60}\nNLM-TO-WIKI QUEUE STATUS\n{'='*60}")
     print(f"  Pending: {len(p)}  In progress: {len(ip)}  Completed: {len(c)}  Failed: {len(f)}  Poisoned: {len(po)}")
-    print(f"  Config: workers={cfg.get('workers',1)}, profile={cfg.get('profile','?')}, max_retries={cfg.get('max_retries',3)}")
+    print(f"  Config: workers={cfg.get('workers',1)}, profiles={cfg.get('profiles',[cfg.get('profile','?')])}, max_retries={cfg.get('max_retries',3)}")
     if ip:
         print("\nIN PROGRESS:")
         for wid, info in ip.items(): print(f"  [{wid}] {info.get('title','')[:50]} (started {info.get('started_at','?')})")
     if p:
         print(f"\nNEXT {min(5,len(p))} PENDING:")
-        for item in p[:5]: print(f"  {item.get('source_count',0):>4}  {item['nb_id'][:12]}  {item.get('title','')[:50]}")
+        for item in p[:5]: print(f"  {item.get('source_count',0):>4}  {item.get('profile','?'):<12}  {item['nb_id'][:12]}  {item.get('title','')[:50]}")
         if len(p) > 5: print(f"  ... and {len(p)-5} more")
     if f:
         print(f"\nFAILED ({len(f)}):")
@@ -205,7 +223,7 @@ def do_retry_failed():
         queue = load_queue()
         failed = queue.get("failed", [])
         if not failed: print("[retry] No failed items", flush=True); return
-        for item in failed: queue.setdefault("pending", []).append({"nb_id": item["nb_id"], "title": item.get("title",""), "source_count": 0})
+        for item in failed: queue.setdefault("pending", []).append({"nb_id": item["nb_id"], "title": item.get("title",""), "source_count": 0, "profile": item.get("profile", queue.get("config",{}).get("profile", PROFILE_DEFAULT))})
         queue["failed"] = []
         save_queue(queue)
         print(f"[retry] Moved {len(failed)} failed items back to pending", flush=True)
@@ -219,11 +237,16 @@ def main():
     g.add_argument("--worker", action="store_true")
     g.add_argument("--status", action="store_true")
     g.add_argument("--retry-failed", action="store_true")
-    ap.add_argument("--profile", default=PROFILE_DEFAULT)
+    ap.add_argument("--profile", default=PROFILE_DEFAULT,
+                    help="Single profile (default: codex). Use --all-profiles to enqueue from both.")
+    ap.add_argument("--all-profiles", action="store_true",
+                    help="Enqueue from all configured profiles (codex + codex-free)")
     ap.add_argument("--worker-id", default=None)
     ap.add_argument("--min-sources", type=int, default=MIN_SOURCES)
     args = ap.parse_args()
-    if args.enqueue: do_enqueue(args.profile, args.min_sources)
+    if args.enqueue:
+        profiles = list(PROFILE_META.keys()) if args.all_profiles else [args.profile]
+        do_enqueue(profiles, args.min_sources)
     elif args.worker: do_worker(args.worker_id or f"w{int(time.time())%10000}", args.profile)
     elif args.status: do_status()
     elif args.retry_failed: do_retry_failed()
