@@ -32,7 +32,7 @@ how to handle.
 This session started with the operator asking whether any skills/plugins
 existed for discovering available models from inference providers. After
 building `/model-discover` (commits `51846e3` + `ada5198`), the operator
-progressively expanded the fleet to 100+ models, then ran a series of
+progressively expanded the fleet to 118 models, then ran a series of
 benchmark reviews that uncovered recurring problems with the benchmark
 script:
 
@@ -81,7 +81,7 @@ script:
 
 ## Validation run (2026-07-28)
 
-Benchmarked 92 of 100 models on mechanical tier (the other 8 were skipped
+Benchmarked 92 of 118 models on mechanical tier (the other 8 were skipped
 during parallel execution, likely due to race conditions). Results:
 
 - **59 OK / 33 FAIL** in 1m 47s
@@ -141,7 +141,7 @@ after being told "Your killing me" when I:
   above). TPM limit is 6000; all Groq models have max_completion_tokens > 6000.
   Fix: cap Groq max_completion_tokens to ≤6000 in config.toml, or add
   per-provider TPM limits to benchmark.py.
-- **Fleet size:** 100 models in config. Many duplicate across providers
+- **Fleet size:** 118 models in config. Many duplicate across providers
   (intentional for provider diversity). The operator said this is OK.
 
 ## Files changed in this session
@@ -175,12 +175,12 @@ after being told "Your killing me" when I:
 
 This handoff is wrong if the operator didn't actually want a handoff and
 was just expressing frustration. In that case, the file is noise. But the
-session produced 4 benchmark commits and a 100-model fleet validation that
+session produced 4 benchmark commits and a 118-model fleet validation that
 will need to be picked up by future sessions — a handoff captures the state.
 
 ## Related
 
-- Wiki: `model-fleet-provider-pools` (will need updating to reflect 100-model
+- Wiki: `model-fleet-provider-pools` (will need updating to reflect 118-model
   fleet and the new pool structure)
 - AAR: this session touched benchmark, discovery, model routing, and
   decomposition as 4 distinct themes — any AAR should be split, not merged
