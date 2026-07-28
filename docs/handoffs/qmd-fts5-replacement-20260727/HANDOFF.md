@@ -4,7 +4,7 @@ parent_handoff_path: P:/docs/handoffs/qmd-viability-evaluation-20260725/HANDOFF.
 current_session_id: 019fa48a-fb52-79a3-b8dc-d13c5da284d2
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-27T20:41:50Z
-status: open
+status: resolved
 handoff_type: investigation
 accurate_as_of_head: a498b5ed06dcb5ebd1e9989537d4b7b6f9f5f0b6
 ---
@@ -30,25 +30,22 @@ dependency for wiki search.
 
 ## Status
 
-**OPEN — ready-to-implement, externally validated.** The evaluation is complete
-and the design is concrete enough to build. No code has been written for the
-replacement yet; the existing qmd install + patches remain the live search path
-until the wrapper passes acceptance criteria.
+**RESOLVED — shipped and verified.** The FTS5 wrapper is live. qmd search is
+redirected to the wrapper via a site-packages patch on `qmd/cli/__main__.py`.
+All 14 wiki functions pass (search, auto-link, contradiction scan, post-write
+driver, health check, validator, manifest, log append, skill catalog, document
+list, CLI smoke). 15/15 unit tests pass.
 
-**External validation (2026-07-27 /www):** the /www investigation (session
-019fa48a) independently confirmed FTS5 is sufficient for ~1000 markdown docs.
-Key citations: (1) Karpathy's llm-wiki pattern (July 2026) explicitly recommends
-"FTS5 (SQLite) or BM25" for markdown wikis at 300-500 pages; (2) BrainDB
-benchmarks FTS5 at <1ms vs Pinecone's 50-200ms; (3) BM25 wins 92% vs 78% on
-exact matches at small scale. `sqlite-vec` (Alex Garcia) is the escape hatch
-if embeddings are ever needed — same DB file, same query code path.
+**What shipped (session 019fa48a, commits 7cd9fbd through d295813):**
+- `P:/.agents/scripts/wiki_search.py` — 280 LOC stdlib FTS5 wrapper
+- `P:/.agents/scripts/tests/test_wiki_search.py` — 15 tests
+- `qmd/cli/__main__.py` (site-packages) — search redirect to FTS5 wrapper
+- `P:/.agents/scripts/qmd_shim.py` — standalone shim (alternative entry)
 
-**Precondition before building:** run a 30-query recall benchmark against the
-actual wiki to confirm FTS5 top-5 recall is above ~75%. Build the benchmark
-from known-answer test cases before committing to the replacement.
-
-See `P:/.data/wiki/concepts/workspace-infrastructure-investment-priorities-2026.md`
-Track D for full evidence + sources.
+**What's NOT done (fresh session):**
+- Uninstall qmd package entirely (qmd still needed for indexing: `qmd update`, `qmd document add`)
+- Remove `qmd_fts5_patch.py` and `.patch` files (obsolete but harmless)
+- Build a thin indexer into the wrapper so qmd can be fully removed
 
 ## Producing context
 
