@@ -1,20 +1,18 @@
 ---
-title: "Missing decision frameworks: 9 categories our workspace lacks for systematic problem anticipation"
+title: "Missing decision frameworks: cc-thinking-skills 28-framework classification + 9 gap categories"
 created: 2026-07-28
 source: session-019fa276 (/go evaluation of cc-thinking-skills + problem-prediction research synthesis)
-tags: [decision-frameworks, mental-models, FMEA, reference-class-forecasting, calibration, second-order-thinking, ACH, sensitivity-analysis, inversion, skills-gap, cc-thinking-skills]
+tags: [decision-frameworks, mental-models, FMEA, reference-class-forecasting, calibration, second-order-thinking, ACH, sensitivity-analysis, inversion, skills-gap, cc-thinking-skills, second-order, probabilistic, opportunity-cost, theory-of-constraints, ooda, triz, via-negativa, lindy-effect]
 summary: >
-  Synthesis of three research streams (systematic problem anticipation,
-  Proof-or-Stop evidence gating, cc-thinking-skills evaluation) identifying
-  9 framework categories our workspace is missing, ranked by the failure
-  class each catches. Top 4 (RCF, external-validity audit, probabilistic
-  calibration, second-order thinking) are implementable as enhancements to
-  existing skills (/tp, /www, /review) rather than new skills. Bottom 5
-  (ACH, FMEA, sensitivity analysis, inversion-as-default, Hanlon/Chesterton)
-  are medium-priority additions. The cc-thinking-skills repo (28 frameworks)
-  was not directly readable but was cross-referenced against the wiki's own
-  gap analysis. Formal methods (MCTS, LATS, model checking) are deferred —
-  our decisions are low-frequency and reversible.
+  Verified classification of all 28 frameworks from the cc-thinking-skills
+  repo (github.com/tjboudreaux/cc-thinking-skills) against our workspace.
+  14 already have equivalents. 8 are missing and worth porting (second-order
+  thinking, probabilistic calibration, opportunity cost, theory of
+  constraints, OODA, TRIZ, via negativa, Lindy effect). 4 are present but
+  differently shaped. 2 are deferred. Plus 9 gap categories from the
+  broader problem-prediction research (RCF, external-validity, FMEA, ACH,
+  sensitivity analysis, inversion-as-default, Hanlon/Chesterton). Each
+  missing framework has an implementation target skill and estimated lines.
 agent: grok
 host: grok
 cognitive_load: 3
@@ -38,6 +36,61 @@ relations:
 ---
 
 # Missing decision frameworks: what our workspace lacks
+
+## Verified classification: all 28 cc-thinking-skills frameworks
+
+Source repo: [github.com/tjboudreaux/cc-thinking-skills](https://github.com/tjboudreaux/cc-thinking-skills)
+(MIT license, 28 skills, replication-gated eval pipeline, zero skills hold
+robust replicated ELEVATE verdict — treat as scaffolds, not proven accuracy
+boosts).
+
+### Already have (14)
+
+| Framework | Our equivalent |
+|---|---|
+| `thinking-pre-mortem` | ✅ `/red-team`, `/tp` domain 3a, `/wargame` |
+| `thinking-steel-manning` | ✅ `/tp` steelman + falsifier |
+| `thinking-red-team` | ✅ `/red-team` (8 specialist lenses) |
+| `thinking-first-principles` | ✅ `/design` Phase 0, brainstorming-ideation |
+| `thinking-scientific-method` | ✅ `/why` hypothesis-differential (Step 6-7) |
+| `thinking-five-whys-plus` | ✅ `/why` Ishikawa + 5-whys |
+| `thinking-cynefin` | ✅ `/skeptic` references |
+| `thinking-systems` | ✅ `/why` systems lens (dimension 3) |
+| `thinking-socratic` | ✅ `/tp` questioning, `/refine` |
+| `thinking-map-territory` | ✅ `/skeptic` references |
+| `thinking-circle-of-competence` | ✅ AGENTS.md "operator already knows..." |
+| `thinking-bounded-rationality` | ✅ `/wargame` (bounded info decisions) |
+| `thinking-reversibility` | ✅ AGENTS.md reversibility scale (1.0-2.0) |
+| `thinking-model-router` | ✅ `/go` profile auto-routing |
+
+### Missing — worth porting (8)
+
+| Framework | What it does | Why we need it | Implementation target |
+|---|---|---|---|
+| **`thinking-second-order`** | Think beyond immediate consequences: 1st → 2nd → 3rd order → when does it go negative? | Would have caught exec-gate cascade. Wiki designed the block but hasn't shipped it. | `/tp` core domain 2 (~20 lines) |
+| **`thinking-probabilistic`** | Calibrated probability estimation with priors + Bayes | Evidence tiers lack numeric confidence. Kadavath 2022 shows calibration reduces overconfidence. | Evidence tier field (~15 lines) |
+| **`thinking-opportunity-cost`** | Evaluate choices by what you give up | We don't systematically ask "what else could we do with this time/compute?" | `/tp` domain 5 (~10 lines) |
+| **`thinking-theory-of-constraints`** | Find the ONE bottleneck limiting throughput | Export is the constraint, not clustering/synthesis. Would structure sensitivity sweep. | `/go` H1 Think or `/design` Phase 0 (~30 lines) |
+| **`thinking-ooda`** | Observe-Orient-Decide-Act for dynamic situations | Applies to incident response, live-run decisions, auth-expiry handling. | `/why` or `/debugging-and-error-recovery` (~20 lines) |
+| **`thinking-triz`** | Resolve technical contradictions (40 inventive principles) | Unique — "how to invent around a hard constraint." Applies to skill design (hook timeout vs evidence coverage). | Evaluate first; may be too specialized (~40 lines) |
+| **`thinking-via-negativa`** | Improve by removing, not adding | Directly applicable to ceremony-tax problem. "What can we remove?" is structurally different from "what should we add?" | `/close` or `/skill-prune` (~15 lines) |
+| **`thinking-lindy-effect`** | Older things likely to last longer | "Has this pattern persisted across 3+ sessions?" is a Lindy signal for skill retention. | `/skill-prune` or `/skill-dev` (~10 lines) |
+
+### Present but differently shaped (4)
+
+| Framework | Our version | Difference |
+|---|---|---|
+| `thinking-kepner-tregoe` | `/why` Step 6-11 | K-T is more structured (situation appraisal → problem analysis → decision analysis → potential problem analysis). Our `/why` is Ishikawa-first. |
+| `thinking-thought-experiment` | `/wargame` | Wargame is plan-focused; thought-experiment is broader (architecture, edge cases, philosophy). |
+| `thinking-margin-of-safety` | AGENTS.md reversibility scale + verification gates | Embedded in the verification system, not a standalone framework. |
+| `thinking-jobs-to-be-done` | `/tp` domain 5 (solution-space broadening) | Close but not JTBD-framed. We don't systematically ask "what job is this skill hired to do?" |
+
+### Evaluate but probably don't need (2)
+
+| Framework | Why defer |
+|---|---|
+| `thinking-effectuation` | Startup/innovation focused ("start with means, not goals"). Our workspace is infrastructure, not product. |
+| `thinking-model-combination` | Our `/red-team` already combines multiple lenses. A standalone meta-skill would compete. |
 
 ## Decision context
 
