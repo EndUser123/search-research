@@ -1,118 +1,65 @@
 ---
-title: "Capability: wiki-query"
+title: "Capability: wiki-query — design notes and consumer analysis"
 created: 2026-07-28
 source: session-2026-07-28
-tags: [capability-node, wiki, query, reusable, skill-graph, phase-2]
+tags: [capability-node, wiki, query, skill-graph, phase-2]
 summary: >
-  Reusable capability node for querying the wiki vault. Used by 24 skills.
-  Defines the I/O contract for "search existing wiki concepts." Skills
-  reference this node instead of re-describing how to grep concepts.
-node_type: capability
-inputs:
-  - name: query
-    type: string
-    description: "Keywords or pattern to search for"
-    required: true
-  - name: scope
-    type: path
-    description: "Default: P:/.data/wiki/concepts/. Can narrow to subdirectory."
-    default: "P:/.data/wiki/concepts/"
-outputs:
-  - name: concepts
-    type: list[{path, title, summary}]
-    description: "Matching wiki concepts with paths and one-line summaries"
-  - name: match_count
-    type: integer
-    description: "Number of hits (0 = no prior coverage)"
-consumers:
-  - aar
-  - close
-  - crawl4ai
-  - create-skill
-  - debrief
-  - design
-  - dream
-  - go
-  - grok-safe-git
-  - handoff
-  - maintain
-  - model-benchmark
-  - notice
-  - plan-writer
-  - prompt-patterns
-  - refactor
-  - refine
-  - review
-  - skill-dev
-  - todo
-  - tp
-  - wargame
-  - why
-  - www
+  Design notes for the wiki-query capability node. The lean contract lives
+  at P:/.data/wiki/capabilities/wiki-query.md — skills reference that.
+  This page documents why the node exists, who consumes it, and how each
+  skill customizes the query with its own glue.
+agent: grok
+host: grok
 relations:
+  - target: capabilities/wiki-query.md
+    type: contract-for
   - target: wiki/concepts/capability-wiki-write.md
     type: complementary
   - target: wiki/concepts/skill-graph.md
     type: grounds
 ---
 
-# Capability: wiki-query
+# wiki-query: design notes
 
-## What this node provides
+## The contract
 
-A standard interface for searching the local wiki vault. Any skill that
-needs to check existing knowledge before acting references this node
-instead of re-describing the grep procedure.
+The lean operational page is at `P:/.data/wiki/capabilities/wiki-query.md`.
+Skills reference that path. It contains only: inputs, outputs, the grep
+procedure, and the output shape. No prose, no analysis.
 
-## How to invoke
+## Why this node exists
 
-```powershell
-# Use the built-in grep tool: search wiki concepts
-grep pattern="<query keywords>" path="P:/.data/wiki/concepts/" -i
-```
+24 skills declared `wiki` in their `depends_on` frontmatter. Analysis
+(P:/tmp/analyze_graph.py) showed wiki-query as the #1 duplication hotspot —
+every skill that checks existing knowledge re-describes the grep procedure
+with slight variations. The capability node defines the procedure once.
 
-Or for broader coverage:
+## Consumers (24)
 
-```powershell
-# Also check open handoffs (intermediate knowledge layer)
-rg -l "<keywords>" P:/docs/handoffs/
-```
+aar, close, crawl4ai, create-skill, debrief, design, dream, go,
+grok-safe-git, handoff, maintain, model-benchmark, notice, plan-writer,
+prompt-patterns, refactor, refine, review, skill-dev, todo, tp, wargame,
+why, www
 
-## Output contract
+## Glue (how each skill customizes the query)
 
-Return a structured summary:
+The capability defines WHAT (grep concepts, return matches + gaps). Each
+skill defines WHY — what it does with the results:
 
-```
-**Wiki coverage:**
-- `concept-slug.md` — one-line summary (path: P:/.data/wiki/concepts/concept-slug.md)
-- ...
+| Skill | Glue |
+|-------|------|
+| `/why` Step 0.5 | Searches for failure-pattern keywords, emits visible receipt with hit count |
+| `/www` Phase 1 | Searches for topic coverage, identifies gaps + retirement candidates |
+| `/tp` Step 0.5 | Searches for critique-matching patterns from prior sessions |
+| `/review` Step 0.5 | Searches for known bug patterns matching the target's domain |
+| `/close` | Checks wiki gates (concept coverage, log entries) as part of session accounting |
+| `/debrief` | Searches for session-specific patterns and prior lessons |
 
-**Gaps:** <what the query did NOT find — specific questions for follow-up>
-```
-
-## When to use
-
-| Trigger | Action |
-|---------|--------|
-| Before proposing a solution | Query wiki for prior art |
-| Before writing a new concept | Retirement check (does it supersede/contradict?) |
-| Before investigating a failure | Pattern-library match (known failure shapes?) |
-| When the operator asks "what do we know about X" | Direct query |
-
-## Glue notes (per-skill customization)
-
-Skills add their own context around this capability:
-- `/why` Step 0.5: queries for failure-pattern keywords, emits visible receipt
-- `/www` Phase 1: queries for topic coverage, identifies gaps + retirement candidates
-- `/tp` Step 0.5: queries for critique-matching patterns
-- `/review` Step 0.5: queries for known bug patterns matching target domain
-- `/close`: queries for wiki gates (concept coverage, log entries)
-
-The capability node defines WHAT to do (grep concepts, return matches + gaps).
-The glue defines WHY (what to do with the results in this skill's context).
+Skills that only need a simple lookup (grok-safe-git, prompt-patterns, todo)
+use the capability directly with no glue.
 
 ## Falsifier
 
-This node is obsolete when the wiki vault is replaced by a different
-knowledge store (e.g., a vector database, a graph database). The I/O
-contract (query in, concepts out) stays; the implementation changes.
+Obsolete when the wiki vault is replaced by a different knowledge store
+(vector DB, graph DB). The I/O contract (query in, concepts out) stays;
+the implementation changes.

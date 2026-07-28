@@ -1,196 +1,73 @@
 ---
-title: "Capability: wiki-write"
+title: "Capability: wiki-write — design notes and consumer analysis"
 created: 2026-07-28
 source: session-2026-07-28
-tags: [capability-node, wiki, write, persist, reusable, skill-graph, phase-2]
+tags: [capability-node, wiki, write, persist, skill-graph, phase-2]
 summary: >
-  Reusable capability node for persisting knowledge to the wiki vault.
-  Used by 18 skills. Defines the I/O contract for "write a wiki concept
-  that passes quality validation." Skills reference this node instead of
-  re-describing frontmatter format, validation, and logging.
-node_type: capability
-inputs:
-  - name: title
-    type: string
-    required: true
-    description: "Descriptive title for the concept"
-  - name: body
-    type: markdown
-    required: true
-    description: "Full concept body including Decision Context, findings, falsifier"
-  - name: tags
-    type: list[string]
-    required: true
-    description: "Topic tags for discoverability"
-  - name: sources
-    type: list[{url, author, date}]
-    required: false
-    description: "External sources cited. Required for research entries."
-  - name: content_type
-    type: enum[finding, decision, reference]
-    default: finding
-    description: "Determines quality gate (decision needs steelman + falsifier)"
-  - name: relations
-    type: list[{target, type}]
-    required: false
-    description: "Links to related concepts (extends, complements, refines, etc.)"
-outputs:
-  - name: concept_path
-    type: path
-    description: "P:/.data/wiki/concepts/<slug>.md"
-  - name: validation_result
-    type: enum[pass, fail]
-    description: "Result of validate_wiki_entry.py"
-  - name: log_appended
-    type: boolean
-    description: "Whether append_log.py recorded the write"
-consumers:
-  - aar
-  - close
-  - crawl4ai
-  - debrief
-  - design
-  - dream
-  - go
-  - handoff
-  - maintain
-  - model-benchmark
-  - notice
-  - refine
-  - review
-  - skill-dev
-  - tp
-  - wargame
-  - why
-  - www
+  Design notes for the wiki-write capability node. The lean contract lives
+  at P:/.data/wiki/capabilities/wiki-write.md — skills reference that.
+  This page documents why the node exists, who consumes it, how each skill
+  customizes the write with glue, and the quality-gate contract.
+agent: grok
+host: grok
 relations:
+  - target: capabilities/wiki-write.md
+    type: contract-for
   - target: wiki/concepts/capability-wiki-query.md
     type: complementary
-  - target: wiki/concepts/skill-graph.md
-    type: grounds
   - target: P:/.data/wiki/SCHEMA.md
     type: authoritative-spec
 ---
 
-# Capability: wiki-write
+# wiki-write: design notes
 
-## What this node provides
+## The contract
 
-A standard interface for persisting durable knowledge to the wiki vault.
-Any skill that produces findings, decisions, or reference material
-references this node instead of re-describing frontmatter format,
-validation, retirement checks, and logging.
+The lean operational page is at `P:/.data/wiki/capabilities/wiki-write.md`.
+Skills reference that path. It contains only: inputs, outputs, the 4-step
+procedure (retirement check, write, validate, log), and minimum frontmatter.
+No prose, no analysis.
 
-## How to invoke
+## Why this node exists
 
-### Step 1: Retirement check (mandatory)
+18 skills declared `wiki` in their `depends_on` and perform writes. Each
+re-described the write procedure: frontmatter format, SCHEMA.md reference,
+validate_wiki_entry.py, append_log.py, retirement check — the same ~15-line
+procedure repeated 18 times with drift. The capability node defines it once.
 
-Before writing, query existing concepts for overlap:
+## Consumers (18)
 
-```
-# Use capability-wiki-query: grep for the new concept's title keywords
-grep pattern="<title keywords>" path="P:/.data/wiki/concepts/" -i
-```
+aar, close, crawl4ai, debrief, design, dream, go, handoff, maintain,
+model-benchmark, notice, refine, review, skill-dev, tp, wargame, why, www
 
-If a concept is superseded: update its frontmatter (`status: superseded`,
-`superseded_by:`). If contradicted: flag the conflict. If refined: add a
-`relations` entry.
+## Glue (how each skill customizes the write)
 
-### Step 2: Write the concept
+The capability defines WHAT (write concept, validate, log). Each skill
+defines WHEN and WHY — what triggers the write and what pre/post logic
+wraps it:
 
-Use the mandatory template (floor, not ceiling):
-
-```markdown
----
-title: "<descriptive title>"
-created: YYYY-MM-DD
-source: <session-YYYYMMDD or URL>
-tags: [<topic>, <sub-topic>, <category>]
-summary: >
-  <2-4 sentence summary for future discoverability>
-agent: grok
-host: grok
-cognitive_load: 1-5
-verification: multi-source-verified | single-source-verified | observed | inferred | local-only
-sources:
-  - <URL> (Author/Org, Date)
-relations:
-  - target: wiki/concepts/<related-slug>.md
-    type: extends | complements | related | supersedes | refines
----
-
-# <Title>
-
-## Decision context
-<Why this was needed — the problem, not the topic>
-
-## <Main content>
-<Synthesis with reasoning, evidence, connections>
-
-## What this means for our workspace
-<Actionable connection to our infrastructure>
-
-## Falsifier
-<What would make this wrong or obsolete>
-```
-
-Full spec: `P:/.data/wiki/SCHEMA.md` §2-3 (frontmatter), §4 (quality gate).
-
-### Step 3: Validate (mandatory)
-
-```bash
-python "$env:USERPROFILE/.grok/skills/wiki/scripts/validate_wiki_entry.py" "<concept-path>"
-```
-
-Exit 0 = passes quality bar. Exit 1 = fix before declaring done.
-
-### Step 4: Log
-
-```bash
-python P:/.data/wiki/scripts/append_log.py "<slug>" "<title>"
-```
-
-Records the write in `P:/.data/wiki/log.md` for audit trail.
-
-### Step 5: Auto-link (optional but recommended)
-
-```bash
-python P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/wiki/scripts/wiki_after_write.py "<concept-path>"
-```
-
-Injects `[[wikilinks]]` to related concepts automatically.
+| Skill | Glue |
+|-------|------|
+| `/why` Step 15 | Gates write behind synchronous cross-model review (3 yes/no questions from glm-5-2 or codex) |
+| `/www` Phase 3 | Adds decision-context capture + research ledger update + host invariant check |
+| `/review` Step 6 | Writes to wiki only if systemic patterns found (severity gate) |
+| `/aar` | Promotes headline lessons (operator-confirmed) to wiki concepts |
+| `/close` | Checks wiki gates as part of session close accounting (not a writer — a verifier) |
+| `/debrief` | Writes session-derived patterns after 5-lens analysis |
+| `/tp` session | Writes findings + runs /wiki + /handoff as post-recommendation persistence |
+| `/design` | Writes design decisions with steelman + falsifier |
+| `/handoff` | Auto-promotes durable findings to wiki during handoff creation |
 
 ## Quality gate by content type
 
-| Content type | Required fields | Quality bar |
-|--------------|----------------|-------------|
-| **Finding** | title, created, tags, summary, sources | Non-obvious + verified + durable + distinct |
-| **Decision** | + selection criterion + rationale + steelman + falsifier | Architectural + re-litigatable |
-| **Reference** | title, created, tags, summary | Accurate + durable + structured |
-
-Minimum line count: research ≥80, reference ≥40, default ≥50.
-
-## Glue notes (per-skill customization)
-
-Skills add their own pre/post logic around this capability:
-- `/why` Step 15: gates the write behind synchronous cross-model review (3 questions)
-- `/www` Phase 3: adds decision-context capture + research ledger update
-- `/review` Step 6: writes FINDINGS.md to wiki if systemic patterns found
-- `/aar`: promotes headline lessons to wiki concepts
-- `/close`: checks wiki gates as part of session close accounting
-
-The capability node defines WHAT to do (write concept, validate, log).
-The glue defines WHEN and WHY (what triggers the write in this skill's context).
+| Type | Required | Min lines |
+|------|----------|-----------|
+| Finding | title, created, tags, summary, sources | ≥80 |
+| Decision | + selection criterion + rationale + steelman + falsifier | ≥80 |
+| Reference | title, created, tags, summary | ≥40 |
 
 ## Falsifier
 
-This node is obsolete when the wiki vault is replaced by a different
-persistence layer. The I/O contract (concept in, path + validation out)
-stays; the implementation changes.
-
-## Receipts
-
-- `P:/.data/wiki/SCHEMA.md` §2-4 — frontmatter spec, quality gate, template
-- `~/.grok/skills/wiki/scripts/validate_wiki_entry.py` — validator implementation
-- `P:/.data/wiki/scripts/append_log.py` — log appender
-- 18 skills reference wiki write in their `depends_on` frontmatter
+Obsolete when the wiki vault is replaced by a different persistence layer.
+The I/O contract (concept in, path + validation out) stays; the
+implementation changes.
