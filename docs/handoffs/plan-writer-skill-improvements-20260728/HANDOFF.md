@@ -147,3 +147,30 @@ This handoff would be wrong if the 4 improvements don't survive held-out validat
 - [FACT] 2 of 6 improvements already shipped (commits `9ce0bff`, `1266bad`, `705e9b2`)
 - [FACT] 4 improvements identified from 5 independent external sources (wiki concept with citations)
 - [INFERENCE] the 4 remaining improvements need held-out validation — they're grounded in external practice but not yet validated against our specific context
+
+## Revision 1 — 2026-07-28 (session 019fa94a, /tp review)
+
+**Trigger:** /tp critique of this handoff. The critique (glm-5-2 cross-family subagent, 13 tool calls) found that wiki improvement #6 (simplicity check in reviewer prompt) was incorrectly marked "already applied" — the review loop structure existed but the reviewer prompt had zero over-engineering dimensions. The critique recommended REVISE.
+
+### Operator decisions (verbatim context)
+
+1. **Wiki improvement #6 (simplicity dimension in reviewer prompt): APPROVED.** Applied — dimension 8 added to reviewer prompt at SKILL.md:519. Commit `0af0b5a` in ~/.grok. This was the highest-leverage remaining improvement and was the one most directly connected to the root cause (post-checkpoint accretion during review rounds).
+
+2. **Imp 3 (problem-size gate): DROPPED.** The skill already routes trivial tasks in 3 places (lines 32, 68, 123-130). A 4th mechanism is redundant accretion.
+
+3. **Imp 4 (plan length budget): REJECTED by operator.** "I really don't care about plan length, it should be as long as it needs to be. Using an arbitrary plan length looks like a footgun." No length budget — arbitrary thresholds become targets (Goodhart's law).
+
+4. **Imp 5 (AGENTS.md consistency check): PENDING — operator asked about implementation reliability.** Question: can this be done reliably via code/symbolic scanning, or does it need a subagent pass? Answer being formulated. The runtime hooks already block destructive git at execution time; a plan-level check would be defense-in-depth at write time.
+
+5. **Imp 6 (traceability matrix): DEFERRED.** No evidence of the failure mode occurring locally.
+
+6. **Held-out validation gap acknowledged.** Zero held-out sessions exist as of 2026-07-28 (plan-writer was consolidated 2026-07-23; only 1 post-consolidation plan exists, which is the training session). Validation will be hypothetical reasoning until N≥3 sessions use the skill.
+
+### What changed
+
+- plan-writer SKILL.md: +1 line (dimension 8 in reviewer prompt). Commit `0af0b5a`.
+- This handoff: updated with revision block. The "4 remaining improvements" framing is now stale — only Imp 5 remains open (pending the reliability question), and it may also be deferred.
+
+### Status: mostly resolved
+
+The highest-leverage improvement (wiki #6) is applied. Imps 3 and 4 are dropped/rejected. Imp 6 is deferred. Imp 5 has an open question. The handoff's original framing ("apply 4 improvements via /skill-dev") is no longer accurate — 1 was applied, 3 were dropped/rejected/deferred.
