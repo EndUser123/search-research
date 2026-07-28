@@ -1,6 +1,246 @@
 # Vault Log
 
 ## --concept
+Source: mechanisms-for-thought-partner-behavior
+Agent: --action
+Notes: created
+Page: --source
+
+## Autistic Social Communication Patterns and Coping Strategies
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/autistic-social-communication-patterns-and-coping-strategies.md
+
+## Claude Design Rapid Prototyping
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/claude-design-rapid-prototyping.md
+
+## Human Resilience Under Alien Duress
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/human-resilience-under-alien-duress.md
+
+## Smart Glasses Display Technology
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/smart-glasses-display-technology.md
+
+## Women Attraction Patterns and Preferences
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/women-attraction-patterns-and-preferences.md
+
+## Metabolic Approaches for Body Composition Optimization
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/metabolic-approaches-for-body-composition-optimization.md
+
+## Carney's Diplomatic Strategy With Trump
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/carneys-diplomatic-strategy-with-trump.md
+
+## Multi-Model AI Workflow Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Misc (HFY + assorted)
+Page: wiki/concepts/multi-model-ai-workflow-patterns.md
+
+## Photobiomodulation Wavelengths and Biological Effects
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/photobiomodulation-wavelengths-and-biological-effects.md
+
+## Exercise Benefits for ADHD
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/exercise-benefits-for-adhd.md
+
+## Adaptive Teaching Skills
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/adaptive-teaching-skills.md
+
+## Claude Design Transformation Method
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/claude-design-transformation-method.md
+
+## Invisible Workplace Dynamics
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/invisible-workplace-dynamics.md
+
+## Smart Glasses Display Technologies and Ecosystem
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/smart-glasses-display-technologies-and-ecosystem.md
+
+## Ukraine Russia Drone Warfare Dynamics
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/ukraine-russia-drone-warfare-dynamics.md
+
+## Canada's Geopolitical Repositioning Under Carney
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/canadas-geopolitical-repositioning-under-carney.md
+
+## Metabolic Health And Visceral Fat Management
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/metabolic-health-and-visceral-fat-management.md
+
+## Claude Skills
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: GitHub Trending & AI News
+Page: wiki/concepts/claude-skills.md
+
+## Friction in Computing Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/friction-in-computing-systems.md
+
+## Light Wavelengths and Biological Effects
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/light-wavelengths-and-biological-effects.md
+
+## Gemma 4 QAT and Uncensored Variants
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/gemma-4-qat-and-uncensored-variants.md
+
+## COVID-19 Vaccine Controversy and Public Discourse
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/covid-19-vaccine-controversy-and-public-discourse.md
+
+## Canadian Retirement Advantage Programs
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/canadian-retirement-advantage-programs.md
+
+## Ukraine's Drone Warfare Capabilities
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/ukraines-drone-warfare-capabilities.md
+
+## Trading Psychology and Market Behavior
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/trading-psychology-and-market-behavior.md
+
+## Canada-US Relations Under Trump and Carney
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/canada-us-relations-under-trump-and-carney.md
+
+## Metabolic Health Optimization
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/metabolic-health-optimization.md
+
+## Claude Code Multi-Agent Collaboration Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Health & Weight Loss
+Page: wiki/concepts/claude-code-multi-agent-collaboration-patterns.md
+
+## ADHD-Autism Cognitive and Behavioral Contrasts
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/adhd-autism-cognitive-and-behavioral-contrasts.md
+
+## Henry Noik Case Public Debates
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/henry-noik-case-public-debates.md
+
+## Gemma Uncensored QAT Models
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/gemma-uncensored-qat-models.md
+
+## Ampersand Loop Knot for Drawstrings
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/ampersand-loop-knot-for-drawstrings.md
+
+## New World Screwworm Reintroduction and Containment Failure
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/new-world-screwworm-reintroduction-and-containment-failure.md
+
+## Ukraine-Russia Drone Warfare Dominance
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/ukraine-russia-drone-warfare-dominance.md
+
+## Body Composition Optimization Strategies
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/body-composition-optimization-strategies.md
+
+## Systemic Software Fragility
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/systemic-software-fragility.md
+
+## Canada-US Tensions Under Carney and Trump
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/canada-us-tensions-under-carney-and-trump.md
+
+## Claude Code Dynamic Workflows
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Canadian Politics & Trade
+Page: wiki/concepts/claude-code-dynamic-workflows.md
+
+## [2026-07-27] ingest | Solo-director AI-coder fleet: coordination, isolation, and stale-data immunity best practices
+Source: session-2026-07-27
+Agent: grok
+Notes: Solo-director AI fleet coordination research
+Page: wiki/concepts/solo-director-ai-fleet-coordination-isolation-best-practices.md
+
+## --concept
 Source: fabricated-fatigue-llm-session-end-recommendations
 Agent: --source
 Notes: session-019fa48a /wiki
