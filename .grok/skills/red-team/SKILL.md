@@ -94,14 +94,34 @@ for decorrelated blind-spot detection. Pool (try order):
 
 1. `glm-5-2` (subscription, best tool-calling)
 2. `go-mimo-v2-5` (OpenRouter, paid, verified working)
-3. `minimax-m3` (subscription, chat-only — reasoning specialist only)
-4. parent-inherited (last resort)
+3. parent-inherited (last resort)
+
+> **`minimax-m3` removed from cross-model pool (2026-07-27):** M3 produces
+> `max_tokens_truncation` (376/145 output tokens) on multi-file code review +
+> structured JSON writing tasks. M3 is fine for short-prompt tasks but not for
+> specialists that must read source files and produce structured findings. See
+> `~/.grok/tool-fallbacks.md`.
 
 **Do NOT use Claude or Anthropic models** (operator constraint).
 
 If using `spawn_subagent` with a model slug, set `capability_mode="read-only"`.
 If the model fails (max_tokens, transport error), fall back to parent-model for
 that specialist and disclose in synthesis.
+
+**Model routing for ALL specialists (MANDATORY):** every specialist — not just
+the cross-model one — must have an explicit `model` parameter when spawned.
+Omitting `model` causes non-deterministic routing that can assign MiniMax-M3,
+which truncates on code review tasks (observed 2026-07-27 in `/review`:
+two specialists produced zero usable findings). Route by specialist type:
+
+| Specialist type | Model | Why |
+|---|---|---|
+| correctness, state/concurrency, security, scope, performance, workflow (code-reading specialists) | Parent-inherited Grok | Best reasoning + sufficient output for multi-file analysis + JSON writing |
+| Cross-model specialist (one per run) | `glm-5-2` (preferred) or pool above | Decorrelated blind-spot detection |
+| Meta/self-reflection (runs last, reads summaries) | Parent-inherited Grok | Synthesis requires strong reasoning |
+
+**Forbidden for code-reading specialists:** `minimax-m3` — output token limit
+too low for reading source files + writing structured findings JSON.
 
 ### Step 3 — Verify specialist outputs
 
