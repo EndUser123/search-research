@@ -258,27 +258,29 @@ This host has two NotebookLM accounts configured as named profiles:
 |---------|-------|------|---------------------|
 | `codex` | a.hominidae@gmail.com | Paid | 300 |
 | `codex-free` | troup.hominidae@gmail.com | Free | 50 |
+| `codex-free2` | brsthomson@hotmail.com | Free | 50 |
 
 Each profile is an independent CDP session — they do NOT contend for auth.
 Workers can freely process notebooks from either account. Use `--all-profiles`
-on enqueue to discover notebooks from both accounts. Each notebook in the
+on enqueue to discover notebooks from all three accounts. Each notebook in the
 queue is tagged with its source profile; workers automatically pass the
 correct profile to `sync.py`.
 
 **Worker ceiling: 3 concurrent workers per account.** The NotebookLM API
-degrades above 3 concurrent sessions per account. With 2 accounts, you can
-run up to 6 workers total (3 per account). The yt-is benchmark measured
-4,123 VPH at 3+3 workers on one account; 4+4 regressed to 1,150 VPH.
+degrades above 3 concurrent sessions per account. With 3 accounts (1 paid + 2
+free), you can run up to 9 workers total (3 per account). The yt-is benchmark
+measured 4,123 VPH at 3+3 workers on one account; 4+4 regressed to 1,150 VPH.
 Set `config.workers` in the queue file to the total number of worker
 processes you launch. See [[nlm-to-wiki-optimization-opportunities]].
 
-**One-time setup for codex-free:** the profile was created by copying
-credentials from yt-is. If auth expires and silent CDP re-auth fails
-(Chrome doesn't have troup.hominidae session), run:
+**One-time setup for free profiles:** the profiles were created by copying
+credentials from yt-is worker profiles. If auth expires and silent CDP
+re-auth fails (Chrome doesn't have the session), run for each:
 ```bash
 nlm login --profile codex-free --clear
+nlm login --profile codex-free2 --clear
 ```
-This opens a browser window — sign in as troup.hominidae@gmail.com.
+Each opens a browser window — sign in as the respective account.
 After the one-time login, subsequent re-auth is silent via CDP.
 
 **⚠ Auth contention (critical):** never run two different sync drivers

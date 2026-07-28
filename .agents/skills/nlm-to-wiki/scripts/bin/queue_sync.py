@@ -29,6 +29,7 @@ MAX_RETRIES = 3
 PROFILE_META = {
     "codex": {"email": "a.hominidae@gmail.com", "tier": "paid", "max_sources": 300},
     "codex-free": {"email": "troup.hominidae@gmail.com", "tier": "free", "max_sources": 50},
+    "codex-free2": {"email": "brsthomson@hotmail.com", "tier": "free", "max_sources": 50},
 }
 QUEUE_FILE = Path("P:/.data/wiki/_state/nlm-sync/queue.json")
 SYNC_SCRIPT = "P:/.agents/skills/nlm-to-wiki/scripts/sync.py"
