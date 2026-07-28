@@ -101,10 +101,10 @@ for decorrelated blind-spot detection. Pool (try order):
 > may impose a lower output token budget than direct API for certain task shapes,
 > causing `max_tokens_truncation` on tasks that require reading multiple files +
 > writing large structured JSON (observed in `/review`: 2 of 3 specialist
-> attempts). This is a spawn-path output limit, not a model capability limitation
-> — M3 handles the same code-reading tasks fine via direct API and interactive
-> mode. If truncation occurs, retry with `glm-5-2` or parent. Do not exclude M3
-> preemptively. See `~/.grok/tool-fallbacks.md`.
+> attempts). **The fix is to decompose the specialist's scope into smaller tasks**
+> (per-file, per-attack-surface) so each spawn produces a small output. Any model
+> — including M3 — handles small tasks fine. Do NOT switch models as the primary
+> fix; shrink the task. See `~/.grok/tool-fallbacks.md` and `/review` Step 4.
 
 **Do NOT use Claude or Anthropic models** (operator constraint).
 
@@ -124,10 +124,9 @@ was omitted model, not M3 itself). Route by specialist type:
 | Cross-model specialist (one per run) | `glm-5-2` (preferred) or pool above | Decorrelated blind-spot detection |
 | Meta/self-reflection (runs last, reads summaries) | Parent-inherited Grok | Synthesis requires strong reasoning |
 
-**If any specialist truncates** (`max_tokens_truncation`): retry with a
-different model from the pool. The truncation is a spawn-path output limit,
-not a model capability limitation — don't permanently exclude a model based
-on one truncation.
+**If any specialist truncates** (`max_tokens_truncation`): the task scope was too
+large. Decompose into smaller tasks (per-file, per-attack-surface) and re-dispatch.
+Do NOT switch models as the primary fix — shrink the task.
 
 ### Step 3 — Verify specialist outputs
 
