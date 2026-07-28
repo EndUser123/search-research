@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: deferred-skill-improvements-registry
+Agent: --action
+Notes: created
+Page: --source
+
 ## dead-code: /check Step 0.9 vulture wired advisory
 Source: session-019fa94d-/go
 Agent: grok
