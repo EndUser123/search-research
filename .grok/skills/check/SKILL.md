@@ -170,34 +170,69 @@ the best available evidence (git-derived packet or LLM-only). Do NOT block
 
 **Goal:** catch failures that deterministic tools can find *before* spending
 200-350s on LLM verifiers. If ruff/pyright/tests fail, the LLM will reach
-the same conclusion — just much slower.
+the same conclusion — just much slower. Also surface **dead-code** signals
+that ruff F401 does not catch (unused methods/functions after refactors).
 
 **Trigger:** run when ANY scope file is a `.py` file (determined from the
 evidence packet's `scope_files` or the git-derived packet's `git_changed_files`).
+
+**Layers:**
+
+| Tool | Role | Blocks CHECK? |
+|------|------|----------------|
+| ruff E,F | syntax / unused imports / undefined names | Seeds `deterministic_failures` (verifiers treat as bugs) |
+| pyright errors | type errors | Seeds `deterministic_failures` |
+| **vulture** | unused functions/methods/classes (dead code after refactors) | **ADVISORY only** — never alone fails CHECK; soft-skip if not installed |
+
+**Why vulture is advisory:** framework frameworks (Textual `compose`/`@on`/
+`watch_*`, pytest fixtures, CLI entry points) produce high FP rates without
+a whitelist. Policy VULT-01 (2026-07-28): `/check` surfaces filtered findings
+for verifiers; pre-push may later fail-closed with a project whitelist.
 
 **What it does:**
 
 ```powershell
 # Run deterministic checks on changed .py files only
-$pyFiles = ($scopeFiles | Where-Object { $_ -match '\.py$' })
+$pyFiles = @($scopeFiles | Where-Object { $_ -match '\.py$' })
 if ($pyFiles) {
     $deterministicResult = "$runDir/packets/deterministic-check.json"
     # Ruff: errors only (E, F rules)
-    $ruff = ruff check --select E,F --output-format=json $pyFiles 2>$null
+    $ruff = ruff check --select E,F --output-format=json @pyFiles 2>$null
+    $ruffExit = $LASTEXITCODE
     # Pyright: errors only
-    $pyright = pyright --outputjson $pyFiles 2>$null | ConvertFrom-Json
-    $pyrightErrors = $pyright.generalDiagnostics | Where-Object { $_.severity -eq "error" }
-    # If any errors found, write them to the packet for verifiers
-    if ($LASTEXITCODE -ne 0 -or $pyrightErrors) {
-        @{ ruff_errors = $ruff; pyright_errors = $pyrightErrors } | ConvertTo-Json | Set-Content $deterministicResult
-        Write-Host "Deterministic pre-check: ERRORS FOUND (see $deterministicResult)"
-    } else {
-        Write-Host "Deterministic pre-check: clean"
+    $pyright = pyright --outputjson @pyFiles 2>$null | ConvertFrom-Json
+    $pyrightErrors = @($pyright.generalDiagnostics | Where-Object { $_.severity -eq "error" })
+    # Vulture: ADVISORY dead-code (soft-fail if missing; filters Textual FPs)
+    $vultureOut = "$runDir/packets/vulture-advisory.json"
+    python "P:/.grok/skills/check/__lib/vulture_precheck.py" `
+        --paths @pyFiles `
+        --min-confidence 80 `
+        --output $vultureOut
+    # Merge packet for verifiers
+    $packet = @{
+        ruff_errors = $ruff
+        ruff_exit = $ruffExit
+        pyright_errors = $pyrightErrors
+        vulture_advisory = (Get-Content $vultureOut -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json)
+        vulture_policy = "advisory_only"
     }
+    $packet | ConvertTo-Json -Depth 8 | Set-Content $deterministicResult -Encoding UTF8
+    if ($ruffExit -ne 0 -or $pyrightErrors.Count -gt 0) {
+        Write-Host "Deterministic pre-check: ERRORS FOUND (ruff/pyright) — see $deterministicResult"
+    } else {
+        Write-Host "Deterministic pre-check: ruff/pyright clean"
+    }
+    $vFind = 0
+    if ($packet.vulture_advisory -and $packet.vulture_advisory.finding_count) {
+        $vFind = [int]$packet.vulture_advisory.finding_count
+    }
+    Write-Host "Deterministic pre-check: vulture advisory findings=$vFind (does not block CHECK alone)"
 }
 ```
 
-**Short-circuit rule:** if the deterministic pre-check finds errors (ruff E/F or pyright errors), the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
+**Short-circuit rule:** if the deterministic pre-check finds **ruff E/F or pyright errors**, the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
+
+**Vulture advisory rule:** include `vulture_advisory` findings in verifier packets as **spot-check candidates** (severity suggestion/gap unless the verifier confirms real dead code). Do **not** auto-FAIL CHECK solely because vulture reported findings. Do **not** delete Textual `compose` / `watch_*` / `@on` handlers based on unfiltered vulture.
 
 **Do NOT short-circuit to immediate FAIL** without the LLM verifier — the deterministic check finds syntax/type errors but not logic errors. The LLM verifier still needs to run for the full assessment. The deterministic check just seeds the verifier with confirmed findings so it doesn't waste time rediscovering them.
 
@@ -298,7 +333,8 @@ concern needed it.
 - `pytest`, `npm test`, `cargo test`, `go test`, etc. (test frameworks)
 - `python -c`, `python <scratch_script.py>` (ad-hoc verification scripts)
 - Read-only inspection: `grep`, `find`, `cat`, `ls`, `Get-Content`, `Select-String`
-- Linters / type-checkers: `ruff`, `mypy`, `eslint`, `tsc`, `cargo clippy`
+- Linters / type-checkers: `ruff`, `mypy`, `eslint`, `tsc`, `cargo clippy`,
+  `vulture` (via `P:/.grok/skills/check/__lib/vulture_precheck.py` — advisory)
 - Builds: `npm run build`, `cargo check`, `tsc`, `pip install -e .`
 - Localhost probes: `curl http://localhost:<port>/health`, `socket.connect_ex`
 

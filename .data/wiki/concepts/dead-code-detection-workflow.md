@@ -50,15 +50,23 @@ Dead code in LLM agent pipelines is particularly dangerous because:
 2. The implementer of TASK-02b would have added another aggregator
    alongside dead code, not knowing the wiring step was missing
 3. The dead code pattern (defined + tested + unused) is invisible
-   to both `/check` and `/review` — they check behavior, not wiring
+   to both `/check` and `/review` when they only run behavior tests +
+   ruff F401 — they do not substitute for static unused-code analysis
 
 ## Recommended workflow integration
 
 | Where | What | When |
 |---|---|---|
+| **`/check` Step 0.9** | **Wired (2026-07-28):** advisory `vulture_precheck.py` on changed `.py` (min-confidence 80, Textual FP filter). Soft-skip if vulture missing. Does **not** alone fail CHECK. | Session verification |
 | **`/close`** | Run vulture on files edited this session | Session close |
 | **`/aar` Phase 9.5** | Run vulture on the modified module after wiki promotion | Post-session audit |
 | **Pre-push hook** | `vulture --min-confidence 80` as Stage 3 alongside trufflehog + regression | Every push |
+
+**Session 019fa94d (2026-07-28):** Keep-Smaller-Copy “full verification”
+initially skipped vulture (ruff/pyright/pytest only). Operator asked why.
+Fix: `/check` Step 0.9 now runs
+`P:/.grok/skills/check/__lib/vulture_precheck.py` (advisory). Handoff:
+`P:/docs/handoffs/vulture-in-check-verification-20260728/`.
 
 ## False positive management
 
@@ -72,6 +80,11 @@ vulture ~/.grok/skills/ --min-confidence 60 --exclude "*/__pycache__/*"
 echo "import_module" > .vulture_whitelist.txt
 vulture --define-whitelist .vulture_whitelist.txt
 ```
+
+**Textual / reactive UI apps:** unfiltered vulture marks `compose`,
+`on_*`, `@on` handlers, `watch_*`, `BINDINGS`, and `CSS` as unused —
+framework callbacks. Do not delete those without a framework allowlist.
+Prefer high confidence + whitelist over fail-closed on Textual trees.
 
 ## Related
 
