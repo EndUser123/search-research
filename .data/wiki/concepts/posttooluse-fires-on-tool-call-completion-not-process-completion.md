@@ -11,7 +11,9 @@ summary: >
   PostToolUse fires at that point with incomplete output. The actual pytest
   exit code and output arrive later via get_command_or_subagent_output —
   but no second PostToolUse fires. Fix: pass timeout=180000+ to keep
-  commands foreground, OR use a Notification hook for completion events.
+  commands foreground (behavioral), OR use a Stop hook with
+  backgroundTasks awareness (structural — Notification event is
+  metadata-only and cannot capture exit codes).
 agent: grok
 host: grok
 cognitive_load: 2
@@ -19,6 +21,12 @@ verification: multi-source-verified
 sources:
   - https://docs.x.ai/build/features/hooks (xAI, 2026-07-24)
   - https://github.com/asgeirtj/system_prompts_leaks/blob/main/xAI/grok-build.md (System prompt leak, 2026-07)
+  - https://github.com/anthropics/claude-code/issues/65169 (PostToolUse does not fire for Agent completions)
+  - https://github.com/anthropics/claude-code/issues/23386 (Expose background tasks to hooks — closed)
+  - https://github.com/anthropics/claude-code/issues/52917 (claude -p exits before background subagents complete)
+  - https://code.claude.com/docs/en/hooks (Notification payload is metadata-only)
+  - https://code.claude.com/docs/en/hooks-guide (Agent-based hooks pattern)
+  - https://ona.com/guides/background-agents (Production verification patterns)
 relations:
   - target: wiki/concepts/grok-build-stop-hook-patterns-and-feedback-mechanism.md
     type: extends
@@ -97,45 +105,103 @@ parse the exit code.
 tool call, which the LLM controls. If the LLM forgets to set it, the
 default 120s applies and auto-backgrounding can still happen.
 
-### Option 2: Notification hook for completion events
+### Option 2: ~~Notification hook~~ (WRONG — metadata-only payload)
 
-Register a hook on the `Notification` event, which fires when background
-tasks complete. The hook would read the notification payload and write a
-receipt at that point.
+**Research finding (2026-07-28 /www run):** the `Notification` event
+payload is **metadata-only** — it carries `message`, `title`, and
+`notification_type` (Claude Code) or `kind`, `title`, `body` (Grok
+Build). It does NOT include structured exit codes, test results, or task
+output. Background-task completion appears as a human-readable message
+string like "Background command '...' completed (exit code 0)", which a
+hook would have to regex-parse from the message text — not a reliable
+contract for a verification receipt.
 
-**Limitation:** requires understanding the notification payload format
-for background-task completion, which is not well-documented.
+The `Notification` event is designed for side effects (desktop alerts,
+Slack webhooks, logging), not for capturing verification data. Both
+Claude Code and Grok Build follow this model. Using it for receipt
+capture would be a fragile hack, not a structural fix.
 
-### Option 3: Marker file + Stop hook
+### Option 3: Stop hook with `backgroundTasks` awareness (OPTIMAL structural fix)
+
+The Stop hook input already carries a `backgroundTasks` array (documented
+at `~/.grok/docs/user-guide/10-hooks.md:270`):
+
+```json
+{
+  "hookEventName": "stop",
+  "backgroundTasks": [
+    {"id": "...", "type": "shell", "status": "running", "command": "python -m pytest ..."}
+  ],
+  "sessionCrons": [...]
+}
+```
+
+A Stop hook can:
+1. Check if any `backgroundTasks` entry has `status: "running"` — if so, block with "background task still running"
+2. When all tasks complete (or after the 8-continuation cap), read the completion data via `get_command_or_subagent_output`
+3. Write the verification receipt at that point
+
+**This is the structural fix.** It uses an existing event (Stop, which
+is already registered) and an existing payload field (`backgroundTasks`).
+No new infrastructure needed — just a hook script that reads the field.
+
+**Related pattern — Claude Code Agent-based hooks:** Claude Code supports
+`type: "agent"` hooks that spawn a subagent (up to 50 tool-use turns) to
+independently verify conditions before allowing stop. The shipped example
+is literally "verify all unit tests pass before allowing Claude to stop."
+This is the most powerful verification pattern: an independent subagent
+runs the actual check and produces a receipt, rather than relying on the
+main agent's self-report. Grok Build does not yet have `type: "agent"`
+hooks (only `command` and `http`), but the Stop + backgroundTasks
+approach achieves a similar result.
+
+### Option 4: Marker file + Stop hook (fallback)
 
 The backgrounded command writes a marker file when done. The Stop hook
-reads marker files and writes receipts.
+reads marker files and writes receipts. Requires modifying the command
+to write markers — not practical for arbitrary pytest invocations.
 
-**Limitation:** requires modifying the command to write markers, which
-isn't possible for arbitrary pytest invocations.
+## Industry context (2026-07-28 /www research)
+
+This is a **well-documented, unsolved problem** across the AI agent
+ecosystem:
+
+| Source | Finding |
+|--------|---------|
+| Claude Code #65169 | "PostToolUse hook does not fire for Agent tool completions" — closed-as-not-planned |
+| Claude Code #23386 | Feature request: expose running background tasks to hooks — closed-as-not-planned |
+| Claude Code #52917 | `claude -p` exits before background subagents complete — closed-as-not-planned |
+| Claude Code #55754 | Stop hook causes infinite loop when waiting on background agent |
+| Claude Code #7282 | Background task result lost after compaction / 5-hour limit |
+| Claude Code #65925 | Audit-event-source pattern — parallel event log when harness state machine is opaque |
+| Mastra framework | Proper event-stream lifecycle (started/running/completed/failed chunks) — the model approach |
+| Harvey Spectre | "The durable record is the run, not the agent" — run record IS the receipt |
+| Ona (Stripe/Ramp) | "Agents verify their own work" via tests/telemetry — same verification infra as humans |
+
+Feature requests #28221 ("PostTask hook"), #48657 ("Fire hooks on
+background task completion"), and #23386 are all closed-as-not-planned.
+The industry workaround is **session-scoped state files** (documented
+in #23386) — the de-facto pattern until the framework provides native
+background-task completion hooks.
 
 ## What this means for our workspace
 
-1. **The Stop hook obligation system will keep blocking** on code changes
-   where pytest was auto-backgrounded. The manual obligation-clearing
-   workaround (`quality-obligation-*.json` → `status: SATISFIED`) is the
-   current fallback.
+1. **The Stop hook obligation system** can be enhanced to check
+   `backgroundTasks` in its input. If any task is still `running`, block
+   with a reason. When all complete, the model will have already called
+   `get_command_or_subagent_output` to get results — the Stop hook can
+   check whether a receipt was written for the modified file scope.
 
 2. **The LLM should pass `timeout=180000` when running pytest** to keep
-   it foreground. This is a behavioral rule, not a structural fix — it
-   depends on the LLM remembering to set the parameter. This is the same
-   class of problem as [[causal-mechanism-claims-require-source-receipts-before-durable-write]]:
-   a rule that works when followed but has no mechanical enforcement.
+   it foreground. This is the **behavioral workaround** — simple, correct,
+   but depends on the LLM remembering to set the parameter.
 
-3. **The `_parse_exit_code` fix is still valuable** — it handles the case
-   where commands DO run foreground (short tests, `py_compile`, script
-   runs). It just doesn't help for auto-backgrounded commands. See
-   [[verification-claim-admissibility]] for the broader framework of
-   what counts as admissible verification evidence.
+3. **The `_parse_exit_code` fix is still valuable** for foreground
+   commands (short tests, `py_compile`, script runs).
 
-4. **A structural fix would require a Notification hook** that captures
-   background-task completion and writes receipts at that point. This is
-   future work.
+4. **The structural fix is Option 3** (Stop hook with `backgroundTasks`
+   awareness), not a Notification hook. The Notification event exists
+   but its payload is wrong for this purpose.
 
 ## Falsifier
 
