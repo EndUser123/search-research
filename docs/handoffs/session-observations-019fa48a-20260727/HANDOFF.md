@@ -120,3 +120,64 @@ Five factors, none of which require attributing intent to the model:
 - `[[reactive-pattern-matching-and-closure-pressure]]` §3 closure-pressure minimization
 - Session transcript 019fa48a, the /close turn and subsequent /why turn
 - AAR completion receipt written at `~/.grok/skills/aar/.artifacts/019fa48a.../completion_receipt.json`
+
+---
+
+## Revision 2 — 2026-07-28T04:15:00Z (session 019fa48a)
+
+**Trigger:** /www 6-track investigation + /tp critique produced new findings
+worth capturing. Operator asked "is there opportunity here?" after receiving
+the /www output — the confusion was the detection signal for the
+research-to-execution-ratio pattern.
+
+### OBS-07: Research-to-execution ratio — self-reinforcing substrate accumulation
+
+**Observation:** The /www investigated 6 system-level tracks. A fresh-lens /tp
+critique (glm-5-2, 141.8s) found that 5 of 6 tracks already had handoffs with
+directions and acceptance criteria before the research ran. The /www confirmed
+them with external citations rather than discovering new directions. The
+operator's confusion ("Is there opportunity here?") was the correct instinctive
+signal.
+
+**Why it matters:** the workspace has 169 handoff directories. Research
+artifacts accumulate faster than execution. The pattern is self-reinforcing:
+more substrate produces more to synthesize which produces more research. The
+workspace's own meta-assessment ([[research-vs-design-vs-architect-skills-and-
+www-self-assessment]], 2026-07-26) said "pare ceremony" — and the next day
+produced a 500-line confirmatory /www concept.
+
+**Structural fix:** gate the /tp opportunity scan on existing-handoff checks.
+Before surfacing a track as "opportunity," check whether a handoff already
+contains a direction + acceptance criteria. If yes, disposition is execute or
+defer, not research.
+
+**Wiki concept:** [[research-to-execution-ratio-self-reinforcing-pattern]]
+
+### OBS-08: /www 6-track investigation — what was genuinely new vs confirmatory
+
+**Observation:** the /www produced genuine new knowledge on 2 of 6 tracks:
+- Track C (agentmemory): resolved open question — Windows-unsupported. Changed
+  direction from "evaluate" to "don't adopt, use /dream." Real discovery.
+- Track F (enforcement ceiling): new constraint — ~3-7 hooks, bounded by
+  synchronous latency + false-positive rate. No prior handoff existed.
+
+The other 4 tracks (A, B, D, E) were confirmatory — external citations added
+to directions the handoffs already contained.
+
+**Why it matters:** the /www's cross-cutting finding ("thin layer over existing
+substrate") is a useful organizing principle, but it was undercut by the act of
+producing it — a 500-line concept is not a thin layer over 5 existing handoffs.
+
+**Wiki concept:** [[workspace-infrastructure-investment-priorities-2026]]
+
+### OBS-09: Execution decision — D+F recommended
+
+**Observation:** when asked "should we execute?", the recommendation was:
+Track D (qmd to FTS5, lowest effort, acceptance-criteria-complete) + Track F
+(hook audit, 30-min diagnostic) as session-appropriate scope. Defer E (AGENTS.md
+refactor — pattern-contamination risk), A (skill recommendation hook — large),
+C (/dream — new skill).
+
+**Why it matters:** executing one thing breaks the analysis-paralysis loop. The
+qmd-to-FTS5 replacement is the highest-certainty, lowest-effort item that proves
+the "thin layer" principle by demonstration.

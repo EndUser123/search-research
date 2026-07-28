@@ -4,7 +4,7 @@ parent_handoff_path: P:/docs/handoffs/qmd-fts5-replacement-20260727/HANDOFF.md
 current_session_id: 019fa48a-fb52-79a3-b8dc-d13c5da284d2
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-27T23:00:00Z
-status: open
+status: resolved
 handoff_type: investigation
 accurate_as_of_head: 00e8458
 ---
@@ -17,7 +17,19 @@ Evaluate agentmemory (rohitg00/agentmemory, 25k+ stars) as a potential replaceme
 
 ## Status
 
-OPEN — scoping complete; ready for fresh-session evaluation.
+**RESOLVED — do not adopt.** The /www investigation (session 019fa48a,
+2026-07-27) resolved the open question: agentmemory is officially unsupported
+on Windows. The GitHub README states verbatim: "Native Windows engine setup
+is manual (about 10 to 20 minutes) and `agentmemory connect` is currently
+unsupported there." The `connect` runtime — what captures and consolidates
+sessions — only runs on macOS/Linux.
+
+**Decision:** keep handoffs + wiki as the persistence substrate. The optimal
+long-term alternative is `/dream` (async consolidator over existing artifacts),
+not a memory-system replacement. Letta's LoCoMo benchmark (74.0% with just a
+filesystem) confirms the substrate is sufficient at this scale. See
+`P:/.data/wiki/concepts/workspace-infrastructure-investment-priorities-2026.md`
+Track C for full evidence.
 
 ## Producing context
 

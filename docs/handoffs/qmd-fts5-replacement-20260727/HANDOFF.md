@@ -28,10 +28,27 @@ dependency for wiki search.
 
 ## Status
 
-**OPEN — ready-to-implement.** The evaluation is complete and the design is
-concrete enough to build. No code has been written for the replacement yet; the
-existing qmd install + patches remain the live search path until the wrapper
-passes acceptance criteria.
+## Status
+
+**OPEN — ready-to-implement, externally validated.** The evaluation is complete
+and the design is concrete enough to build. No code has been written for the
+replacement yet; the existing qmd install + patches remain the live search path
+until the wrapper passes acceptance criteria.
+
+**External validation (2026-07-27 /www):** the /www investigation (session
+019fa48a) independently confirmed FTS5 is sufficient for ~1000 markdown docs.
+Key citations: (1) Karpathy's llm-wiki pattern (July 2026) explicitly recommends
+"FTS5 (SQLite) or BM25" for markdown wikis at 300-500 pages; (2) BrainDB
+benchmarks FTS5 at <1ms vs Pinecone's 50-200ms; (3) BM25 wins 92% vs 78% on
+exact matches at small scale. `sqlite-vec` (Alex Garcia) is the escape hatch
+if embeddings are ever needed — same DB file, same query code path.
+
+**Precondition before building:** run a 30-query recall benchmark against the
+actual wiki to confirm FTS5 top-5 recall is above ~75%. Build the benchmark
+from known-answer test cases before committing to the replacement.
+
+See `P:/.data/wiki/concepts/workspace-infrastructure-investment-priorities-2026.md`
+Track D for full evidence + sources.
 
 ## Producing context
 
