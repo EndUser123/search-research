@@ -52,6 +52,30 @@ in the next file over).
 | 4 | Design doc durability (C1/C2) | "Provenance matters, durability is the right answer" | User's wiki already absorbs decisions as concepts; durability was over-engineering |
 | 5 | Review skill confusion | "adv-review exists, I don't know why" | Was an unbuilt stub; deleted without checking why it was created |
 
+## Chronic recurrence: MCP config not checked (2026-07-28)
+
+**Instance 3 repeated 8 days later** with the exact same root cause —
+checking only one MCP config location (`config.toml`) and fabricating
+a "never configured" narrative when the config was actually in
+`~/.claude.json` (Claude compat bridge).
+
+| Date | Claim | Reality | Config location not checked |
+|------|-------|---------|---------------------------|
+| 2026-07-20 | "MCP config doesn't exist in static config" | MCP config IS in `~/.claude.json` | `~/.claude.json` |
+| 2026-07-28 | "minimax-search was never configured" | minimax-search IS in `~/.claude.json` via compat bridge | `~/.claude.json` |
+
+Both instances: same file not checked, same fabricated narrative shape
+(absence → structural impossibility → confident claim), same wiki concept
+already documenting the pattern. The fix in both cases was reading the
+file the wiki already names.
+
+**Resolution (2026-07-28):** minimax-search MCP removed entirely (its
+capabilities are covered by `mmx search query` and `mmx vision describe` —
+native CLI, no compat bridge). web-search-prime migrated from
+`~/.claude.json` to native `config.toml`. After migration, `~/.claude.json`
+no longer contains any MCP servers that this host depends on — eliminating
+the "wrong config file" failure mode for future sessions.
+
 ## Root cause
 
 **Plausible narratives override existing rules.** The workspace had rules

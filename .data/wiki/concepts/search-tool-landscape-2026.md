@@ -115,8 +115,8 @@ Based on the benchmark, practitioner experience, and our existing inventory:
 
 | Backend | Cost | Binding constraint | Verdict |
 |---------|------|-------------------|---------|
-| **minimax-search** | $0 (unlimited) | None reported | **Always use** |
-| **web-search-prime** | $0 (unlimited) | None reported | **Always use** |
+| **mmx search** (CLI) | $0 (unlimited) | Subprocess overhead; Windows .cmd shim (use node-script resolver) | **Always use** — replaced minimax-search MCP (removed 2026-07-28) |
+| **web-search-prime** | $0 (unlimited) | Shared GLM coding plan quota with glm-5-2 model | **Always use** — native config.toml MCP (migrated 2026-07-28) |
 | **DDG** | $0, no key, no rate limit | JSON endpoint broken from this host (use ddgs lib or lite HTML) | **Always use** |
 | **firecrawl** | 1k credits/mo free | Metered — refundable via feedback (1 credit per search feedback) | **Use for scraping; search costs 2 credits** |
 | **Brave** | $5/mo free (~1k queries) | Metered beyond free; removed unlimited free tier Feb 2026 | **Use up to free quota** |
@@ -138,8 +138,8 @@ For a standard `/www` or `/web` run on a research topic:
 
 ```
 Free + no constraint → fire them all in parallel:
-1. minimax-search (unlimited, distinct index)
-2. web-search-prime (unlimited, recency/domain filters)
+1. web-search-prime (unlimited, recency/domain filters)
+2. mmx search query (unlimited, MiniMax index)
 3. DDG (free, no key, different ranking bias)
 4. Mojeek (free, no key, independent small index)
 5. HN Algolia (if tech topic)
@@ -215,7 +215,7 @@ At 45k queries/month (~500 users × 3 calls/session × 30 days):
 | Firecrawl | ~€71 (100k pages) | Yes (markdown) |
 | **Our fleet** | **$0** (minimax + web-search-prime unlimited) | Yes (minimax) |
 
-**Our advantage:** minimax-search and web-search-prime are unlimited for this operator. This is a significant cost advantage — we pay $0 for the equivalent of ~$225-300/month in API costs.
+**Our advantage:** web-search-prime and mmx search are unlimited for this operator. This is a significant cost advantage — we pay $0 for the equivalent of ~$225-300/month in API costs.
 
 ## What we should also consider
 

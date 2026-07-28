@@ -42,15 +42,14 @@ corrected, comprehensive inventory + routing strategy.
 
 | MCP | Tools | Quota | Strength |
 |-----|-------|-------|----------|
-| **`minimax-search`** | 2 (`web_search`, `understand_image`) | **Unlimited** (operator-reported) | Default web search; distinct index; image understanding (JPEG/PNG/WebP) |
-| **`firecrawl`** | 26 (search/scrape/crawl/map/extract/agent/research/feedback) | 1,000 credits/mo free; refundable via feedback | Full pipeline; clean markdown (94% token reduction); autonomous agent |
-| **`web-search-prime`** | 1 (`web_search_prime`) | **Unlimited** (operator-reported) | `search_recency_filter`, `search_domain_filter`, `content_size: high` (2500 words) |
+| **`web-search-prime`** | 1 (`web_search_prime`) | **Unlimited** (GLM coding plan) | Native config.toml MCP (migrated from compat 2026-07-28); Z.ai-hosted; `search_recency_filter`, `search_domain_filter`, `content_size: high` (2500 words). Shared quota with glm-5-2 model. |
+| **`mmx search`** (CLI) | 1 (`search query`) | **Unlimited** (MiniMax plan) | MiniMax index via CLI — `mmx search query "<q>" --output json`. Native path, no compat bridge. Replaces removed minimax-search MCP. |
 
 ### Layer 2 — Built-in (Grok native)
 
 | Tool | Quota | Role |
 |------|-------|------|
-| **`web_search`** | ~2 RPS fleet-wide; 429 under parallel load | **Last resort only — consumes Grok quota.** `web_search` runs `grok-4.20-multi-agent` model inference (confirmed 2026-07-24, `~/.grok/docs/user-guide/05-configuration.md:31`), NOT a free API call. MCP search tools (minimax-search, web-search-prime) use independent quota pools. Policy: use `web_search` only after all MCP search tools have failed. |
+| **`web_search`** | ~2 RPS fleet-wide; 429 under parallel load | **Last resort only — consumes Grok quota.** `web_search` runs `grok-4.20-multi-agent` model inference (confirmed 2026-07-24, `~/.grok/docs/user-guide/05-configuration.md:31`), NOT a free API call. MCP search tools (web-search-prime) and CLI search (mmx) use independent quota pools. Policy: use `web_search` only after all other search tools have failed. |
 
 ### Layer 3 — `search-research` CLI (local, 11+ providers)
 
@@ -107,7 +106,7 @@ corrected, comprehensive inventory + routing strategy.
 | `SERPER_API_KEY` | SET | search-research `serper.py` |
 | `TAVILY_API_KEY` | **EMPTY** | Nothing until set |
 | `FIRECRAWL_API_KEY` | EMPTY | Firecrawl uses OAuth MCP instead |
-| `MINIMAX_API_KEY` | SET | minimax-search MCP, mmx CLI |
+| `MINIMAX_API_KEY` | SET | mmx CLI (not MCP — minimax-search MCP removed 2026-07-28) |
 | `ZHIPU_API_KEY` | SET | search-research `glm` mode |
 | `GEMINI_API_KEY` (×3) | SET | Gemini API, agy (different pool) |
 
@@ -125,7 +124,7 @@ Match the query shape to the backend's strength. Order = preference within each 
 
 | Query shape | Primary | Escalate / alternate |
 |-------------|---------|----------------------|
-| **Default / catch-all** | `minimax-search__web_search` | `firecrawl_search`; `search-research --mode auto` |
+| **Default / catch-all** | `web-search-prime__web_search_prime` | `firecrawl_search`; `mmx search query` |
 | **Time-sensitive** ("latest", 2026 dates) | `web-search-prime` (`search_recency_filter=oneWeek`) | `firecrawl_search` (`tbs=qdr:d`); `search-research` |
 | **Domain-scoped** (site:reddit.com, docs) | `web-search-prime` (`search_domain_filter`) | `firecrawl_search` (`includeDomains`); direct scrape |
 | **Technical "explain X"** | `firecrawl_scrape` top result, or `pwm ask` if Perplexity budget allows | `search-research --mode exa` (semantic); `agy -p` (Gemini lens, sparingly) |
@@ -136,7 +135,7 @@ Match the query shape to the backend's strength. Order = preference within each 
 | **GitHub repo/issue** | `gh search repos`, or `search-research --mode github` | `web-search-prime` (`site:github.com`); `firecrawl_research_search_github` |
 | **Anonymous / no-key lookup** | `search-research` ddgs backend, or DDG lite via curl | `minimax-search` (still anonymous to user) |
 | **Google-indexed results** | `search-research --mode serper` | `SERPAPI_API_KEY` via serpapi Python pkg |
-| **Image understanding** | `minimax-search__understand_image` | `mmx vision describe`, or `agy` multimodal (sparing) |
+| **Image understanding** | `mmx vision describe --image <path> --prompt "..."` | `agy` multimodal (sparing) |
 | **Structured extraction** (pricing, tables) | `firecrawl_extract` + JSON schema | `firecrawl_scrape` + parse |
 | **Synthesized answer with citations** | `pwm ask` (if budget) or `firecrawl_agent` | Parent LLM synthesizes from scraped sources |
 
@@ -150,7 +149,7 @@ Match the query shape to the backend's strength. Order = preference within each 
 2. You want a **cross-family second opinion** on a claim surfaced by other search backends
 3. You are already running an agy review session and want it to verify a source mid-flow
 
-In all other cases: use `minimax-search`, `web-search-prime`, `firecrawl`, `search-research`, `mmx search query`, or even DDG — all are faster, cheaper, and purpose-built for search.
+In all other cases: use `web-search-prime`, `firecrawl`, `mmx search query`, `search-research`, or even DDG — all are faster, cheaper, and purpose-built for search.
 
 `tool-fallbacks.md` currently lists `agy -p` under "research / deep search" fallback. That entry should be read narrowly: agy is a fallback for **deep research with agent harness**, not for search queries. For pure search fallback, use `mmx search query` or `search-research`.
 
@@ -164,7 +163,7 @@ In all other cases: use `minimax-search`, `web-search-prime`, `firecrawl`, `sear
 - **Confirmation + disconfirmation** ("evidence for X" + "evidence against X")
 - **Source diversity** (same query across 2-3 backends to compare indices)
 - **Depth sweep** (quick scan + deep scrape in parallel once top URLs known)
-- **Multi-provider verification** (`minimax-search` + `web-search-prime` + `search-research --mode serper` on same query)
+- **Multi-provider verification** (`web-search-prime` + `mmx search query` + `search-research --mode serper` on same query)
 
 ### When NOT to parallelize
 
@@ -176,8 +175,8 @@ In all other cases: use `minimax-search`, `web-search-prime`, `firecrawl`, `sear
 
 ```
 # Independent queries → one tool block, multiple use_tool calls
-use_tool minimax-search(query="topic A facet 1")
-use_tool web-search-prime(search_query="topic A facet 2", search_recency_filter=oneMonth)
+use_tool web-search-prime(search_query="topic A facet 1")
+run_terminal_command("mmx search query 'topic A facet 2' --output json")
 use_tool firecrawl_search(query="topic A facet 3", limit=5)
 # Or via search-research CLI in parallel shells:
 run_terminal_command("search-research 'facet 1' --mode serper --output json --save r1.json &")
@@ -188,7 +187,7 @@ run_terminal_command("search-research 'facet 2' --mode exa --hyde --output json 
 
 ### Do
 
-- **Default to `minimax-search`.** Its MCP description says "MUST use this tool whenever you need to search." Unlimited for this operator.
+- **Default to `web-search-prime`.** Native MCP, unlimited, supports recency/domain filters.
 - **Parallelize independent queries.** Highest-ROI change. Halves research time.
 - **Use `web-search-prime` for recency and domain scoping.** Only backend with those filters. Unlimited.
 - **Use `firecrawl_scrape` for full page content.** 94% token reduction vs raw HTML. Always `onlyMainContent: true, formats: ["markdown"]`.
@@ -271,8 +270,8 @@ For this operator's volume (research-heavy, multi-topic, depth-standard):
 
 | Priority | Backend | When |
 |----------|---------|------|
-| 1 (default) | `minimax-search__web_search` | Unlimited; first choice |
-| 2 (scoped) | `web-search-prime__web_search_prime` | Recency/domain filters |
+| 1 (default) | `web-search-prime__web_search_prime` | Unlimited; first choice; recency + domain filters |
+| 2 (diversity) | `mmx search query` | MiniMax index, distinct from web-search-prime |
 | 3 (content) | `firecrawl__firecrawl_scrape` | Full page markdown |
 | 4 (diversity) | `search-research --mode auto` or `--mode serper/exa` | Different index; HyDE |
 | 5 (anonymous) | `search-research --mode ddgs` or DDG lite via curl | No key, rate-friendly |
