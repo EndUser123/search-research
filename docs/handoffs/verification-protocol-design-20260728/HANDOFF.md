@@ -19,7 +19,47 @@ tests after logical unit" tier that catches bugs fastest and cheapest.
 
 ## Status
 
-OPEN — design clear, implementation needs operator input on where each piece lives.
+PARTIALLY RESOLVED — receipt-loop root cause fixed (2026-07-28, session 019fa48a).
+Tier 2 scoped-test hook and wiki concept still open.
+
+## RESOLVED (2026-07-28): Receipt-loop root cause
+
+### Root cause (found and fixed)
+
+The receipt loop was NOT caused by stale timestamps, path-format mismatch, or
+multi-repo scope issues (the original hypotheses). It was caused by a
+**capability derivation bug** in `_derive_required_capability` (quality_gate.py):
+
+ALL files under `~/.grok/hooks/` were classified as requiring `runtime_hook`
+capability (rank 5). But hook scripts in `hooks/scripts/` are just Python code
+verifiable by `pytest` (which provides `unit_behavior`, rank 3). Since `3 < 5`,
+the capability check always failed → `NO_COVERING_RECEIPT` → infinite loop.
+
+**Fix applied:**
+- `quality_gate.py`: hook scripts in `hooks/scripts/` now get `static_analysis`
+  (rank 2) instead of `runtime_hook` (rank 5). Hook JSON registrations still
+  get `runtime_hook` (correct — they need live runtime verification).
+- `verification_receipt_writer.py`: implemented `_map_pytest_file_to_sources`
+  (was referenced by a test but never implemented) — maps `pytest <test_file>`
+  to source files via AST import analysis with regex fallback.
+- Wiki: [[hook-script-capability-derivation-receipt-loop-fix]]
+
+### What was NOT the problem (original hypotheses debunked)
+
+- **Stale-receipt after filesystem change** — the fingerprint check was working
+  correctly. The issue was the capability gate failing before the fingerprint
+  check was even reached.
+- **Multi-repo scope** — `~/.grok` paths resolve as `OUTSIDE_GIT`, and
+  `_identity_matches` handles this correctly (empty repo fields on both sides
+  → match passes). Not a blocker.
+- **Path-format variation** — the scope-matching was correct for directory-level
+  pytest runs. File-level pytest was missing (now fixed).
+
+### Remaining from original design
+
+Options A-E from the original investigation are NOT needed for the receipt-loop
+fix. They may still have value as future improvements (content-hash receipts,
+graceful degradation after N attempts), but the loop is resolved without them.
 
 ## NEW (2026-07-28): Stop hook receipt-loop inefficiency
 
