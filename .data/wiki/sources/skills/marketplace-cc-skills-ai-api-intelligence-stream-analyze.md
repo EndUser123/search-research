@@ -6,7 +6,7 @@ skill_name: intelligence-stream-analyze
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/intelligence-stream-analyze/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: intelligence-stream-analyze

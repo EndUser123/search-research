@@ -6,7 +6,7 @@ skill_name: t
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/t/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: t

@@ -6,7 +6,7 @@ skill_name: hook-development
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/aa9f0a575b91/skills/hook-development/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: hook-development

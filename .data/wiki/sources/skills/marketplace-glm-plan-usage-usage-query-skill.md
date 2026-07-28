@@ -6,7 +6,7 @@ skill_name: usage-query-skill
 source_path: P:/packages/.claude-marketplace/plugins/glm-plan-usage/skills/usage-query-skill/SKILL.md
 grok_enabled: true
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: usage-query-skill

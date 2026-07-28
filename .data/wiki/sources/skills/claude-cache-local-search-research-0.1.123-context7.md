@@ -6,7 +6,7 @@ skill_name: context7
 source_path: C:/Users/brsth/.claude/plugins/cache/local/search-research/0.1.123/skills/context7/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: context7

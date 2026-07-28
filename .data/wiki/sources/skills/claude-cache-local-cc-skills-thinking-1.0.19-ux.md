@@ -6,7 +6,7 @@ skill_name: ux
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-thinking/1.0.19/skills/ux/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: ux

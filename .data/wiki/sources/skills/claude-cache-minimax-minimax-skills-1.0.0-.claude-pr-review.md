@@ -6,7 +6,7 @@ skill_name: pr-review
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/.claude/skills/pr-review/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: pr-review

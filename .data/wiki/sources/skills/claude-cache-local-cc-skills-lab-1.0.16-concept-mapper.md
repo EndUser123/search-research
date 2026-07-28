@@ -6,7 +6,7 @@ skill_name: concept-mapper
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-lab/1.0.16/skills/concept-mapper/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: concept-mapper

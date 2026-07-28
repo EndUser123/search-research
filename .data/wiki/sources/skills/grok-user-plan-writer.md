@@ -5,7 +5,7 @@ skill_name: plan-writer
 source_path: C:/Users/brsth/.grok/skills/plan-writer/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: plan-writer

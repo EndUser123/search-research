@@ -6,7 +6,7 @@ skill_name: do
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/thedotmack/openclaw/skills/do/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: do

@@ -6,7 +6,7 @@ skill_name: main-review
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-utils/1.2.88/skills/main-review/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: main-review

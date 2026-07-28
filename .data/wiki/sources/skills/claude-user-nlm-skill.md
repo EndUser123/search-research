@@ -5,7 +5,7 @@ skill_name: nlm-skill
 source_path: C:/Users/brsth/.claude/skills/nlm-skill/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: nlm-skill

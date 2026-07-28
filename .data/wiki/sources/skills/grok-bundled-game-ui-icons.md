@@ -5,7 +5,7 @@ skill_name: game-ui-icons
 source_path: C:/Users/brsth/.grok/bundled/skills/game-ui-icons/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: game-ui-icons

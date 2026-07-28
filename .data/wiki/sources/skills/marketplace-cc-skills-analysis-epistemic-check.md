@@ -6,7 +6,7 @@ skill_name: epistemic-check
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-analysis/skills/epistemic-check/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: epistemic-check

@@ -6,7 +6,7 @@ skill_name: pi-result-handling
 source_path: C:/Users/brsth/.claude/plugins/cache/pi-plugin-cc/pi/0.1.1/skills/pi-result-handling/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: pi-result-handling

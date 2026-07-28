@@ -6,7 +6,7 @@ skill_name: slide-making-skill
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/plugins/pptx-plugin/skills/slide-making-skill/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: slide-making-skill

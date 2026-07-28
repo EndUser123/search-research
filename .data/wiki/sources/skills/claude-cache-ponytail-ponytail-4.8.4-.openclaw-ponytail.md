@@ -6,7 +6,7 @@ skill_name: ponytail
 source_path: C:/Users/brsth/.claude/plugins/cache/ponytail/ponytail/4.8.4/.openclaw/skills/ponytail/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: ponytail

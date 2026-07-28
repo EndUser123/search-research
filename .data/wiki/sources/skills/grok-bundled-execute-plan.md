@@ -5,7 +5,7 @@ skill_name: execute-plan
 source_path: C:/Users/brsth/.grok/bundled/skills/execute-plan/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: execute-plan

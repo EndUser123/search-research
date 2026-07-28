@@ -6,7 +6,7 @@ skill_name: chrome-devtools-cli
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/chrome-devtools-mcp/1.6.0/skills/chrome-devtools-cli/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: chrome-devtools-cli

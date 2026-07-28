@@ -5,7 +5,7 @@ skill_name: external-delegation
 source_path: C:/Users/brsth/.codex/skills/external-delegation/SKILL.md
 grok_enabled: n/a
 claude_enabled: n/a
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: external-delegation

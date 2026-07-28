@@ -5,7 +5,7 @@ skill_name: contract-status
 source_path: P:/.agents/skills/contract-status/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: contract-status

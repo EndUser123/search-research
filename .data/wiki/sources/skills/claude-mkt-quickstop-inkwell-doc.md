@@ -6,7 +6,7 @@ skill_name: doc
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/quickstop/plugins/inkwell/skills/doc/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: doc

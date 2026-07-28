@@ -6,7 +6,7 @@ skill_name: developing-claude-code-plugins
 source_path: C:/Users/brsth/.claude/plugins/cache/superpowers-marketplace/superpowers-developing-for-claude-code/0.3.1/skills/developing-claude-code-plugins/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: developing-claude-code-plugins

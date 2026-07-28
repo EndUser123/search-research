@@ -5,7 +5,7 @@ skill_name: notice
 source_path: C:/Users/brsth/.grok/skills/notice/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: notice
@@ -13,7 +13,7 @@ indexed_date: 2026-07-27
 **Scope:** grok-user
 **Path:** `C:/Users/brsth/.grok/skills/notice/SKILL.md`
 
-Mid-conversation high-confidence observation surfacing. Fires when mechanical triggers match (error state, task boundary, stuck-loop pattern) or on manual invocation. Strictly gated: global cooldown (max 1 per 10 turns), type constraint (contradictions / drift / recurring friction only), confidence floor (≥2 source instances), hard-skip patterns (acceleration mode, first turn, mid-implementation). Output is one line or silence. Use when the operator says /notice, "did you notice anything?", o...
+Adaptive mid-conversation observation surfacing driven by content triggers and motivation scoring (not fixed-rate timers). Uses LLM judgment to detect patterns worth surfacing (error states, task boundaries, unverified diagnoses, contradictions, connections, anticipated needs) and scores each candidate on 8 adapted heuristics from Liu et al. CHI 2025 (Inner Thoughts). Fires when motivation exceeds threshold, not when a timer expires. Cooldown is a safety valve (max 1 per 3 turns), not the pri...
 
 > This is a lightweight pointer for semantic search. The authoritative source
 > is the SKILL.md file at the path above. Regenerate with

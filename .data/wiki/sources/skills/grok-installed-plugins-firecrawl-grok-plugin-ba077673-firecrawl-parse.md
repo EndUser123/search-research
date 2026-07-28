@@ -6,7 +6,7 @@ skill_name: firecrawl-parse
 source_path: C:/Users/brsth/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-parse/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: firecrawl-parse

@@ -6,7 +6,7 @@ skill_name: design
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/design/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-27
+indexed_date: 2026-07-28
 ---
 
 # Skill: design
