@@ -1,42 +1,53 @@
 #!/usr/bin/env python3
 """
-wiki_search.py — shim layer over qmd for wiki search/index operations.
+wiki_search.py — FTS5-only wiki search (stdlib, no qmd dependency).
 
-ARCHITECTURAL RATIONALE (subprocess-as-degradation-boundary):
-This shim exists because direct `from qmd import connect` in every consumer
-tightens coupling at the moment when qmd's long-term viability is in question
-(qmd pinned at 0.1.x, upstream dead since ~2026-07-20, patch count growing).
+Replaces the qmd-backed shim with direct SQLite FTS5 queries against the
+existing qmd.db. Drops vector search, RRF, query expansion, and reranking
+(evaluated as marginal-or-negative for ~1200 wiki concepts). The per-token
+FTS5 query-quoting fix is ported verbatim from qmd_fts5_patch.py.
 
-By routing all qmd access through this single module:
-  - Consumers import wiki_search, NOT qmd directly
-  - If qmd is ever replaced (vendored / raw sqlite-fts5 / in-house rewrite),
-    only THIS FILE changes — every consumer keeps working
-  - The shim is the replacement boundary
-
-This is the structural fix for the CLI-drift failure class documented in
-~/.grok/skills/crawl4ai/crawl_to_qmd.py (lines 100-104, 528) where hardcoded
-subprocess calls assumed a qmd API that doesn't match the installed version.
-
-Source insight: /tp critique session 019f9bfe (2026-07-25) — "subprocess was
-wrong-on-syntax but right-on-architecture; direct import is right-on-syntax
-but wrong-on-architecture at this moment."
+The existing qmd.db at ~/.config/qmd/qmd.db is reused read-only. No new
+indexer is needed — the FTS5 table (documents_fts) is a standard SQLite
+virtual table that stdlib sqlite3 can query directly.
 
 USAGE:
   from wiki_search import WikiSearch
   ws = WikiSearch(collection="wiki")
-  ws.add_document(doc_id, markdown_path)
-  results = ws.search(query, top_k=5)
+  results = ws.search("model routing", top_k=5)
+
+  # CLI:
+  python wiki_search.py search --collection wiki --query "model routing" --top-k 5
+  python wiki_search.py info --collection wiki
 """
 
 from __future__ import annotations
 
-import json
-import logging
+import argparse
+import os
+import sqlite3
 import sys
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+
+def _sanitize_fts5_query(query: str) -> str:
+    """Escape FTS5 MATCH query-syntax by per-token quoting.
+
+    FTS5 MATCH interprets -, :, ^, ", *, (, ) as query-syntax operators.
+    Quotes each token individually to disable syntax interpretation while
+    preserving implicit-AND semantics.
+
+    Ported verbatim from qmd_fts5_patch.py:72-88.
+    """
+    if not query or not query.strip():
+        return '""'
+    tokens = query.split()
+    quoted = []
+    for token in tokens:
+        escaped = token.replace('"', '""')
+        quoted.append(f'"{escaped}"')
+    return " ".join(quoted)
 
 
 class WikiSearchError(Exception):
@@ -44,40 +55,35 @@ class WikiSearchError(Exception):
 
 
 class WikiSearch:
-    """Shim over qmd providing search and index operations.
+    """FTS5-only search over the existing qmd.db. No qmd dependency.
 
-    Isolates qmd's Python API behind a stable interface so consumers don't
-    import qmd directly. If qmd is replaced, only this class changes.
-
-    Lazy-imports qmd so importing this module doesn't fail when qmd is absent
-    (preserves the degradable-failure property of the old subprocess pattern).
+    Public API matches the previous qmd-backed shim so consumers need no
+    changes. Uses stdlib sqlite3 only.
     """
 
     def __init__(self, collection: str = "wiki"):
         self.collection_name = collection
-        self._client = None
-        self._collection = None
+        self._conn: sqlite3.Connection | None = None
 
-    def _connect(self):
-        """Lazy-connect to qmd. Raises WikiSearchError with actionable message on failure."""
-        if self._collection is not None:
-            return self._collection
-        try:
-            from qmd import connect
-        except ImportError as e:
+    def _connect(self) -> sqlite3.Connection:
+        """Open read-only connection to the qmd.db SQLite database."""
+        if self._conn is not None:
+            return self._conn
+        db_path = os.path.expanduser("~/.config/qmd/qmd.db")
+        if not os.path.exists(db_path):
             raise WikiSearchError(
-                f"qmd not importable in this Python ({sys.executable}). "
-                f"This shim requires qmd installed in the same environment. "
-                f"Original error: {e}"
-            ) from e
+                f"Database not found at {db_path}. "
+                f"Run qmd index at least once, or point WIKI_SEARCH_DB "
+                f"to an existing FTS5-enabled SQLite database."
+            )
         try:
-            self._client = connect()
-            self._collection = self._client.collection(self.collection_name)
-        except Exception as e:
-            raise WikiSearchError(
-                f"Failed to connect to qmd collection '{self.collection_name}': {e}"
-            ) from e
-        return self._collection
+            self._conn = sqlite3.connect(
+                f"file:{db_path}?mode=ro", uri=True
+            )
+            self._conn.row_factory = sqlite3.Row
+        except sqlite3.Error as e:
+            raise WikiSearchError(f"Failed to open database {db_path}: {e}") from e
+        return self._conn
 
     def search(
         self,
@@ -85,120 +91,196 @@ class WikiSearch:
         top_k: int = 5,
         exclude_doc_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Hybrid search the collection. Returns list of {doc_id, text, score}.
+        """FTS5 BM25 search. Returns list of {doc_id, text, score}.
 
-        Args:
-            query: search query
-            top_k: max results
-            exclude_doc_id: if set, drop results with this document_id (self-exclusion)
-
-        Returns:
-            List of dicts with keys: doc_id, text, score, bm25_score, vector_score.
-            Deduplicated by doc_id (first chunk wins).
+        Uses per-token quoting to prevent FTS5 syntax errors on hyphens,
+        colons, and other special characters. Implicit-AND is preserved
+        for multi-word queries (each whitespace-separated token is quoted
+        individually).
         """
-        col = self._connect()
+        conn = self._connect()
+        cur = conn.cursor()
+        fts_query = _sanitize_fts5_query(query)
         try:
-            raw = col.hybrid_search(query=query, top_k=top_k + 5)
-        except Exception as e:
-            raise WikiSearchError(f"hybrid_search failed: {e}") from e
+            cur.execute(
+                "SELECT d.id, d.path, d.title, d.collection, "
+                "snippet(documents_fts, 2, '<<', '>>', '...', 20) as snippet, "
+                "bm25(documents_fts) as score "
+                "FROM documents_fts "
+                "JOIN documents d ON d.id = documents_fts.rowid "
+                "WHERE documents_fts MATCH ? "
+                "AND d.collection = ? "
+                "AND d.active = 1 "
+                "ORDER BY bm25(documents_fts) "
+                "LIMIT ?",
+                (fts_query, self.collection_name, top_k + 10),
+            )
+            rows = cur.fetchall()
+        except sqlite3.OperationalError as e:
+            raise WikiSearchError(f"FTS5 search failed: {e}") from e
 
         results: list[dict[str, Any]] = []
         seen: set[str] = set()
-        for r in raw:
-            cref = getattr(r, "chunk_ref", None)
-            doc_id = getattr(cref, "document_id", None) if cref else None
-            if not doc_id:
-                # fallback for dict-shaped results
-                if isinstance(r, dict):
-                    cref = r.get("chunk_ref", {})
-                    doc_id = cref.get("document_id", "?")
-                else:
-                    continue
+        for r in rows:
+            doc_id = r["path"] or str(r["id"])
             if exclude_doc_id and doc_id == exclude_doc_id:
                 continue
             if doc_id in seen:
                 continue
             seen.add(doc_id)
-            text = getattr(r, "text", None) or (r.get("text", "") if isinstance(r, dict) else "")
-            results.append({
-                "doc_id": doc_id,
-                "text": text,
-                "score": getattr(r, "score", None) or (r.get("score") if isinstance(r, dict) else None),
-                "bm25_score": getattr(r, "bm25_score", None),
-                "vector_score": getattr(r, "vector_score", None),
-            })
+            results.append(
+                {
+                    "doc_id": doc_id,
+                    "text": r["snippet"] or "",
+                    "score": r["score"],
+                    "bm25_score": r["score"],
+                    "vector_score": None,
+                    "title": r["title"],
+                    "path": r["path"],
+                }
+            )
             if len(results) >= top_k:
                 break
         return results
 
     def add_document(self, doc_id: str, markdown_path: str, metadata: dict | None = None) -> None:
-        """Index a markdown file into the collection. Replaces bulk `qmd update`."""
-        col = self._connect()
+        """Index a markdown file. Inserts into documents + documents_fts + content.
+
+        Requires read-write access to the database (opens in rw mode, not ro).
+        """
+        db_path = os.path.expanduser("~/.config/qmd/qmd.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
         path = Path(markdown_path)
         if not path.exists():
             raise WikiSearchError(f"markdown file not found: {markdown_path}")
         try:
-            # qmd 0.1.2 API: takes `markdown` (content string), not `markdown_file` (path)
             markdown_content = path.read_text(encoding="utf-8")
-            kwargs: dict[str, Any] = {
-                "document_id": doc_id,
-                "markdown": markdown_content,
-            }
-            if metadata:
-                kwargs["metadata"] = metadata
-            col.add_document(**kwargs)
-        except Exception as e:
+            import hashlib
+            import json
+            from datetime import datetime, timezone
+
+            doc_hash = hashlib.sha256(markdown_content.encode()).hexdigest()
+            now = datetime.now(timezone.utc).isoformat()
+            meta_str = json.dumps(metadata) if metadata else "{}"
+
+            cur.execute(
+                "INSERT OR REPLACE INTO content (hash, doc, created_at) VALUES (?, ?, ?)",
+                (doc_hash, markdown_content, now),
+            )
+            cur.execute(
+                "INSERT OR REPLACE INTO documents "
+                "(collection, path, title, hash, created_at, modified_at, active, metadata) "
+                "VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+                (self.collection_name, doc_id, path.stem, doc_hash, now, now, meta_str),
+            )
+            doc_rowid = cur.lastrowid
+            cur.execute(
+                "INSERT OR REPLACE INTO documents_fts (rowid, filepath, title, body) "
+                "VALUES (?, ?, ?, ?)",
+                (doc_rowid, str(path), path.stem, markdown_content),
+            )
+            conn.commit()
+        except sqlite3.Error as e:
+            conn.rollback()
             raise WikiSearchError(f"add_document failed for '{doc_id}': {e}") from e
+        finally:
+            conn.close()
 
     def list_documents(self) -> list[str]:
-        """List all document_ids in the collection."""
-        col = self._connect()
+        """List all document paths in the collection."""
+        conn = self._connect()
+        cur = conn.cursor()
         try:
-            docs = col.list_documents()
-            out: list[str] = []
-            for d in docs:
-                # qmd 0.1.2 returns list[str]; older versions may return objects/dicts.
-                # Short-circuit on str before any attribute access — getattr()'s
-                # default is evaluated eagerly, so d.get() on a str raises AttributeError.
-                if isinstance(d, str):
-                    out.append(d)
-                elif isinstance(d, dict):
-                    out.append(d.get("document_id", "?"))
-                else:
-                    out.append(getattr(d, "document_id", "?"))
-            return out
-        except Exception as e:
+            cur.execute(
+                "SELECT path FROM documents WHERE collection = ? AND active = 1 ORDER BY path",
+                (self.collection_name,),
+            )
+            return [r["path"] for r in cur.fetchall()]
+        except sqlite3.Error as e:
             raise WikiSearchError(f"list_documents failed: {e}") from e
 
     def info(self) -> dict[str, Any]:
         """Return collection info (doc count, chunk count, embedding dim)."""
-        col = self._connect()
+        conn = self._connect()
+        cur = conn.cursor()
         try:
-            info = col.info()
-            if isinstance(info, dict):
-                return info
-            # info() may return a CollectionInfo object
+            cur.execute(
+                "SELECT COUNT(*) as cnt FROM documents WHERE collection = ? AND active = 1",
+                (self.collection_name,),
+            )
+            doc_count = cur.fetchone()["cnt"]
+            cur.execute(
+                "SELECT COUNT(*) as cnt FROM documents_fts "
+                "WHERE rowid IN (SELECT id FROM documents WHERE collection = ? AND active = 1)",
+                (self.collection_name,),
+            )
+            fts_count = cur.fetchone()["cnt"]
             return {
-                "name": getattr(info, "name", self.collection_name),
-                "document_count": getattr(info, "document_count", None),
-                "chunk_count": getattr(info, "chunk_count", None),
-                "embedding_dim": getattr(info, "embedding_dim", None),
+                "name": self.collection_name,
+                "document_count": doc_count,
+                "chunk_count": fts_count,
+                "embedding_dim": None,
+                "engine": "sqlite-fts5 (stdlib, no qmd)",
             }
-        except Exception as e:
+        except sqlite3.Error as e:
             raise WikiSearchError(f"info failed: {e}") from e
 
 
-# --- CLI for smoke testing --------------------------------------------------
+# --- CLI --------------------------------------------------------------------
 
-def _smoke_test():
-    """Quick smoke test: connect, search, info."""
-    ws = WikiSearch("wiki")
-    print("info:", ws.info())
-    results = ws.search("qmd semantic search", top_k=3)
-    print(f"\nsearch 'qmd semantic search' → {len(results)} results:")
+def _cli_search(args):
+    ws = WikiSearch(collection=args.collection)
+    results = ws.search(args.query, top_k=args.top_k)
+    print(f"Search '{args.query}' in '{args.collection}': {len(results)} results")
     for r in results:
-        print(f"  {r['doc_id']}  score={r['score']}")
+        print(f"  {r['title'][:60]} | score={r['score']:.4f}")
+        if r["text"]:
+            print(f"    {r['text'][:120]}")
+        print(f"    path: {r['path']}")
+
+
+def _cli_info(args):
+    ws = WikiSearch(collection=args.collection)
+    info = ws.info()
+    print(f"Collection: {info['name']}")
+    print(f"  Documents: {info['document_count']}")
+    print(f"  FTS entries: {info['chunk_count']}")
+    print(f"  Engine: {info['engine']}")
+
+
+def _cli_smoke(args):
+    """Quick smoke test: info + search."""
+    _cli_info(args)
+    print()
+    args.query = "model routing"
+    args.top_k = 3
+    _cli_search(args)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="FTS5-only wiki search (no qmd)")
+    parser.add_argument("--collection", default="wiki", help="collection name")
+    sub = parser.add_subparsers(dest="command")
+
+    p_search = sub.add_parser("search", help="Search the wiki")
+    p_search.add_argument("--query", required=True, help="search query")
+    p_search.add_argument("--top-k", type=int, default=5, help="max results")
+    p_search.set_defaults(func=_cli_search)
+
+    p_info = sub.add_parser("info", help="Show collection info")
+    p_info.set_defaults(func=_cli_info)
+
+    p_smoke = sub.add_parser("smoke", help="Quick smoke test")
+    p_smoke.set_defaults(func=_cli_smoke)
+
+    args = parser.parse_args()
+    if not hasattr(args, "func"):
+        parser.print_help()
+        sys.exit(1)
+    args.func(args)
 
 
 if __name__ == "__main__":
-    _smoke_test()
+    main()
