@@ -179,5 +179,73 @@ refactor — pattern-contamination risk), A (skill recommendation hook — large
 C (/dream — new skill).
 
 **Why it matters:** executing one thing breaks the analysis-paralysis loop. The
-qmd-to-FTS5 replacement is the highest-certainty, lowest-effort item that proves
+qmd-to-FTS5 replacement is the highest-certency, lowest-effort item that proves
 the "thin layer" principle by demonstration.
+
+### OBS-10: DBR hook CJK threshold — min_length=10 misses CJK interspersed with English
+
+**Observation:** the DBR (English-only) hook used `min_length=10` for flagging
+non-English segments. CJK text interspersed with English identifiers (variable
+names, paths, code) produced fragments under 10 chars each, so the hook missed
+them entirely. Fix: added `cjk_min_length=3` parameter and `_has_cjk()` helper
+that detects CJK characters and applies the lower threshold only to segments
+containing CJK.
+
+**Generalizable pattern:** threshold-based detectors need language-aware
+thresholds. A single `min_length` works for Latin scripts where words are
+space-delimited and average 5+ characters. CJK scripts use 2-3 character
+"words" and interleave with English identifiers in code contexts. Any
+detector that uses character-count thresholds needs separate CJK handling.
+
+**Operator correction:** "it's racist not to use English" and "racism is never
+minor." The initial framing treated the Chinese docstring as a minor issue
+(translate it and move on). The operator escalated: non-English output is a
+form of linguistic bias, and treating it as minor is itself the failure. The
+DBR principle exists because linguistic exclusion is a real harm, not a
+style preference.
+
+**Code location:** `~/.grok/hooks/scripts/dbr_language_check.py` —
+`find_non_english_segments()` with `cjk_min_length=3` and `_has_cjk()`.
+
+### OBS-11: Quota gate was an inert gate — read nothing, returned static text, never blocked
+
+**Observation:** the `/close` scanner had a "quota" gate that was presented as
+a functional gate alongside handoff, wiki, AAR, and git gates. On inspection,
+`scan_quota()` read no files, queried no APIs, returned static text regardless
+of actual quota state, and never blocked. It was a cargo-cult gate — it looked
+active in the gate list but did nothing.
+
+**Generalizable pattern:** gates that look active but are inert are worse than
+no gate, because they create false confidence that the concern is covered.
+Every gate should have a verification step: does it actually read something?
+Does it actually block when the condition is met? The quota gate failed both
+tests.
+
+**Fix:** removed `scan_quota()` from `close_accounting.py`, removed "quota" from
+`ALL_GATE_NAMES` in `close_runner.py`, removed the quota section from
+`close/SKILL.md`. The gate no longer exists.
+
+**Code location:** `~/.grok/skills/close/__lib/close_accounting.py` and
+`~/.grok/skills/close/__lib/close_runner.py`.
+
+### OBS-12: commit-safe.ps1 retried ALL failures, not just lock contention
+
+**Observation:** `commit-safe.ps1` (the concurrent-safe git commit wrapper)
+had a retry loop that retried on ANY non-zero exit, including genuine errors
+(hook failures, syntax errors, untracked files). Only lock-contention errors
+(`index.lock exists`) warrant retry. Retrying genuine errors wastes time and
+masks the real failure.
+
+**Fixes applied:**
+- CORR-001: post-loop error guard — if all retries consumed by lock-wait, exit
+  non-zero instead of silently succeeding
+- CORR-005: capture stderr, retry only on lock-related errors (grep for
+  `index.lock`), fail immediately on other errors
+- CORR-006: configurable `StaleLockSeconds` parameter for stale lock timeout
+
+**Generalizable pattern:** retry logic must be scoped to the specific error
+class that warrants retry (transient/lock), not applied to all failures.
+Blind retry-all is an anti-pattern that converts fast-fail into slow-fail
+and masks root causes.
+
+**Code location:** `~/.grok/skills/grok-safe-git/scripts/commit-safe.ps1`.
