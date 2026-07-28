@@ -34,11 +34,33 @@ placement** — the model anchored on where the symptom manifested (the
 Python+git commands, session-wide). The fix was correct in content but wrong
 in layer.
 
+### Second instance (same session, same pattern)
+
+The operator asked `/www` whether a `UserPromptSubmit` hook could auto-detect
+`/handoff` and pre-create a handoff file. The research found one limitation:
+stdout is ignored on Grok Build passive events (no context injection back to
+the model). The model anchored on this single limitation and concluded "the
+whole approach is non-viable" — writing a wiki concept titled "UserPromptSubmit
+hooks cannot auto-invoke skills on Grok Build."
+
+The operator corrected: "I thought userpromptsubmit could run python?" The
+hook CAN run Python, read stdin, and write files. Only the context-injection
+path is blocked; the file-pre-creation path works fine. The model had taken
+one constraint and generalized it to kill the entire approach.
+
+This is the same pattern class: anchoring on a single symptom (stdout ignored)
+and over-generalizing the conclusion (approach non-viable), when the constraint
+only blocked one of several viable paths.
+
 ## The pattern (named)
 
 **Symptom-anchored fix placement:** when a general rule is triggered by a
 specific symptom, the model places the fix where the symptom appeared rather
 than where the rule applies.
+
+**Broader form:** anchoring on a single observed constraint and generalizing
+it to block the entire approach, when the constraint only blocks one of
+several viable paths.
 
 This is the mirror of the wiki's documented anti-pattern #10 in
 `context-file-deduplication-agents-md-as-source.md` ("stuffing task workflows
@@ -116,6 +138,9 @@ This analysis is wrong if:
 - The pattern doesn't recur (if the model never makes this error again
   without a structural fix, the analysis was over-attributed to a pattern
   when it was a one-off slip)
+- **Note:** the pattern recurred twice in the same session (close-timeout
+  layer error + UserPromptSubmit over-generalization), which strengthens the
+  pattern hypothesis. A one-off slip would not recur twice.
 
 ## Next steps (when this thread resumes)
 
