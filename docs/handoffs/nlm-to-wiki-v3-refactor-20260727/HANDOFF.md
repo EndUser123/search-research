@@ -185,6 +185,36 @@ python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
 /go execute P:\docs\handoffs\nlm-to-wiki-v3-refactor-20260727\HANDOFF.md
 ```
 
+## Revision: 2026-07-28 (session 019fa276 — full pipeline proven + bulk run)
+
+**Status: COMPLETE.** The v3 pipeline is proven end-to-end at 10/10 yield.
+Pilot notebook produced 10 validated concept pages with 4-hop provenance.
+A bulk run of 40 notebooks is in progress using the queue-of-work pattern.
+
+### Fixes applied during bulk run
+
+| Fix | Commit | What it solved |
+|---|---|---|
+| Non-fatal export rc=5 | `f6235bb` | 2 failed sources no longer kill 11-min sync |
+| yt-dlp fallback | `f6235bb` | Recovered status=3 sources with URL-as-title |
+| stderr redirect | `894e083` | stdout is pure JSON (was polluting parse) |
+| Receipts auto-emit | manual | write_pages emits ## Receipts for v3 pages (validator pass) |
+| Retry + cross-backend | `a79e3a1` | 3-layer resilience for transient mmx failures |
+| Cluster notebook filter | `4c93b94` | Per-notebook filtering (was reading ALL transcripts) |
+| [INGESTED] prefix | `313d0f3` | Visual tracking in NotebookLM |
+| Auto-report (Stage H) | `6b4ce2f` | Progressive-disclosure report after each sync |
+| Report auth fix | `ff46def` | ensure_auth in report.py (was silently returning 0%) |
+| Queue-of-work | `queue_sync.py` | Parallel workers, hot-reload, crash-resume |
+
+### Remaining work
+
+- **Notebooks 1-5 re-sync:** processed before the cluster-filter fix;
+  may have mixed-content clusters. Re-sync to replace with clean output.
+- **Sensitivity sweep:** 7 parameters × 4 values = 28 runs. Plan at
+  `P:/tmp/sensitivity-sweep-plan.md`.
+- **6 problem-prediction skills:** handoff at
+  `problem-prediction-skills-20260727/HANDOFF.md`.
+
 ## Execution Status
 
 Updated: 2026-07-27T07:55:00Z
