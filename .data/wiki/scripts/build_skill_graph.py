@@ -152,11 +152,32 @@ def find_skills() -> list[SkillNode]:
 def extract_edges(skill: SkillNode) -> None:
     """Scan a SKILL.md body and extract edges."""
     try:
-        body = Path(skill.path).read_text(encoding="utf-8", errors="replace").lower()
+        full_text = Path(skill.path).read_text(encoding="utf-8", errors="replace")
     except Exception:
         return
 
-    # Extract delegates_to from /skill-name patterns
+    body = full_text.lower()
+
+    # Phase 1: Read structured frontmatter as ground truth (if present)
+    import re as _re
+    parts = full_text.split("---", 2)
+    if len(parts) >= 3:
+        fm = parts[1]
+        dep_match = _re.search(r"depends_on:\s*\[([^\]]*)\]", fm)
+        con_match = _re.search(r"consumes:\s*\[([^\]]*)\]", fm)
+        if dep_match:
+            for dep in dep_match.group(1).split(","):
+                dep = dep.strip().strip("'\"").lower()
+                if dep and dep != skill.name:
+                    skill.delegates_to.add(dep)
+        if con_match:
+            for con in con_match.group(1).split(","):
+                con = con.strip().strip("'\"").lower()
+                if con:
+                    skill.consumes_provider.add(con)
+
+    # Phase 2: Lexical scan as linter — detects undeclared edges
+    # These add to the frontmatter-derived set, flagging gaps
     for m in SLASH_SKILL_PATTERN.finditer(body):
         target = m.group(1).lower()
         if target in KNOWN_SKILLS and target != skill.name:
@@ -196,9 +217,9 @@ def build_reverse_index(skills: list[SkillNode]) -> dict:
             wiki_referencers[wiki].append(skill.name)
 
     return {
-        "provider_consumers": {k: sorted(v) for k, v in provider_consumers.items()},
-        "skill_callers": {k: sorted(v) for k, v in skill_callers.items()},
-        "wiki_referencers": {k: sorted(v) for k, v in wiki_referencers.items()},
+        "provider_consumers": {k: sorted(set(v)) for k, v in provider_consumers.items()},
+        "skill_callers": {k: sorted(set(v)) for k, v in skill_callers.items()},
+        "wiki_referencers": {k: sorted(set(v)) for k, v in wiki_referencers.items()},
     }
 
 
