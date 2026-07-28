@@ -19,8 +19,47 @@ and periodic LLM-as-judge self-check (batched /tp check on last N turns).
 
 ## Status
 
-OPEN — the immediate tier (regex + wiki persistence) is shipped. This handoff
-covers the remaining tiers.
+PARTIALLY RESOLVED — Tier 1 shipped + lastAssistantMessage bug fixed.
+Tier 2 found already handled by quality_gate.py Stop hook. Tiers 3-4 remain open.
+
+## RESOLVED (2026-07-28): Tier 1 lastAssistantMessage bug + Tier 2 coverage
+
+### lastAssistantMessage payload bug (CRITICAL)
+
+Both `behavioral_check.py` and `wiki_persistence_check.py` used the wrong field
+name to extract the response text from the Stop hook payload. They checked
+`response`, `messages`, and `transcript_path` — but the Grok Build Stop hook
+provides `lastAssistantMessage` (user-guide/10-hooks.md:262).
+
+Without this fix, both hooks would have been **permanently silent in production**.
+Fixed by adding `lastAssistantMessage` as the first check in
+`extract_response_text()`. Verified end-to-end with realistic payloads.
+
+Existing hooks (`dbr_language_check.py`, `quality_gate.py`) already used the
+correct field — only the new hooks had the bug.
+
+### Tier 2 already handled by quality_gate.py
+
+The "Tier 2 gap" (nothing fires between per-edit and per-session) was identified
+as a missing PostToolUse advisory hook. Investigation revealed:
+
+1. **PostToolUse stdout is ignored on Grok Build** (user-guide/10-hooks.md:304):
+   "For events like SessionStart or PostToolUse, stdout is ignored."
+2. The existing `quality_gate.py` Stop hook already enforces scoped-test
+   verification: it tracks code modifications, blocks at end of turn with
+   specific file hints (`_build_file_hints`), and creates continuation
+   obligations that require satisfying receipts.
+3. The "gap" was actually caused by the capability derivation bug — the Stop
+   hook was blocking hook script edits with `NO_COVERING_RECEIPT` because
+   `runtime_hook` (rank 5) exceeded what pytest provides (`unit_behavior`, rank 3).
+   Fix: `quality_gate.py _derive_required_capability` now classifies hook
+   scripts as `static_analysis` (rank 2). See
+   [[hook-script-capability-derivation-receipt-loop-fix]].
+
+**Conclusion:** Tier 2 is already handled by the existing Stop hook. No new
+PostToolUse hook needed. The Stop hook fires at the right time (end of turn,
+when the agent claims completion) with the right enforcement level (block
+until verified, not just advise).
 
 ## What's already shipped (this session)
 
