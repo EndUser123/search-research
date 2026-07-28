@@ -232,13 +232,36 @@ class WikiSearch:
 
 def _cli_search(args):
     ws = WikiSearch(collection=args.collection)
-    results = ws.search(args.query, top_k=args.top_k)
-    print(f"Search '{args.query}' in '{args.collection}': {len(results)} results")
-    for r in results:
-        print(f"  {r['title'][:60]} | score={r['score']:.4f}")
-        if r["text"]:
-            print(f"    {r['text'][:120]}")
-        print(f"    path: {r['path']}")
+    # Support --query, positional, or both (qmd compat: positional after flags)
+    query = args.query or args.positional_query or ""
+    if not query:
+        print("Error: no query provided (use --query <query> or positional)", file=sys.stderr)
+        sys.exit(2)
+    top_k = args.limit if args.limit else args.top_k
+    results = ws.search(query, top_k=top_k)
+    if args.format == "json":
+        import json as _json
+        # Output qmd-compatible JSON format for subprocess callers
+        out = []
+        for r in results:
+            out.append({
+                "chunk_ref": {
+                    "document_id": r["doc_id"],
+                    "file": r.get("path", r["doc_id"]),
+                },
+                "file": r.get("path", r["doc_id"]),
+                "text": r["text"],
+                "score": r["score"],
+                "bm25_score": r.get("bm25_score"),
+            })
+        print(_json.dumps(out))
+    else:
+        print(f"Search '{args.query}' in '{args.collection}': {len(results)} results")
+        for r in results:
+            print(f"  {r['title'][:60]} | score={r['score']:.4f}")
+            if r["text"]:
+                print(f"    {r['text'][:120]}")
+            print(f"    path: {r['path']}")
 
 
 def _cli_info(args):
@@ -265,8 +288,11 @@ def main():
     sub = parser.add_subparsers(dest="command")
 
     p_search = sub.add_parser("search", help="Search the wiki")
-    p_search.add_argument("--query", required=True, help="search query")
+    p_search.add_argument("--query", default=None, help="search query (or pass as positional)")
     p_search.add_argument("--top-k", type=int, default=5, help="max results")
+    p_search.add_argument("--limit", type=int, default=None, help="alias for --top-k (qmd compat)")
+    p_search.add_argument("--format", choices=["text", "json"], default="text", help="output format")
+    p_search.add_argument("positional_query", nargs="?", default=None, help="positional query (qmd compat)")
     p_search.set_defaults(func=_cli_search)
 
     p_info = sub.add_parser("info", help="Show collection info")
