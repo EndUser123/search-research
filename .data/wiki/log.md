@@ -1,5 +1,17 @@
 # Vault Log
 
+## dead-code: /check Step 0.9 vulture wired advisory
+Source: session-019fa94d-/go
+Agent: grok
+Notes: vulture_precheck.py + SKILL Step 0.9; Textual FP filter; soft-skip if missing
+Page: concepts/dead-code-detection-workflow.md
+
+## dead-code-detection-workflow: /check Step 0.9 gap + Textual FP
+Source: session-019fa94d-handoff
+Agent: grok
+Notes: Documented that /check did not run vulture; recommended integration table now includes /check Step 0.9 as not-yet-wired; Textual false-positive note
+Page: concepts/dead-code-detection-workflow.md
+
 ## model-fit-and-post-hoc-behavioral-detection
 Source: session-019fa48a
 Agent: grok
