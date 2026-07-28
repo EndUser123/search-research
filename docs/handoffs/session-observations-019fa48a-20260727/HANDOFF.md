@@ -119,7 +119,7 @@ Five factors, none of which require attributing intent to the model:
 - `/close` SKILL.md lines for the retrospective gate rule (read this session)
 - `[[reactive-pattern-matching-and-closure-pressure]]` §3 closure-pressure minimization
 - Session transcript 019fa48a, the /close turn and subsequent /why turn
-- AAR completion receipt written at `~/.grok/skills/aar/.artifacts/019fa48a.../completion_receipt.json`
+- AAR completion receipt written at `~/.grok/skills/aar/.artifacts/019fa48a-fb52-79a3-b8dc-d13c5da284d2/completion_receipt.json`
 
 ---
 

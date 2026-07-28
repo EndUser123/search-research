@@ -221,10 +221,10 @@ cost without value for this corpus.
 
 ### MIG-01: Database strategy reuse-vs-new (decide whether the wrapper reads the existing ~/.config/qmd/qmd.db or builds a new FTS5-only DB, and implement the chosen path)
 
-- in scope: Inspect the qmd DB schema (FTS5 table name, column layout, chunk vs. document granularity); determine whether a stdlib `sqlite3` reader can query it read-only without qmd; if reusing, write a read-only connector; if new, write a one-time indexer over `P:/.data/wiki/concepts/*.md`.
+- in scope: Inspect the qmd DB schema (FTS5 table name, column layout, chunk vs. document granularity); determine whether a stdlib `sqlite3` reader can query it read-only without qmd; if reusing, write a read-only connector; if new, write a one-time indexer over the wiki concepts directory (`P:/.data/wiki/concepts/`).
 - out of scope: migrating embeddings/vector tables (not needed — vector search is dropped); preserving qmd metadata the wrapper doesn't use.
 - files / anchors: `~/.config/qmd/qmd.db` (read-only inspection); qmd schema discoverable via `sqlite3 .schema` or `PRAGMA table_info`.
-- acceptance: all existing wiki concepts are searchable through the wrapper (criterion #3). If reusing the DB: a read-only `SELECT … FROM <fts5_table> WHERE <fts5_table> MATCH ?` returns results without qmd present. If new DB: the indexer covers 100% of `P:/.data/wiki/concepts/*.md`.
+- acceptance: all existing wiki concepts are searchable through the wrapper (criterion #3). If reusing the DB: a read-only `SELECT … FROM <fts5_table> WHERE <fts5_table> MATCH ?` returns results without qmd present. If new DB: the indexer covers 100% of the wiki concepts directory.
 - falsifier: a wiki concept that qmd currently returns for a known query is missing from the wrapper's results — proves the DB strategy lost coverage (>5% of concepts dropped would be a coverage disaster, not a nit).
 - verification level required: LIVE_BEHAVIOR
 
