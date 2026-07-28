@@ -1,5 +1,11 @@
 # Vault Log
 
+## --agent
+Source: grok
+Agent: --session
+Notes: 019fa5a1
+Page: --page
+
 ## Built-in grep tool over shell ripgrep for wiki search
 Source: session-20260728
 Agent: grok
