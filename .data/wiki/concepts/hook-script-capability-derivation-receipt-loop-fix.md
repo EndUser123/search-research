@@ -77,6 +77,22 @@ Implemented `_map_pytest_file_to_sources` to handle individual pytest file argum
 This makes `pytest test_hooks.py` correctly claim coverage of `behavioral_check.py`
 when the test imports it.
 
+## Tertiary Fix: Scope Mapping Order in _determine_claimed_scope
+
+The scope mapping was implemented but never reached because `_extract_explicit_paths`
+ran first and short-circuited. When `pytest test_hooks.py` runs, the explicit path
+extractor finds `test_hooks.py` in both the command and observed paths — and returns
+it as the claimed scope. But `test_hooks.py` is the test instrument, not the target.
+
+Fix: for test runners, try source mapping (directory + file) **before** explicit path
+extraction. The explicit path extraction still runs for non-test-runners, or when test
+mapping finds nothing (e.g., the test file itself was modified and no source mapping
+exists — the test file IS the scope in that case).
+
+End-to-end verification: simulated `edit behavioral_check.py → pytest test_hooks.py`
+and confirmed the receipt system returns PASS on both capability check (3 ≥ 2) and
+scope coverage (behavioral_check.py in claimed scope via TEST_TO_SOURCE_MAPPING).
+
 ## Verification
 
 - `_derive_required_capability` now returns correct capabilities for all path types
