@@ -192,11 +192,25 @@ def main() -> int:
     ap.add_argument("-o", "--output", type=Path, default=Path("subtopics.json"))
     args = ap.parse_args()
 
-    files = sorted(args.transcripts_dir.glob("*.md"))
-    if not files:
+    all_files = sorted(args.transcripts_dir.glob("*.md"))
+    if not all_files:
         print(f"FATAL: no transcripts in {args.transcripts_dir}", file=sys.stderr)
         return 2
-    print(f"Loaded {len(files)} transcript files", file=sys.stderr)
+
+    # Filter to this notebook's transcripts if --notebook was provided
+    if args.notebook:
+        files = []
+        for f in all_files:
+            try:
+                head = f.read_text(encoding="utf-8")[:600]
+                if f"notebook_id: {args.notebook}" in head:
+                    files.append(f)
+            except (OSError, UnicodeDecodeError):
+                continue
+        print(f"Loaded {len(all_files)} total transcripts, filtered to {len(files)} for notebook {args.notebook[:12]}", file=sys.stderr)
+    else:
+        files = all_files
+        print(f"Loaded {len(files)} transcript files", file=sys.stderr)
 
     transcripts = [parse_transcript(p) for p in files]
     # Embed title + first ~1500 chars of transcript body. MiniLM truncates at
