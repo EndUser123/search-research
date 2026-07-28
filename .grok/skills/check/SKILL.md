@@ -2,6 +2,7 @@
 name: check
 description: "Multi-concern session verification with PASS/FAIL verdict"
 effort: high
+provides: [session-verification, subagent-dispatch]
 ---
 
 # /check -- Multi-concern session verification
