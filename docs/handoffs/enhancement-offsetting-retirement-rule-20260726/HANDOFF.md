@@ -125,7 +125,7 @@ The rule can't be justified or rejected until at least 3 skills are audited.
 
 ## Resumption protocol
 
-1. **CHECK BLOCKER FIRST:** is `P:/.data/wiki/concepts/design-skill-bloat-assessment-*.md` present? If not, EOR-01 is blocked on the sibling handoff. Either pick up the sibling first, or proceed with the audit of the other 4-6 skills (/aar, /tp, /dream, /close, /red-team, /why) and add /design when its assessment lands.
+1. **CHECK BLOCKER FIRST:** does the design-skill-bloat-assessment concept exist in `P:/.data/wiki/concepts/`? If not, EOR-01 is blocked on the sibling handoff. Either pick up the sibling first, or proceed with the audit of the other 4-6 skills (/aar, /tp, /dream, /close, /red-team, /why) and add /design when its assessment lands.
 2. Read this handoff + the /www self-assessment concept.
 3. Execute EOR-01 (audit) — for each skill, count enhancement batches vs retirements in the provenance section. If no provenance section, use `git log --oneline -- <skill-path>` and classify commits as enhancements vs retirements vs other.
 4. Resolve Decision 1 (threshold) before deciding go/no-go.
@@ -136,8 +136,8 @@ The rule can't be justified or rejected until at least 3 skills are audited.
 ```
 Continue work from session 019f9f4f. Read P:/docs/handoffs/enhancement-offsetting-retirement-rule-20260726/HANDOFF.md.
 
-Check blocker: is the /design bloat assessment concept present at
-P:/.data/wiki/concepts/design-skill-bloat-assessment-*.md?
+Check blocker: does the /design bloat assessment concept exist in
+P:/.data/wiki/concepts/?
 
 Either way, execute EOR-01 (audit enhancement-batch-vs-retirement pattern
 across /aar, /tp, /dream, /close, /red-team, /why). For each: count

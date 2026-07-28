@@ -39,7 +39,7 @@ The agent occasionally produces non-English output (Chinese log messages, non-En
 - `[FACT]` The qmd package had 288 Chinese-language lines (runtime log messages + docstrings + comments). The operator said "It's racist not to use English" and directed translation. 15 runtime-visible log messages were translated; 273 docstring lines remain (handed off). Receipt: `P:/docs/handoffs/qmd-non-english-20260726/HANDOFF.md`.
 - `[FACT]` Grok Build supports `command` and `http` hook types only (not `prompt` or `agent`). Receipt: `P:/AGENTS.md` Host runtime table + `~/.grok/docs/user-guide/10-hooks.md`.
 - `[FACT]` Stop hooks can provide feedback via three mechanisms: exit-2+stderr, `decision:block` JSON, `additionalContext` JSON. Receipt: `[[grok-build-stop-hook-patterns-and-feedback-mechanism]]`.
-- `[FACT]` Grok Build hook discovery merges from: `~/.grok/hooks/*.json` (global), `<project>/.grok/hooks/*.json` (project), plugin hooks, compat sources. Receipt: `P:/AGENTS.md` + `~/.grok/docs/user-guide/10-hooks.md`.
+- `[FACT]` Grok Build hook discovery merges from: the global hooks JSON config at `~/.grok/hooks/` (global), the project hooks JSON config (project), plugin hooks, compat sources. Receipt: `P:/AGENTS.md` + `~/.grok/docs/user-guide/10-hooks.md`.
 - `[FACT]` The workspace already has quality_gate.py (Stop hook) and mutation_receipt.py (PostToolUse hook) as examples of the hook pattern. Receipt: `C:/Users/brsth/.grok/hooks/scripts/`.
 
 ## Requirements
@@ -138,7 +138,7 @@ The DBR principle should be documented as an AGENTS.md rule alongside the hook:
 
 1. **Build the Stop hook** (`dbr_language_check.py`) — scans response text for non-Latin script outside code blocks/names. Uses `additionalContext` for first offense.
 2. **Build the PostToolUse hook** (`dbr_file_check.py`) — scans written file content for non-English. Catches saved material before commit.
-3. **Register both hooks** in `~/.grok/hooks/*.json` or the appropriate hook config.
+3. **Register both hooks** in the hooks JSON config at `~/.grok/hooks/dbr-language.json`.
 4. **Add the AGENTS.md rule** (text above).
 5. **Test on the qmd case** — run the PostToolUse hook against the remaining 273 Chinese docstring lines to verify detection.
 6. **Translate the qmd docstrings** (from the qmd-non-English handoff) as the first remediation.

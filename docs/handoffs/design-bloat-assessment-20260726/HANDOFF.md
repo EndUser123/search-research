@@ -64,10 +64,10 @@ The /www assessment measured these and produced a keep/pare list. The /design as
 
 ### DBA-02: Produce assessment concept with keep/pare recommendation
 
-- **goal:** wiki concept `design-skill-bloat-assessment-YYYYMMDD.md` with measured metrics + keep/pare list + honest trade-offs + falsifier
+- **goal:** wiki concept `design-skill-bloat-assessment` with measured metrics + keep/pare list + honest trade-offs + falsifier
 - **in scope:** apply the /www self-assessment template to /design; recommend keep/pare per section
 - **out of scope:** implementing any pare (separate handoff after assessment is reviewed)
-- **files / anchors:** new concept at `P:/.data/wiki/concepts/design-skill-bloat-assessment-YYYYMMDD.md`
+- **files / anchors:** new concept in `P:/.data/wiki/concepts/` named `design-skill-bloat-assessment`
 - **acceptance:** concept passes `validate_wiki_entry.py`; cross-model review (glm-5-2 or codex) if recommendation is to pare; concept includes decision-context section explaining why this assessment was needed
 - **falsifier:** assessment recommends pare but review rejects ≥1 keep/pare call → revise before any implementation
 - **verification level required:** STATIC_INSPECTION + cross-model review (per `/why` Step 15b pattern)
@@ -131,7 +131,7 @@ Continue work from session 019f9f4f. Read P:/docs/handoffs/design-bloat-assessme
 
 Execute DBA-01 + DBA-02: introspect ~/.grok/skills/design/SKILL.md using the
 method from [[research-vs-design-vs-architect-skills-and-www-self-assessment]],
-produce design-skill-bloat-assessment-YYYYMMDD.md with keep/pare recommendation.
+produce the design-skill-bloat-assessment concept with keep/pare recommendation.
 
 If recommending pare, run cross-model review (glm-5-2 via spawn_subagent) per
 /why Step 15b pattern. Resolve Decision 1 (narrow vs broad scope) before
