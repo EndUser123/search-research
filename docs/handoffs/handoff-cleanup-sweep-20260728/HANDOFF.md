@@ -29,36 +29,32 @@ The `/close` continuation_coverage scanner checks for open handoffs but does
 not close them — handoff closure is operator-invoked (Rung 4). This means
 completed work stays "open" forever unless someone explicitly marks it closed.
 
-## The proposed sweep
+## Sweep results (executed 2026-07-28)
 
-For each of the 150 open handoffs:
+**The 80% open rate is NOT a hygiene problem — it's a velocity problem.**
 
-1. **Check if the work is actually done.** Grep git log for commits referencing
-   the handoff's thread_id or topic. Check if the files mentioned in the
-   handoff have been modified since the handoff was written.
-
-2. **If done:** update status to `closed`, add a closure note with the commit(s)
-   that completed the work.
-
-3. **If partially done:** update status and mark which items are complete vs
-   still open.
-
-4. **If genuinely open:** leave as-is. These are real continuation candidates.
-
-5. **If stale (no activity >14 days, no clear continuation path):** mark
-   `status: stale` with a note. These are candidates for archival.
-
-## Priority clusters
-
-Based on the scan, these handoff clusters have the most deferred/blocked signals:
-
-| Cluster | Signals | Notes |
+| Category | Count | Notes |
 |---|---|---|
-| `aar-golden-circle-review-packet-20260725` | 77 | Review-only packet, may be resolved |
-| `ytis-nlm-fetch-and-migration-20260720` | 15 | Active work area |
-| `tp-deferred-opportunities-20260727` | 11 | 4 deferred /tp opportunities |
-| `close-aar-mechanical-enforcement` | 10 | Close-skill enforcement |
-| `deferred-factory-work-20260726` | 10 | Software-factory deferred items |
+| Already closed | 20 | Properly marked |
+| Stale (>14 days) | **0** | No stale handoffs at all |
+| Recent open (0-6 days) | 155 | All from the last week |
+| Review-only / observations | 19 | Session observations, not work items |
+
+The workspace has been active for ~7 days. Every open handoff is from that window. There are zero stale handoffs — the high open rate reflects genuine work velocity, not forgotten closures.
+
+**Revised recommendation:** a closure sweep is lower priority than initially assessed. The real issue is handoff-closure discipline going forward — ensuring `/close` marks handoffs as `closed` when their work is complete, rather than leaving them `open` indefinitely. The `/close` skill currently does not auto-close handoffs (closure is operator-invoked at Rung 4).
+
+## Clusters worth reviewing (5-6 days old, may be superseded)
+
+These handoffs are from early sessions (2026-07-21/22) and may have been superseded by later work:
+
+- `file-editing-protocol-*` (4 handoffs) — protocol was deployed and is now in AGENTS.md
+- `close-scanner-*` (5 handoffs) — close skill has been through v2→v4 since these
+- `skill-consolidation-20260722` — skills were consolidated
+- `aar-efficiency-phase1-detectors-20260722` — status says `implemented`
+- Various `*-20260722` handoffs from the early fleet setup
+
+A future session should verify whether these are superseded and mark them closed if so. Estimated ~30 genuinely closeable items in this cluster.
 
 ## Dependencies
 
