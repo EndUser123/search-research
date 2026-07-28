@@ -1,5 +1,115 @@
 # Vault Log
 
+## Self-Regulated Study Loop Systems
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook _2026-01-15
+Page: wiki/concepts/self-regulated-study-loop-systems.md
+
+## Multi-Agent Orchestration Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook _2026-01-15
+Page: wiki/concepts/multi-agent-orchestration-patterns.md
+
+## Claude Code Multi-Agent Design Patterns
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Adversarial Analysis Skills: Pre-Mortem and Critique Frameworks
+Page: wiki/concepts/claude-code-multi-agent-design-patterns.md
+
+## Multi-Agent System Failure Modes
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Adversarial Analysis Skills: Pre-Mortem and Critique Frameworks
+Page: wiki/concepts/multi-agent-system-failure-modes.md
+
+## Multi-Agent Architectures for Autonomous Systems
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Adversarial Analysis Skills: Pre-Mortem and Critique Frameworks
+Page: wiki/concepts/multi-agent-architectures-for-autonomous-systems.md
+
+## Adversarial Multi-Agent Code Review
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Adversarial Analysis Skills: Pre-Mortem and Critique Frameworks
+Page: wiki/concepts/adversarial-multi-agent-code-review.md
+
+## Multi-Agent Code Orchestration
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Adversarial Analysis Skills: Pre-Mortem and Critique Frameworks
+Page: wiki/concepts/multi-agent-code-orchestration.md
+
+## --agent
+Source: grok
+Agent: --session
+Notes: 019fa5a1
+Page: --page
+
+## Claude Code Write Restriction Pattern
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/claude-code-write-restriction-pattern.md
+
+## Agent Memory Systems
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/agent-memory-systems.md
+
+## Failure Taxonomy in Tool-Augmented LLMs
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/failure-taxonomy-in-tool-augmented-llms.md
+
+## HTTPS Observability for AI Agents
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/https-observability-for-ai-agents.md
+
+## AI Agent Resource Management and Validation
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/ai-agent-resource-management-and-validation.md
+
+## Agentic AI Production Considerations
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/agentic-ai-production-considerations.md
+
+## Structured Output from LLMs
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/structured-output-from-llms.md
+
+## Memory-Augmented Agent Architectures
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/memory-augmented-agent-architectures.md
+
+## AI Agent Evaluation and Performance Measurement
+Source: nlm-sync-2026-07-28
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Workflow and Logic Inefficiencies
+Page: wiki/concepts/ai-agent-evaluation-and-performance-measurement.md
+
+
+
+## [2026-07-28] ingest | FTS5 query-syntax escaping required for MATCH with user input
+Source: session-2026-07-28
+Agent: grok
+Notes: test post-write driver
+Page: wiki/concepts/fts5-query-syntax-escaping-required.md
+
 ## Claude Code Development Capabilities
 Source: nlm-sync-2026-07-28
 Agent: grok
