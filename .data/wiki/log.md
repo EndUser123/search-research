@@ -1,5 +1,23 @@
 # Vault Log
 
+## workspace-infrastructure-investment-priorities-2026
+Source: session-019fa48a
+Agent: grok
+Notes: /www investigation of 6 system-level tracks. Cross-cutting: thin-layer-over-existing-substrate wins on every track.
+Page: wiki/concepts/workspace-infrastructure-investment-priorities-2026.md
+
+## Why source-code citation rule
+Source: session-019fa39d /why RCA
+Agent: grok
+Notes: Decision: /why system-behavior claims must cite source-code location (file:line) that produces the output. [INFERENCE]-first protocol. Root cause: 3/8 findings wrong because narrated from JSON output, not code. Fresh-lens /tp caught all 3 by reading source.
+Page: P:/.data/wiki/concepts/why-source-code-citation-rule.md
+
+## [2026-07-27] ingest | Verification claim admissibility: verdict vocabulary, replay realism, and baseline-aware regression
+Source: session-2026-07-27
+Agent: grok
+Notes: Verification claim admissibility rules (O-3/O-4/O-5)
+Page: wiki/concepts/verification-claim-admissibility.md
+
 ## Queue-of-work pattern for nlm-to-wiki
 Source: wiki-2026-07-28
 Agent: grok
