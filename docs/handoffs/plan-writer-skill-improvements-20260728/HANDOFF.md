@@ -125,7 +125,7 @@ Default: spec-first. Promote to spec-anchored only for architectural decisions t
 
 Use Mode 2 with:
 - **Training sessions** (motivated the improvements): session 019fa5a1 (over-engineering), the wiki concept's 6 improvements
-- **Held-out sessions** (where plan-writer worked): check prior plan-writer invocations in `P:/docs/superpowers/plans/` — find sessions where the plan was good and ≤300 lines
+- **Held-out sessions** (where plan-writer worked): **24 plan files exist in `P:/docs/superpowers/plans/`** — 23 pre-consolidation plans inherited the same planning logic (triggers, completeness checks, TDD format) from `/plan` + `writing-plans`. These are valid held-out data even though they predate the skill consolidation. A 30-line Python scan (`P:/tmp/plan_analysis.py`) already confirmed: zero AGENTS.md violations, zero destructive git proposals, zero full-file write proposals across all 24. See [[held-out-data-already-on-disk-count-artifacts-not-invocations]].
 - Apply each improvement with held-out validation per Mode 2 Step 4
 
 ## Dependencies
@@ -164,7 +164,7 @@ This handoff would be wrong if the 4 improvements don't survive held-out validat
 
 5. **Imp 6 (traceability matrix): DEFERRED.** No evidence of the failure mode occurring locally.
 
-6. **Held-out validation gap acknowledged.** Zero held-out sessions exist as of 2026-07-28 (plan-writer was consolidated 2026-07-23; only 1 post-consolidation plan exists, which is the training session). Validation will be hypothetical reasoning until N≥3 sessions use the skill.
+6. **Held-out validation gap — CORRECTED.** The original handoff and the /tp critique both claimed "zero held-out sessions exist." This was wrong: it counted plan-writer-brand invocations (1 post-consolidation) instead of plan artifacts (24 on disk). The 23 pre-consolidation plans are valid held-out data because plan-writer inherited `/plan`'s triggers and completeness checks verbatim. A scan of all 24 plans confirmed: zero AGENTS.md violations, zero destructive git proposals, zero traceability markers. The held-out data was already on disk. See [[held-out-data-already-on-disk-count-artifacts-not-invocations]].
 
 ### What changed
 
