@@ -113,6 +113,7 @@ class SkillNode:
         self.consumes_provider: set[str] = set()
         self.references_wiki: set[str] = set()
         self.provides: set[str] = set()
+        self.domain: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -123,6 +124,7 @@ class SkillNode:
             "consumes_provider": sorted(self.consumes_provider),
             "references_wiki": sorted(self.references_wiki),
             "provides": sorted(self.provides),
+            "domain": self.domain,
         }
 
 
@@ -184,6 +186,10 @@ def extract_edges(skill: SkillNode) -> None:
                 prov = prov.strip().strip("'\"").lower()
                 if prov:
                     skill.provides.add(prov)
+        # Extract domain
+        dom_match = _re.search(r'domain:\s*(\S+)', fm)
+        if dom_match:
+            skill.domain = dom_match.group(1).strip().strip("'\"").lower()
 
     # Phase 2: Lexical scan as linter — detects undeclared edges
     # These add to the frontmatter-derived set, flagging gaps
@@ -270,6 +276,25 @@ def generate_markdown(skills: list[SkillNode], reverse: dict) -> str:
         providers = reverse["capability_providers"][cap]
         cap_lines.append(f"| `{cap}` | {', '.join(f'`{p}`' for p in sorted(set(providers)))} |")
 
+    # Domain-grouped capability view
+    domain_caps: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+    for skill in skills:
+        if skill.domain and skill.provides:
+            for cap in skill.provides:
+                domain_caps[skill.domain][cap].append(skill.name)
+
+    domain_lines = []
+    for domain in sorted(domain_caps):
+        caps = domain_caps[domain]
+        domain_lines.append(f"### {domain}")
+        domain_lines.append("")
+        domain_lines.append("| Capability | Skills |")
+        domain_lines.append("|------------|--------|")
+        for cap in sorted(caps):
+            skills_list = ", ".join(f'`{s}`' for s in sorted(set(caps[cap])))
+            domain_lines.append(f"| `{cap}` | {skills_list} |")
+        domain_lines.append("")
+
     # Embed JSON for machine consumption
     graph_json = json.dumps(
         {
@@ -335,6 +360,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | Capability | Provided by |
 |------------|-------------|
 {chr(10).join(cap_lines) if cap_lines else '| — | — |'}
+
+## Capabilities by domain
+
+{chr(10).join(domain_lines) if domain_lines else 'No domains declared.'}
 
 ## Per-skill edges
 

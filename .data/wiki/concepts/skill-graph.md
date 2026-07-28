@@ -94,7 +94,7 @@ When a skill changes its interface or behavior, these callers are affected:
 | `recover` | 5 | `config-audit`, `main`, `maintain`, `skill-prune`, `workspace-health` |
 | `red-team` | 20 | `aar`, `claude-audit`, `close`, `debrief`, `design`, `dream`, `gitpack`, `improve`, `notice`, `pre-mortem`, `preflight`, `retro`, `review`, `risks`, `skill-audit`, `skill-dev`, `tp`, `why`, `why-old`, `www` |
 | `refine` | 24 | `aar`, `brainstorming`, `debrief`, `design`, `dream`, `go`, `handoff`, `keep`, `mermaid-c4`, `minimax-music-gen`, `mlc`, `model-benchmark`, `note`, `plan-writer`, `probe`, `prompt_refiner`, `red-team`, `refactor`, `review`, `s`, `sequential-thinking`, `tp`, `wargame`, `www` |
-| `review` | 105 | `aar`, `agy`, `ai-api`, `ai-cli`, `ai-models`, `aid`, `bf`, `brainstorming`, `check`, `chs`, `claude-audit`, `close`, `code-review`, `codebase-to-course`, `codex`, `concept-mapper`, `constitutional-patterns`, `create-workflow`, `debrief`, `debt`, `decision-tree`, `design`, `discover`, `dispatching-parallel-agents`, `doc-compiler`, `dream`, `execute-plan`, `executing-plans`, `friction`, `fullstack-dev`, `git`, `gitready`, `go`, `google-ai-usage-monitor`, `grok-discovery`, `grok-parallel`, `grok-verify`, `handoff`, `imagine`, `implement`, `improve`, `init`, `intelligence-stream-analyze`, `keep`, `learn`, `main`, `main-review`, `marketplace-bridge`, `mermaid-c4`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `mlc`, `mmx`, `model-benchmark`, `model-discover`, `nlm-to-wiki`, `note`, `notice`, `packet`, `plan-writer`, `planning`, `plugin-installer`, `pr-babysit`, `pre-mortem`, `preflight`, `reason`, `recover`, `red-team`, `refactor`, `refine`, `reflect`, `review-pr`, `review_bundle`, `risks`, `sequential-thinking`, `simplify-enhanced`, `skill-audit`, `skill-dev`, `skill-from-docs`, `skill-similarity`, `skill-to-page`, `skill-write`, `snapshot`, `solo-dev-authority`, `specify`, `sqd`, `stale`, `subagent-driven-development`, `t`, `task`, `team`, `tilldone`, `tldr-router`, `todo`, `tp`, `trace`, `uci`, `vision-analysis`, `web`, `why`, `why-old`, `writing-plans`, `www`, `yt-is`, `yt-nlm` |
+| `review` | 106 | `aar`, `agy`, `ai-api`, `ai-cli`, `ai-models`, `aid`, `bf`, `brainstorming`, `check`, `chs`, `claude-audit`, `close`, `code-review`, `codebase-to-course`, `codex`, `concept-mapper`, `constitutional-patterns`, `create-workflow`, `debrief`, `debt`, `decision-tree`, `design`, `discover`, `dispatching-parallel-agents`, `doc-compiler`, `dream`, `execute-plan`, `executing-plans`, `friction`, `fullstack-dev`, `git`, `gitready`, `go`, `google-ai-usage-monitor`, `grok-discovery`, `grok-parallel`, `grok-verify`, `handoff`, `imagine`, `implement`, `improve`, `init`, `intelligence-stream-analyze`, `keep`, `learn`, `main`, `main-review`, `marketplace-bridge`, `mermaid-c4`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `mlc`, `mmx`, `model-benchmark`, `model-discover`, `nlm-to-wiki`, `note`, `notice`, `packet`, `plan-writer`, `planning`, `plugin-installer`, `pr-babysit`, `pre-mortem`, `preflight`, `reason`, `recover`, `red-team`, `refactor`, `refine`, `reflect`, `review-pr`, `review_bundle`, `risks`, `sequential-thinking`, `simplify-enhanced`, `skill-audit`, `skill-dev`, `skill-from-docs`, `skill-similarity`, `skill-to-page`, `skill-write`, `snapshot`, `solo-dev-authority`, `specify`, `sqd`, `stale`, `subagent-driven-development`, `t`, `task`, `team`, `tilldone`, `tldr-router`, `todo`, `tp`, `trace`, `uci`, `vision-analysis`, `wargame`, `web`, `why`, `why-old`, `writing-plans`, `www`, `yt-is`, `yt-nlm` |
 | `search-fleet` | 1 | `web` |
 | `skill-dev` | 3 | `create-skill`, `red-team`, `tp` |
 | `skill-prune` | 5 | `config-audit`, `create-skill`, `maintain`, `skill-dev`, `workspace-health` |
@@ -169,6 +169,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `skill-scaffolding` | `create-skill` |
 | `source-authority-discovery` | `grok-discovery` |
 | `structural-refactor` | `refactor` |
+| `subagent-dispatch` | `check`, `debrief`, `grok-parallel`, `review`, `tp`, `www` |
 | `system-exploration` | `tp` |
 | `task-refinement` | `refine` |
 | `value-accounting` | `aar` |
@@ -177,6 +178,134 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `web-ingestion` | `crawl4ai` |
 | `wiki-web-wiki-research` | `www` |
 | `workspace-prioritized-action-list` | `todo` |
+
+## Capabilities by domain
+
+### cross-model
+
+| Capability | Skills |
+|------------|--------|
+| `cross-model-second-opinion` | `agy`, `codex`, `mmx` |
+| `gemini-reasoning` | `agy` |
+| `minimax-vision` | `mmx` |
+| `minimax-web-search` | `mmx` |
+| `openai-reasoning` | `codex` |
+
+### design
+
+| Capability | Skills |
+|------------|--------|
+| `design-doc-production` | `design` |
+
+### discovery
+
+| Capability | Skills |
+|------------|--------|
+| `capability-routed-search` | `search-fleet` |
+| `evidence-backed-inventory` | `preflight` |
+| `marketplace-skill-discovery` | `marketplace-bridge` |
+| `multi-backend-search` | `web` |
+| `plan-writing` | `plan-writer` |
+| `rrf-aggregation` | `search-fleet` |
+| `rrf-merge` | `web` |
+| `source-authority-discovery` | `grok-discovery` |
+| `subagent-dispatch` | `www` |
+| `task-refinement` | `refine` |
+| `web-ingestion` | `crawl4ai` |
+| `wiki-web-wiki-research` | `www` |
+
+### fleet-ops
+
+| Capability | Skills |
+|------------|--------|
+| `cost-tracking` | `model-benchmark` |
+| `file-recovery` | `recover` |
+| `grok-documentation-help` | `help` |
+| `latency-benchmark` | `model-benchmark` |
+| `model-discovery` | `model-discover` |
+| `persistent-task-store` | `tasks` |
+| `quality-scoring` | `model-benchmark` |
+| `workspace-prioritized-action-list` | `todo` |
+
+### implementation
+
+| Capability | Skills |
+|------------|--------|
+| `image-generation-guidance` | `imagine` |
+| `structural-refactor` | `refactor` |
+
+### knowledge
+
+| Capability | Skills |
+|------------|--------|
+| `capability-wiki-query` | `wiki` |
+| `capability-wiki-write` | `wiki` |
+| `prompting-techniques-reference` | `prompt-patterns` |
+
+### lifecycle
+
+| Capability | Skills |
+|------------|--------|
+| `after-action-review` | `aar` |
+| `feedback-to-wiki` | `why` |
+| `gate-resolution` | `close` |
+| `handoff-auto-update` | `handoff` |
+| `handoff-write` | `handoff` |
+| `mid-conversation-observation-surfacing` | `notice` |
+| `opportunity-landscape` | `aar` |
+| `pattern-library-query` | `why` |
+| `root-cause-analysis` | `why` |
+| `session-close-accounting` | `close` |
+| `session-export` | `packet` |
+| `session-retrospective` | `debrief` |
+| `subagent-dispatch` | `debrief` |
+| `value-accounting` | `aar` |
+
+### orchestration
+
+| Capability | Skills |
+|------------|--------|
+| `discovery-dispatch` | `go` |
+| `engineering-orchestration` | `go` |
+| `git-safety-preflight` | `grok-safe-git` |
+| `package-routing` | `grok-route` |
+| `parallel-fan-out` | `grok-parallel` |
+| `parallel-implement-dispatch` | `go` |
+| `safe-git-preflight-dispatch` | `go` |
+| `subagent-dispatch` | `grok-parallel` |
+| `verify-dispatch` | `go` |
+
+### review
+
+| Capability | Skills |
+|------------|--------|
+| `code-review` | `review` |
+| `content-discipline-for-plans` | `wargame` |
+| `critical-friend-critique` | `tp` |
+| `session-opportunity-review` | `tp` |
+| `subagent-dispatch` | `review`, `tp` |
+| `system-exploration` | `tp` |
+| `verified-findings-on-disk` | `review` |
+
+### self-improvement
+
+| Capability | Skills |
+|------------|--------|
+| `fleet-maintenance` | `maintain` |
+| `knowledge-hygiene` | `skill-prune` |
+| `offline-memory-consolidation` | `dream` |
+| `skill-improvement` | `skill-dev` |
+| `skill-measurement` | `skill-dev` |
+| `skill-scaffolding` | `create-skill` |
+
+### testing
+
+| Capability | Skills |
+|------------|--------|
+| `completion-gate` | `grok-verify` |
+| `session-verification` | `check` |
+| `subagent-dispatch` | `check` |
+
 
 ## Per-skill edges
 
@@ -207,7 +336,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `capture` | `check` | — | — |
 | `cc-model-router` | `design` | — | — |
 | `changelog` | `check` | — | — |
-| `check` | `agy`, `close`, `design`, `go`, `handoff`, `notice`, `packet`, `review`, `why`, `wiki` | — | `session-verification` |
+| `check` | `agy`, `close`, `design`, `go`, `handoff`, `notice`, `packet`, `review`, `why`, `wiki` | — | `session-verification`, `subagent-dispatch` |
 | `check` | `codex`, `design`, `go`, `review`, `wiki` | — | — |
 | `chs` | `check`, `handoff`, `review`, `why` | — | — |
 | `chs-eval` | — | — | — |
@@ -233,7 +362,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `create-skill` | — | — | — |
 | `create-workflow` | `check`, `review` | — | — |
 | `csf-nip-integration` | `check` | — | — |
-| `debrief` | `check`, `go`, `refine`, `review`, `why`, `wiki` | `gh` | `session-retrospective` |
+| `debrief` | `check`, `go`, `refine`, `review`, `why`, `wiki` | `gh` | `session-retrospective`, `subagent-dispatch` |
 | `debrief` | `check`, `close`, `design`, `go`, `handoff`, `red-team`, `review`, `why`, `wiki` | — | — |
 | `debt` | `go`, `review` | — | — |
 | `decision-tree` | `design`, `review`, `why` | — | — |
@@ -276,7 +405,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `google-ai-usage-monitor` | `check`, `go`, `review` | — | — |
 | `grok-discovery` | `review`, `why` | `gh` | `source-authority-discovery` |
 | `grok-go` | `go` | — | — |
-| `grok-parallel` | `design`, `go`, `grok-discovery`, `grok-route`, `grok-safe-git`, `grok-verify`, `plan-writer`, `review` | `exa`, `gh` | `parallel-fan-out` |
+| `grok-parallel` | `design`, `go`, `grok-discovery`, `grok-route`, `grok-safe-git`, `grok-verify`, `plan-writer`, `review` | `exa`, `gh` | `parallel-fan-out`, `subagent-dispatch` |
 | `grok-route` | `handoff` | — | `package-routing` |
 | `grok-safe-git` | `check`, `close`, `wiki` | `gh` | `git-safety-preflight` |
 | `grok-sdlc` | `go` | — | — |
@@ -357,7 +486,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `resume-codex` | `codex` | `codex` | — |
 | `resume-cursor` | — | — | — |
 | `retro` | `check`, `debrief`, `red-team` | — | — |
-| `review` | `check`, `close`, `codex`, `go`, `handoff`, `packet`, `red-team`, `refine`, `tp`, `why`, `wiki` | `codex`, `exa`, `gh` | `code-review`, `verified-findings-on-disk` |
+| `review` | `check`, `close`, `codex`, `go`, `handoff`, `packet`, `red-team`, `refine`, `tp`, `why`, `wiki` | `codex`, `exa`, `gh` | `code-review`, `subagent-dispatch`, `verified-findings-on-disk` |
 | `review` | `check`, `design`, `tp`, `why` | — | — |
 | `review` | `check`, `design`, `red-team`, `why` | — | — |
 | `review-pr` | `review` | — | — |
@@ -399,7 +528,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `todo` | `check`, `close`, `go`, `handoff`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `notebooklm`, `reddit` | `workspace-prioritized-action-list` |
 | `top-problems` | `debrief` | — | — |
 | `tot` | `go` | — | — |
-| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `grok-verify`, `handoff`, `mmx`, `notice`, `preflight`, `red-team`, `refine`, `review`, `skill-dev`, `web`, `why`, `wiki` | `codex`, `ddg`, `firecrawl`, `spawn-subagent` | `critical-friend-critique`, `session-opportunity-review`, `system-exploration` |
+| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `grok-verify`, `handoff`, `mmx`, `notice`, `preflight`, `red-team`, `refine`, `review`, `skill-dev`, `web`, `why`, `wiki` | `codex`, `ddg`, `firecrawl`, `spawn-subagent` | `critical-friend-critique`, `session-opportunity-review`, `subagent-dispatch`, `system-exploration` |
 | `trace` | `check`, `close`, `handoff`, `review` | — | — |
 | `truth` | `check` | — | — |
 | `uci` | `review` | — | — |
@@ -412,7 +541,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `verification-before-completion` | `check`, `why` | — | — |
 | `video-vision` | `check`, `why` | — | — |
 | `vision-analysis` | `design`, `review` | — | — |
-| `wargame` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `why`, `wiki` | `codex`, `gh` | `content-discipline-for-plans` |
+| `wargame` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `review`, `why`, `wiki` | `codex`, `gh` | `content-discipline-for-plans` |
 | `web` | `check`, `design`, `mmx`, `search-fleet`, `tp`, `why`, `wiki` | `brave`, `ddg`, `duckduckgo`, `exa`, `firecrawl`, `hn-algolia`, `mmx`, `perplexity`, `reddit`, `search-research`, `stackexchange`, `tavily` | `multi-backend-search`, `rrf-merge` |
 | `web` | `review` | `notebooklm`, `serper` | — |
 | `why` | `aar`, `agy`, `check`, `codex`, `design`, `go`, `handoff`, `mmx`, `packet`, `red-team`, `review`, `tp`, `wiki` | `spawn-subagent` | `feedback-to-wiki`, `pattern-library-query`, `root-cause-analysis` |
@@ -423,7 +552,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `workspace-health` | `check`, `codex`, `handoff`, `recover`, `skill-prune`, `tp`, `why`, `wiki` | — | — |
 | `writing-plans` | `handoff`, `review` | — | — |
 | `writing-skills` | `close` | — | — |
-| `www` | `check`, `close`, `crawl4ai`, `design`, `go`, `red-team`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `ddg`, `firecrawl`, `gh`, `github-issues`, `hn-algolia`, `mmx`, `reddit` | `wiki-web-wiki-research` |
+| `www` | `check`, `close`, `crawl4ai`, `design`, `go`, `red-team`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `ddg`, `firecrawl`, `gh`, `github-issues`, `hn-algolia`, `mmx`, `reddit` | `subagent-dispatch`, `wiki-web-wiki-research` |
 | `yt-is` | `check`, `review`, `web` | — | — |
 | `yt-nlm` | `check`, `review` | `notebooklm` | — |
 | `yt-selenium` | `check`, `close`, `web`, `why` | — | — |
@@ -467,7 +596,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "after-action-review",
         "opportunity-landscape",
         "value-accounting"
-      ]
+      ],
+      "domain": "lifecycle"
     },
     {
       "name": "agy",
@@ -488,7 +618,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "cross-model-second-opinion",
         "gemini-reasoning"
-      ]
+      ],
+      "domain": "cross-model"
     },
     {
       "name": "close",
@@ -517,7 +648,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "gate-resolution",
         "session-close-accounting"
-      ]
+      ],
+      "domain": "lifecycle"
     },
     {
       "name": "codex",
@@ -541,7 +673,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "cross-model-second-opinion",
         "openai-reasoning"
-      ]
+      ],
+      "domain": "cross-model"
     },
     {
       "name": "crawl4ai",
@@ -563,7 +696,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "web-ingestion"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "create-skill",
@@ -582,7 +716,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "skill-scaffolding"
-      ]
+      ],
+      "domain": "self-improvement"
     },
     {
       "name": "debrief",
@@ -601,8 +736,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "references_wiki": [],
       "provides": [
-        "session-retrospective"
-      ]
+        "session-retrospective",
+        "subagent-dispatch"
+      ],
+      "domain": "lifecycle"
     },
     {
       "name": "design",
@@ -640,7 +777,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "design-doc-production"
-      ]
+      ],
+      "domain": "design"
     },
     {
       "name": "dream",
@@ -674,7 +812,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "offline-memory-consolidation"
-      ]
+      ],
+      "domain": "self-improvement"
     },
     {
       "name": "go",
@@ -713,7 +852,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "parallel-implement-dispatch",
         "safe-git-preflight-dispatch",
         "verify-dispatch"
-      ]
+      ],
+      "domain": "orchestration"
     },
     {
       "name": "grok-discovery",
@@ -729,7 +869,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "source-authority-discovery"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "grok-go",
@@ -740,7 +881,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": "orchestration"
     },
     {
       "name": "grok-parallel",
@@ -762,8 +904,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "references_wiki": [],
       "provides": [
-        "parallel-fan-out"
-      ]
+        "parallel-fan-out",
+        "subagent-dispatch"
+      ],
+      "domain": "orchestration"
     },
     {
       "name": "grok-route",
@@ -776,7 +920,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "package-routing"
-      ]
+      ],
+      "domain": "orchestration"
     },
     {
       "name": "grok-safe-git",
@@ -795,7 +940,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "git-safety-preflight"
-      ]
+      ],
+      "domain": "orchestration"
     },
     {
       "name": "grok-sdlc",
@@ -806,7 +952,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": "orchestration"
     },
     {
       "name": "grok-verify",
@@ -827,7 +974,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "completion-gate"
-      ]
+      ],
+      "domain": "testing"
     },
     {
       "name": "handoff",
@@ -854,7 +1002,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "handoff-auto-update",
         "handoff-write"
-      ]
+      ],
+      "domain": "lifecycle"
     },
     {
       "name": "help",
@@ -867,7 +1016,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "grok-documentation-help"
-      ]
+      ],
+      "domain": "fleet-ops"
     },
     {
       "name": "imagine",
@@ -885,7 +1035,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "image-generation-guidance"
-      ]
+      ],
+      "domain": "implementation"
     },
     {
       "name": "maintain",
@@ -909,7 +1060,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "fleet-maintenance"
-      ]
+      ],
+      "domain": "self-improvement"
     },
     {
       "name": "marketplace-bridge",
@@ -923,7 +1075,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "marketplace-skill-discovery"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "mmx",
@@ -951,7 +1104,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "cross-model-second-opinion",
         "minimax-vision",
         "minimax-web-search"
-      ]
+      ],
+      "domain": "cross-model"
     },
     {
       "name": "model-benchmark",
@@ -982,7 +1136,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "cost-tracking",
         "latency-benchmark",
         "quality-scoring"
-      ]
+      ],
+      "domain": "fleet-ops"
     },
     {
       "name": "model-discover",
@@ -999,7 +1154,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "model-discovery"
-      ]
+      ],
+      "domain": "fleet-ops"
     },
     {
       "name": "notice",
@@ -1031,7 +1187,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "mid-conversation-observation-surfacing"
-      ]
+      ],
+      "domain": "lifecycle"
     },
     {
       "name": "packet",
@@ -1055,7 +1212,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "session-export"
-      ]
+      ],
+      "domain": "lifecycle"
     },
     {
       "name": "plan-writer",
@@ -1084,7 +1242,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "plan-writing"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "prompt-patterns",
@@ -1105,7 +1264,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "prompting-techniques-reference"
-      ]
+      ],
+      "domain": "knowledge"
     },
     {
       "name": "refactor",
@@ -1133,7 +1293,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "structural-refactor"
-      ]
+      ],
+      "domain": "implementation"
     },
     {
       "name": "refine",
@@ -1163,7 +1324,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "task-refinement"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "review",
@@ -1192,8 +1354,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "code-review",
+        "subagent-dispatch",
         "verified-findings-on-disk"
-      ]
+      ],
+      "domain": "review"
     },
     {
       "name": "search-fleet",
@@ -1223,7 +1387,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "capability-routed-search",
         "rrf-aggregation"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "skill-dev",
@@ -1257,7 +1422,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "skill-improvement",
         "skill-measurement"
-      ]
+      ],
+      "domain": "self-improvement"
     },
     {
       "name": "tasks",
@@ -1276,7 +1442,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "persistent-task-store"
-      ]
+      ],
+      "domain": "fleet-ops"
     },
     {
       "name": "todo",
@@ -1301,7 +1468,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "workspace-prioritized-action-list"
-      ]
+      ],
+      "domain": "fleet-ops"
     },
     {
       "name": "tp",
@@ -1346,8 +1514,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "critical-friend-critique",
         "session-opportunity-review",
+        "subagent-dispatch",
         "system-exploration"
-      ]
+      ],
+      "domain": "review"
     },
     {
       "name": "wargame",
@@ -1360,6 +1530,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "go",
         "handoff",
         "refine",
+        "review",
         "why",
         "wiki"
       ],
@@ -1370,7 +1541,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "content-discipline-for-plans"
-      ]
+      ],
+      "domain": "review"
     },
     {
       "name": "web",
@@ -1408,7 +1580,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "multi-backend-search",
         "rrf-merge"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "why",
@@ -1442,7 +1615,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "feedback-to-wiki",
         "pattern-library-query",
         "root-cause-analysis"
-      ]
+      ],
+      "domain": "lifecycle"
     },
     {
       "name": "why-old",
@@ -1470,7 +1644,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "problem-first-systems-decomposition",
         "reactive-pattern-matching-and-closure-pressure"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "wiki",
@@ -1494,7 +1669,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "provides": [
         "capability-wiki-query",
         "capability-wiki-write"
-      ]
+      ],
+      "domain": "knowledge"
     },
     {
       "name": "www",
@@ -1532,8 +1708,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "wikilinks"
       ],
       "provides": [
+        "subagent-dispatch",
         "wiki-web-wiki-research"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "build-with-ai",
@@ -1544,7 +1722,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "code-review",
@@ -1558,7 +1737,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "create-skill",
@@ -1567,7 +1747,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "create-workflow",
@@ -1579,7 +1760,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "design",
@@ -1603,7 +1785,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "adr-0009-extend-unverified-stance",
         "exemption-logic-as-conflict-signal"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "docx",
@@ -1612,7 +1795,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "execute-plan",
@@ -1627,7 +1811,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "game-animation-frames",
@@ -1639,7 +1824,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "game-asset-core",
@@ -1648,7 +1834,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "game-character-consistency",
@@ -1659,7 +1846,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "game-tilesets",
@@ -1670,7 +1858,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "game-ui-icons",
@@ -1681,7 +1870,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "imagine",
@@ -1694,7 +1884,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "implement",
@@ -1709,7 +1900,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "pdf",
@@ -1720,7 +1912,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "pptx",
@@ -1732,7 +1925,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "pr-babysit",
@@ -1746,7 +1940,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "resume-claude",
@@ -1755,7 +1950,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "resume-codex",
@@ -1768,7 +1964,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "codex"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "resume-cursor",
@@ -1777,7 +1974,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "review",
@@ -1791,7 +1989,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "check",
@@ -1815,8 +2014,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "model-pool-selection-policy-speed-quota-diversity"
       ],
       "provides": [
-        "session-verification"
-      ]
+        "session-verification",
+        "subagent-dispatch"
+      ],
+      "domain": "testing"
     },
     {
       "name": "red-team",
@@ -1841,7 +2042,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [
         "parallel-subagent-wait-all-gate"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "avant-garde-ui",
@@ -1853,7 +2055,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "config-audit",
@@ -1872,7 +2075,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "llm-instruction-non-compliance-activation-gap-2026",
         "structural-enforcement-for-skipped-rules-grok-build-2026"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "contract-status",
@@ -1881,7 +2085,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "nlm-bulk-ingest",
@@ -1900,7 +2105,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "notebooklm-source-limits-free-vs-paid",
         "semantic-clustering-bounded-size"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "nlm-to-wiki",
@@ -1927,7 +2133,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "video-to-wiki-pipeline-transcript-extraction-multimodal",
         "wikilinks"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "notebooklm",
@@ -1940,7 +2147,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "preflight",
@@ -1955,7 +2163,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "references_wiki": [],
       "provides": [
         "evidence-backed-inventory"
-      ]
+      ],
+      "domain": "discovery"
     },
     {
       "name": "recover",
@@ -1971,7 +2180,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "file-recovery"
-      ]
+      ],
+      "domain": "fleet-ops"
     },
     {
       "name": "skill-prune",
@@ -1988,7 +2198,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "provides": [
         "knowledge-hygiene"
-      ]
+      ],
+      "domain": "self-improvement"
     },
     {
       "name": "workspace-health",
@@ -2006,7 +2217,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "cc-model-router",
@@ -2017,7 +2229,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "debt",
@@ -2029,7 +2242,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "agy",
@@ -2042,7 +2256,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ai-api",
@@ -2058,7 +2273,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ai-cli",
@@ -2074,7 +2290,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "agy"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ai-models",
@@ -2088,7 +2305,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ai-probe-benchmark",
@@ -2099,7 +2317,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ai-probe-nim",
@@ -2110,7 +2329,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ai-probe-openrouter",
@@ -2119,7 +2339,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ai-probe-router",
@@ -2130,7 +2351,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "codex",
@@ -2146,7 +2368,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "codex"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "google-ai-usage-monitor",
@@ -2159,7 +2382,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "intelligence-stream-analyze",
@@ -2171,7 +2395,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "intelligence-stream-ingest",
@@ -2180,7 +2405,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "perplexity-web-mcp",
@@ -2194,7 +2420,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "pwm"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "quota",
@@ -2205,7 +2432,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "behave",
@@ -2219,7 +2447,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "claude-audit",
@@ -2237,7 +2466,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "debrief",
@@ -2256,7 +2486,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "doc-compiler",
@@ -2273,7 +2504,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "epistemic-check",
@@ -2284,7 +2516,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "friction",
@@ -2296,7 +2529,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "recap",
@@ -2311,7 +2545,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "retro",
@@ -2324,7 +2559,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "rns",
@@ -2337,7 +2573,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "skill-audit",
@@ -2353,7 +2590,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "skill-similarity",
@@ -2365,7 +2603,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "top-problems",
@@ -2376,7 +2615,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "trace",
@@ -2390,7 +2630,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "why",
@@ -2404,7 +2645,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "search-research"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ask",
@@ -2419,7 +2661,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "bf",
@@ -2433,7 +2676,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "constitutional-patterns",
@@ -2445,7 +2689,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "constraints",
@@ -2454,7 +2699,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "decision-tree",
@@ -2467,7 +2713,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "evolve",
@@ -2480,7 +2727,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": "evolution"
     },
     {
       "name": "garden",
@@ -2489,7 +2737,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "gitready",
@@ -2501,7 +2750,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "prompt_refiner",
@@ -2513,7 +2763,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ralph",
@@ -2522,7 +2773,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "skill-from-docs",
@@ -2534,7 +2786,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "skill-to-page",
@@ -2551,7 +2804,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "skill-write",
@@ -2567,7 +2821,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "solo-dev-authority",
@@ -2580,7 +2835,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "subagent-driven-development",
@@ -2593,7 +2849,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "usm",
@@ -2605,7 +2862,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "check",
@@ -2620,7 +2878,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "cks",
@@ -2632,7 +2891,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "concept-mapper",
@@ -2644,7 +2904,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "csf-nip-integration",
@@ -2655,7 +2916,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "lmc",
@@ -2668,7 +2930,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "mlc",
@@ -2682,7 +2945,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "simplify-enhanced",
@@ -2694,7 +2958,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "slc",
@@ -2705,7 +2970,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "codebase-to-course",
@@ -2720,7 +2986,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "frontend-dev",
@@ -2734,7 +3001,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "fullstack-dev",
@@ -2751,7 +3019,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "minimax-multimodal-toolkit",
@@ -2766,7 +3035,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "mmx"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "minimax-music-gen",
@@ -2783,7 +3053,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "mmx"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "minimax-music-playlist",
@@ -2798,7 +3069,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "mmx"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "nlm",
@@ -2812,7 +3084,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "notebooklm"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "nlm-to-wiki",
@@ -2831,7 +3104,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "nlm-abc12345-concept-two",
         "wikilinks"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "video-vision",
@@ -2843,7 +3117,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "vision-analysis",
@@ -2855,7 +3130,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "yt-is",
@@ -2868,7 +3144,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "yt-nlm",
@@ -2882,7 +3159,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "notebooklm"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "yt-selenium",
@@ -2896,7 +3174,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "av",
@@ -2907,7 +3186,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "brainstorming",
@@ -2924,7 +3204,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "code",
@@ -2939,7 +3220,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "code-flow-visualizer",
@@ -2948,7 +3230,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "code-review",
@@ -2960,7 +3243,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "design",
@@ -2974,7 +3258,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "diagnose",
@@ -2983,7 +3268,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "dispatching-parallel-agents",
@@ -2995,7 +3281,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "docs",
@@ -3007,7 +3294,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "evidence-driven-experiment-loop",
@@ -3016,7 +3304,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "executing-plans",
@@ -3027,7 +3316,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "finishing-a-development-branch",
@@ -3039,7 +3329,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "go",
@@ -3057,7 +3348,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "improve-codebase-architecture",
@@ -3069,7 +3361,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "mermaid-c4",
@@ -3081,7 +3374,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "perf",
@@ -3090,7 +3384,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "performance-profiler",
@@ -3099,7 +3394,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "planning",
@@ -3117,7 +3413,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "pre-mortem",
@@ -3130,7 +3427,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "preflight",
@@ -3141,7 +3439,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "profile",
@@ -3150,7 +3449,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "qmd-wiki",
@@ -3161,7 +3461,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "rca",
@@ -3172,7 +3473,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "refactor",
@@ -3186,7 +3488,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "review",
@@ -3200,7 +3503,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "review-pr",
@@ -3211,7 +3515,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "review_bundle",
@@ -3225,7 +3530,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "risks",
@@ -3241,7 +3547,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ship",
@@ -3252,7 +3559,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "specify",
@@ -3264,7 +3572,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "sqa",
@@ -3273,7 +3582,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "sqd",
@@ -3284,7 +3594,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "t",
@@ -3296,7 +3607,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "task",
@@ -3309,7 +3621,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tdd",
@@ -3321,7 +3634,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "team",
@@ -3335,7 +3649,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tilldone",
@@ -3347,7 +3662,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tldr-code",
@@ -3359,7 +3675,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tldr-deep",
@@ -3368,7 +3685,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tldr-overview",
@@ -3379,7 +3697,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tldr-router",
@@ -3391,7 +3710,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tldr-stats",
@@ -3402,7 +3722,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "uci",
@@ -3413,7 +3734,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "using-git-worktrees",
@@ -3427,7 +3749,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "using-superpowers",
@@ -3438,7 +3761,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "verification-before-completion",
@@ -3450,7 +3774,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "wiki",
@@ -3461,7 +3786,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "writing-plans",
@@ -3473,7 +3799,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "writing-skills",
@@ -3484,7 +3811,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "zoom-out",
@@ -3495,7 +3823,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "dream",
@@ -3506,7 +3835,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "execution-clarity",
@@ -3517,7 +3847,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "genius",
@@ -3528,7 +3859,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "learn",
@@ -3540,7 +3872,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "pace",
@@ -3549,7 +3882,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "probe",
@@ -3563,7 +3897,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "prospect",
@@ -3580,7 +3915,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "search-research"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "reason",
@@ -3595,7 +3931,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "reflect",
@@ -3608,7 +3945,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "response-atomicity",
@@ -3617,7 +3955,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "s",
@@ -3632,7 +3971,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "sequential-thinking",
@@ -3645,7 +3985,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "skeptic",
@@ -3658,7 +3999,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tot",
@@ -3669,7 +4011,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "truth",
@@ -3680,7 +4023,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": "validation"
     },
     {
       "name": "ut",
@@ -3693,7 +4037,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "ux",
@@ -3706,7 +4051,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "bifrost",
@@ -3715,7 +4061,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "git",
@@ -3727,7 +4074,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "init",
@@ -3740,7 +4088,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "main",
@@ -3754,7 +4103,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "main-review",
@@ -3765,7 +4115,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "mm-quota",
@@ -3778,7 +4129,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "plugin-installer",
@@ -3791,7 +4143,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "recover",
@@ -3803,7 +4156,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "usage-query-skill",
@@ -3812,7 +4166,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "improve",
@@ -3832,7 +4187,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "prompt-enhancer",
@@ -3841,7 +4197,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "adr",
@@ -3850,7 +4207,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "build",
@@ -3862,7 +4220,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "capture",
@@ -3873,7 +4232,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "changelog",
@@ -3884,7 +4244,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "index",
@@ -3893,7 +4254,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "prime",
@@ -3905,7 +4267,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "stale",
@@ -3917,7 +4280,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "aid",
@@ -3929,7 +4293,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "all",
@@ -3938,7 +4303,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "chs",
@@ -3952,7 +4318,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "chs-eval",
@@ -3961,7 +4328,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "context7",
@@ -3975,7 +4343,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "context7"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "crawl",
@@ -3992,7 +4361,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "page",
         "wikilinks"
       ],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "discover",
@@ -4005,7 +4375,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "export-session",
@@ -4016,7 +4387,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "find",
@@ -4029,7 +4401,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "gitingest",
@@ -4044,7 +4417,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "nlm"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "gitpack",
@@ -4059,7 +4433,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "keep",
@@ -4073,7 +4448,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "note",
@@ -4087,7 +4463,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "repomix",
@@ -4096,7 +4473,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "research",
@@ -4108,7 +4486,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "web",
@@ -4122,7 +4501,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "serper"
       ],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "id",
@@ -4133,7 +4513,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "snapshot",
@@ -4145,7 +4526,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": []
+      "provides": [],
+      "domain": ""
     }
   ],
   "reverse": {
@@ -4268,9 +4650,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "go",
         "web"
       ],
-      "reddit": [
+      "ddg": [
         "search-fleet",
-        "todo",
+        "tp",
         "web",
         "www"
       ],
@@ -4278,21 +4660,21 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "search-fleet",
         "web"
       ],
-      "pwm": [
-        "perplexity-web-mcp",
-        "search-fleet"
-      ],
-      "ddg": [
-        "search-fleet",
-        "tp",
-        "web",
-        "www"
-      ],
       "search-research": [
         "prospect",
         "search-fleet",
         "web",
         "why"
+      ],
+      "reddit": [
+        "search-fleet",
+        "todo",
+        "web",
+        "www"
+      ],
+      "pwm": [
+        "perplexity-web-mcp",
+        "search-fleet"
       ],
       "tavily": [
         "search-fleet",
@@ -4309,14 +4691,14 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "tp",
         "why"
       ],
-      "duckduckgo": [
-        "web"
-      ],
       "hn-algolia": [
         "web",
         "www"
       ],
       "stackexchange": [
+        "web"
+      ],
+      "duckduckgo": [
         "web"
       ],
       "github-issues": [
@@ -4333,44 +4715,147 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ]
     },
     "skill_callers": {
-      "handoff": [
+      "go": [
         "aar",
-        "ask",
-        "behave",
+        "ai-api",
+        "avant-garde-ui",
+        "brainstorming",
+        "build",
         "check",
-        "chs",
+        "claude-audit",
         "close",
         "code",
+        "code-review",
+        "codebase-to-course",
         "debrief",
+        "debt",
         "design",
+        "doc-compiler",
+        "docs",
         "dream",
-        "find",
+        "execute-plan",
+        "finishing-a-development-branch",
         "fullstack-dev",
-        "go",
-        "grok-route",
-        "grok-verify",
-        "improve",
-        "maintain",
+        "gitingest",
+        "gitpack",
+        "google-ai-usage-monitor",
+        "grok-go",
+        "grok-parallel",
+        "grok-sdlc",
+        "handoff",
+        "implement",
+        "lmc",
+        "minimax-music-gen",
+        "minimax-music-playlist",
+        "mlc",
+        "model-benchmark",
         "notice",
-        "packet",
         "plan-writer",
         "planning",
-        "prompt-patterns",
-        "prospect",
+        "pr-babysit",
+        "prime",
+        "reason",
         "recap",
+        "red-team",
+        "refactor",
+        "refine",
+        "research",
+        "review",
+        "rns",
+        "ship",
+        "skeptic",
+        "skill-to-page",
+        "skill-write",
+        "todo",
+        "tot",
+        "tp",
+        "using-git-worktrees",
+        "wargame",
+        "why",
+        "why-old",
+        "www",
+        "zoom-out"
+      ],
+      "tp": [
+        "aar",
+        "ai-api",
+        "ai-probe-nim",
+        "bf",
+        "close",
+        "config-audit",
+        "design",
+        "dream",
+        "fullstack-dev",
+        "go",
+        "handoff",
+        "id",
+        "marketplace-bridge",
+        "mmx",
+        "model-benchmark",
+        "model-discover",
+        "notice",
+        "plan-writer",
+        "red-team",
         "refactor",
         "refine",
         "review",
-        "rns",
-        "s",
         "skill-dev",
+        "skill-to-page",
+        "tdd",
         "todo",
-        "tp",
-        "trace",
-        "wargame",
+        "web",
         "why",
+        "why-old",
         "workspace-health",
-        "writing-plans"
+        "www"
+      ],
+      "red-team": [
+        "aar",
+        "claude-audit",
+        "close",
+        "debrief",
+        "design",
+        "dream",
+        "gitpack",
+        "improve",
+        "notice",
+        "pre-mortem",
+        "preflight",
+        "retro",
+        "review",
+        "risks",
+        "skill-audit",
+        "skill-dev",
+        "tp",
+        "why",
+        "why-old",
+        "www"
+      ],
+      "refine": [
+        "aar",
+        "brainstorming",
+        "debrief",
+        "design",
+        "dream",
+        "go",
+        "handoff",
+        "keep",
+        "mermaid-c4",
+        "minimax-music-gen",
+        "mlc",
+        "model-benchmark",
+        "note",
+        "plan-writer",
+        "probe",
+        "prompt_refiner",
+        "red-team",
+        "refactor",
+        "review",
+        "s",
+        "sequential-thinking",
+        "tp",
+        "wargame",
+        "www"
       ],
       "packet": [
         "aar",
@@ -4620,75 +5105,73 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "yt-nlm",
         "yt-selenium"
       ],
-      "red-team": [
-        "aar",
-        "claude-audit",
-        "close",
-        "debrief",
-        "design",
-        "dream",
-        "gitpack",
-        "improve",
-        "notice",
-        "pre-mortem",
-        "preflight",
-        "retro",
-        "review",
-        "risks",
-        "skill-audit",
-        "skill-dev",
-        "tp",
-        "why",
-        "why-old",
-        "www"
-      ],
-      "wiki": [
+      "handoff": [
         "aar",
         "ask",
+        "behave",
         "check",
-        "claude-audit",
+        "chs",
         "close",
-        "config-audit",
-        "crawl",
-        "crawl4ai",
-        "create-skill",
+        "code",
         "debrief",
         "design",
-        "doc-compiler",
         "dream",
-        "gitpack",
+        "find",
+        "fullstack-dev",
         "go",
-        "grok-safe-git",
-        "handoff",
+        "grok-route",
+        "grok-verify",
         "improve",
-        "main",
         "maintain",
-        "model-benchmark",
-        "model-discover",
-        "nlm-bulk-ingest",
-        "nlm-to-wiki",
         "notice",
         "packet",
         "plan-writer",
+        "planning",
         "prompt-patterns",
         "prospect",
-        "qmd-wiki",
-        "red-team",
+        "recap",
         "refactor",
         "refine",
         "review",
-        "search-fleet",
+        "rns",
+        "s",
         "skill-dev",
-        "skill-prune",
         "todo",
         "tp",
-        "ut",
-        "ux",
+        "trace",
         "wargame",
-        "web",
         "why",
         "workspace-health",
-        "www"
+        "writing-plans"
+      ],
+      "close": [
+        "aar",
+        "check",
+        "claude-audit",
+        "debrief",
+        "doc-compiler",
+        "dream",
+        "fullstack-dev",
+        "grok-safe-git",
+        "grok-verify",
+        "handoff",
+        "maintain",
+        "notice",
+        "planning",
+        "pptx",
+        "probe",
+        "red-team",
+        "refactor",
+        "review",
+        "skill-dev",
+        "skill-to-page",
+        "team",
+        "todo",
+        "tp",
+        "trace",
+        "writing-skills",
+        "www",
+        "yt-selenium"
       ],
       "review": [
         "aar",
@@ -4789,6 +5272,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "trace",
         "uci",
         "vision-analysis",
+        "wargame",
         "web",
         "why",
         "why-old",
@@ -4864,154 +5348,53 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "wiki",
         "www"
       ],
-      "tp": [
+      "wiki": [
         "aar",
-        "ai-api",
-        "ai-probe-nim",
-        "bf",
+        "ask",
+        "check",
+        "claude-audit",
         "close",
         "config-audit",
+        "crawl",
+        "crawl4ai",
+        "create-skill",
+        "debrief",
         "design",
+        "doc-compiler",
         "dream",
-        "fullstack-dev",
+        "gitpack",
         "go",
+        "grok-safe-git",
         "handoff",
-        "id",
-        "marketplace-bridge",
-        "mmx",
+        "improve",
+        "main",
+        "maintain",
         "model-benchmark",
         "model-discover",
+        "nlm-bulk-ingest",
+        "nlm-to-wiki",
         "notice",
+        "packet",
         "plan-writer",
+        "prompt-patterns",
+        "prospect",
+        "qmd-wiki",
         "red-team",
         "refactor",
         "refine",
         "review",
+        "search-fleet",
         "skill-dev",
-        "skill-to-page",
-        "tdd",
+        "skill-prune",
         "todo",
+        "tp",
+        "ut",
+        "ux",
+        "wargame",
         "web",
         "why",
-        "why-old",
         "workspace-health",
         "www"
-      ],
-      "refine": [
-        "aar",
-        "brainstorming",
-        "debrief",
-        "design",
-        "dream",
-        "go",
-        "handoff",
-        "keep",
-        "mermaid-c4",
-        "minimax-music-gen",
-        "mlc",
-        "model-benchmark",
-        "note",
-        "plan-writer",
-        "probe",
-        "prompt_refiner",
-        "red-team",
-        "refactor",
-        "review",
-        "s",
-        "sequential-thinking",
-        "tp",
-        "wargame",
-        "www"
-      ],
-      "close": [
-        "aar",
-        "check",
-        "claude-audit",
-        "debrief",
-        "doc-compiler",
-        "dream",
-        "fullstack-dev",
-        "grok-safe-git",
-        "grok-verify",
-        "handoff",
-        "maintain",
-        "notice",
-        "planning",
-        "pptx",
-        "probe",
-        "red-team",
-        "refactor",
-        "review",
-        "skill-dev",
-        "skill-to-page",
-        "team",
-        "todo",
-        "tp",
-        "trace",
-        "writing-skills",
-        "www",
-        "yt-selenium"
-      ],
-      "go": [
-        "aar",
-        "ai-api",
-        "avant-garde-ui",
-        "brainstorming",
-        "build",
-        "check",
-        "claude-audit",
-        "close",
-        "code",
-        "code-review",
-        "codebase-to-course",
-        "debrief",
-        "debt",
-        "design",
-        "doc-compiler",
-        "docs",
-        "dream",
-        "execute-plan",
-        "finishing-a-development-branch",
-        "fullstack-dev",
-        "gitingest",
-        "gitpack",
-        "google-ai-usage-monitor",
-        "grok-go",
-        "grok-parallel",
-        "grok-sdlc",
-        "handoff",
-        "implement",
-        "lmc",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mlc",
-        "model-benchmark",
-        "notice",
-        "plan-writer",
-        "planning",
-        "pr-babysit",
-        "prime",
-        "reason",
-        "recap",
-        "red-team",
-        "refactor",
-        "refine",
-        "research",
-        "review",
-        "rns",
-        "ship",
-        "skeptic",
-        "skill-to-page",
-        "skill-write",
-        "todo",
-        "tot",
-        "tp",
-        "using-git-worktrees",
-        "wargame",
-        "why",
-        "why-old",
-        "www",
-        "zoom-out"
       ],
       "web": [
         "agy",
@@ -5102,11 +5485,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "tp",
         "why"
       ],
-      "skill-dev": [
-        "create-skill",
-        "red-team",
-        "tp"
-      ],
       "skill-prune": [
         "config-audit",
         "create-skill",
@@ -5114,11 +5492,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "skill-dev",
         "workspace-health"
       ],
-      "plan-writer": [
-        "design",
-        "go",
-        "grok-parallel",
-        "refine"
+      "skill-dev": [
+        "create-skill",
+        "red-team",
+        "tp"
+      ],
+      "todo": [
+        "design"
       ],
       "mmx": [
         "design",
@@ -5133,12 +5513,27 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "web",
         "why"
       ],
+      "plan-writer": [
+        "design",
+        "go",
+        "grok-parallel",
+        "refine"
+      ],
       "preflight": [
         "design",
         "tp"
       ],
-      "todo": [
-        "design"
+      "grok-verify": [
+        "go",
+        "grok-parallel",
+        "refactor",
+        "skill-dev",
+        "tp"
+      ],
+      "grok-route": [
+        "go",
+        "grok-parallel",
+        "grok-verify"
       ],
       "grok-parallel": [
         "go",
@@ -5152,18 +5547,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "go",
         "grok-parallel",
         "grok-verify"
-      ],
-      "grok-route": [
-        "go",
-        "grok-parallel",
-        "grok-verify"
-      ],
-      "grok-verify": [
-        "go",
-        "grok-parallel",
-        "refactor",
-        "skill-dev",
-        "tp"
       ],
       "recover": [
         "config-audit",
@@ -5210,27 +5593,21 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ]
     },
     "wiki_referencers": {
-      "user-modeling-for-agentic-clis": [
-        "aar",
-        "notice"
-      ],
-      "operator-collaboration-style-and-leverage": [
-        "aar",
-        "dream"
-      ],
       "parallel-subagent-wait-all-gate": [
         "aar",
         "red-team",
         "www"
       ],
+      "operator-collaboration-style-and-leverage": [
+        "aar",
+        "dream"
+      ],
+      "user-modeling-for-agentic-clis": [
+        "aar",
+        "notice"
+      ],
       "friction-detection-operator-pushback-as-trigger": [
         "aar"
-      ],
-      "prompting-patterns-for-ai-agent-control": [
-        "close",
-        "create-skill",
-        "go",
-        "prompt-patterns"
       ],
       "agentic-sdlc-skill-lifecycle-architecture": [
         "check",
@@ -5241,9 +5618,11 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "refine",
         "review"
       ],
-      "page": [
-        "crawl",
-        "crawl4ai"
+      "prompting-patterns-for-ai-agent-control": [
+        "close",
+        "create-skill",
+        "go",
+        "prompt-patterns"
       ],
       "wikilinks": [
         "crawl",
@@ -5252,19 +5631,23 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "wiki",
         "www"
       ],
-      "exemption-logic-as-conflict-signal": [
-        "design"
+      "page": [
+        "crawl",
+        "crawl4ai"
       ],
       "adr-0009-extend-unverified-stance": [
         "design"
       ],
-      "llm-synthesis-quality-and-speed-techniques": [
+      "raising-coding-best-practices-in-ai-agents": [
+        "design"
+      ],
+      "exemption-logic-as-conflict-signal": [
         "design"
       ],
       "consistency-drift-as-waste-source-in-iterative-refinement": [
         "design"
       ],
-      "raising-coding-best-practices-in-ai-agents": [
+      "llm-synthesis-quality-and-speed-techniques": [
         "design"
       ],
       "llm-dreaming-memory-consolidation": [
@@ -5286,19 +5669,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "model-benchmark",
         "tp"
       ],
+      "mechanisms-for-thought-partner-behavior": [
+        "notice"
+      ],
       "proactive-ai-volunteering-mechanisms": [
         "notice"
       ],
       "wiki-concept": [
         "notice"
       ],
-      "mechanisms-for-thought-partner-behavior": [
-        "notice"
-      ],
-      "agents-md-construction-best-practices": [
+      "conversation-distillation-review-packet-export": [
         "packet"
       ],
-      "conversation-distillation-review-packet-export": [
+      "agents-md-construction-best-practices": [
         "packet"
       ],
       "maker-checker-required-for-enforcement-work": [
@@ -5310,17 +5693,14 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "trust-escalation-ladder-autonomous-agent-work": [
         "refine"
       ],
-      "workflow-definition-over-agent-capability": [
+      "task-refinement-interview-detection-template-patterns": [
         "refine"
       ],
-      "task-refinement-interview-detection-template-patterns": [
+      "workflow-definition-over-agent-capability": [
         "refine"
       ],
       "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
         "refine"
-      ],
-      "skill-development-portfolio": [
-        "skill-dev"
       ],
       "skill-techniques-index": [
         "skill-dev"
@@ -5328,11 +5708,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "skill-management-in-agentic-systems-research-survey": [
         "skill-dev"
       ],
-      "markdown-mermaid-rendering-agentic-clis-windows-11": [
-        "tp"
+      "skill-development-portfolio": [
+        "skill-dev"
       ],
-      "model-pool-selection-policy-speed-quota-diversity": [
-        "check",
+      "model-fit-and-post-hoc-behavioral-detection": [
         "tp"
       ],
       "analyst-exhibits-pattern-being-analyzed": [
@@ -5341,19 +5720,23 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "model-tool-calling-capability-matrix": [
         "tp"
       ],
-      "model-fit-and-post-hoc-behavioral-detection": [
+      "model-pool-selection-policy-speed-quota-diversity": [
+        "check",
         "tp"
       ],
-      "optimal-multi-backend-search-strategy": [
-        "web"
-      ],
-      "web-research-state-2026": [
-        "web"
+      "markdown-mermaid-rendering-agentic-clis-windows-11": [
+        "tp"
       ],
       "web-search-tool-routing": [
         "web"
       ],
       "search-tool-landscape-2026": [
+        "web"
+      ],
+      "web-research-state-2026": [
+        "web"
+      ],
+      "optimal-multi-backend-search-strategy": [
         "web"
       ],
       "compaction-inherited-diagnosis-unverified-propagation": [
@@ -5374,15 +5757,11 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "premature-closure-narrative-sufficiency-external-approaches": [
         "why-old"
       ],
-      "fabricated-causal-chain-receipt-required": [
-        "why-old"
-      ],
       "plausible-narratives-substitute-for-verification": [
         "why-old"
       ],
-      "skill-catalog": [
-        "wiki",
-        "www"
+      "fabricated-causal-chain-receipt-required": [
+        "why-old"
       ],
       "synchronous-review-direct-write-pattern": [
         "wiki"
@@ -5390,17 +5769,21 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "inline-conditional-over-dispatch-for-skill-design": [
         "wiki"
       ],
+      "skill-catalog": [
+        "wiki",
+        "www"
+      ],
       "concurrent-cdp-auth-contention": [
         "nlm-to-wiki",
+        "www"
+      ],
+      "invariants-beat-environment-comfort": [
         "www"
       ],
       "notebooklm-cli-operational-gotchas": [
         "nlm-bulk-ingest",
         "nlm-to-wiki",
         "recover",
-        "www"
-      ],
-      "invariants-beat-environment-comfort": [
         "www"
       ],
       "llm-instruction-non-compliance-activation-gap-2026": [
@@ -5410,12 +5793,12 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "structural-enforcement-for-skipped-rules-grok-build-2026": [
         "config-audit"
       ],
-      "semantic-clustering-bounded-size": [
-        "nlm-bulk-ingest"
-      ],
       "notebooklm-source-limits-free-vs-paid": [
         "nlm-bulk-ingest",
         "nlm-to-wiki"
+      ],
+      "semantic-clustering-bounded-size": [
+        "nlm-bulk-ingest"
       ],
       "video-to-wiki-pipeline-transcript-extraction-multimodal": [
         "nlm-to-wiki"
@@ -5426,10 +5809,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "nlm-bulk-ingest": [
         "nlm-to-wiki"
       ],
-      "nlm-abc12345-concept-one": [
+      "nlm-abc12345-concept-two": [
         "nlm-to-wiki"
       ],
-      "nlm-abc12345-concept-two": [
+      "nlm-abc12345-concept-one": [
         "nlm-to-wiki"
       ]
     },
@@ -5451,10 +5834,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "gemini-reasoning": [
         "agy"
       ],
-      "session-close-accounting": [
+      "gate-resolution": [
         "close"
       ],
-      "gate-resolution": [
+      "session-close-accounting": [
         "close"
       ],
       "openai-reasoning": [
@@ -5466,6 +5849,14 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "skill-scaffolding": [
         "create-skill"
       ],
+      "subagent-dispatch": [
+        "check",
+        "debrief",
+        "grok-parallel",
+        "review",
+        "tp",
+        "www"
+      ],
       "session-retrospective": [
         "debrief"
       ],
@@ -5475,13 +5866,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "offline-memory-consolidation": [
         "dream"
       ],
+      "engineering-orchestration": [
+        "go"
+      ],
       "discovery-dispatch": [
         "go"
       ],
       "verify-dispatch": [
-        "go"
-      ],
-      "engineering-orchestration": [
         "go"
       ],
       "safe-git-preflight-dispatch": [
@@ -5505,10 +5896,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "completion-gate": [
         "grok-verify"
       ],
-      "handoff-write": [
+      "handoff-auto-update": [
         "handoff"
       ],
-      "handoff-auto-update": [
+      "handoff-write": [
         "handoff"
       ],
       "grok-documentation-help": [
@@ -5529,13 +5920,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "minimax-web-search": [
         "mmx"
       ],
-      "cost-tracking": [
+      "latency-benchmark": [
         "model-benchmark"
       ],
       "quality-scoring": [
         "model-benchmark"
       ],
-      "latency-benchmark": [
+      "cost-tracking": [
         "model-benchmark"
       ],
       "model-discovery": [
@@ -5571,10 +5962,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "rrf-aggregation": [
         "search-fleet"
       ],
-      "skill-measurement": [
+      "skill-improvement": [
         "skill-dev"
       ],
-      "skill-improvement": [
+      "skill-measurement": [
         "skill-dev"
       ],
       "persistent-task-store": [
@@ -5595,19 +5986,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "content-discipline-for-plans": [
         "wargame"
       ],
-      "rrf-merge": [
-        "web"
-      ],
       "multi-backend-search": [
         "web"
       ],
-      "pattern-library-query": [
-        "why"
+      "rrf-merge": [
+        "web"
       ],
       "feedback-to-wiki": [
         "why"
       ],
       "root-cause-analysis": [
+        "why"
+      ],
+      "pattern-library-query": [
         "why"
       ],
       "capability-wiki-query": [
