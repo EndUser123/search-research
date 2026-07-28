@@ -4,7 +4,7 @@ Quick reference, common questions, and troubleshooting for the nlm-to-wiki
 skill. Loaded on demand; SKILL.md carries the entry-point summary.
 
 All commands run from `P:/.agents/skills/nlm-to-wiki/scripts/`. The default
-profile is `codex` (= `a.hominidae@gmail.com` on this host).
+profile is `a.hominidae` (= `a.hominidae@gmail.com` on this host).
 
 ## Quick reference
 
@@ -20,7 +20,7 @@ profile is `codex` (= `a.hominidae@gmail.com` on this host).
 | Disk usage per notebook | `python maintenance.py --disk-report` |
 | Fix stale manifest slugs | `python maintenance.py --fix-stale-slugs --confirm` |
 | Prune a deleted notebook's state | `python maintenance.py --prune-notebook <uuid> --confirm` |
-| Recover from auth expiry | `nlm login --profile codex` (silent CDP, ~10s, no browser interaction) |
+| Recover from auth expiry | `nlm login --profile a.hominidae` (silent CDP, ~10s, no browser interaction) |
 | Bulk ingestion (queue worker) | `python scripts/bin/queue_sync.py --worker --worker-id w1` |
 | Enqueue from both accounts | `python scripts/bin/queue_sync.py --enqueue --all-profiles` |
 | Check bulk queue status | `python scripts/bin/queue_sync.py --status` |
@@ -72,7 +72,7 @@ re-auth fails, run `nlm login --profile <name>` and sign in as the
 respective account in the browser window.
 
 **Can I run `sync.py --all` alongside queue workers?** **No.** Each
-`nlm login --profile codex` call invalidates the previous CDP session.
+`nlm login --profile a.hominidae` call invalidates the previous CDP session.
 Two drivers both calling `nlm login` will silently invalidate each other,
 producing 0-page failures. Use the queue worker as the single parallel
 driver — do not mix it with `--all` or manual `sync.py` runs.
@@ -91,9 +91,9 @@ driver — do not mix it with `--all` or manual `sync.py` runs.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `✗ Authentication Error: Authentication expired` | nlm cookie session expired | `nlm login --profile codex` — silent CDP re-auth, ~10s, **no browser interaction needed**. Do NOT escalate to the operator; this is agent-performable. ([[notebooklm-cli-operational-gotchas]] Gotcha 1) |
-| `nlm login --check` returns `network_error` | The probe lies; auth is probably fine | Ignore the probe. Run `nlm login --profile codex` to silently refresh, or just retry the operation. |
-| Status table shows 0 notebooks | Auth expired before list call | `nlm login --profile codex`, then re-run `--status` |
+| `✗ Authentication Error: Authentication expired` | nlm cookie session expired | `nlm login --profile a.hominidae` — silent CDP re-auth, ~10s, **no browser interaction needed**. Do NOT escalate to the operator; this is agent-performable. ([[notebooklm-cli-operational-gotchas]] Gotcha 1) |
+| `nlm login --check` returns `network_error` | The probe lies; auth is probably fine | Ignore the probe. Run `nlm login --profile a.hominidae` to silently refresh, or just retry the operation. |
+| Status table shows 0 notebooks | Auth expired before list call | `nlm login --profile a.hominidae`, then re-run `--status` |
 | Export produces 0 transcripts but source list works | (rare) all sources already exported and `--force` not set | `python export_transcripts.py --notebook <id> --force` to re-export |
 | Clustering produces 1 giant cluster | Too few transcripts or `--min-cluster-size` too high for the input | Normal for tiny notebooks; real notebooks (50+ sources) produce 5-15 clusters. Lower `--min-cluster-size` for small test runs. |
 | Synthesis returns no JSON (parse fail) | LLM wrapped output in prose or hit `stop_reason: length` | Re-run; if persistent, switch `--synth-backend dgemma` or narrow input via `--max-members` |
@@ -108,5 +108,5 @@ driver — do not mix it with `--all` or manual `sync.py` runs.
 **The auth-recovery recipe is agent-performable.** The single most common
 failure mode (expired session) has a ~10s silent recovery that does NOT
 require operator intervention. If you hit "Authentication expired," run
-`nlm login --profile codex` and retry — do not report it as a blocker. See
+`nlm login --profile a.hominidae` and retry — do not report it as a blocker. See
 [[notebooklm-cli-operational-gotchas]] Gotcha 1 for the full receipt.

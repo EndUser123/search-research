@@ -17,7 +17,7 @@ timestamps so the cost-free metadata is captured and the expensive vision
 step is operator-gated.
 
 Usage:
-  python enrich_vision.py --notebook <uuid> --profile codex \\
+  python enrich_vision.py --notebook <uuid> --profile a.hominidae \\
       --transcripts-dir P:/.data/wiki/sources/transcripts/ --threshold 10
 """
 from __future__ import annotations
@@ -190,7 +190,7 @@ def enrich_notebook(notebook_id: str, profile: str, transcripts_dir: Path,
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--notebook", required=True)
-    ap.add_argument("--profile", default="codex")
+    ap.add_argument("--profile", default="a.hominidae")
     ap.add_argument("--transcripts-dir", type=Path, default=Path("P:/.data/wiki/sources/transcripts"))
     ap.add_argument("--threshold", type=int, default=10, help="scene-change keyframe count above which a video is enriched")
     ap.add_argument("--scene", type=float, default=0.30, help="ffmpeg perceptual scene-change filter threshold")

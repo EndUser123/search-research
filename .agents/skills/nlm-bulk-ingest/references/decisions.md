@@ -130,7 +130,7 @@ process dies (Ctrl+C, network outage, system reboot):
 
 ```bash
 # Just re-run the same command
-python ingest.py clusters.json --all --state run.json --prefix "WL: " --profile codex
+python ingest.py clusters.json --all --state run.json --prefix "WL: " --profile a.hominidae
 ```
 
 It skips `completed` clusters and retries `failed` ones. Safe to interrupt

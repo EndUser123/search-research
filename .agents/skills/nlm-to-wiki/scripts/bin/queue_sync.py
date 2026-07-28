@@ -5,8 +5,8 @@ Durable location: P:/.agents/skills/nlm-to-wiki/scripts/bin/queue_sync.py
 Queue file: P:/.data/wiki/_state/nlm-sync/queue.json
 
 Usage:
-  python queue_sync.py --enqueue --profile codex
-  python queue_sync.py --worker --worker-id w1 --profile codex
+  python queue_sync.py --enqueue --profile a.hominidae
+  python queue_sync.py --worker --worker-id w1 --profile a.hominidae
   python queue_sync.py --status
   python queue_sync.py --retry-failed
 """
@@ -20,14 +20,14 @@ import time
 from datetime import date
 from pathlib import Path
 
-PROFILE_DEFAULT = "codex"
+PROFILE_DEFAULT = "a.hominidae"
 MIN_SOURCES = 50
 MAX_RETRIES = 3
 # Profiles known to this host. Each profile is an independent NotebookLM session
 # (separate CDP, separate rate limit). Different profiles do NOT contend for auth.
 # Named by email-prefix for clarity (matches the Google account identity).
 PROFILE_META = {
-    "codex": {"email": "a.hominidae@gmail.com", "tier": "paid", "max_sources": 300},
+    "a.hominidae": {"email": "a.hominidae@gmail.com", "tier": "paid", "max_sources": 300},
     "troup.hominidae": {"email": "troup.hominidae@gmail.com", "tier": "free", "max_sources": 50},
     "brsthomson": {"email": "brsthomson@hotmail.com", "tier": "free", "max_sources": 50},
 }
@@ -239,9 +239,9 @@ def main():
     g.add_argument("--status", action="store_true")
     g.add_argument("--retry-failed", action="store_true")
     ap.add_argument("--profile", default=PROFILE_DEFAULT,
-                    help="Single profile (default: codex). Use --all-profiles to enqueue from both.")
+                    help="Single profile (default: a.hominidae). Use --all-profiles to enqueue from all.")
     ap.add_argument("--all-profiles", action="store_true",
-                    help="Enqueue from all configured profiles (codex + troup.hominidae + brsthomson)")
+                    help="Enqueue from all configured profiles (a.hominidae + troup.hominidae + brsthomson)")
     ap.add_argument("--worker-id", default=None)
     ap.add_argument("--min-sources", type=int, default=MIN_SOURCES)
     args = ap.parse_args()

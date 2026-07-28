@@ -13,7 +13,7 @@ Strategy:
 
 Usage:
   python match_uuids_to_urls.py --notebook <uuid> --cluster-id <id> \\
-      --clusters-json clusters.json --profile codex
+      --clusters-json clusters.json --profile a.hominidae
 """
 from __future__ import annotations
 
@@ -125,7 +125,7 @@ def main() -> int:
     ap.add_argument("--notebook", required=True)
     ap.add_argument("--cluster-id", type=int, required=True)
     ap.add_argument("--clusters-json", type=Path, required=True)
-    ap.add_argument("--profile", default="codex")
+    ap.add_argument("--profile", default="a.hominidae")
     ap.add_argument("--threshold", type=float, default=0.85,
                     help="Fuzzy-match threshold (0-1); below this, UUID is unmatched")
     ap.add_argument("-o", "--output", type=Path, help="Output JSON (default: stdout)")

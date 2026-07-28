@@ -11,7 +11,7 @@ Default mode is read-only audit. Fixes require explicit flags + --confirm.
 
 Usage:
   # Audit (read-only, safe) — report all mismatches
-  python maintenance.py --audit --profile codex
+  python maintenance.py --audit --profile a.hominidae
 
   # Fix stale manifest concept_slugs (pages deleted but slugs remain)
   python maintenance.py --fix-stale-slugs --confirm
@@ -361,7 +361,7 @@ def disk_report() -> None:
 
 # --- main ----------------------------------------------------------------
 
-GLOBAL_PROFILE = "codex"  # set from args; used by remove_orphaned_transcripts
+GLOBAL_PROFILE = "a.hominidae"  # set from args; used by remove_orphaned_transcripts
 
 
 def main() -> int:
@@ -373,7 +373,7 @@ def main() -> int:
     ap.add_argument("--prune-notebook", metavar="UUID", help="remove ALL state for a notebook")
     ap.add_argument("--all-fixes", action="store_true", help="run fix-stale-slugs + remove-orphaned-transcripts")
     ap.add_argument("--disk-report", action="store_true")
-    ap.add_argument("--profile", default="codex")
+    ap.add_argument("--profile", default="a.hominidae")
     ap.add_argument("--confirm", action="store_true",
                     help="required to apply any destructive change (default is dry-run)")
     args = ap.parse_args()

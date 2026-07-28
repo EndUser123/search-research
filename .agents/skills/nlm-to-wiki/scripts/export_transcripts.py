@@ -14,7 +14,7 @@ LLM synthesis. See [[video-to-wiki-pipeline-transcript-extraction-multimodal]]
 § "Export raw transcripts, don't synthesize at the source".
 
 Usage:
-  python export_transcripts.py --notebook <uuid> --profile codex \\
+  python export_transcripts.py --notebook <uuid> --profile a.hominidae \\
       --out P:/.data/wiki/sources/transcripts/
 
 Crash-resumable: sources whose transcript file already exists are skipped
@@ -116,7 +116,7 @@ def fetch_via_ytdlp(source: dict) -> tuple[str, str]:
     # Extract 11-char YouTube video ID from URL-shaped titles
     m = _re.search(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})", title)
     if not m:
-        return "", f"no video_id in title (title is descriptive, not a URL)"
+        return "", "no video_id in title (title is descriptive, not a URL)"
     vid = m.group(1)
     url = f"https://www.youtube.com/watch?v={vid}"
 
@@ -252,7 +252,7 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--notebook", required=True)
-    ap.add_argument("--profile", default="codex")
+    ap.add_argument("--profile", default="a.hominidae")
     ap.add_argument("--out", type=Path, default=Path("P:/.data/wiki/sources/transcripts"))
     ap.add_argument("--spacing", type=float, default=1.5, help="seconds between source content calls")
     ap.add_argument("--force", action="store_true", help="re-export even if transcript file exists")

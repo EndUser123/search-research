@@ -3,10 +3,10 @@
 
 Usage:
   # Pilot one cluster end-to-end
-  python ingest.py clusters.json --pilot <id> --prefix "WL: " --profile codex
+  python ingest.py clusters.json --pilot <id> --prefix "WL: " --profile a.hominidae
 
   # Ingest all clusters (crash-resumable via --state)
-  python ingest.py clusters.json --all --prefix "WL: " --profile codex --state run.json
+  python ingest.py clusters.json --all --prefix "WL: " --profile a.hominidae --state run.json
 
 Notes:
   - The first URL of every bulk-add prints "Error: Failed to add URL source"
@@ -202,7 +202,7 @@ def main() -> int:
     ap.add_argument("--pilot", type=int, help="Pilot a single cluster end-to-end")
     ap.add_argument("--all", action="store_true", help="Ingest all clusters not yet in --state")
     ap.add_argument("--prefix", default="", help="Prefix for notebook titles")
-    ap.add_argument("--profile", default="codex", help="nlm profile name")
+    ap.add_argument("--profile", default="a.hominidae", help="nlm profile name")
     ap.add_argument("--state", type=Path, default=DEFAULT_STATE, help="State file for resume")
     args = ap.parse_args()
 

@@ -3,13 +3,13 @@
 
 Usage:
   # Single notebook (canonical case)
-  python sync.py --notebook <uuid> --profile codex
+  python sync.py --notebook <uuid> --profile a.hominidae
 
   # All notebooks (sequential)
-  python sync.py --all --profile codex --state sync-state.json
+  python sync.py --all --profile a.hominidae --state sync-state.json
 
   # From nlm-bulk-ingest clusters.json (round-trip)
-  python sync.py --from-clusters clusters.json --profile codex --state sync-state.json
+  python sync.py --from-clusters clusters.json --profile a.hominidae --state sync-state.json
 
   # Dry run (export + cluster + synthesize + reconcile, no page writes)
   python sync.py --notebook <uuid> --dry-run
@@ -422,7 +422,7 @@ def main() -> int:
     g.add_argument("--from-clusters", type=Path, metavar="CLUSTERS_JSON")
     g.add_argument("--status", action="store_true",
                    help="print notebook sync status table and exit (also the default when no target given)")
-    ap.add_argument("--profile", default="codex")
+    ap.add_argument("--profile", default="a.hominidae")
     ap.add_argument("--state", type=Path, help="resume-state file for --all / --from-clusters")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--min-sources", type=int, default=10,

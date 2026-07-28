@@ -123,12 +123,12 @@ python P:/.agents/skills/nlm-to-wiki/scripts/sync.py --status --min-sources 50
 # Sync one notebook (the canonical case)
 python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
     --notebook <uuid> \
-    --profile codex
+    --profile a.hominidae
 
 # Sync all notebooks (sequential; ~10-30 min each)
 python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
     --all \
-    --profile codex \
+    --profile a.hominidae \
     --state sync-state.json
 
 # Round-trip from nlm-bulk-ingest output
@@ -178,7 +178,7 @@ notebooks at ~15-25 min each is multi-hour work.
 
 For the full cheat-sheet, FAQ, and troubleshooting table, see
 `references/help.md` (or run `/nlm-to-wiki -h`). Key pointer: auth expiry
-recovers silently via `nlm login --profile codex` (~10s, no operator
+recovers silently via `nlm login --profile a.hominidae` (~10s, no operator
 intervention).
 
 ## Decision points
@@ -192,7 +192,7 @@ intervention).
 | Vision enrichment | Off (opt-in `--enrich-vision`) | Enable for notebooks with visual content (tutorials, demos); talking-head videos auto-skip |
 | Scene-change threshold | 10 keyframes | `enrich_vision.py --threshold`; lower to enrich more videos |
 | Similarity threshold for `refines` | 0.75 (cosine on embeddings) | `--threshold 0.85` for stricter matching |
-| Notebook profile | `codex` on this host | Matches `[[nlm-bulk-ingest]]` default |
+| Notebook profile | `a.hominidae` on this host | Matches `[[nlm-bulk-ingest]]` default |
 
 ## Provenance model (4-hop chain)
 
@@ -234,14 +234,14 @@ processes claim items, sync them, and report results.
 
 ```bash
 # Populate the queue from NotebookLM (notebooks with ≥50 sources)
-python scripts/bin/queue_sync.py --enqueue --profile codex
+python scripts/bin/queue_sync.py --enqueue --profile a.hominidae
 
 # Populate from BOTH accounts (paid + free) in one call
 python scripts/bin/queue_sync.py --enqueue --all-profiles
 
 # Start a worker (run 2-3 of these in separate terminals)
-python scripts/bin/queue_sync.py --worker --worker-id w1 --profile codex
-python scripts/bin/queue_sync.py --worker --worker-id w2 --profile codex
+python scripts/bin/queue_sync.py --worker --worker-id w1 --profile a.hominidae
+python scripts/bin/queue_sync.py --worker --worker-id w2 --profile a.hominidae
 
 # Check progress
 python scripts/bin/queue_sync.py --status
@@ -256,7 +256,7 @@ This host has two NotebookLM accounts configured as named profiles:
 
 | Profile | Email | Tier | Max sources/notebook |
 |---------|-------|------|---------------------|
-| `codex` | a.hominidae@gmail.com | Paid | 300 |
+| `a.hominidae` | a.hominidae@gmail.com | Paid | 300 |
 | `troup.hominidae` | troup.hominidae@gmail.com | Free | 50 |
 | `brsthomson` | brsthomson@hotmail.com | Free | 50 |
 
@@ -285,7 +285,7 @@ After the one-time login, subsequent re-auth is silent via CDP.
 
 **⚠ Auth contention (critical):** never run two different sync drivers
 concurrently (e.g., `sync.py --all` alongside queue workers). Each
-`nlm login --profile codex` call invalidates the previous CDP session.
+`nlm login --profile a.hominidae` call invalidates the previous CDP session.
 Two drivers both calling `nlm login` will silently invalidate each other's
 auth, producing 0-page failures with no error. The queue worker is the
 single approved parallel driver — do not mix it with `--all` or manual

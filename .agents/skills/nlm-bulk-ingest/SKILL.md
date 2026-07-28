@@ -91,12 +91,12 @@ python P:/.agents/skills/nlm-bulk-ingest/scripts/cluster.py \
 # Stage 4: pilot (one cluster, end-to-end)
 python P:/.agents/skills/nlm-bulk-ingest/scripts/ingest.py \
     clusters.json --pilot <cluster-id> \
-    --prefix "WL: " --profile codex
+    --prefix "WL: " --profile a.hominidae
 
 # Stage 5: ingest remaining (crash-resumable)
 python P:/.agents/skills/nlm-bulk-ingest/scripts/ingest.py \
     clusters.json --all \
-    --prefix "WL: " --profile codex \
+    --prefix "WL: " --profile a.hominidae \
     --state run-state.json
 ```
 
@@ -108,7 +108,7 @@ python P:/.agents/skills/nlm-bulk-ingest/scripts/ingest.py \
 | Min cluster size (`--min-size`) | 5 | Raise to 10+ for fewer, larger notebooks; lower to surface small themes |
 | Notebook title prefix (`--prefix`) | `"WL: "` (watch-later) | Empty for general use; `""` gives raw cluster names |
 | Pilot cluster | smallest coherent one | Pilot validates clustering quality + API path before full commitment |
-| Profile (`--profile`) | `codex` on this host | The NotebookLM account to use; see `~/.grok/tool-fallbacks.md` for the auth recipe |
+| Profile (`--profile`) | `a.hominidae` on this host | The NotebookLM account to use; see `~/.grok/tool-fallbacks.md` for the auth recipe |
 | Cluster auto-names | top-3 tokens by TF weighted 2:1 (title:source) | **Always spot-check** — auto-names are rough; the grouping is much better than the label |
 
 ## Pilot-before-full-run pattern (mandatory for ≥5 clusters)
