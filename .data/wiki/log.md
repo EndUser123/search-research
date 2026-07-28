@@ -1,5 +1,65 @@
 # Vault Log
 
+## Systematic problem anticipation: methods and existing tools
+Source: wiki-2026-07-27
+Agent: grok
+Notes: Formal methods survey (FMEA, MCTS, LATS, ToT) + skills/repos across our env, Claude marketplace, and internet
+Page: wiki/concepts/systematic-problem-anticipation-methods-and-existing-tools.md
+
+## --concept
+Source: verification-receipt-systems-design-landscape
+Agent: --source
+Notes: session-019fa48a /www
+Page: --note
+
+## Consumer Product Design Strategies
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Options & Trading
+Page: wiki/concepts/consumer-product-design-strategies.md
+
+## Dividend Portfolio Income Strategies
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Options & Trading
+Page: wiki/concepts/dividend-portfolio-income-strategies.md
+
+## Tesla Optimus Production Infrastructure
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Options & Trading
+Page: wiki/concepts/tesla-optimus-production-infrastructure.md
+
+## MCP Server Architecture and Ecosystem
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Options & Trading
+Page: wiki/concepts/mcp-server-architecture-and-ecosystem.md
+
+## Low-Cost Autonomous Drone Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Options & Trading
+Page: wiki/concepts/low-cost-autonomous-drone-systems.md
+
+## Going Trump Every
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Options & Trading
+Page: wiki/concepts/going-trump-every.md
+
+## Zero DTE Options Trading Approaches
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Options & Trading
+Page: wiki/concepts/zero-dte-options-trading-approaches.md
+
+## [2026-07-27] ingest | Assumption-auditing and unknown-unknown discovery: mental models for self-correcting AI agents
+Source: session-2026-07-27
+Agent: grok
+Notes: Assumption-auditing and unknown-unknown discovery mental models
+Page: wiki/concepts/assumption-auditing-and-unknown-unknown-discovery.md
+
 ## --concept
 Source: mechanisms-for-thought-partner-behavior
 Agent: --action
