@@ -99,262 +99,335 @@ When a skill changes its interface or behavior, these callers are affected:
 | `skill-dev` | 3 | `create-skill`, `red-team`, `tp` |
 | `skill-prune` | 5 | `config-audit`, `create-skill`, `maintain`, `skill-dev`, `workspace-health` |
 | `tasks` | 2 | `go`, `team` |
+| `todo` | 1 | `design` |
 | `tp` | 31 | `aar`, `ai-api`, `ai-probe-nim`, `bf`, `close`, `config-audit`, `design`, `dream`, `fullstack-dev`, `go`, `handoff`, `id`, `marketplace-bridge`, `mmx`, `model-benchmark`, `model-discover`, `notice`, `plan-writer`, `red-team`, `refactor`, `refine`, `review`, `skill-dev`, `skill-to-page`, `tdd`, `todo`, `web`, `why`, `why-old`, `workspace-health`, `www` |
 | `wargame` | 2 | `plan-writer`, `red-team` |
 | `web` | 32 | `agy`, `ai-models`, `brainstorming`, `build-with-ai`, `cks`, `codex`, `crawl`, `crawl4ai`, `design`, `find`, `frontend-dev`, `gitingest`, `go`, `imagine`, `improve`, `keep`, `minimax-multimodal-toolkit`, `mmx`, `nlm-bulk-ingest`, `note`, `notebooklm`, `perplexity-web-mcp`, `prospect`, `risks`, `search-fleet`, `subagent-driven-development`, `tp`, `usm`, `ux`, `www`, `yt-is`, `yt-selenium` |
 | `why` | 79 | `aar`, `ai-models`, `ask`, `av`, `brainstorming`, `check`, `chs`, `cks`, `close`, `code-review`, `codebase-to-course`, `codex`, `config-audit`, `context7`, `debrief`, `decision-tree`, `design`, `doc-compiler`, `dream`, `evolve`, `execute-plan`, `frontend-dev`, `game-animation-frames`, `genius`, `go`, `grok-discovery`, `handoff`, `implement`, `improve`, `improve-codebase-architecture`, `init`, `maintain`, `mm-quota`, `mmx`, `model-benchmark`, `model-discover`, `nlm-bulk-ingest`, `nlm-to-wiki`, `notebooklm`, `notice`, `plan-writer`, `planning`, `plugin-installer`, `pr-babysit`, `probe`, `prompt-patterns`, `prospect`, `reason`, `red-team`, `refactor`, `refine`, `reflect`, `review`, `review_bundle`, `risks`, `s`, `search-fleet`, `skeptic`, `skill-audit`, `skill-dev`, `skill-prune`, `skill-to-page`, `skill-write`, `solo-dev-authority`, `task`, `tldr-code`, `tldr-router`, `todo`, `tp`, `using-git-worktrees`, `verification-before-completion`, `video-vision`, `wargame`, `web`, `why-old`, `wiki`, `workspace-health`, `www`, `yt-selenium` |
 | `wiki` | 46 | `aar`, `ask`, `check`, `claude-audit`, `close`, `config-audit`, `crawl`, `crawl4ai`, `create-skill`, `debrief`, `design`, `doc-compiler`, `dream`, `gitpack`, `go`, `grok-safe-git`, `handoff`, `improve`, `main`, `maintain`, `model-benchmark`, `model-discover`, `nlm-bulk-ingest`, `nlm-to-wiki`, `notice`, `packet`, `plan-writer`, `prompt-patterns`, `prospect`, `qmd-wiki`, `red-team`, `refactor`, `refine`, `review`, `search-fleet`, `skill-dev`, `skill-prune`, `todo`, `tp`, `ut`, `ux`, `wargame`, `web`, `why`, `workspace-health`, `www` |
 
+## Capability registry (what functions the fleet provides)
+
+Every capability the skill fleet declares via `provides:` frontmatter:
+
+| Capability | Provided by |
+|------------|-------------|
+| `after-action-review` | `aar` |
+| `capability-routed-search` | `search-fleet` |
+| `capability-wiki-query` | `wiki` |
+| `capability-wiki-write` | `wiki` |
+| `code-review` | `review` |
+| `completion-gate` | `grok-verify` |
+| `content-discipline-for-plans` | `wargame` |
+| `cost-tracking` | `model-benchmark` |
+| `critical-friend-critique` | `tp` |
+| `cross-model-second-opinion` | `agy`, `codex`, `mmx` |
+| `design-doc-production` | `design` |
+| `discovery-dispatch` | `go` |
+| `engineering-orchestration` | `go` |
+| `evidence-backed-inventory` | `preflight` |
+| `feedback-to-wiki` | `why` |
+| `file-recovery` | `recover` |
+| `fleet-maintenance` | `maintain` |
+| `gate-resolution` | `close` |
+| `gemini-reasoning` | `agy` |
+| `git-safety-preflight` | `grok-safe-git` |
+| `grok-documentation-help` | `help` |
+| `handoff-auto-update` | `handoff` |
+| `handoff-write` | `handoff` |
+| `image-generation-guidance` | `imagine` |
+| `knowledge-hygiene` | `skill-prune` |
+| `latency-benchmark` | `model-benchmark` |
+| `marketplace-skill-discovery` | `marketplace-bridge` |
+| `mid-conversation-observation-surfacing` | `notice` |
+| `minimax-vision` | `mmx` |
+| `minimax-web-search` | `mmx` |
+| `model-discovery` | `model-discover` |
+| `multi-backend-search` | `web` |
+| `offline-memory-consolidation` | `dream` |
+| `openai-reasoning` | `codex` |
+| `opportunity-landscape` | `aar` |
+| `package-routing` | `grok-route` |
+| `parallel-fan-out` | `grok-parallel` |
+| `parallel-implement-dispatch` | `go` |
+| `pattern-library-query` | `why` |
+| `persistent-task-store` | `tasks` |
+| `plan-writing` | `plan-writer` |
+| `prompting-techniques-reference` | `prompt-patterns` |
+| `quality-scoring` | `model-benchmark` |
+| `root-cause-analysis` | `why` |
+| `rrf-aggregation` | `search-fleet` |
+| `rrf-merge` | `web` |
+| `safe-git-preflight-dispatch` | `go` |
+| `session-close-accounting` | `close` |
+| `session-export` | `packet` |
+| `session-opportunity-review` | `tp` |
+| `session-retrospective` | `debrief` |
+| `session-verification` | `check` |
+| `skill-improvement` | `skill-dev` |
+| `skill-measurement` | `skill-dev` |
+| `skill-scaffolding` | `create-skill` |
+| `source-authority-discovery` | `grok-discovery` |
+| `structural-refactor` | `refactor` |
+| `system-exploration` | `tp` |
+| `task-refinement` | `refine` |
+| `value-accounting` | `aar` |
+| `verified-findings-on-disk` | `review` |
+| `verify-dispatch` | `go` |
+| `web-ingestion` | `crawl4ai` |
+| `wiki-web-wiki-research` | `www` |
+| `workspace-prioritized-action-list` | `todo` |
+
 ## Per-skill edges
 
-| Skill | Delegates to | Consumes provider |
+| Skill | Delegates to | Consumes provider | Provides |
 |-------|-------------|------------------|
-| `aar` | `check`, `close`, `design`, `go`, `handoff`, `packet`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `nlm` |
-| `adr` | — | — |
-| `agy` | `debrief`, `design`, `review`, `web` | `agy`, `exa`, `gh` |
-| `agy` | `check`, `design`, `review` | — |
-| `ai-api` | `check`, `design`, `go`, `packet`, `review`, `tp` | — |
-| `ai-cli` | `agy`, `check`, `packet`, `review` | `agy` |
-| `ai-models` | `check`, `review`, `web`, `why` | — |
-| `ai-probe-benchmark` | `check` | — |
-| `ai-probe-nim` | `tp` | — |
-| `ai-probe-openrouter` | — | — |
-| `ai-probe-router` | `check` | — |
-| `aid` | `check`, `review` | — |
-| `all` | — | — |
-| `ask` | `check`, `design`, `handoff`, `why`, `wiki` | — |
-| `av` | `why` | — |
-| `avant-garde-ui` | `design`, `go` | — |
-| `behave` | `check`, `debrief`, `design`, `handoff` | — |
-| `bf` | `check`, `design`, `review`, `tp` | — |
-| `bifrost` | — | — |
-| `brainstorming` | `check`, `design`, `go`, `refine`, `review`, `web`, `why` | — |
-| `build` | `check`, `go` | — |
-| `build-with-ai` | `web` | — |
-| `capture` | `check` | — |
-| `cc-model-router` | `design` | — |
-| `changelog` | `check` | — |
-| `check` | `agy`, `close`, `design`, `go`, `handoff`, `notice`, `packet`, `review`, `why`, `wiki` | — |
-| `check` | `codex`, `design`, `go`, `review`, `wiki` | — |
-| `chs` | `check`, `handoff`, `review`, `why` | — |
-| `chs-eval` | — | — |
-| `cks` | `web`, `why` | — |
-| `claude-audit` | `check`, `close`, `debrief`, `design`, `go`, `red-team`, `review`, `wiki` | — |
-| `close` | `aar`, `check`, `debrief`, `design`, `go`, `handoff`, `notice`, `packet`, `red-team`, `review`, `tp`, `why`, `wiki` | — |
-| `code` | `check`, `design`, `go`, `handoff`, `packet` | — |
-| `code-flow-visualizer` | — | — |
-| `code-review` | `design`, `go`, `review`, `why` | — |
-| `code-review` | `check`, `review` | — |
-| `codebase-to-course` | `check`, `design`, `go`, `review`, `why` | — |
-| `codex` | `agy`, `debrief`, `design`, `review`, `web`, `why` | `agy`, `codex`, `exa`, `gh` |
-| `codex` | `check`, `design`, `review`, `why` | `codex` |
-| `concept-mapper` | `check`, `review` | — |
-| `config-audit` | `check`, `recover`, `skill-prune`, `tp`, `why`, `wiki` | — |
-| `constitutional-patterns` | `check`, `review` | — |
-| `constraints` | — | — |
-| `context7` | `check`, `why` | `context7` |
-| `contract-status` | — | — |
-| `crawl` | `check`, `crawl4ai`, `web`, `wiki` | — |
-| `crawl4ai` | `check`, `web`, `wiki` | `exa`, `firecrawl`, `gh` |
-| `create-skill` | `skill-dev`, `skill-prune`, `wiki` | `exa` |
-| `create-skill` | — | — |
-| `create-workflow` | `check`, `review` | — |
-| `csf-nip-integration` | `check` | — |
-| `debrief` | `check`, `go`, `refine`, `review`, `why`, `wiki` | `gh` |
-| `debrief` | `check`, `close`, `design`, `go`, `handoff`, `red-team`, `review`, `why`, `wiki` | — |
-| `debt` | `go`, `review` | — |
-| `decision-tree` | `design`, `review`, `why` | — |
-| `design` | `check`, `go`, `handoff`, `mmx`, `plan-writer`, `preflight`, `red-team`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `exa`, `firecrawl`, `gh`, `mmx` |
-| `design` | `check`, `go`, `notice`, `preflight`, `red-team`, `review`, `web`, `why`, `wiki` | `minimax-search` |
-| `design` | `check`, `go`, `packet`, `review` | — |
-| `diagnose` | — | — |
-| `discover` | `check`, `design`, `review` | — |
-| `dispatching-parallel-agents` | `check`, `review` | — |
-| `doc-compiler` | `check`, `close`, `design`, `go`, `review`, `why`, `wiki` | — |
-| `docs` | `check`, `go` | — |
-| `docx` | — | — |
-| `dream` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `handoff`, `notice`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `episodic-memory`, `exa`, `gh` |
-| `dream` | `check` | — |
-| `epistemic-check` | `check` | — |
-| `evidence-driven-experiment-loop` | — | — |
-| `evolve` | `check`, `design`, `why` | — |
-| `execute-plan` | `check`, `design`, `go`, `review`, `why` | — |
-| `executing-plans` | `review` | — |
-| `execution-clarity` | `check` | — |
-| `export-session` | `debrief` | — |
-| `find` | `check`, `handoff`, `web` | — |
-| `finishing-a-development-branch` | `check`, `go` | — |
-| `friction` | `debrief`, `review` | — |
-| `frontend-dev` | `check`, `design`, `web`, `why` | — |
-| `fullstack-dev` | `check`, `close`, `design`, `go`, `handoff`, `review`, `tp` | — |
-| `game-animation-frames` | `check`, `why` | — |
-| `game-asset-core` | — | — |
-| `game-character-consistency` | `check` | — |
-| `game-tilesets` | `notice` | — |
-| `game-ui-icons` | `design` | — |
-| `garden` | — | — |
-| `genius` | `why` | — |
-| `git` | `check`, `review` | — |
-| `gitingest` | `check`, `go`, `web` | `nlm` |
-| `gitpack` | `check`, `design`, `go`, `red-team`, `wiki` | — |
-| `gitready` | `check`, `review` | — |
-| `go` | `check`, `design`, `grok-discovery`, `grok-parallel`, `grok-route`, `grok-safe-git`, `grok-verify`, `handoff`, `packet`, `plan-writer`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `brave`, `exa`, `gh`, `nlm` |
-| `go` | `check`, `debrief`, `design`, `handoff`, `review`, `tasks`, `tp`, `why` | — |
-| `google-ai-usage-monitor` | `check`, `go`, `review` | — |
-| `grok-discovery` | `review`, `why` | `gh` |
-| `grok-go` | `go` | — |
-| `grok-parallel` | `design`, `go`, `grok-discovery`, `grok-route`, `grok-safe-git`, `grok-verify`, `plan-writer`, `review` | `exa`, `gh` |
-| `grok-route` | `handoff` | — |
-| `grok-safe-git` | `check`, `close`, `wiki` | `gh` |
-| `grok-sdlc` | `go` | — |
-| `grok-verify` | `check`, `close`, `grok-route`, `grok-safe-git`, `handoff`, `review` | `exa`, `gh` |
-| `handoff` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `refine`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` |
-| `help` | `check` | — |
-| `id` | `tp` | — |
-| `imagine` | `check`, `review`, `web` | `exa`, `gh` |
-| `imagine` | `check`, `review`, `web` | — |
-| `implement` | `check`, `design`, `go`, `review`, `why` | — |
-| `improve` | `check`, `debrief`, `design`, `handoff`, `packet`, `red-team`, `review`, `web`, `why`, `wiki` | — |
-| `improve-codebase-architecture` | `design`, `why` | — |
-| `index` | — | — |
-| `init` | `check`, `review`, `why` | — |
-| `intelligence-stream-analyze` | `check`, `review` | — |
-| `intelligence-stream-ingest` | — | — |
-| `keep` | `check`, `refine`, `review`, `web` | — |
-| `learn` | `check`, `review` | — |
-| `lmc` | `check`, `debrief`, `go` | — |
-| `main` | `check`, `recover`, `review`, `wiki` | — |
-| `main-review` | `review` | — |
-| `maintain` | `check`, `close`, `design`, `handoff`, `recover`, `skill-prune`, `why`, `wiki` | `gh` |
-| `marketplace-bridge` | `review`, `tp` | — |
-| `mermaid-c4` | `refine`, `review` | — |
-| `minimax-multimodal-toolkit` | `mmx`, `review`, `web` | `mmx` |
-| `minimax-music-gen` | `check`, `go`, `mmx`, `refine`, `review` | `mmx` |
-| `minimax-music-playlist` | `check`, `go`, `mmx` | `mmx` |
-| `mlc` | `debrief`, `go`, `refine`, `review` | — |
-| `mm-quota` | `check`, `design`, `why` | — |
-| `mmx` | `agy`, `check`, `codex`, `design`, `review`, `tp`, `web`, `why` | `agy`, `codex`, `exa`, `gh`, `mmx` |
-| `model-benchmark` | `check`, `go`, `mmx`, `refine`, `review`, `tp`, `why`, `wiki` | `agy`, `codex`, `exa`, `gh`, `mmx` |
-| `model-discover` | `model-benchmark`, `review`, `tp`, `why`, `wiki` | — |
-| `nlm` | `check` | `nlm`, `notebooklm` |
-| `nlm-bulk-ingest` | `check`, `design`, `web`, `why`, `wiki` | — |
-| `nlm-to-wiki` | `check`, `codex`, `help`, `mmx`, `why`, `wiki` | `mmx`, `notebooklm` |
-| `nlm-to-wiki` | `check`, `review`, `wiki` | `nlm` |
-| `note` | `check`, `refine`, `review`, `web` | — |
-| `notebooklm` | `check`, `web`, `why` | — |
-| `notice` | `aar`, `check`, `close`, `design`, `go`, `grok-parallel`, `handoff`, `red-team`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` |
-| `pace` | — | — |
-| `packet` | `aar`, `check`, `design`, `handoff`, `review`, `wiki` | `exa`, `gh` |
-| `pdf` | `check` | — |
-| `perf` | — | — |
-| `performance-profiler` | — | — |
-| `perplexity-web-mcp` | `check`, `web` | `pwm` |
-| `plan-writer` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `review`, `tp`, `wargame`, `why`, `wiki` | `exa`, `gh` |
-| `planning` | `check`, `close`, `design`, `go`, `handoff`, `packet`, `review`, `why` | — |
-| `plugin-installer` | `check`, `review`, `why` | — |
-| `pptx` | `check`, `close` | — |
-| `pr-babysit` | `check`, `go`, `review`, `why` | — |
-| `pre-mortem` | `check`, `red-team`, `review` | — |
-| `preflight` | `check`, `red-team`, `review` | — |
-| `preflight` | `packet` | — |
-| `prime` | `check`, `go` | — |
-| `probe` | `check`, `close`, `refine`, `why` | — |
-| `profile` | — | — |
-| `prompt-enhancer` | — | — |
-| `prompt-patterns` | `check`, `handoff`, `why`, `wiki` | `exa`, `gh` |
-| `prompt_refiner` | `design`, `refine` | — |
-| `prospect` | `check`, `handoff`, `web`, `why`, `wiki` | `search-research` |
-| `qmd-wiki` | `wiki` | — |
-| `quota` | `check` | — |
-| `ralph` | — | — |
-| `rca` | `check` | — |
-| `reason` | `codex`, `design`, `go`, `review`, `why` | — |
-| `recap` | `check`, `debrief`, `design`, `go`, `handoff` | — |
-| `recover` | `check`, `review` | — |
-| `recover` | `check`, `review` | — |
-| `red-team` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `refine`, `review`, `skill-dev`, `tp`, `wargame`, `why`, `wiki` | — |
-| `refactor` | `check`, `close`, `go`, `grok-verify`, `handoff`, `refine`, `review`, `tp`, `wiki` | `exa`, `gh`, `nlm` |
-| `refactor` | `check`, `design`, `handoff`, `why` | — |
-| `refine` | `check`, `design`, `go`, `handoff`, `plan-writer`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` |
-| `reflect` | `check`, `review`, `why` | — |
-| `repomix` | — | — |
-| `research` | `go`, `mmx` | — |
-| `response-atomicity` | — | — |
-| `resume-claude` | — | — |
-| `resume-codex` | `codex` | `codex` |
-| `resume-cursor` | — | — |
-| `retro` | `check`, `debrief`, `red-team` | — |
-| `review` | `check`, `close`, `codex`, `go`, `handoff`, `packet`, `red-team`, `refine`, `tp`, `why`, `wiki` | `codex`, `exa`, `gh` |
-| `review` | `check`, `design`, `tp`, `why` | — |
-| `review` | `check`, `design`, `red-team`, `why` | — |
-| `review-pr` | `review` | — |
-| `review_bundle` | `check`, `design`, `review`, `why` | — |
-| `risks` | `check`, `design`, `red-team`, `review`, `web`, `why` | — |
-| `rns` | `check`, `go`, `handoff` | — |
-| `s` | `check`, `design`, `handoff`, `refine`, `why` | — |
-| `search-fleet` | `agy`, `mmx`, `web`, `why`, `wiki` | `agy`, `ddg`, `exa`, `firecrawl`, `gh`, `mmx`, `perplexity`, `pwm`, `reddit`, `search-research`, `tavily` |
-| `sequential-thinking` | `check`, `refine`, `review` | — |
-| `ship` | `go` | — |
-| `simplify-enhanced` | `check`, `review` | — |
-| `skeptic` | `check`, `go`, `why` | — |
-| `skill-audit` | `check`, `debrief`, `design`, `red-team`, `review`, `why` | — |
-| `skill-dev` | `aar`, `check`, `close`, `create-skill`, `design`, `grok-verify`, `handoff`, `notice`, `red-team`, `review`, `skill-prune`, `tp`, `why`, `wiki` | `exa`, `gh` |
-| `skill-from-docs` | `check`, `review` | — |
-| `skill-prune` | `recover`, `why`, `wiki` | — |
-| `skill-similarity` | `check`, `review` | — |
-| `skill-to-page` | `check`, `close`, `design`, `go`, `review`, `tp`, `why` | — |
-| `skill-write` | `check`, `design`, `go`, `notice`, `review`, `why` | — |
-| `slc` | `check` | — |
-| `snapshot` | `check`, `review` | — |
-| `solo-dev-authority` | `check`, `review`, `why` | — |
-| `specify` | `design`, `review` | — |
-| `sqa` | — | — |
-| `sqd` | `review` | — |
-| `stale` | `check`, `review` | — |
-| `subagent-driven-development` | `check`, `review`, `web` | — |
-| `t` | `check`, `review` | — |
-| `task` | `check`, `review`, `why` | — |
-| `tasks` | `agy`, `check` | `agy`, `codex`, `exa`, `gh` |
-| `tdd` | `check`, `tp` | — |
-| `team` | `check`, `close`, `review`, `tasks` | — |
-| `tilldone` | `check`, `review` | — |
-| `tldr-code` | `check`, `why` | — |
-| `tldr-deep` | — | — |
-| `tldr-overview` | `check` | — |
-| `tldr-router` | `review`, `why` | — |
-| `tldr-stats` | `check` | — |
-| `todo` | `check`, `close`, `go`, `handoff`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `notebooklm`, `reddit` |
-| `top-problems` | `debrief` | — |
-| `tot` | `go` | — |
-| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `grok-verify`, `handoff`, `mmx`, `notice`, `preflight`, `red-team`, `refine`, `review`, `skill-dev`, `web`, `why`, `wiki` | `codex`, `ddg`, `firecrawl`, `spawn-subagent` |
-| `trace` | `check`, `close`, `handoff`, `review` | — |
-| `truth` | `check` | — |
-| `uci` | `review` | — |
-| `usage-query-skill` | — | — |
-| `using-git-worktrees` | `check`, `design`, `go`, `why` | — |
-| `using-superpowers` | `check` | — |
-| `usm` | `check`, `web` | — |
-| `ut` | `check`, `codex`, `wiki` | — |
-| `ux` | `check`, `web`, `wiki` | — |
-| `verification-before-completion` | `check`, `why` | — |
-| `video-vision` | `check`, `why` | — |
-| `vision-analysis` | `design`, `review` | — |
-| `wargame` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `why`, `wiki` | `codex`, `gh` |
-| `web` | `check`, `design`, `mmx`, `search-fleet`, `tp`, `why`, `wiki` | `brave`, `ddg`, `duckduckgo`, `exa`, `firecrawl`, `hn-algolia`, `mmx`, `perplexity`, `reddit`, `search-research`, `stackexchange`, `tavily` |
-| `web` | `review` | `notebooklm`, `serper` |
-| `why` | `aar`, `agy`, `check`, `codex`, `design`, `go`, `handoff`, `mmx`, `packet`, `red-team`, `review`, `tp`, `wiki` | `spawn-subagent` |
-| `why` | `check`, `go` | `search-research` |
-| `why-old` | `aar`, `check`, `design`, `go`, `red-team`, `review`, `tp`, `why` | `exa`, `gh` |
-| `wiki` | `check`, `design`, `why` | `exa`, `gh` |
-| `wiki` | `check` | — |
-| `workspace-health` | `check`, `codex`, `handoff`, `recover`, `skill-prune`, `tp`, `why`, `wiki` | — |
-| `writing-plans` | `handoff`, `review` | — |
-| `writing-skills` | `close` | — |
-| `www` | `check`, `close`, `crawl4ai`, `design`, `go`, `red-team`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `ddg`, `firecrawl`, `gh`, `github-issues`, `hn-algolia`, `mmx`, `reddit` |
-| `yt-is` | `check`, `review`, `web` | — |
-| `yt-nlm` | `check`, `review` | `notebooklm` |
-| `yt-selenium` | `check`, `close`, `web`, `why` | — |
-| `zoom-out` | `go` | — |
+| `aar` | `check`, `close`, `design`, `go`, `handoff`, `packet`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `nlm` | `after-action-review`, `opportunity-landscape`, `value-accounting` |
+| `adr` | — | — | — |
+| `agy` | `debrief`, `design`, `review`, `web` | `agy`, `exa`, `gh` | `cross-model-second-opinion`, `gemini-reasoning` |
+| `agy` | `check`, `design`, `review` | — | — |
+| `ai-api` | `check`, `design`, `go`, `packet`, `review`, `tp` | — | — |
+| `ai-cli` | `agy`, `check`, `packet`, `review` | `agy` | — |
+| `ai-models` | `check`, `review`, `web`, `why` | — | — |
+| `ai-probe-benchmark` | `check` | — | — |
+| `ai-probe-nim` | `tp` | — | — |
+| `ai-probe-openrouter` | — | — | — |
+| `ai-probe-router` | `check` | — | — |
+| `aid` | `check`, `review` | — | — |
+| `all` | — | — | — |
+| `ask` | `check`, `design`, `handoff`, `why`, `wiki` | — | — |
+| `av` | `why` | — | — |
+| `avant-garde-ui` | `design`, `go` | — | — |
+| `behave` | `check`, `debrief`, `design`, `handoff` | — | — |
+| `bf` | `check`, `design`, `review`, `tp` | — | — |
+| `bifrost` | — | — | — |
+| `brainstorming` | `check`, `design`, `go`, `refine`, `review`, `web`, `why` | — | — |
+| `build` | `check`, `go` | — | — |
+| `build-with-ai` | `web` | — | — |
+| `capture` | `check` | — | — |
+| `cc-model-router` | `design` | — | — |
+| `changelog` | `check` | — | — |
+| `check` | `agy`, `close`, `design`, `go`, `handoff`, `notice`, `packet`, `review`, `why`, `wiki` | — | `session-verification` |
+| `check` | `codex`, `design`, `go`, `review`, `wiki` | — | — |
+| `chs` | `check`, `handoff`, `review`, `why` | — | — |
+| `chs-eval` | — | — | — |
+| `cks` | `web`, `why` | — | — |
+| `claude-audit` | `check`, `close`, `debrief`, `design`, `go`, `red-team`, `review`, `wiki` | — | — |
+| `close` | `aar`, `check`, `debrief`, `design`, `go`, `handoff`, `notice`, `packet`, `red-team`, `review`, `tp`, `why`, `wiki` | — | `gate-resolution`, `session-close-accounting` |
+| `code` | `check`, `design`, `go`, `handoff`, `packet` | — | — |
+| `code-flow-visualizer` | — | — | — |
+| `code-review` | `design`, `go`, `review`, `why` | — | — |
+| `code-review` | `check`, `review` | — | — |
+| `codebase-to-course` | `check`, `design`, `go`, `review`, `why` | — | — |
+| `codex` | `agy`, `debrief`, `design`, `review`, `web`, `why` | `agy`, `codex`, `exa`, `gh` | `cross-model-second-opinion`, `openai-reasoning` |
+| `codex` | `check`, `design`, `review`, `why` | `codex` | — |
+| `concept-mapper` | `check`, `review` | — | — |
+| `config-audit` | `check`, `recover`, `skill-prune`, `tp`, `why`, `wiki` | — | — |
+| `constitutional-patterns` | `check`, `review` | — | — |
+| `constraints` | — | — | — |
+| `context7` | `check`, `why` | `context7` | — |
+| `contract-status` | — | — | — |
+| `crawl` | `check`, `crawl4ai`, `web`, `wiki` | — | — |
+| `crawl4ai` | `check`, `web`, `wiki` | `exa`, `firecrawl`, `gh` | `web-ingestion` |
+| `create-skill` | `skill-dev`, `skill-prune`, `wiki` | `exa` | `skill-scaffolding` |
+| `create-skill` | — | — | — |
+| `create-workflow` | `check`, `review` | — | — |
+| `csf-nip-integration` | `check` | — | — |
+| `debrief` | `check`, `go`, `refine`, `review`, `why`, `wiki` | `gh` | `session-retrospective` |
+| `debrief` | `check`, `close`, `design`, `go`, `handoff`, `red-team`, `review`, `why`, `wiki` | — | — |
+| `debt` | `go`, `review` | — | — |
+| `decision-tree` | `design`, `review`, `why` | — | — |
+| `design` | `check`, `go`, `handoff`, `mmx`, `plan-writer`, `preflight`, `red-team`, `refine`, `review`, `todo`, `tp`, `web`, `why`, `wiki` | `exa`, `firecrawl`, `gh`, `mmx` | `design-doc-production` |
+| `design` | `check`, `go`, `notice`, `preflight`, `red-team`, `review`, `web`, `why`, `wiki` | `minimax-search` | — |
+| `design` | `check`, `go`, `packet`, `review` | — | — |
+| `diagnose` | — | — | — |
+| `discover` | `check`, `design`, `review` | — | — |
+| `dispatching-parallel-agents` | `check`, `review` | — | — |
+| `doc-compiler` | `check`, `close`, `design`, `go`, `review`, `why`, `wiki` | — | — |
+| `docs` | `check`, `go` | — | — |
+| `docx` | — | — | — |
+| `dream` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `handoff`, `notice`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `episodic-memory`, `exa`, `gh` | `offline-memory-consolidation` |
+| `dream` | `check` | — | — |
+| `epistemic-check` | `check` | — | — |
+| `evidence-driven-experiment-loop` | — | — | — |
+| `evolve` | `check`, `design`, `why` | — | — |
+| `execute-plan` | `check`, `design`, `go`, `review`, `why` | — | — |
+| `executing-plans` | `review` | — | — |
+| `execution-clarity` | `check` | — | — |
+| `export-session` | `debrief` | — | — |
+| `find` | `check`, `handoff`, `web` | — | — |
+| `finishing-a-development-branch` | `check`, `go` | — | — |
+| `friction` | `debrief`, `review` | — | — |
+| `frontend-dev` | `check`, `design`, `web`, `why` | — | — |
+| `fullstack-dev` | `check`, `close`, `design`, `go`, `handoff`, `review`, `tp` | — | — |
+| `game-animation-frames` | `check`, `why` | — | — |
+| `game-asset-core` | — | — | — |
+| `game-character-consistency` | `check` | — | — |
+| `game-tilesets` | `notice` | — | — |
+| `game-ui-icons` | `design` | — | — |
+| `garden` | — | — | — |
+| `genius` | `why` | — | — |
+| `git` | `check`, `review` | — | — |
+| `gitingest` | `check`, `go`, `web` | `nlm` | — |
+| `gitpack` | `check`, `design`, `go`, `red-team`, `wiki` | — | — |
+| `gitready` | `check`, `review` | — | — |
+| `go` | `check`, `design`, `grok-discovery`, `grok-parallel`, `grok-route`, `grok-safe-git`, `grok-verify`, `handoff`, `packet`, `plan-writer`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `brave`, `exa`, `gh`, `nlm` | `discovery-dispatch`, `engineering-orchestration`, `parallel-implement-dispatch`, `safe-git-preflight-dispatch`, `verify-dispatch` |
+| `go` | `check`, `debrief`, `design`, `handoff`, `review`, `tasks`, `tp`, `why` | — | — |
+| `google-ai-usage-monitor` | `check`, `go`, `review` | — | — |
+| `grok-discovery` | `review`, `why` | `gh` | `source-authority-discovery` |
+| `grok-go` | `go` | — | — |
+| `grok-parallel` | `design`, `go`, `grok-discovery`, `grok-route`, `grok-safe-git`, `grok-verify`, `plan-writer`, `review` | `exa`, `gh` | `parallel-fan-out` |
+| `grok-route` | `handoff` | — | `package-routing` |
+| `grok-safe-git` | `check`, `close`, `wiki` | `gh` | `git-safety-preflight` |
+| `grok-sdlc` | `go` | — | — |
+| `grok-verify` | `check`, `close`, `grok-route`, `grok-safe-git`, `handoff`, `review` | `exa`, `gh` | `completion-gate` |
+| `handoff` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `refine`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` | `handoff-auto-update`, `handoff-write` |
+| `help` | `check` | — | `grok-documentation-help` |
+| `id` | `tp` | — | — |
+| `imagine` | `check`, `review`, `web` | `exa`, `gh` | `image-generation-guidance` |
+| `imagine` | `check`, `review`, `web` | — | — |
+| `implement` | `check`, `design`, `go`, `review`, `why` | — | — |
+| `improve` | `check`, `debrief`, `design`, `handoff`, `packet`, `red-team`, `review`, `web`, `why`, `wiki` | — | — |
+| `improve-codebase-architecture` | `design`, `why` | — | — |
+| `index` | — | — | — |
+| `init` | `check`, `review`, `why` | — | — |
+| `intelligence-stream-analyze` | `check`, `review` | — | — |
+| `intelligence-stream-ingest` | — | — | — |
+| `keep` | `check`, `refine`, `review`, `web` | — | — |
+| `learn` | `check`, `review` | — | — |
+| `lmc` | `check`, `debrief`, `go` | — | — |
+| `main` | `check`, `recover`, `review`, `wiki` | — | — |
+| `main-review` | `review` | — | — |
+| `maintain` | `check`, `close`, `design`, `handoff`, `recover`, `skill-prune`, `why`, `wiki` | `gh` | `fleet-maintenance` |
+| `marketplace-bridge` | `review`, `tp` | — | `marketplace-skill-discovery` |
+| `mermaid-c4` | `refine`, `review` | — | — |
+| `minimax-multimodal-toolkit` | `mmx`, `review`, `web` | `mmx` | — |
+| `minimax-music-gen` | `check`, `go`, `mmx`, `refine`, `review` | `mmx` | — |
+| `minimax-music-playlist` | `check`, `go`, `mmx` | `mmx` | — |
+| `mlc` | `debrief`, `go`, `refine`, `review` | — | — |
+| `mm-quota` | `check`, `design`, `why` | — | — |
+| `mmx` | `agy`, `check`, `codex`, `design`, `review`, `tp`, `web`, `why` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cross-model-second-opinion`, `minimax-vision`, `minimax-web-search` |
+| `model-benchmark` | `check`, `go`, `mmx`, `refine`, `review`, `tp`, `why`, `wiki` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cost-tracking`, `latency-benchmark`, `quality-scoring` |
+| `model-discover` | `model-benchmark`, `review`, `tp`, `why`, `wiki` | — | `model-discovery` |
+| `nlm` | `check` | `nlm`, `notebooklm` | — |
+| `nlm-bulk-ingest` | `check`, `design`, `web`, `why`, `wiki` | — | — |
+| `nlm-to-wiki` | `check`, `codex`, `help`, `mmx`, `why`, `wiki` | `mmx`, `notebooklm` | — |
+| `nlm-to-wiki` | `check`, `review`, `wiki` | `nlm` | — |
+| `note` | `check`, `refine`, `review`, `web` | — | — |
+| `notebooklm` | `check`, `web`, `why` | — | — |
+| `notice` | `aar`, `check`, `close`, `design`, `go`, `grok-parallel`, `handoff`, `red-team`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` | `mid-conversation-observation-surfacing` |
+| `pace` | — | — | — |
+| `packet` | `aar`, `check`, `design`, `handoff`, `review`, `wiki` | `exa`, `gh` | `session-export` |
+| `pdf` | `check` | — | — |
+| `perf` | — | — | — |
+| `performance-profiler` | — | — | — |
+| `perplexity-web-mcp` | `check`, `web` | `pwm` | — |
+| `plan-writer` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `review`, `tp`, `wargame`, `why`, `wiki` | `exa`, `gh` | `plan-writing` |
+| `planning` | `check`, `close`, `design`, `go`, `handoff`, `packet`, `review`, `why` | — | — |
+| `plugin-installer` | `check`, `review`, `why` | — | — |
+| `pptx` | `check`, `close` | — | — |
+| `pr-babysit` | `check`, `go`, `review`, `why` | — | — |
+| `pre-mortem` | `check`, `red-team`, `review` | — | — |
+| `preflight` | `check`, `red-team`, `review` | — | `evidence-backed-inventory` |
+| `preflight` | `packet` | — | — |
+| `prime` | `check`, `go` | — | — |
+| `probe` | `check`, `close`, `refine`, `why` | — | — |
+| `profile` | — | — | — |
+| `prompt-enhancer` | — | — | — |
+| `prompt-patterns` | `check`, `handoff`, `why`, `wiki` | `exa`, `gh` | `prompting-techniques-reference` |
+| `prompt_refiner` | `design`, `refine` | — | — |
+| `prospect` | `check`, `handoff`, `web`, `why`, `wiki` | `search-research` | — |
+| `qmd-wiki` | `wiki` | — | — |
+| `quota` | `check` | — | — |
+| `ralph` | — | — | — |
+| `rca` | `check` | — | — |
+| `reason` | `codex`, `design`, `go`, `review`, `why` | — | — |
+| `recap` | `check`, `debrief`, `design`, `go`, `handoff` | — | — |
+| `recover` | `check`, `review` | — | `file-recovery` |
+| `recover` | `check`, `review` | — | — |
+| `red-team` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `refine`, `review`, `skill-dev`, `tp`, `wargame`, `why`, `wiki` | — | — |
+| `refactor` | `check`, `close`, `go`, `grok-verify`, `handoff`, `refine`, `review`, `tp`, `wiki` | `exa`, `gh`, `nlm` | `structural-refactor` |
+| `refactor` | `check`, `design`, `handoff`, `why` | — | — |
+| `refine` | `check`, `design`, `go`, `handoff`, `plan-writer`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` | `task-refinement` |
+| `reflect` | `check`, `review`, `why` | — | — |
+| `repomix` | — | — | — |
+| `research` | `go`, `mmx` | — | — |
+| `response-atomicity` | — | — | — |
+| `resume-claude` | — | — | — |
+| `resume-codex` | `codex` | `codex` | — |
+| `resume-cursor` | — | — | — |
+| `retro` | `check`, `debrief`, `red-team` | — | — |
+| `review` | `check`, `close`, `codex`, `go`, `handoff`, `packet`, `red-team`, `refine`, `tp`, `why`, `wiki` | `codex`, `exa`, `gh` | `code-review`, `verified-findings-on-disk` |
+| `review` | `check`, `design`, `tp`, `why` | — | — |
+| `review` | `check`, `design`, `red-team`, `why` | — | — |
+| `review-pr` | `review` | — | — |
+| `review_bundle` | `check`, `design`, `review`, `why` | — | — |
+| `risks` | `check`, `design`, `red-team`, `review`, `web`, `why` | — | — |
+| `rns` | `check`, `go`, `handoff` | — | — |
+| `s` | `check`, `design`, `handoff`, `refine`, `why` | — | — |
+| `search-fleet` | `agy`, `mmx`, `web`, `why`, `wiki` | `agy`, `ddg`, `exa`, `firecrawl`, `gh`, `mmx`, `perplexity`, `pwm`, `reddit`, `search-research`, `tavily` | `capability-routed-search`, `rrf-aggregation` |
+| `sequential-thinking` | `check`, `refine`, `review` | — | — |
+| `ship` | `go` | — | — |
+| `simplify-enhanced` | `check`, `review` | — | — |
+| `skeptic` | `check`, `go`, `why` | — | — |
+| `skill-audit` | `check`, `debrief`, `design`, `red-team`, `review`, `why` | — | — |
+| `skill-dev` | `aar`, `check`, `close`, `create-skill`, `design`, `grok-verify`, `handoff`, `notice`, `red-team`, `review`, `skill-prune`, `tp`, `why`, `wiki` | `exa`, `gh` | `skill-improvement`, `skill-measurement` |
+| `skill-from-docs` | `check`, `review` | — | — |
+| `skill-prune` | `recover`, `why`, `wiki` | — | `knowledge-hygiene` |
+| `skill-similarity` | `check`, `review` | — | — |
+| `skill-to-page` | `check`, `close`, `design`, `go`, `review`, `tp`, `why` | — | — |
+| `skill-write` | `check`, `design`, `go`, `notice`, `review`, `why` | — | — |
+| `slc` | `check` | — | — |
+| `snapshot` | `check`, `review` | — | — |
+| `solo-dev-authority` | `check`, `review`, `why` | — | — |
+| `specify` | `design`, `review` | — | — |
+| `sqa` | — | — | — |
+| `sqd` | `review` | — | — |
+| `stale` | `check`, `review` | — | — |
+| `subagent-driven-development` | `check`, `review`, `web` | — | — |
+| `t` | `check`, `review` | — | — |
+| `task` | `check`, `review`, `why` | — | — |
+| `tasks` | `agy`, `check` | `agy`, `codex`, `exa`, `gh` | `persistent-task-store` |
+| `tdd` | `check`, `tp` | — | — |
+| `team` | `check`, `close`, `review`, `tasks` | — | — |
+| `tilldone` | `check`, `review` | — | — |
+| `tldr-code` | `check`, `why` | — | — |
+| `tldr-deep` | — | — | — |
+| `tldr-overview` | `check` | — | — |
+| `tldr-router` | `review`, `why` | — | — |
+| `tldr-stats` | `check` | — | — |
+| `todo` | `check`, `close`, `go`, `handoff`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `notebooklm`, `reddit` | `workspace-prioritized-action-list` |
+| `top-problems` | `debrief` | — | — |
+| `tot` | `go` | — | — |
+| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `grok-verify`, `handoff`, `mmx`, `notice`, `preflight`, `red-team`, `refine`, `review`, `skill-dev`, `web`, `why`, `wiki` | `codex`, `ddg`, `firecrawl`, `spawn-subagent` | `critical-friend-critique`, `session-opportunity-review`, `system-exploration` |
+| `trace` | `check`, `close`, `handoff`, `review` | — | — |
+| `truth` | `check` | — | — |
+| `uci` | `review` | — | — |
+| `usage-query-skill` | — | — | — |
+| `using-git-worktrees` | `check`, `design`, `go`, `why` | — | — |
+| `using-superpowers` | `check` | — | — |
+| `usm` | `check`, `web` | — | — |
+| `ut` | `check`, `codex`, `wiki` | — | — |
+| `ux` | `check`, `web`, `wiki` | — | — |
+| `verification-before-completion` | `check`, `why` | — | — |
+| `video-vision` | `check`, `why` | — | — |
+| `vision-analysis` | `design`, `review` | — | — |
+| `wargame` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `why`, `wiki` | `codex`, `gh` | `content-discipline-for-plans` |
+| `web` | `check`, `design`, `mmx`, `search-fleet`, `tp`, `why`, `wiki` | `brave`, `ddg`, `duckduckgo`, `exa`, `firecrawl`, `hn-algolia`, `mmx`, `perplexity`, `reddit`, `search-research`, `stackexchange`, `tavily` | `multi-backend-search`, `rrf-merge` |
+| `web` | `review` | `notebooklm`, `serper` | — |
+| `why` | `aar`, `agy`, `check`, `codex`, `design`, `go`, `handoff`, `mmx`, `packet`, `red-team`, `review`, `tp`, `wiki` | `spawn-subagent` | `feedback-to-wiki`, `pattern-library-query`, `root-cause-analysis` |
+| `why` | `check`, `go` | `search-research` | — |
+| `why-old` | `aar`, `check`, `design`, `go`, `red-team`, `review`, `tp`, `why` | `exa`, `gh` | — |
+| `wiki` | `check`, `design`, `why` | `exa`, `gh` | `capability-wiki-query`, `capability-wiki-write` |
+| `wiki` | `check` | — | — |
+| `workspace-health` | `check`, `codex`, `handoff`, `recover`, `skill-prune`, `tp`, `why`, `wiki` | — | — |
+| `writing-plans` | `handoff`, `review` | — | — |
+| `writing-skills` | `close` | — | — |
+| `www` | `check`, `close`, `crawl4ai`, `design`, `go`, `red-team`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `ddg`, `firecrawl`, `gh`, `github-issues`, `hn-algolia`, `mmx`, `reddit` | `wiki-web-wiki-research` |
+| `yt-is` | `check`, `review`, `web` | — | — |
+| `yt-nlm` | `check`, `review` | `notebooklm` | — |
+| `yt-selenium` | `check`, `close`, `web`, `why` | — | — |
+| `zoom-out` | `go` | — | — |
 
 ## Machine-readable graph
 
@@ -389,6 +462,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "operator-collaboration-style-and-leverage",
         "parallel-subagent-wait-all-gate",
         "user-modeling-for-agentic-clis"
+      ],
+      "provides": [
+        "after-action-review",
+        "opportunity-landscape",
+        "value-accounting"
       ]
     },
     {
@@ -406,7 +484,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "exa",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "cross-model-second-opinion",
+        "gemini-reasoning"
+      ]
     },
     {
       "name": "close",
@@ -431,6 +513,10 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture",
         "prompting-patterns-for-ai-agent-control"
+      ],
+      "provides": [
+        "gate-resolution",
+        "session-close-accounting"
       ]
     },
     {
@@ -451,7 +537,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "exa",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "cross-model-second-opinion",
+        "openai-reasoning"
+      ]
     },
     {
       "name": "crawl4ai",
@@ -470,6 +560,9 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "page",
         "wikilinks"
+      ],
+      "provides": [
+        "web-ingestion"
       ]
     },
     {
@@ -486,6 +579,9 @@ When a skill changes its interface or behavior, these callers are affected:
       ],
       "references_wiki": [
         "prompting-patterns-for-ai-agent-control"
+      ],
+      "provides": [
+        "skill-scaffolding"
       ]
     },
     {
@@ -503,7 +599,10 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "session-retrospective"
+      ]
     },
     {
       "name": "design",
@@ -519,6 +618,7 @@ When a skill changes its interface or behavior, these callers are affected:
         "red-team",
         "refine",
         "review",
+        "todo",
         "tp",
         "web",
         "why",
@@ -533,9 +633,13 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "adr-0009-extend-unverified-stance",
         "agentic-sdlc-skill-lifecycle-architecture",
+        "consistency-drift-as-waste-source-in-iterative-refinement",
         "exemption-logic-as-conflict-signal",
         "llm-synthesis-quality-and-speed-techniques",
         "raising-coding-best-practices-in-ai-agents"
+      ],
+      "provides": [
+        "design-doc-production"
       ]
     },
     {
@@ -567,6 +671,9 @@ When a skill changes its interface or behavior, these callers are affected:
         "llm-dreaming-memory-consolidation",
         "operator-collaboration-style-and-leverage",
         "self-improving-agent-systems-techniques-and-workspace-gaps"
+      ],
+      "provides": [
+        "offline-memory-consolidation"
       ]
     },
     {
@@ -599,6 +706,13 @@ When a skill changes its interface or behavior, these callers are affected:
       ],
       "references_wiki": [
         "prompting-patterns-for-ai-agent-control"
+      ],
+      "provides": [
+        "discovery-dispatch",
+        "engineering-orchestration",
+        "parallel-implement-dispatch",
+        "safe-git-preflight-dispatch",
+        "verify-dispatch"
       ]
     },
     {
@@ -612,7 +726,10 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "source-authority-discovery"
+      ]
     },
     {
       "name": "grok-go",
@@ -622,7 +739,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "grok-parallel",
@@ -642,7 +760,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "exa",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "parallel-fan-out"
+      ]
     },
     {
       "name": "grok-route",
@@ -652,7 +773,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "handoff"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "package-routing"
+      ]
     },
     {
       "name": "grok-safe-git",
@@ -668,6 +792,9 @@ When a skill changes its interface or behavior, these callers are affected:
       ],
       "references_wiki": [
         "multi-terminal-git-coordination-primitives"
+      ],
+      "provides": [
+        "git-safety-preflight"
       ]
     },
     {
@@ -678,7 +805,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "grok-verify",
@@ -696,7 +824,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "exa",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "completion-gate"
+      ]
     },
     {
       "name": "handoff",
@@ -719,7 +850,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "exa",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "handoff-auto-update",
+        "handoff-write"
+      ]
     },
     {
       "name": "help",
@@ -729,7 +864,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "grok-documentation-help"
+      ]
     },
     {
       "name": "imagine",
@@ -744,7 +882,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "exa",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "image-generation-guidance"
+      ]
     },
     {
       "name": "maintain",
@@ -765,6 +906,9 @@ When a skill changes its interface or behavior, these callers are affected:
       ],
       "references_wiki": [
         "fleet-maintenance-skill-design"
+      ],
+      "provides": [
+        "fleet-maintenance"
       ]
     },
     {
@@ -776,7 +920,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "marketplace-skill-discovery"
+      ]
     },
     {
       "name": "mmx",
@@ -799,7 +946,12 @@ When a skill changes its interface or behavior, these callers are affected:
         "gh",
         "mmx"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "cross-model-second-opinion",
+        "minimax-vision",
+        "minimax-web-search"
+      ]
     },
     {
       "name": "model-benchmark",
@@ -825,6 +977,11 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "model-fleet-provider-pools",
         "model-pool-not-chain"
+      ],
+      "provides": [
+        "cost-tracking",
+        "latency-benchmark",
+        "quality-scoring"
       ]
     },
     {
@@ -839,7 +996,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "model-discovery"
+      ]
     },
     {
       "name": "notice",
@@ -868,6 +1028,9 @@ When a skill changes its interface or behavior, these callers are affected:
         "proactive-ai-volunteering-mechanisms",
         "user-modeling-for-agentic-clis",
         "wiki-concept"
+      ],
+      "provides": [
+        "mid-conversation-observation-surfacing"
       ]
     },
     {
@@ -889,6 +1052,9 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "agents-md-construction-best-practices",
         "conversation-distillation-review-packet-export"
+      ],
+      "provides": [
+        "session-export"
       ]
     },
     {
@@ -915,6 +1081,9 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture",
         "maker-checker-required-for-enforcement-work"
+      ],
+      "provides": [
+        "plan-writing"
       ]
     },
     {
@@ -933,6 +1102,9 @@ When a skill changes its interface or behavior, these callers are affected:
       ],
       "references_wiki": [
         "prompting-patterns-for-ai-agent-control"
+      ],
+      "provides": [
+        "prompting-techniques-reference"
       ]
     },
     {
@@ -958,6 +1130,9 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture",
         "verification-before-completion-principle"
+      ],
+      "provides": [
+        "structural-refactor"
       ]
     },
     {
@@ -985,6 +1160,9 @@ When a skill changes its interface or behavior, these callers are affected:
         "task-refinement-interview-detection-template-patterns",
         "trust-escalation-ladder-autonomous-agent-work",
         "workflow-definition-over-agent-capability"
+      ],
+      "provides": [
+        "task-refinement"
       ]
     },
     {
@@ -1011,6 +1189,10 @@ When a skill changes its interface or behavior, these callers are affected:
       ],
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture"
+      ],
+      "provides": [
+        "code-review",
+        "verified-findings-on-disk"
       ]
     },
     {
@@ -1037,7 +1219,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "search-research",
         "tavily"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "capability-routed-search",
+        "rrf-aggregation"
+      ]
     },
     {
       "name": "skill-dev",
@@ -1067,6 +1253,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "skill-development-portfolio",
         "skill-management-in-agentic-systems-research-survey",
         "skill-techniques-index"
+      ],
+      "provides": [
+        "skill-improvement",
+        "skill-measurement"
       ]
     },
     {
@@ -1083,7 +1273,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "exa",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "persistent-task-store"
+      ]
     },
     {
       "name": "todo",
@@ -1105,7 +1298,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "notebooklm",
         "reddit"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "workspace-prioritized-action-list"
+      ]
     },
     {
       "name": "tp",
@@ -1146,6 +1342,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "model-pool-not-chain",
         "model-pool-selection-policy-speed-quota-diversity",
         "model-tool-calling-capability-matrix"
+      ],
+      "provides": [
+        "critical-friend-critique",
+        "session-opportunity-review",
+        "system-exploration"
       ]
     },
     {
@@ -1166,7 +1367,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "codex",
         "gh"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "content-discipline-for-plans"
+      ]
     },
     {
       "name": "web",
@@ -1200,6 +1404,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "search-tool-landscape-2026",
         "web-research-state-2026",
         "web-search-tool-routing"
+      ],
+      "provides": [
+        "multi-backend-search",
+        "rrf-merge"
       ]
     },
     {
@@ -1229,6 +1437,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "multidimensional-root-cause-analysis-ai-agent-failures",
         "problem-first-systems-decomposition",
         "reactive-pattern-matching-and-closure-pressure"
+      ],
+      "provides": [
+        "feedback-to-wiki",
+        "pattern-library-query",
+        "root-cause-analysis"
       ]
     },
     {
@@ -1256,7 +1469,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "premature-closure-narrative-sufficiency-external-approaches",
         "problem-first-systems-decomposition",
         "reactive-pattern-matching-and-closure-pressure"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "wiki",
@@ -1276,6 +1490,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "skill-catalog",
         "synchronous-review-direct-write-pattern",
         "wikilinks"
+      ],
+      "provides": [
+        "capability-wiki-query",
+        "capability-wiki-write"
       ]
     },
     {
@@ -1312,6 +1530,9 @@ When a skill changes its interface or behavior, these callers are affected:
         "parallel-subagent-wait-all-gate",
         "skill-catalog",
         "wikilinks"
+      ],
+      "provides": [
+        "wiki-web-wiki-research"
       ]
     },
     {
@@ -1322,7 +1543,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "code-review",
@@ -1335,7 +1557,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "create-skill",
@@ -1343,7 +1566,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "grok-bundled",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "create-workflow",
@@ -1354,7 +1578,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "design",
@@ -1377,7 +1602,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "adr-0009-extend-unverified-stance",
         "exemption-logic-as-conflict-signal"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "docx",
@@ -1385,7 +1611,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "grok-bundled",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "execute-plan",
@@ -1399,7 +1626,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "game-animation-frames",
@@ -1410,7 +1638,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "game-asset-core",
@@ -1418,7 +1647,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "grok-bundled",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "game-character-consistency",
@@ -1428,7 +1658,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "game-tilesets",
@@ -1438,7 +1669,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "notice"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "game-ui-icons",
@@ -1448,7 +1680,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "design"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "imagine",
@@ -1460,7 +1693,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "implement",
@@ -1474,7 +1708,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "pdf",
@@ -1484,7 +1719,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "pptx",
@@ -1495,7 +1731,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "close"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "pr-babysit",
@@ -1508,7 +1745,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "resume-claude",
@@ -1516,7 +1754,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "grok-bundled",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "resume-codex",
@@ -1528,7 +1767,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "codex"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "resume-cursor",
@@ -1536,7 +1776,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "grok-bundled",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "review",
@@ -1549,7 +1790,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "check",
@@ -1571,6 +1813,9 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture",
         "model-pool-selection-policy-speed-quota-diversity"
+      ],
+      "provides": [
+        "session-verification"
       ]
     },
     {
@@ -1595,7 +1840,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [],
       "references_wiki": [
         "parallel-subagent-wait-all-gate"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "avant-garde-ui",
@@ -1606,7 +1852,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "config-audit",
@@ -1624,7 +1871,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "llm-instruction-non-compliance-activation-gap-2026",
         "structural-enforcement-for-skipped-rules-grok-build-2026"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "contract-status",
@@ -1632,7 +1880,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "grok-agents",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "nlm-bulk-ingest",
@@ -1650,7 +1899,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "notebooklm-cli-operational-gotchas",
         "notebooklm-source-limits-free-vs-paid",
         "semantic-clustering-bounded-size"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "nlm-to-wiki",
@@ -1676,7 +1926,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "notebooklm-source-limits-free-vs-paid",
         "video-to-wiki-pipeline-transcript-extraction-multimodal",
         "wikilinks"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "notebooklm",
@@ -1688,7 +1939,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "preflight",
@@ -1700,7 +1952,10 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": [
+        "evidence-backed-inventory"
+      ]
     },
     {
       "name": "recover",
@@ -1713,6 +1968,9 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [],
       "references_wiki": [
         "notebooklm-cli-operational-gotchas"
+      ],
+      "provides": [
+        "file-recovery"
       ]
     },
     {
@@ -1727,6 +1985,9 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [],
       "references_wiki": [
         "llm-instruction-non-compliance-activation-gap-2026"
+      ],
+      "provides": [
+        "knowledge-hygiene"
       ]
     },
     {
@@ -1744,7 +2005,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "cc-model-router",
@@ -1754,7 +2016,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "design"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "debt",
@@ -1765,7 +2028,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "agy",
@@ -1777,7 +2041,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ai-api",
@@ -1792,7 +2057,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ai-cli",
@@ -1807,7 +2073,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "agy"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ai-models",
@@ -1820,7 +2087,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ai-probe-benchmark",
@@ -1830,7 +2098,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ai-probe-nim",
@@ -1840,7 +2109,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ai-probe-openrouter",
@@ -1848,7 +2118,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ai-probe-router",
@@ -1858,7 +2129,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "codex",
@@ -1873,7 +2145,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "codex"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "google-ai-usage-monitor",
@@ -1885,7 +2158,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "intelligence-stream-analyze",
@@ -1896,7 +2170,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "intelligence-stream-ingest",
@@ -1904,7 +2179,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "perplexity-web-mcp",
@@ -1917,7 +2193,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "pwm"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "quota",
@@ -1927,7 +2204,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "behave",
@@ -1940,7 +2218,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "handoff"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "claude-audit",
@@ -1957,7 +2236,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "debrief",
@@ -1975,7 +2255,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "doc-compiler",
@@ -1991,7 +2272,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "epistemic-check",
@@ -2001,7 +2283,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "friction",
@@ -2012,7 +2295,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "recap",
@@ -2026,7 +2310,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "handoff"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "retro",
@@ -2038,7 +2323,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "red-team"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "rns",
@@ -2050,7 +2336,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "handoff"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "skill-audit",
@@ -2065,7 +2352,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "skill-similarity",
@@ -2076,7 +2364,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "top-problems",
@@ -2086,7 +2375,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "debrief"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "trace",
@@ -2099,7 +2389,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "why",
@@ -2112,7 +2403,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "search-research"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ask",
@@ -2126,7 +2418,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "bf",
@@ -2139,7 +2432,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "constitutional-patterns",
@@ -2150,7 +2444,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "constraints",
@@ -2158,7 +2453,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "decision-tree",
@@ -2170,7 +2466,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "evolve",
@@ -2182,7 +2479,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "garden",
@@ -2190,7 +2488,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "gitready",
@@ -2201,7 +2500,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "prompt_refiner",
@@ -2212,7 +2512,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "refine"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ralph",
@@ -2220,7 +2521,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "skill-from-docs",
@@ -2231,7 +2533,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "skill-to-page",
@@ -2247,7 +2550,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "skill-write",
@@ -2262,7 +2566,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "solo-dev-authority",
@@ -2274,7 +2579,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "subagent-driven-development",
@@ -2286,7 +2592,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "usm",
@@ -2297,7 +2604,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "check",
@@ -2311,7 +2619,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "cks",
@@ -2322,7 +2631,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "concept-mapper",
@@ -2333,7 +2643,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "csf-nip-integration",
@@ -2343,7 +2654,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "lmc",
@@ -2355,7 +2667,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "mlc",
@@ -2368,7 +2681,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "simplify-enhanced",
@@ -2379,7 +2693,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "slc",
@@ -2389,7 +2704,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "codebase-to-course",
@@ -2403,7 +2719,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "frontend-dev",
@@ -2416,7 +2733,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "fullstack-dev",
@@ -2432,7 +2750,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "minimax-multimodal-toolkit",
@@ -2446,7 +2765,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "mmx"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "minimax-music-gen",
@@ -2462,7 +2782,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "mmx"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "minimax-music-playlist",
@@ -2476,7 +2797,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "mmx"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "nlm",
@@ -2489,7 +2811,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "nlm",
         "notebooklm"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "nlm-to-wiki",
@@ -2507,7 +2830,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "nlm-abc12345-concept-one",
         "nlm-abc12345-concept-two",
         "wikilinks"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "video-vision",
@@ -2518,7 +2842,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "vision-analysis",
@@ -2529,7 +2854,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "yt-is",
@@ -2541,7 +2867,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "yt-nlm",
@@ -2554,7 +2881,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "notebooklm"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "yt-selenium",
@@ -2567,7 +2895,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "av",
@@ -2577,7 +2906,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "brainstorming",
@@ -2593,7 +2923,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "code",
@@ -2607,7 +2938,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "packet"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "code-flow-visualizer",
@@ -2615,7 +2947,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "code-review",
@@ -2626,7 +2959,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "design",
@@ -2639,7 +2973,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "diagnose",
@@ -2647,7 +2982,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "dispatching-parallel-agents",
@@ -2658,7 +2994,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "docs",
@@ -2669,7 +3006,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "evidence-driven-experiment-loop",
@@ -2677,7 +3015,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "executing-plans",
@@ -2687,7 +3026,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "finishing-a-development-branch",
@@ -2698,7 +3038,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "go",
@@ -2715,7 +3056,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "improve-codebase-architecture",
@@ -2726,7 +3068,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "mermaid-c4",
@@ -2737,7 +3080,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "perf",
@@ -2745,7 +3089,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "performance-profiler",
@@ -2753,7 +3098,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "planning",
@@ -2770,7 +3116,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "pre-mortem",
@@ -2782,7 +3129,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "preflight",
@@ -2792,7 +3140,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "packet"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "profile",
@@ -2800,7 +3149,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "qmd-wiki",
@@ -2810,7 +3160,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "rca",
@@ -2820,7 +3171,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "refactor",
@@ -2833,7 +3185,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "review",
@@ -2846,7 +3199,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "review-pr",
@@ -2856,7 +3210,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "review_bundle",
@@ -2869,7 +3224,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "risks",
@@ -2884,7 +3240,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ship",
@@ -2894,7 +3251,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "specify",
@@ -2905,7 +3263,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "sqa",
@@ -2913,7 +3272,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "sqd",
@@ -2923,7 +3283,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "t",
@@ -2934,7 +3295,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "task",
@@ -2946,7 +3308,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tdd",
@@ -2957,7 +3320,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "team",
@@ -2970,7 +3334,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "tasks"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tilldone",
@@ -2981,7 +3346,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tldr-code",
@@ -2992,7 +3358,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tldr-deep",
@@ -3000,7 +3367,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tldr-overview",
@@ -3010,7 +3378,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tldr-router",
@@ -3021,7 +3390,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tldr-stats",
@@ -3031,7 +3401,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "uci",
@@ -3041,7 +3412,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "using-git-worktrees",
@@ -3054,7 +3426,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "using-superpowers",
@@ -3064,7 +3437,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "verification-before-completion",
@@ -3075,7 +3449,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "wiki",
@@ -3085,7 +3460,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "writing-plans",
@@ -3096,7 +3472,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "writing-skills",
@@ -3106,7 +3483,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "close"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "zoom-out",
@@ -3116,7 +3494,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "dream",
@@ -3126,7 +3505,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "execution-clarity",
@@ -3136,7 +3516,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "genius",
@@ -3146,7 +3527,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "learn",
@@ -3157,7 +3539,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "pace",
@@ -3165,7 +3548,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "probe",
@@ -3178,7 +3562,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "prospect",
@@ -3194,7 +3579,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "search-research"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "reason",
@@ -3208,7 +3594,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "reflect",
@@ -3220,7 +3607,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "response-atomicity",
@@ -3228,7 +3616,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "s",
@@ -3242,7 +3631,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "sequential-thinking",
@@ -3254,7 +3644,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "skeptic",
@@ -3266,7 +3657,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "tot",
@@ -3276,7 +3668,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "truth",
@@ -3286,7 +3679,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ut",
@@ -3298,7 +3692,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "ux",
@@ -3310,7 +3705,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "bifrost",
@@ -3318,7 +3714,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "git",
@@ -3329,7 +3726,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "init",
@@ -3341,7 +3739,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "main",
@@ -3354,7 +3753,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "main-review",
@@ -3364,7 +3764,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "mm-quota",
@@ -3376,7 +3777,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "plugin-installer",
@@ -3388,7 +3790,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "recover",
@@ -3399,7 +3802,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "usage-query-skill",
@@ -3407,7 +3811,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "improve",
@@ -3426,7 +3831,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "prompt-enhancer",
@@ -3434,7 +3840,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "adr",
@@ -3442,7 +3849,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "build",
@@ -3453,7 +3861,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "capture",
@@ -3463,7 +3872,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "changelog",
@@ -3473,7 +3883,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "check"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "index",
@@ -3481,7 +3892,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "prime",
@@ -3492,7 +3904,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "go"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "stale",
@@ -3503,7 +3916,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "aid",
@@ -3514,7 +3928,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "all",
@@ -3522,7 +3937,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "chs",
@@ -3535,7 +3951,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "why"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "chs-eval",
@@ -3543,7 +3960,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "context7",
@@ -3556,7 +3974,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "context7"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "crawl",
@@ -3572,7 +3991,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "references_wiki": [
         "page",
         "wikilinks"
-      ]
+      ],
+      "provides": []
     },
     {
       "name": "discover",
@@ -3584,7 +4004,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "export-session",
@@ -3594,7 +4015,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "debrief"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "find",
@@ -3606,7 +4028,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "gitingest",
@@ -3620,7 +4043,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "consumes_provider": [
         "nlm"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "gitpack",
@@ -3634,7 +4058,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "keep",
@@ -3647,7 +4072,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "note",
@@ -3660,7 +4086,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "web"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "repomix",
@@ -3668,7 +4095,8 @@ When a skill changes its interface or behavior, these callers are affected:
       "scope": "marketplace",
       "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "research",
@@ -3679,7 +4107,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "mmx"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "web",
@@ -3692,7 +4121,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "notebooklm",
         "serper"
       ],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "id",
@@ -3702,7 +4132,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     },
     {
       "name": "snapshot",
@@ -3713,7 +4144,8 @@ When a skill changes its interface or behavior, these callers are affected:
         "review"
       ],
       "consumes_provider": [],
-      "references_wiki": []
+      "references_wiki": [],
+      "provides": []
     }
   ],
   "reverse": {
@@ -3836,22 +4268,6 @@ When a skill changes its interface or behavior, these callers are affected:
         "go",
         "web"
       ],
-      "tavily": [
-        "search-fleet",
-        "web"
-      ],
-      "ddg": [
-        "search-fleet",
-        "tp",
-        "web",
-        "www"
-      ],
-      "search-research": [
-        "prospect",
-        "search-fleet",
-        "web",
-        "why"
-      ],
       "reddit": [
         "search-fleet",
         "todo",
@@ -3866,6 +4282,22 @@ When a skill changes its interface or behavior, these callers are affected:
         "perplexity-web-mcp",
         "search-fleet"
       ],
+      "ddg": [
+        "search-fleet",
+        "tp",
+        "web",
+        "www"
+      ],
+      "search-research": [
+        "prospect",
+        "search-fleet",
+        "web",
+        "why"
+      ],
+      "tavily": [
+        "search-fleet",
+        "web"
+      ],
       "notebooklm": [
         "nlm",
         "nlm-to-wiki",
@@ -3877,14 +4309,14 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp",
         "why"
       ],
-      "stackexchange": [
+      "duckduckgo": [
         "web"
       ],
       "hn-algolia": [
         "web",
         "www"
       ],
-      "duckduckgo": [
+      "stackexchange": [
         "web"
       ],
       "github-issues": [
@@ -3901,6 +4333,141 @@ When a skill changes its interface or behavior, these callers are affected:
       ]
     },
     "skill_callers": {
+      "handoff": [
+        "aar",
+        "ask",
+        "behave",
+        "check",
+        "chs",
+        "close",
+        "code",
+        "debrief",
+        "design",
+        "dream",
+        "find",
+        "fullstack-dev",
+        "go",
+        "grok-route",
+        "grok-verify",
+        "improve",
+        "maintain",
+        "notice",
+        "packet",
+        "plan-writer",
+        "planning",
+        "prompt-patterns",
+        "prospect",
+        "recap",
+        "refactor",
+        "refine",
+        "review",
+        "rns",
+        "s",
+        "skill-dev",
+        "todo",
+        "tp",
+        "trace",
+        "wargame",
+        "why",
+        "workspace-health",
+        "writing-plans"
+      ],
+      "packet": [
+        "aar",
+        "ai-api",
+        "ai-cli",
+        "check",
+        "close",
+        "code",
+        "design",
+        "go",
+        "improve",
+        "planning",
+        "preflight",
+        "review",
+        "why"
+      ],
+      "why": [
+        "aar",
+        "ai-models",
+        "ask",
+        "av",
+        "brainstorming",
+        "check",
+        "chs",
+        "cks",
+        "close",
+        "code-review",
+        "codebase-to-course",
+        "codex",
+        "config-audit",
+        "context7",
+        "debrief",
+        "decision-tree",
+        "design",
+        "doc-compiler",
+        "dream",
+        "evolve",
+        "execute-plan",
+        "frontend-dev",
+        "game-animation-frames",
+        "genius",
+        "go",
+        "grok-discovery",
+        "handoff",
+        "implement",
+        "improve",
+        "improve-codebase-architecture",
+        "init",
+        "maintain",
+        "mm-quota",
+        "mmx",
+        "model-benchmark",
+        "model-discover",
+        "nlm-bulk-ingest",
+        "nlm-to-wiki",
+        "notebooklm",
+        "notice",
+        "plan-writer",
+        "planning",
+        "plugin-installer",
+        "pr-babysit",
+        "probe",
+        "prompt-patterns",
+        "prospect",
+        "reason",
+        "red-team",
+        "refactor",
+        "refine",
+        "reflect",
+        "review",
+        "review_bundle",
+        "risks",
+        "s",
+        "search-fleet",
+        "skeptic",
+        "skill-audit",
+        "skill-dev",
+        "skill-prune",
+        "skill-to-page",
+        "skill-write",
+        "solo-dev-authority",
+        "task",
+        "tldr-code",
+        "tldr-router",
+        "todo",
+        "tp",
+        "using-git-worktrees",
+        "verification-before-completion",
+        "video-vision",
+        "wargame",
+        "web",
+        "why-old",
+        "wiki",
+        "workspace-health",
+        "www",
+        "yt-selenium"
+      ],
       "check": [
         "aar",
         "agy",
@@ -4075,30 +4642,52 @@ When a skill changes its interface or behavior, these callers are affected:
         "why-old",
         "www"
       ],
-      "refine": [
+      "wiki": [
         "aar",
-        "brainstorming",
+        "ask",
+        "check",
+        "claude-audit",
+        "close",
+        "config-audit",
+        "crawl",
+        "crawl4ai",
+        "create-skill",
         "debrief",
         "design",
+        "doc-compiler",
         "dream",
+        "gitpack",
         "go",
+        "grok-safe-git",
         "handoff",
-        "keep",
-        "mermaid-c4",
-        "minimax-music-gen",
-        "mlc",
+        "improve",
+        "main",
+        "maintain",
         "model-benchmark",
-        "note",
+        "model-discover",
+        "nlm-bulk-ingest",
+        "nlm-to-wiki",
+        "notice",
+        "packet",
         "plan-writer",
-        "probe",
-        "prompt_refiner",
+        "prompt-patterns",
+        "prospect",
+        "qmd-wiki",
         "red-team",
         "refactor",
+        "refine",
         "review",
-        "s",
-        "sequential-thinking",
+        "search-fleet",
+        "skill-dev",
+        "skill-prune",
+        "todo",
         "tp",
+        "ut",
+        "ux",
         "wargame",
+        "web",
+        "why",
+        "workspace-health",
         "www"
       ],
       "review": [
@@ -4208,39 +4797,6 @@ When a skill changes its interface or behavior, these callers are affected:
         "yt-is",
         "yt-nlm"
       ],
-      "tp": [
-        "aar",
-        "ai-api",
-        "ai-probe-nim",
-        "bf",
-        "close",
-        "config-audit",
-        "design",
-        "dream",
-        "fullstack-dev",
-        "go",
-        "handoff",
-        "id",
-        "marketplace-bridge",
-        "mmx",
-        "model-benchmark",
-        "model-discover",
-        "notice",
-        "plan-writer",
-        "red-team",
-        "refactor",
-        "refine",
-        "review",
-        "skill-dev",
-        "skill-to-page",
-        "tdd",
-        "todo",
-        "web",
-        "why",
-        "why-old",
-        "workspace-health",
-        "www"
-      ],
       "design": [
         "aar",
         "agy",
@@ -4308,186 +4864,91 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki",
         "www"
       ],
-      "wiki": [
-        "aar",
-        "ask",
-        "check",
-        "claude-audit",
-        "close",
-        "config-audit",
-        "crawl",
-        "crawl4ai",
-        "create-skill",
-        "debrief",
-        "design",
-        "doc-compiler",
-        "dream",
-        "gitpack",
-        "go",
-        "grok-safe-git",
-        "handoff",
-        "improve",
-        "main",
-        "maintain",
-        "model-benchmark",
-        "model-discover",
-        "nlm-bulk-ingest",
-        "nlm-to-wiki",
-        "notice",
-        "packet",
-        "plan-writer",
-        "prompt-patterns",
-        "prospect",
-        "qmd-wiki",
-        "red-team",
-        "refactor",
-        "refine",
-        "review",
-        "search-fleet",
-        "skill-dev",
-        "skill-prune",
-        "todo",
-        "tp",
-        "ut",
-        "ux",
-        "wargame",
-        "web",
-        "why",
-        "workspace-health",
-        "www"
-      ],
-      "handoff": [
-        "aar",
-        "ask",
-        "behave",
-        "check",
-        "chs",
-        "close",
-        "code",
-        "debrief",
-        "design",
-        "dream",
-        "find",
-        "fullstack-dev",
-        "go",
-        "grok-route",
-        "grok-verify",
-        "improve",
-        "maintain",
-        "notice",
-        "packet",
-        "plan-writer",
-        "planning",
-        "prompt-patterns",
-        "prospect",
-        "recap",
-        "refactor",
-        "refine",
-        "review",
-        "rns",
-        "s",
-        "skill-dev",
-        "todo",
-        "tp",
-        "trace",
-        "wargame",
-        "why",
-        "workspace-health",
-        "writing-plans"
-      ],
-      "packet": [
+      "tp": [
         "aar",
         "ai-api",
-        "ai-cli",
-        "check",
+        "ai-probe-nim",
+        "bf",
         "close",
-        "code",
-        "design",
-        "go",
-        "improve",
-        "planning",
-        "preflight",
-        "review",
-        "why"
-      ],
-      "why": [
-        "aar",
-        "ai-models",
-        "ask",
-        "av",
-        "brainstorming",
-        "check",
-        "chs",
-        "cks",
-        "close",
-        "code-review",
-        "codebase-to-course",
-        "codex",
         "config-audit",
-        "context7",
-        "debrief",
-        "decision-tree",
         "design",
-        "doc-compiler",
         "dream",
-        "evolve",
-        "execute-plan",
-        "frontend-dev",
-        "game-animation-frames",
-        "genius",
+        "fullstack-dev",
         "go",
-        "grok-discovery",
         "handoff",
-        "implement",
-        "improve",
-        "improve-codebase-architecture",
-        "init",
-        "maintain",
-        "mm-quota",
+        "id",
+        "marketplace-bridge",
         "mmx",
         "model-benchmark",
         "model-discover",
-        "nlm-bulk-ingest",
-        "nlm-to-wiki",
-        "notebooklm",
         "notice",
         "plan-writer",
-        "planning",
-        "plugin-installer",
-        "pr-babysit",
-        "probe",
-        "prompt-patterns",
-        "prospect",
-        "reason",
         "red-team",
         "refactor",
         "refine",
-        "reflect",
         "review",
-        "review_bundle",
-        "risks",
-        "s",
-        "search-fleet",
-        "skeptic",
-        "skill-audit",
         "skill-dev",
-        "skill-prune",
         "skill-to-page",
-        "skill-write",
-        "solo-dev-authority",
-        "task",
-        "tldr-code",
-        "tldr-router",
+        "tdd",
+        "todo",
+        "web",
+        "why",
+        "why-old",
+        "workspace-health",
+        "www"
+      ],
+      "refine": [
+        "aar",
+        "brainstorming",
+        "debrief",
+        "design",
+        "dream",
+        "go",
+        "handoff",
+        "keep",
+        "mermaid-c4",
+        "minimax-music-gen",
+        "mlc",
+        "model-benchmark",
+        "note",
+        "plan-writer",
+        "probe",
+        "prompt_refiner",
+        "red-team",
+        "refactor",
+        "review",
+        "s",
+        "sequential-thinking",
+        "tp",
+        "wargame",
+        "www"
+      ],
+      "close": [
+        "aar",
+        "check",
+        "claude-audit",
+        "debrief",
+        "doc-compiler",
+        "dream",
+        "fullstack-dev",
+        "grok-safe-git",
+        "grok-verify",
+        "handoff",
+        "maintain",
+        "notice",
+        "planning",
+        "pptx",
+        "probe",
+        "red-team",
+        "refactor",
+        "review",
+        "skill-dev",
+        "skill-to-page",
+        "team",
         "todo",
         "tp",
-        "using-git-worktrees",
-        "verification-before-completion",
-        "video-vision",
-        "wargame",
-        "web",
-        "why-old",
-        "wiki",
-        "workspace-health",
+        "trace",
+        "writing-skills",
         "www",
         "yt-selenium"
       ],
@@ -4552,56 +5013,6 @@ When a skill changes its interface or behavior, these callers are affected:
         "www",
         "zoom-out"
       ],
-      "close": [
-        "aar",
-        "check",
-        "claude-audit",
-        "debrief",
-        "doc-compiler",
-        "dream",
-        "fullstack-dev",
-        "grok-safe-git",
-        "grok-verify",
-        "handoff",
-        "maintain",
-        "notice",
-        "planning",
-        "pptx",
-        "probe",
-        "red-team",
-        "refactor",
-        "review",
-        "skill-dev",
-        "skill-to-page",
-        "team",
-        "todo",
-        "tp",
-        "trace",
-        "writing-skills",
-        "www",
-        "yt-selenium"
-      ],
-      "debrief": [
-        "agy",
-        "behave",
-        "claude-audit",
-        "close",
-        "codex",
-        "dream",
-        "export-session",
-        "friction",
-        "go",
-        "handoff",
-        "improve",
-        "lmc",
-        "mlc",
-        "recap",
-        "red-team",
-        "retro",
-        "skill-audit",
-        "top-problems",
-        "tp"
-      ],
       "web": [
         "agy",
         "ai-models",
@@ -4635,6 +5046,27 @@ When a skill changes its interface or behavior, these callers are affected:
         "www",
         "yt-is",
         "yt-selenium"
+      ],
+      "debrief": [
+        "agy",
+        "behave",
+        "claude-audit",
+        "close",
+        "codex",
+        "dream",
+        "export-session",
+        "friction",
+        "go",
+        "handoff",
+        "improve",
+        "lmc",
+        "mlc",
+        "recap",
+        "red-team",
+        "retro",
+        "skill-audit",
+        "top-problems",
+        "tp"
       ],
       "aar": [
         "close",
@@ -4670,6 +5102,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "tp",
         "why"
       ],
+      "skill-dev": [
+        "create-skill",
+        "red-team",
+        "tp"
+      ],
       "skill-prune": [
         "config-audit",
         "create-skill",
@@ -4677,10 +5114,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "skill-dev",
         "workspace-health"
       ],
-      "skill-dev": [
-        "create-skill",
-        "red-team",
-        "tp"
+      "plan-writer": [
+        "design",
+        "go",
+        "grok-parallel",
+        "refine"
       ],
       "mmx": [
         "design",
@@ -4699,11 +5137,21 @@ When a skill changes its interface or behavior, these callers are affected:
         "design",
         "tp"
       ],
-      "plan-writer": [
-        "design",
+      "todo": [
+        "design"
+      ],
+      "grok-parallel": [
+        "go",
+        "notice"
+      ],
+      "grok-discovery": [
+        "go",
+        "grok-parallel"
+      ],
+      "grok-safe-git": [
         "go",
         "grok-parallel",
-        "refine"
+        "grok-verify"
       ],
       "grok-route": [
         "go",
@@ -4716,19 +5164,6 @@ When a skill changes its interface or behavior, these callers are affected:
         "refactor",
         "skill-dev",
         "tp"
-      ],
-      "grok-discovery": [
-        "go",
-        "grok-parallel"
-      ],
-      "grok-safe-git": [
-        "go",
-        "grok-parallel",
-        "grok-verify"
-      ],
-      "grok-parallel": [
-        "go",
-        "notice"
       ],
       "recover": [
         "config-audit",
@@ -4779,9 +5214,6 @@ When a skill changes its interface or behavior, these callers are affected:
         "aar",
         "notice"
       ],
-      "friction-detection-operator-pushback-as-trigger": [
-        "aar"
-      ],
       "operator-collaboration-style-and-leverage": [
         "aar",
         "dream"
@@ -4790,6 +5222,15 @@ When a skill changes its interface or behavior, these callers are affected:
         "aar",
         "red-team",
         "www"
+      ],
+      "friction-detection-operator-pushback-as-trigger": [
+        "aar"
+      ],
+      "prompting-patterns-for-ai-agent-control": [
+        "close",
+        "create-skill",
+        "go",
+        "prompt-patterns"
       ],
       "agentic-sdlc-skill-lifecycle-architecture": [
         "check",
@@ -4800,11 +5241,9 @@ When a skill changes its interface or behavior, these callers are affected:
         "refine",
         "review"
       ],
-      "prompting-patterns-for-ai-agent-control": [
-        "close",
-        "create-skill",
-        "go",
-        "prompt-patterns"
+      "page": [
+        "crawl",
+        "crawl4ai"
       ],
       "wikilinks": [
         "crawl",
@@ -4813,20 +5252,19 @@ When a skill changes its interface or behavior, these callers are affected:
         "wiki",
         "www"
       ],
-      "page": [
-        "crawl",
-        "crawl4ai"
+      "exemption-logic-as-conflict-signal": [
+        "design"
+      ],
+      "adr-0009-extend-unverified-stance": [
+        "design"
       ],
       "llm-synthesis-quality-and-speed-techniques": [
         "design"
       ],
-      "exemption-logic-as-conflict-signal": [
+      "consistency-drift-as-waste-source-in-iterative-refinement": [
         "design"
       ],
       "raising-coding-best-practices-in-ai-agents": [
-        "design"
-      ],
-      "adr-0009-extend-unverified-stance": [
         "design"
       ],
       "llm-dreaming-memory-consolidation": [
@@ -4872,29 +5310,23 @@ When a skill changes its interface or behavior, these callers are affected:
       "trust-escalation-ladder-autonomous-agent-work": [
         "refine"
       ],
+      "workflow-definition-over-agent-capability": [
+        "refine"
+      ],
       "task-refinement-interview-detection-template-patterns": [
         "refine"
       ],
       "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
         "refine"
       ],
-      "workflow-definition-over-agent-capability": [
-        "refine"
-      ],
       "skill-development-portfolio": [
-        "skill-dev"
-      ],
-      "skill-management-in-agentic-systems-research-survey": [
         "skill-dev"
       ],
       "skill-techniques-index": [
         "skill-dev"
       ],
-      "analyst-exhibits-pattern-being-analyzed": [
-        "tp"
-      ],
-      "model-tool-calling-capability-matrix": [
-        "tp"
+      "skill-management-in-agentic-systems-research-survey": [
+        "skill-dev"
       ],
       "markdown-mermaid-rendering-agentic-clis-windows-11": [
         "tp"
@@ -4903,20 +5335,29 @@ When a skill changes its interface or behavior, these callers are affected:
         "check",
         "tp"
       ],
+      "analyst-exhibits-pattern-being-analyzed": [
+        "tp"
+      ],
+      "model-tool-calling-capability-matrix": [
+        "tp"
+      ],
       "model-fit-and-post-hoc-behavioral-detection": [
         "tp"
       ],
-      "web-search-tool-routing": [
+      "optimal-multi-backend-search-strategy": [
         "web"
       ],
-      "optimal-multi-backend-search-strategy": [
+      "web-research-state-2026": [
+        "web"
+      ],
+      "web-search-tool-routing": [
         "web"
       ],
       "search-tool-landscape-2026": [
         "web"
       ],
-      "web-research-state-2026": [
-        "web"
+      "compaction-inherited-diagnosis-unverified-propagation": [
+        "why"
       ],
       "reactive-pattern-matching-and-closure-pressure": [
         "why",
@@ -4926,11 +5367,11 @@ When a skill changes its interface or behavior, these callers are affected:
         "why",
         "why-old"
       ],
-      "compaction-inherited-diagnosis-unverified-propagation": [
-        "why"
-      ],
       "problem-first-systems-decomposition": [
         "why",
+        "why-old"
+      ],
+      "premature-closure-narrative-sufficiency-external-approaches": [
         "why-old"
       ],
       "fabricated-causal-chain-receipt-required": [
@@ -4939,30 +5380,27 @@ When a skill changes its interface or behavior, these callers are affected:
       "plausible-narratives-substitute-for-verification": [
         "why-old"
       ],
-      "premature-closure-narrative-sufficiency-external-approaches": [
-        "why-old"
-      ],
-      "inline-conditional-over-dispatch-for-skill-design": [
-        "wiki"
-      ],
-      "synchronous-review-direct-write-pattern": [
-        "wiki"
-      ],
       "skill-catalog": [
         "wiki",
         "www"
       ],
+      "synchronous-review-direct-write-pattern": [
+        "wiki"
+      ],
+      "inline-conditional-over-dispatch-for-skill-design": [
+        "wiki"
+      ],
       "concurrent-cdp-auth-contention": [
         "nlm-to-wiki",
-        "www"
-      ],
-      "invariants-beat-environment-comfort": [
         "www"
       ],
       "notebooklm-cli-operational-gotchas": [
         "nlm-bulk-ingest",
         "nlm-to-wiki",
         "recover",
+        "www"
+      ],
+      "invariants-beat-environment-comfort": [
         "www"
       ],
       "llm-instruction-non-compliance-activation-gap-2026": [
@@ -4972,12 +5410,15 @@ When a skill changes its interface or behavior, these callers are affected:
       "structural-enforcement-for-skipped-rules-grok-build-2026": [
         "config-audit"
       ],
+      "semantic-clustering-bounded-size": [
+        "nlm-bulk-ingest"
+      ],
       "notebooklm-source-limits-free-vs-paid": [
         "nlm-bulk-ingest",
         "nlm-to-wiki"
       ],
-      "semantic-clustering-bounded-size": [
-        "nlm-bulk-ingest"
+      "video-to-wiki-pipeline-transcript-extraction-multimodal": [
+        "nlm-to-wiki"
       ],
       "nlm-to-wiki-optimization-opportunities": [
         "nlm-to-wiki"
@@ -4985,14 +5426,210 @@ When a skill changes its interface or behavior, these callers are affected:
       "nlm-bulk-ingest": [
         "nlm-to-wiki"
       ],
-      "video-to-wiki-pipeline-transcript-extraction-multimodal": [
+      "nlm-abc12345-concept-one": [
         "nlm-to-wiki"
       ],
       "nlm-abc12345-concept-two": [
         "nlm-to-wiki"
+      ]
+    },
+    "capability_providers": {
+      "opportunity-landscape": [
+        "aar"
       ],
-      "nlm-abc12345-concept-one": [
-        "nlm-to-wiki"
+      "after-action-review": [
+        "aar"
+      ],
+      "value-accounting": [
+        "aar"
+      ],
+      "cross-model-second-opinion": [
+        "agy",
+        "codex",
+        "mmx"
+      ],
+      "gemini-reasoning": [
+        "agy"
+      ],
+      "session-close-accounting": [
+        "close"
+      ],
+      "gate-resolution": [
+        "close"
+      ],
+      "openai-reasoning": [
+        "codex"
+      ],
+      "web-ingestion": [
+        "crawl4ai"
+      ],
+      "skill-scaffolding": [
+        "create-skill"
+      ],
+      "session-retrospective": [
+        "debrief"
+      ],
+      "design-doc-production": [
+        "design"
+      ],
+      "offline-memory-consolidation": [
+        "dream"
+      ],
+      "discovery-dispatch": [
+        "go"
+      ],
+      "verify-dispatch": [
+        "go"
+      ],
+      "engineering-orchestration": [
+        "go"
+      ],
+      "safe-git-preflight-dispatch": [
+        "go"
+      ],
+      "parallel-implement-dispatch": [
+        "go"
+      ],
+      "source-authority-discovery": [
+        "grok-discovery"
+      ],
+      "parallel-fan-out": [
+        "grok-parallel"
+      ],
+      "package-routing": [
+        "grok-route"
+      ],
+      "git-safety-preflight": [
+        "grok-safe-git"
+      ],
+      "completion-gate": [
+        "grok-verify"
+      ],
+      "handoff-write": [
+        "handoff"
+      ],
+      "handoff-auto-update": [
+        "handoff"
+      ],
+      "grok-documentation-help": [
+        "help"
+      ],
+      "image-generation-guidance": [
+        "imagine"
+      ],
+      "fleet-maintenance": [
+        "maintain"
+      ],
+      "marketplace-skill-discovery": [
+        "marketplace-bridge"
+      ],
+      "minimax-vision": [
+        "mmx"
+      ],
+      "minimax-web-search": [
+        "mmx"
+      ],
+      "cost-tracking": [
+        "model-benchmark"
+      ],
+      "quality-scoring": [
+        "model-benchmark"
+      ],
+      "latency-benchmark": [
+        "model-benchmark"
+      ],
+      "model-discovery": [
+        "model-discover"
+      ],
+      "mid-conversation-observation-surfacing": [
+        "notice"
+      ],
+      "session-export": [
+        "packet"
+      ],
+      "plan-writing": [
+        "plan-writer"
+      ],
+      "prompting-techniques-reference": [
+        "prompt-patterns"
+      ],
+      "structural-refactor": [
+        "refactor"
+      ],
+      "task-refinement": [
+        "refine"
+      ],
+      "code-review": [
+        "review"
+      ],
+      "verified-findings-on-disk": [
+        "review"
+      ],
+      "capability-routed-search": [
+        "search-fleet"
+      ],
+      "rrf-aggregation": [
+        "search-fleet"
+      ],
+      "skill-measurement": [
+        "skill-dev"
+      ],
+      "skill-improvement": [
+        "skill-dev"
+      ],
+      "persistent-task-store": [
+        "tasks"
+      ],
+      "workspace-prioritized-action-list": [
+        "todo"
+      ],
+      "session-opportunity-review": [
+        "tp"
+      ],
+      "critical-friend-critique": [
+        "tp"
+      ],
+      "system-exploration": [
+        "tp"
+      ],
+      "content-discipline-for-plans": [
+        "wargame"
+      ],
+      "rrf-merge": [
+        "web"
+      ],
+      "multi-backend-search": [
+        "web"
+      ],
+      "pattern-library-query": [
+        "why"
+      ],
+      "feedback-to-wiki": [
+        "why"
+      ],
+      "root-cause-analysis": [
+        "why"
+      ],
+      "capability-wiki-query": [
+        "wiki"
+      ],
+      "capability-wiki-write": [
+        "wiki"
+      ],
+      "wiki-web-wiki-research": [
+        "www"
+      ],
+      "session-verification": [
+        "check"
+      ],
+      "evidence-backed-inventory": [
+        "preflight"
+      ],
+      "file-recovery": [
+        "recover"
+      ],
+      "knowledge-hygiene": [
+        "skill-prune"
       ]
     }
   }

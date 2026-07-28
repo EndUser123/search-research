@@ -112,6 +112,7 @@ class SkillNode:
         self.delegates_to: set[str] = set()
         self.consumes_provider: set[str] = set()
         self.references_wiki: set[str] = set()
+        self.provides: set[str] = set()
 
     def to_dict(self) -> dict:
         return {
@@ -121,6 +122,7 @@ class SkillNode:
             "delegates_to": sorted(self.delegates_to),
             "consumes_provider": sorted(self.consumes_provider),
             "references_wiki": sorted(self.references_wiki),
+            "provides": sorted(self.provides),
         }
 
 
@@ -175,6 +177,13 @@ def extract_edges(skill: SkillNode) -> None:
                 con = con.strip().strip("'\"").lower()
                 if con:
                     skill.consumes_provider.add(con)
+        # Extract provides (capabilities this skill defines)
+        prov_match = _re.search(r"provides:\s*\[([^\]]*)\]", fm)
+        if prov_match:
+            for prov in prov_match.group(1).split(","):
+                prov = prov.strip().strip("'\"").lower()
+                if prov:
+                    skill.provides.add(prov)
 
     # Phase 2: Lexical scan as linter — detects undeclared edges
     # These add to the frontmatter-derived set, flagging gaps
@@ -207,6 +216,7 @@ def build_reverse_index(skills: list[SkillNode]) -> dict:
     provider_consumers: dict[str, list[str]] = defaultdict(list)
     skill_callers: dict[str, list[str]] = defaultdict(list)
     wiki_referencers: dict[str, list[str]] = defaultdict(list)
+    capability_providers: dict[str, list[str]] = defaultdict(list)
 
     for skill in skills:
         for provider in skill.consumes_provider:
@@ -215,11 +225,14 @@ def build_reverse_index(skills: list[SkillNode]) -> dict:
             skill_callers[target].append(skill.name)
         for wiki in skill.references_wiki:
             wiki_referencers[wiki].append(skill.name)
+        for cap in skill.provides:
+            capability_providers[cap].append(skill.name)
 
     return {
         "provider_consumers": {k: sorted(set(v)) for k, v in provider_consumers.items()},
         "skill_callers": {k: sorted(set(v)) for k, v in skill_callers.items()},
         "wiki_referencers": {k: sorted(set(v)) for k, v in wiki_referencers.items()},
+        "capability_providers": {k: sorted(set(v)) for k, v in capability_providers.items()},
     }
 
 
@@ -248,7 +261,14 @@ def generate_markdown(skills: list[SkillNode], reverse: dict) -> str:
     for skill in sorted(skills, key=lambda s: s.name):
         d = ', '.join(f'`{t}`' for t in sorted(skill.delegates_to)) or '—'
         p = ', '.join(f'`{pr}`' for pr in sorted(skill.consumes_provider)) or '—'
-        skill_lines.append(f"| `{skill.name}` | {d} | {p} |")
+        prov = ', '.join(f'`{pv}`' for pv in sorted(skill.provides)) or '—'
+        skill_lines.append(f"| `{skill.name}` | {d} | {p} | {prov} |")
+
+    # Capability registry
+    cap_lines = []
+    for cap in sorted(reverse.get("capability_providers", {})):
+        providers = reverse["capability_providers"][cap]
+        cap_lines.append(f"| `{cap}` | {', '.join(f'`{p}`' for p in sorted(set(providers)))} |")
 
     # Embed JSON for machine consumption
     graph_json = json.dumps(
@@ -308,9 +328,17 @@ When a skill changes its interface or behavior, these callers are affected:
 |-------------|-------------|-----------|
 {chr(10).join(delegation_lines) if delegation_lines else '| — | 0 | — |'}
 
+## Capability registry (what functions the fleet provides)
+
+Every capability the skill fleet declares via `provides:` frontmatter:
+
+| Capability | Provided by |
+|------------|-------------|
+{chr(10).join(cap_lines) if cap_lines else '| — | — |'}
+
 ## Per-skill edges
 
-| Skill | Delegates to | Consumes provider |
+| Skill | Delegates to | Consumes provider | Provides |
 |-------|-------------|------------------|
 {chr(10).join(skill_lines) if skill_lines else '| — | — | — |'}
 
