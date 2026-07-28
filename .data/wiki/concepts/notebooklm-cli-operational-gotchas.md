@@ -172,6 +172,60 @@ when cluster 10 (300 videos) landed all 300 sources without error.
 For paid accounts, use 300. When in doubt, test with one notebook at the
 target size and verify `source_count` lands.
 
+## Multi-profile auth (three accounts on this host)
+
+This host has three NotebookLM profiles, each an independent CDP session:
+
+| Profile | Email | Tier | Max sources |
+|---------|-------|------|-------------|
+| `a.hominidae` | a.hominidae@gmail.com | Paid | 300 |
+| `troup.hominidae` | troup.hominidae@gmail.com | Free | 50 |
+| `brsthomson` | brsthomson@hotmail.com | Free | 50 |
+
+All three authenticated 2026-07-28 via silent CDP re-auth on nlm v0.9.4.
+Different profiles do NOT contend for auth (independent CDP sessions). The
+3-worker ceiling is per-account → 3 accounts = up to 9 concurrent workers.
+
+## Gotcha 4: Stale Chrome port-map PID blocks new logins
+
+**Symptom:** `nlm login --profile <name>` hangs at "Waiting for sign-in in
+browser window" for 300s then times out, or fails with "Chrome is already
+running, so the sign-in browser couldn't start with remote debugging."
+
+**Cause:** a previous `nlm login` was interrupted or timed out. The Chrome
+process it launched died, but its PID remains in
+`~/.notebooklm-mcp-cli/chrome-port-map.json` on port 9222. The next login
+sees port 9222 as occupied and can't launch Chrome with CDP.
+
+**Probe:**
+```powershell
+Get-Content "$env:USERPROFILE\.notebooklm-mcp-cli\chrome-port-map.json"
+# Look for entries with PIDs that are no longer running
+Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" |
+  Where-Object { $_.CommandLine -match 'remote-debugging-port=9222' }
+```
+
+**Fix:**
+```powershell
+# Kill stray Chrome on port 9222
+Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" |
+  Where-Object { $_.CommandLine -match 'remote-debugging-port=9222' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+# Clear the port map
+python -c "import json; from pathlib import Path; p = Path.home() / '.notebooklm-mcp-cli' / 'chrome-port-map.json'; p.write_text(json.dumps({}))"
+
+# Retry — should complete instantly if Chrome has a saved Google session
+nlm login --profile <name>
+```
+
+**When to escalate:** only if clearing the port map + killing stray Chrome
+doesn't help. The profile may need `--clear` to wipe Chrome's cached profile
+data and force a fresh Google sign-in flow.
+
+See [[concurrent-cdp-auth-contention]] for the related auth-invalidation
+pattern (two drivers calling `nlm login` concurrently).
+
 ## What this means for our workspace
 
 - **`~/.grok/tool-fallbacks.md`** already carries the auth-recovery recipe and
@@ -194,8 +248,9 @@ target size and verify `source_count` lands.
 
 ## Falsifier
 
-These gotchas are tied to `nlm` v0.9.0 and NotebookLM's backend behavior as
-observed 2026-07-25. They stop being true if:
+These gotchas are tied to `nlm` v0.9.4 (upgraded from v0.9.0 on 2026-07-28)
+and NotebookLM's backend behavior as observed 2026-07-28. They stop being
+true if:
 - `nlm` fixes the misleading `--check` probe (would make Gotcha 1 obsolete)
 - `nlm` adds a real bulk endpoint with different semantics (would make
   Gotcha 2 and Gotcha 3 both obsolete)
@@ -207,10 +262,11 @@ Re-verify by running one pilot bulk-add before trusting any of these on a new
 
 ## Sources
 
-- `nlm source add --help` (v0.9.0, verified 2026-07-25) — confirms `--youtube`
+- `nlm source add --help` (v0.9.4, verified 2026-07-28) — confirms `--youtube`
   is "repeatable for bulk"
-- `nlm login --check` behavior (observed 2026-07-25 on 4 profiles) — confirms
-  probe returns misleading `network_error` when auth is recoverable
+- `nlm login --check` behavior (observed 2026-07-25 on 4 profiles, re-confirmed
+  on v0.9.4) — confirms probe returns misleading `network_error` when auth is
+  recoverable
 - `P:/tmp/wl_notebooks_run.log` (15/15 notebooks, exit codes and source_counts)
   — confirms Gotcha 3 pattern across 14 independent bulk-add calls
 - Operator correction (2026-07-25) — confirmed paid-account source cap is 300,

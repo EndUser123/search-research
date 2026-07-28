@@ -56,7 +56,7 @@ available MiniMax model. Switch to the free fallback with
 `--synth-backend dgemma` if pages run thin or quota is a concern.
 
 **How many parallel workers should I use?** Maximum **3 concurrent workers
-per account**. This host has three NotebookLM accounts (`codex` = paid,
+per account**. This host has three NotebookLM accounts (`a.hominidae` = paid,
 `troup.hominidae` = free, `brsthomson` = free), so you can run
 up to 9 workers total (3 per account). The NotebookLM API degrades above 3
 sessions per account (yt-is benchmark: 3+3 workers hit 4,123 VPH; 4+4
@@ -104,6 +104,7 @@ driver — do not mix it with `--all` or manual `sync.py` runs.
 | Queue worker produces 0 pages for every notebook | **Auth contention:** another sync driver (old `bulk_sync.py`, manual `sync.py --all`) is running concurrently and both call `nlm login`, invalidating each other's CDP session | Kill the other driver (`Get-Process python` → find the old PID). Verify only queue workers are running. Re-run `--retry-failed`. See [[concurrent-cdp-auth-contention]]. |
 | Export returns rc=5 for some sources | Individual source fetch failure (status=3, video unavailable) | **Non-fatal** — logged and skipped. Sync continues with remaining sources. Only rc=2 (auth/no-sources) aborts. |
 | Worker log shows "synced_0_pages" but citation coverage > 0% | Classification bug: `"0 pages" in stderr` matches any log line containing that string, not just the actual write verdict | Check the concept pages dir for the notebook — pages may have been written despite the misclassification. (Pending fix in `queue_sync.py`.) |
+| `nlm login` hangs at "Waiting for sign-in" for 300s, or fails "Chrome is already running" | **Stale port-map PID:** a previous login was interrupted, leaving a dead Chrome PID on port 9222 | Kill stray Chrome (`Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" \| Where-Object { $_.CommandLine -match 'remote-debugging-port=9222' } \| Stop-Process -Force`), clear `~/.notebooklm-mcp-cli/chrome-port-map.json`, retry `nlm login`. See [[concurrent-cdp-auth-contention]] § "stale Chrome port-map PID". |
 
 **The auth-recovery recipe is agent-performable.** The single most common
 failure mode (expired session) has a ~10s silent recovery that does NOT

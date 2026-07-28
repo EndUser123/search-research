@@ -275,13 +275,21 @@ processes you launch. See [[nlm-to-wiki-optimization-opportunities]].
 
 **One-time setup for free profiles:** the profiles were created by copying
 credentials from yt-is worker profiles. If auth expires and silent CDP
-re-auth fails (Chrome doesn't have the session), run for each:
+re-auth fails (Chrome hangs at "Waiting for sign-in"), the likely cause is a
+stale Chrome port-map PID. Recovery recipe:
 ```bash
+# 1. Kill stray Chrome on port 9222
+Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -match 'remote-debugging-port=9222' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+# 2. Clear the port map
+python -c "import json; from pathlib import Path; p = Path.home() / '.notebooklm-mcp-cli' / 'chrome-port-map.json'; p.write_text(json.dumps({}))"
+
+# 3. Retry login (should complete silently if Chrome has a saved session)
 nlm login --profile troup.hominidae
 nlm login --profile brsthomson
 ```
-Each opens a browser window — sign in as the respective account.
-After the one-time login, subsequent re-auth is silent via CDP.
+All three profiles authenticated 2026-07-28 on nlm v0.9.4. See
+[[concurrent-cdp-auth-contention]] for the full stale-PID pattern.
 
 **⚠ Auth contention (critical):** never run two different sync drivers
 concurrently (e.g., `sync.py --all` alongside queue workers). Each

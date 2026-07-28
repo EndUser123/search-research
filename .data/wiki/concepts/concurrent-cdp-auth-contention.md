@@ -63,9 +63,43 @@ If more than one driver-type is running (e.g., `bulk_sync.py` AND
    with itself (workers share the same auth profile but don't re-login
    unless auth is expired, and the queue file serializes claims).
 
-2. **Re-auth once:** `nlm login --profile codex`
+2. **Re-auth once:** `nlm login --profile a.hominidae`
 
 3. **Retry failed items:** `python queue_sync.py --retry-failed`
+
+## Related failure: stale Chrome port-map PID
+
+A **distinct but related** failure: when an `nlm login` is interrupted or
+times out, the Chrome process it launched may die but its PID remains
+registered in `~/.notebooklm-mcp-cli/chrome-port-map.json`. The next login
+attempt sees port 9222 as "occupied" and either:
+
+- launches Chrome without CDP (detection never fires → "waiting for sign-in"
+  hangs forever), or
+- fails with "Chrome is already running, so the sign-in browser couldn't
+  start with remote debugging."
+
+**Detection:** `nlm login` hangs at "Waiting for sign-in in browser window"
+or fails with the "Chrome is already running" error.
+
+**Fix:**
+```powershell
+# 1. Kill stray Chrome CDP processes
+Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" |
+  Where-Object { $_.CommandLine -match 'remote-debugging-port=9222' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+# 2. Clear the port map
+python -c "import json; from pathlib import Path; p = Path.home() / '.notebooklm-mcp-cli' / 'chrome-port-map.json'; p.write_text(json.dumps({})); print('cleared')"
+
+# 3. Retry login
+nlm login --profile <name>
+```
+
+This is not the same as auth contention — only one driver is running. The
+stale PID is a cleanup problem, not a concurrency problem. But the symptom
+(silent login failure) looks identical, so both root causes are documented
+here.
 
 ## Prevention
 
@@ -104,6 +138,13 @@ the same regardless of the specific API.
   other. Fix: killed `bulk_sync.py`, re-authed, workers produced pages
   normally. Dry-run on notebook 917784eb confirmed the fix (272 transcripts
   → 5 clusters → 5 pages).
+- **2026-07-28 (session 019fa276, same day):** stale port-map PID blocked
+  free-profile logins. Three consecutive `nlm login` attempts for
+  `troup.hominidae` and `brsthomson` all hung at "Waiting for sign-in" or
+  failed with "Chrome is already running." Fix: killed stray Chrome on port
+  9222, cleared `chrome-port-map.json`, retried — both profiles authenticated
+  instantly via silent CDP. Also upgraded nlm from 0.9.0 → 0.9.4 (handles
+  `notebook.google.com` URL rebrand).
 
 ## Related
 
