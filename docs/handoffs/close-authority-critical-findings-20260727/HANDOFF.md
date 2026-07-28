@@ -70,6 +70,7 @@ The branch is at commit `d516ccc` on `close-authority-019fa5a1` in worktree
 
 ## Related wiki concepts
 
+- `P:/.data/wiki/concepts/close-authority-state-machine-design.md` — **the full design rationale + architecture + known flaws. Read this first to understand why each component exists before changing it.**
 - `P:/.data/wiki/concepts/maker-checker-required-for-enforcement-work.md` — documents why the 20 tests missed INTG-1/INTG-2 (the implementer-tester-threat-actor conflict)
 - `P:/.data/wiki/concepts/verification-claim-admissibility.md` — defines COMPONENT_PROVEN vs LIVE_ENFORCEMENT_PROVEN and replay realism tiers
 - `P:/.data/wiki/concepts/close-single-authority-renderer.md` — the original design rationale for single-authority rendering

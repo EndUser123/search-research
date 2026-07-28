@@ -1,5 +1,71 @@
 # Vault Log
 
+## --agent
+Source: grok
+Agent: --session
+Notes: 019fa5a1
+Page: --page
+
+## AI Trading Integration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/ai-trading-integration.md
+
+## AI-Assisted Writing Workflows
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/ai-assisted-writing-workflows.md
+
+## AI Harness Engineering
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/ai-harness-engineering.md
+
+## Anthropic's Free Claude Education Platform
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/anthropics-free-claude-education-platform.md
+
+## Free AI Skills and Optimization Techniques
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/free-ai-skills-and-optimization-techniques.md
+
+## AI Agent Orchestration Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/ai-agent-orchestration-patterns.md
+
+## Loop Engineering in AI Agent Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/loop-engineering-in-ai-agent-systems.md
+
+## Knowledge Graph Construction for AI Memory Systems
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/knowledge-graph-construction-for-ai-memory-systems.md
+
+## AI Agent Skill Design Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/ai-agent-skill-design-patterns.md
+
+## Multi-Agent Orchestration
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Anthropic & Agent Ecosystem
+Page: wiki/concepts/multi-agent-orchestration.md
+
 ## Free AI Coding Alternatives
 Source: nlm-sync-2026-07-27
 Agent: grok
