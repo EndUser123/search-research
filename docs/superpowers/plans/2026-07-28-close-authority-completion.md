@@ -1059,3 +1059,57 @@ except ImportError:
 **Recommended approach:** `/go execute <plan-path>` with task DAG respecting the serialization.
 
 **Plan saved to:** `docs/superpowers/plans/2026-07-28-close-authority-completion.md` (v2)
+
+---
+
+## Round 1 Review (2026-07-28) — 21 findings, DO NOT EXECUTE v2
+
+A fresh `general-purpose` subagent reviewed v2 and found 21 findings (5 CRITICAL,
+7 HIGH, 9 MEDIUM). The plan cannot be executed as written. Key findings:
+
+### Critical findings (must fix before execution)
+
+**F-META** — Three places have unresolved deliberation text instead of concrete
+answers: (1) Task B0 env-var verification pivot, (2) the "getting circular"
+block on key location, (3) Task B2b "for now inline." The implementing agent
+will encounter these and have to design on the fly.
+
+**F-01** — Architecture says signing hook, code implements blocking hook. The
+plan's Task B0 design narrative (line ~458) says "the Stop hook SIGNS receipts."
+The actual hook code in Task C1 never signs, reads, or writes receipts. The
+acceptance tests (Test 9) are written against the signing model. These are
+two different security models and the plan doesn't reconcile them.
+
+**F-02** — The gate script invokes `~/.grok/skills/close/__lib/close_accounting.py`
+(user-scope installed copy). Workstream D fixes the worktree version. If the
+gate runs the unfixed user-scope version, CORR-001 crashes the subprocess and
+the hook fails open = enforcement silently absent. C and D are NOT parallel.
+
+**F-04** [HIGH but effectively CRITICAL] — The field is `close_run_id`, NOT
+`close_attempt_id`. Every test in the acceptance suite uses the wrong name.
+`validate_close_receipt` has signature `(receipt, expected_scanner_digest=None)`,
+not `(receipt)`. The entire test suite fails at import time. **Verified by grep:
+13 occurrences of `close_run_id` in close_authority.py, zero of `close_attempt_id`.**
+
+**F-10** — Integration gate for user-scope changes (AAR skill attestation, hook
+config) is undefined. The plan says "both branches verified" but doesn't specify
+test commands for `~/.grok/skills/aar/` or `~/.grok/hooks/`.
+
+**F-15** — Test 9's third subtest (`test_forged_receipt_hash_manually_edited_detected`)
+asserts a constant (`assert forged_state["producer_attestation"] is None`). It
+doesn't invoke any validation function. It passes trivially and proves nothing.
+
+### Revision needed
+
+Before v3 can be executed:
+1. Verify the actual `close_authority.py` API (`close_run_id`, function signatures)
+2. Rewrite every test against the actual API
+3. Resolve the signing-vs-blocking architecture (F-01)
+4. Define the deployment ordering (F-02, F-10)
+5. Replace all deliberation text with concrete answers (F-META)
+6. Rewrite Test 9's third subtest to actually test validation (F-15)
+7. Address F-14 (8-continuations cap)
+8. Address all HIGH/MEDIUM findings
+
+**This revision should be done in a fresh session** — the current session is very
+long and the revision requires verifying the actual code API against every test.
