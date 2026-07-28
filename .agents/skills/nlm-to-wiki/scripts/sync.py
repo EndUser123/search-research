@@ -264,8 +264,8 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
             "concept_slugs": [w["slug"] for w in write_summary["written"]],
         }
         save_manifest(manifest)
-        # Rebuild qmd index for the new pages
-        qmd_reindex(write_summary["written"])
+        # Reindex removed (qmd was uninstalled from the workspace; pages are
+        # still written and valid — they'll be indexed by the next indexer wired)
 
         # Stage G: rename notebook with [INGESTED] prefix for visual tracking
         if not title.startswith("[INGESTED]"):
@@ -311,7 +311,7 @@ def auto_link(pages: list[dict]) -> None:
     for p in pages:
         try:
             subprocess.run(["python", str(awl), p["path"]], capture_output=True, timeout=60, encoding="utf-8")
-        except subprocess.TimeoutExpired:
+        except Exception:
             pass
 
 
@@ -327,19 +327,7 @@ def append_log_entries(nb_id: str, title: str, pages: list[dict]) -> None:
                  "grok", f"Synced from NotebookLM notebook {title}",
                  f"wiki/concepts/{p['slug']}.md"],
                 capture_output=True, timeout=30, encoding="utf-8")
-        except subprocess.TimeoutExpired:
-            pass
-
-
-def qmd_reindex(pages: list[dict]) -> None:
-    for p in pages:
-        slug = p["slug"]
-        try:
-            subprocess.run(
-                ["qmd", "document", "add", "--collection", "wiki",
-                 "--document-id", slug, "--markdown-file", p["path"]],
-                capture_output=True, timeout=60, encoding="utf-8")
-        except subprocess.TimeoutExpired:
+        except Exception:
             pass
 
 
