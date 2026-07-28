@@ -1,5 +1,17 @@
 # Vault Log
 
+## Built-in grep tool over shell ripgrep for wiki search
+Source: session-20260728
+Agent: grok
+Notes: Research confirms ripgrep optimal for 380-file wiki. Built-in grep tool used instead of shell rg. qmd removed.
+Page: wiki/concepts/built-in-grep-tool-over-shell-ripgrep-for-wiki-search.md
+
+## [2026-07-28] ingest | Test concept — auto-link and post-write pipeline verification
+Source: session-2026-07-28
+Agent: grok
+Notes: integration test: verify auto-linking works after qmd cutover
+Page: wiki/concepts/test-auto-link-verification-20260728.md
+
 ## --agent
 Source: grok
 Agent: --session
