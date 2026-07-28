@@ -133,21 +133,44 @@ just "does it have bugs?"
 ## What this means for our workspace
 
 Our skill chain (`/design` → `/plan-writer` → `/go`) is structurally aligned
-with the industry consensus. The improvements are:
+with the industry consensus. The improvements were proposed, then triaged:
 
-1. **Problem-size gate** in plan-writer (before readiness gate)
-2. **Plan length budget** (hard ≤400, soft ≤200, re-checkpoint if exceeded)
-3. **AGENTS.md consistency check** (add to completeness check #6)
-4. **Traceability matrix** (task → requirement)
-5. **Spec-anchored flag** (disposable vs maintained)
-6. **Simplicity check in review loop** ("is this plan simpler than it needs to be?")
+1. **Problem-size gate** — **DROPPED.** Redundant: the skill already routes
+   trivial tasks in 3 places (SKILL.md lines 32, 68, 123-130). A 4th routing
+   mechanism is accretion.
+2. **Plan length budget** — **REJECTED by operator.** "I really don't care
+   about plan length, it should be as long as it needs to be. Using an
+   arbitrary plan length looks like a footgun." Arbitrary thresholds become
+   targets (Goodhart's law). 6 of 24 existing plans exceed 400 lines and
+   were fine.
+3. **AGENTS.md consistency check** — **DEFERRED.** Across 24 plans on disk,
+   zero proposed destructive git or AGENTS.md violations. The failure mode
+   has never occurred. Runtime hooks already enforce these at execution time.
+4. **Traceability matrix** — **DEFERRED.** Zero traceability markers in any
+   plan, but plans ARE referenced by handoffs when future sessions need them
+   (3 confirmed cases). The handoff→plan link serves the function.
+5. **Spec-anchored flag** — **DEFERRED** (no evidence of need).
+6. **Simplicity check in review loop** — **APPLIED** (commit `0af0b5a`).
+   This was the highest-leverage improvement — directly closes the gap
+   between the pre-task decomposition checkpoint and the post-plan reviewer.
+   Was initially marked "already applied" in the handoff due to
+   structure-vs-function conflation (the loop existed but had zero
+   over-engineering dimensions). See
+   [[held-out-data-already-on-disk-count-artifacts-not-invocations]] for
+   the full analysis.
 
-These are additive improvements to the existing skill, not a rearchitecture.
+The Verschlimmbesserung irony: 4 of 6 improvements were accretion. The skill
+that prevents over-engineering was itself over-engineering. The held-out data
+(24 plans already on disk) confirmed this — the failure modes addressed by
+the dropped improvements had zero observed instances.
+
 This connects to [[maker-checker-required-for-enforcement-work]] (the review
 loop is the maker-checker for plans), [[reactive-pattern-matching-and-closure-pressure]]
 (closure pressure drives over-engineering just as it drives premature completion),
-and [[llm-synthesis-quality-and-speed-techniques]] (Self-Refine curves inform
-the review loop's diminishing-returns threshold).
+[[llm-synthesis-quality-and-speed-techniques]] (Self-Refine curves inform
+the review loop's diminishing-returns threshold), and
+[[held-out-data-already-on-disk-count-artifacts-not-invocations]] (the
+held-out data was already on disk).
 
 ## What people like
 

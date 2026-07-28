@@ -1,5 +1,17 @@
 # Vault Log
 
+## --concept
+Source: spec-driven-development-tools-and-planning-workflows
+Agent: --action
+Notes: updated
+Page: --source
+
+## --concept
+Source: held-out-data-already-on-disk-count-artifacts-not-invocations
+Agent: --action
+Notes: created
+Page: --source
+
 ## PostToolUse fires on tool-call completion not process completion
 Source: session-20260728
 Agent: grok
