@@ -1,5 +1,35 @@
 # Vault Log
 
+## Shared-directory contamination pattern
+Source: wiki-2026-07-27
+Agent: grok
+Notes: Bug pattern: accumulating artifacts from multiple runs break per-unit processing when stages don't filter by unit identity
+Page: wiki/concepts/shared-directory-contamination-pattern.md
+
+## Claude Code Video Editing Automation
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Claude Code Repos & Tools
+Page: wiki/concepts/claude-code-video-editing-automation.md
+
+## Vector Search vs Plain Text Search
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Claude Code Repos & Tools
+Page: wiki/concepts/vector-search-vs-plain-text-search.md
+
+## Claude Code Context Management and Steering Patterns
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Claude Code Repos & Tools
+Page: wiki/concepts/claude-code-context-management-and-steering-patterns.md
+
+## Codebase Knowledge Graph Mapping
+Source: nlm-sync-2026-07-27
+Agent: grok
+Notes: Synced from NotebookLM notebook WL: Claude Code Repos & Tools
+Page: wiki/concepts/codebase-knowledge-graph-mapping.md
+
 ## Skill-step receipts checked by hooks
 Source: wiki-2026-07-27
 Agent: grok
