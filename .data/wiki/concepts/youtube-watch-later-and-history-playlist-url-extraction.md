@@ -60,26 +60,49 @@ partially exposed history, but Google deprecated those activity types. Watch
 Later (`list=WL`) uses an opaque playlist format accessible only via an
 authenticated browser session. Every working method requires cookies.
 
-## Watch Later extraction (ranked by recommendation strength)
+## Multi-terminal isolation (critical for this fleet)
 
-### 1. yt-dlp `--flat-playlist` with browser cookies [HIGH]
+**Never use `--cookies-from-browser chrome` in multi-terminal workflows.**
+It reads Chrome's live cookie database — concurrent terminals contend for
+the same DB lock, and a cookie refresh in one invalidates the others'
+sessions. This is the same failure class as
+[[concurrent-cdp-auth-contention]], just at the browser-cookie layer.
 
-The top CLI recommendation on r/youtubedl and Hacker News:
+**The fix:** each nlm profile has independent Google session cookies that
+work across all Google services (YouTube included). Export them to Netscape
+format per-profile and use `--cookies <file>`:
 
 ```bash
-yt-dlp --cookies-from-browser chrome \
+# One-time: export all 3 profiles' cookies to isolated files
+python P:/.agents/skills/nlm-to-wiki/scripts/bin/export_yt_cookies.py --all
+# → P:/.data/yt-is/state/cookies/cookies-a.hominidae.txt
+# → P:/.data/yt-is/state/cookies/cookies-troup.hominidae.txt
+# → P:/.data/yt-is/state/cookies/cookies-brsthomson.txt
+```
+
+Each terminal/worker uses its own cookie file — no contention, no stale
+browser DB. Re-run the export after `nlm login --profile <name>` to refresh.
+
+## Watch Later extraction (ranked by recommendation strength)
+
+### 1. yt-dlp `--flat-playlist` with profile-isolated cookies [HIGH]
+
+The top CLI recommendation on r/youtubedl and Hacker News. Uses isolated
+per-profile cookie files instead of the live browser DB:
+
+```bash
+yt-dlp --cookies P:/.data/yt-is/state/cookies/cookies-a.hominidae.txt \
        --flat-playlist \
        --skip-download --ignore-errors \
        --print-to-file webpage_url wl-urls.txt \
        "https://www.youtube.com/playlist?list=WL"
 ```
 
-**Pros:** clean URL-only output, scriptable, no browser interaction after
-initial cookie setup, pipes directly into `nlm-bulk-ingest`.
-**Cons:** cookies expire after ~100 requests on large lists (5000+ videos
-need chunking). **Critical:** requires EJS runtime since late 2025 — see
-"EJS prerequisite" below.
-**Auth:** `--cookies-from-browser chrome` (or `firefox`/`brave`/`edge`).
+**Pros:** clean URL-only output, scriptable, **multi-terminal safe** (each
+profile uses its own cookie file), pipes directly into `nlm-bulk-ingest`.
+**Cons:** cookies need periodic re-export after `nlm login`. **Critical:**
+requires EJS runtime since late 2025 — see "EJS prerequisite" below.
+**Auth:** `--cookies <file>` (profile-isolated, never `--cookies-from-browser`).
 **Scale:** hundreds: fine. Thousands: chunk at 100 per batch.
 
 ### 2. TidyWL (Chrome extension) [HIGH for non-CLI]
@@ -133,7 +156,7 @@ continuous sync); files can be GB-scale.
 Near real-time extraction using yt-dlp's undocumented `:ythis` keyword:
 
 ```bash
-yt-dlp --cookies-from-browser chrome \
+yt-dlp --cookies P:/.data/yt-is/state/cookies/cookies-a.hominidae.txt \
        --flat-playlist --dump-json \
        "https://www.youtube.com/feed/history" \
        > history.json
@@ -181,20 +204,29 @@ chat-session sources.
 
 ## Recommended workflow for our 3-account NotebookLM pipeline
 
-### Step 1: Extract URLs
+### Step 0: Export profile-isolated cookies (multi-terminal safe)
 
 ```bash
-# Watch Later
-yt-dlp --cookies-from-browser chrome --flat-playlist --skip-download \
-       --print-to-file webpage_url wl-urls.txt \
+# One-time (re-run after nlm login to refresh)
+python P:/.agents/skills/nlm-to-wiki/scripts/bin/export_yt_cookies.py --all
+```
+
+### Step 1: Extract URLs (per-profile, isolated)
+
+```bash
+# Watch Later (per-profile — each terminal uses its own cookie file)
+yt-dlp --cookies P:/.data/yt-is/state/cookies/cookies-a.hominidae.txt \
+       --flat-playlist --skip-download \
+       --print-to-file webpage_url wl-a.hominidae.txt \
        "https://www.youtube.com/playlist?list=WL"
 
 # History (recent, incremental)
-yt-dlp --cookies-from-browser chrome --flat-playlist --dump-json \
-       "https://www.youtube.com/feed/history" > history.json
-# Then extract URLs: jq -r '.original_url' history.json > history-urls.txt
+yt-dlp --cookies P:/.data/yt-is/state/cookies/cookies-a.hominidae.txt \
+       --flat-playlist --dump-json \
+       "https://www.youtube.com/feed/history" > history-a.hominidae.json
+# Extract URLs: python -c "import json; [print(e['original_url']) for e in json.load(open('history-a.hominidae.json'))]" > history-urls.txt
 
-# History (bulk, one-time)
+# History (bulk, one-time — per Google account)
 # Request from takeout.google.com → YouTube → history → JSON
 # Parse: python -c "import json; [print(e['titleUrl']) for e in json.load(open('watch-history.json')) if 'titleUrl' in e]" > history-bulk-urls.txt
 ```
@@ -202,7 +234,7 @@ yt-dlp --cookies-from-browser chrome --flat-playlist --dump-json \
 ### Step 2: Combine + deduplicate
 
 ```bash
-cat wl-urls.txt history-urls.txt history-bulk-urls.txt | sort -u > all-video-urls.txt
+cat wl-*.txt history-*.txt history-bulk-*.txt 2>/dev/null | sort -u > all-video-urls.txt
 ```
 
 ### Step 3: Distribute across 3 accounts via nlm-bulk-ingest
