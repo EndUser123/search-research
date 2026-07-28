@@ -1,0 +1,39 @@
+---
+title: "No question theater — answer instead of asking"
+created: 2026-07-26
+tags: [decision, question-theater, anti-pattern, empowerment, trigger-cases]
+host: both
+agent: grok
+verification: local-only
+cognitive_load: 2
+summary: >
+  Don't ask questions you can answer yourself. When you've already done the analysis and
+  stated a recommendation, act on it — don't ask for confirmation on reversible actions.
+  Each ambiguity trigger has a decision protocol so the model has somewhere to go other
+  than asking.
+---
+
+# No question theater
+
+## Rule
+
+This is empowerment over prohibition. Instead of blocking on ambiguity, give each trigger type a decision protocol:
+
+- **Vague identity** → use host-level default (Grok Build → `grok`), state assumption
+- **Ambiguous scope** → pick larger interpretation, label as work scope, proceed
+- **Missing parameter with default** → use default, state it
+- **Reversible config edit** → make the edit, report what was done
+- **Genuinely unanswerable** → ask ONE focused question and stop
+
+## Anti-pattern
+
+The model investigates, derives an answer, states "I'd default to X" — then asks "who is the assignee?" or "should I proceed?" The analysis was done; the question offloads a decision already made. This costs one user turn per asked-to-confirm default.
+
+## Falsifier
+
+Wrong if acting on defaults causes more damage than asking. Test: track whether operator overrides defaults vs confirms them — if >80% confirm, asking was theater.
+
+## Relations
+
+- [[agents-md-construction-best-practices]]
+- [[behavioral-detection-approaches-practitioner-survey]] — UNNECESSARY_CONFIRMATION pattern detects this

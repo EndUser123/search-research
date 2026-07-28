@@ -1,0 +1,30 @@
+---
+title: "Inference chains, bare numbers, and destructive-write preflight"
+created: 2026-07-20
+tags: [decision, inference-chains, destructive-write, preflight, anti-pattern]
+host: both
+agent: grok
+verification: local-only
+cognitive_load: 2
+summary: >
+  Multi-step inference chains (A implies B implies C) are unreliable without receipts at each
+  step. Bare numbers without units or provenance are hypotheses. Destructive writes require
+  preflight verification, not just confidence.
+---
+
+# Inference chains, bare numbers, and destructive-write preflight
+
+## Rule
+
+1. **Inference chains:** each step in an A→B→C chain must cite its own receipt. A receipt for A does not cover B or C.
+2. **Bare numbers:** "3x faster" or "~100ms" without measurement context is a hypothesis. Cite the measurement or label as [INFERENCE].
+3. **Destructive writes:** before any irreversible filesystem operation (delete, overwrite, move), verify the preconditions mechanically — don't reason about them.
+
+## Falsifier
+
+Wrong if single-receipt inference chains prove reliable in practice. Test: audit 10 multi-step causal claims against their receipts.
+
+## Relations
+
+- [[agents-md-construction-best-practices]]
+- [[verification-claim-admissibility]]

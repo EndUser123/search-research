@@ -1,0 +1,43 @@
+---
+title: "Optimal long-term solution, not minimal fix"
+created: 2026-07-25
+tags: [decision, optimal-long-term, minimal-fix, anti-pattern, forbidden-phrases]
+host: both
+agent: grok
+verification: local-only
+cognitive_load: 2
+summary: >
+  The default selection criterion is optimal long-term: the solution that best meets
+  requirements with lowest future cost and risk. Transition effort is NOT a criterion.
+  "Smallest viable" is acceptable ONLY when the minimal change IS the optimal long-term
+  solution, or the operator explicitly scoped to minimal.
+---
+
+# Optimal long-term solution, not minimal fix
+
+## Decision context
+
+The operator's explicit preference (2026-07-20): transition effort is not a disqualifier. The default should be the solution with lowest future maintenance cost and risk, not the smallest patch.
+
+## Forbidden phrases
+
+These phrases signal the anti-pattern (biasing toward minimal diff):
+
+- "smallest viable extension"
+- "minimal change to get this working"
+- "simplest possible fix"
+- "just enough to unblock"
+- "quick patch for now"
+
+## The rule
+
+Recommend the solution that best meets requirements with lowest future cost and risk. When a minimal change IS optimal, say so explicitly: "minimal-because-it-is-optimal." When the operator scopes to minimal ("just do a quick fix"), honor that scope.
+
+## Falsifier
+
+This rule is wrong if minimal fixes consistently produce lower long-term cost than optimal solutions. Test: track rework rate on minimal fixes vs optimal solutions over 6 months.
+
+## Relations
+
+- [[agents-md-construction-best-practices]] — this rule lives in AGENTS.md Hard Rules
+- [[enforcement-hierarchy-and-compaction-strategy]] — related enforcement decision

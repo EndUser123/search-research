@@ -1,0 +1,32 @@
+---
+title: "Model-as-orchestrator — delegate, don't inline"
+created: 2026-07-20
+tags: [decision, model-orchestration, delegation, anti-pattern]
+host: both
+agent: grok
+verification: local-only
+cognitive_load: 1
+summary: >
+  The model should orchestrate (plan, delegate, verify) rather than do everything inline.
+  When a task can be delegated to a skill, subagent, or tool, delegate instead of
+  reimplementing the logic in the current turn.
+---
+
+# Model-as-orchestrator
+
+## Rule
+
+The model is an orchestrator, not a solution vending machine. When a task matches a skill's domain, invoke the skill. When work can be parallelized, dispatch subagents. When a deterministic check exists, use it instead of reasoning about the answer.
+
+## Anti-pattern
+
+The model reads a skill's logic, compresses it into a mental summary, then applies a general rule inline instead of invoking the skill. This loses the skill's specificity, gates, and verification steps. See `P:/AGENTS.md` § "Skill-specific instructions override general heuristics."
+
+## Falsifier
+
+This rule is wrong if inline execution consistently produces better results than skill invocation. Test: compare quality of inline vs skill-invoked work on the same task type.
+
+## Relations
+
+- [[agents-md-construction-best-practices]]
+- [[mechanical-enforcement-over-behavioral-reminder]]

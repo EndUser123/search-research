@@ -4,9 +4,11 @@ parent_handoff_path: none
 current_session_id: 019fa48a-fb52-79a3-b8dc-d13c5da284d2
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-27T20:50:00Z
-status: open
+status: resolved
+resolved_at: 2026-07-28
+resolved_by_session: 019fa48a
 handoff_type: investigation
-accurate_as_of_head: b5e79a8
+accurate_as_of_head: LATEST
 ---
 
 # AGENTS.md progressive-disclosure refactor
@@ -19,7 +21,32 @@ in the always-loaded file. Validated by [[agents-md-construction-best-practices]
 
 ## Status
 
-OPEN — pattern demonstrated (1 section tightened), full refactor needs a dedicated session.
+RESOLVED (2026-07-28, session 019fa48a). Full refactor completed:
+
+| File | Before | After | Reduction |
+|------|--------|-------|-----------|
+| `~/.grok/AGENTS.md` | 1,170 lines | 505 lines | 57% |
+| `P:\AGENTS.md` | 602 lines | 115 lines | 81% |
+| Claude compat files (3) | 583 lines | 0 (not loaded) | 100% |
+| **Total loaded** | **1,679** | **620** | **63%** |
+
+**What was done:**
+1. Stripped all reference incidents, falsifiers, worked examples, verbose rationale
+2. Set `compat.claude.agents = false` — Claude files no longer force-loaded (see [[disabling-claude-compat-instruction-loading]])
+3. Ported 1 unique rule (replacement default) from Claude files
+4. Created 10 missing wiki concepts for dangling wikilinks (all 17 now resolve)
+5. Verified all rules survived via keyword checks; 1 lost rule (filter-repo) caught and restored
+6. `/tp` critique validated direction, caught 5 specific losses (all restored)
+
+**Wiki concepts created/updated:**
+- [[enforcement-hierarchy-and-compaction-strategy]] — lossless/lossy compaction + hook/MCP/CLI decision framework
+- [[disabling-claude-compat-instruction-loading]] — the config decision
+- [[grok-build-stop-hook-payload-lastassistantmessage]] — payload field bug found during refactor
+- [[behavioral-detection-approaches-practitioner-survey]] — community approaches research
+- [[agents-md-construction-best-practices]] — updated with refactor results
+- 10 stub concepts for previously-dangling wikilinks
+
+**Backups:** `~/.grok/AGENTS.md.backup-20260728` and `P:\AGENTS.md.backup-20260728`
 
 ## Why this matters
 
