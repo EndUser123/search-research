@@ -57,7 +57,7 @@ available MiniMax model. Switch to the free fallback with
 
 **How many parallel workers should I use?** Maximum **3 concurrent workers
 per account**. This host has three NotebookLM accounts (`codex` = paid,
-`codex-free` = troup.hominidae, `codex-free2` = brsthomson), so you can run
+`troup.hominidae` = free, `brsthomson` = free), so you can run
 up to 9 workers total (3 per account). The NotebookLM API degrades above 3
 sessions per account (yt-is benchmark: 3+3 workers hit 4,123 VPH; 4+4
 regressed to 1,150 VPH). Set `config.workers` in the queue file to the total
@@ -66,9 +66,9 @@ number of worker processes you launch.
 **How do I use the free accounts?** Use `--all-profiles` on enqueue to
 discover notebooks from all three accounts. Each notebook is tagged with its
 source profile; workers automatically use the correct one. The free accounts
-(`codex-free` = troup.hominidae, `codex-free2` = brsthomson) each have a
+(`troup.hominidae`, `brsthomson`) each have a
 50-source-per-notebook limit. One-time setup: if auth expires and silent
-re-auth fails, run `nlm login --profile <name> --clear` and sign in as the
+re-auth fails, run `nlm login --profile <name>` and sign in as the
 respective account in the browser window.
 
 **Can I run `sync.py --all` alongside queue workers?** **No.** Each

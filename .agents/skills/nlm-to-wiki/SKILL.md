@@ -257,8 +257,8 @@ This host has two NotebookLM accounts configured as named profiles:
 | Profile | Email | Tier | Max sources/notebook |
 |---------|-------|------|---------------------|
 | `codex` | a.hominidae@gmail.com | Paid | 300 |
-| `codex-free` | troup.hominidae@gmail.com | Free | 50 |
-| `codex-free2` | brsthomson@hotmail.com | Free | 50 |
+| `troup.hominidae` | troup.hominidae@gmail.com | Free | 50 |
+| `brsthomson` | brsthomson@hotmail.com | Free | 50 |
 
 Each profile is an independent CDP session — they do NOT contend for auth.
 Workers can freely process notebooks from either account. Use `--all-profiles`
@@ -277,8 +277,8 @@ processes you launch. See [[nlm-to-wiki-optimization-opportunities]].
 credentials from yt-is worker profiles. If auth expires and silent CDP
 re-auth fails (Chrome doesn't have the session), run for each:
 ```bash
-nlm login --profile codex-free --clear
-nlm login --profile codex-free2 --clear
+nlm login --profile troup.hominidae
+nlm login --profile brsthomson
 ```
 Each opens a browser window — sign in as the respective account.
 After the one-time login, subsequent re-auth is silent via CDP.

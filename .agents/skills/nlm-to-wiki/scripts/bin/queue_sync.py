@@ -21,15 +21,15 @@ from datetime import date
 from pathlib import Path
 
 PROFILE_DEFAULT = "codex"
-PROFILE_FREE = "codex-free"  # troup.hominidae@gmail.com (free, 50-source cap)
 MIN_SOURCES = 50
 MAX_RETRIES = 3
 # Profiles known to this host. Each profile is an independent NotebookLM session
 # (separate CDP, separate rate limit). Different profiles do NOT contend for auth.
+# Named by email-prefix for clarity (matches the Google account identity).
 PROFILE_META = {
     "codex": {"email": "a.hominidae@gmail.com", "tier": "paid", "max_sources": 300},
-    "codex-free": {"email": "troup.hominidae@gmail.com", "tier": "free", "max_sources": 50},
-    "codex-free2": {"email": "brsthomson@hotmail.com", "tier": "free", "max_sources": 50},
+    "troup.hominidae": {"email": "troup.hominidae@gmail.com", "tier": "free", "max_sources": 50},
+    "brsthomson": {"email": "brsthomson@hotmail.com", "tier": "free", "max_sources": 50},
 }
 QUEUE_FILE = Path("P:/.data/wiki/_state/nlm-sync/queue.json")
 SYNC_SCRIPT = "P:/.agents/skills/nlm-to-wiki/scripts/sync.py"
@@ -241,7 +241,7 @@ def main():
     ap.add_argument("--profile", default=PROFILE_DEFAULT,
                     help="Single profile (default: codex). Use --all-profiles to enqueue from both.")
     ap.add_argument("--all-profiles", action="store_true",
-                    help="Enqueue from all configured profiles (codex + codex-free)")
+                    help="Enqueue from all configured profiles (codex + troup.hominidae + brsthomson)")
     ap.add_argument("--worker-id", default=None)
     ap.add_argument("--min-sources", type=int, default=MIN_SOURCES)
     args = ap.parse_args()
