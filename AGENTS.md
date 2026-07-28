@@ -307,20 +307,31 @@ ACCOUNTING: this session's work
   Fully done:        <list completed work items>
   Partially done:    <list items with remaining sub-tasks>
   Not started:       <list planned-but-unimplemented items>
-  Other sessions':   <items that belong to concurrent sessions>
 ```
 
 Every plan, work item, and shipped artifact must land in exactly one bucket.
-If you cannot populate all four buckets, you have not accounted for the work.
+If you cannot populate all three buckets, you have not accounted for the work.
+**Never include "Other sessions'" as a bucket.** Other sessions' work is out
+of scope by definition — surfacing it inflates the summary and makes this
+session's real work look smaller. The ACCOUNTING block classifies *this
+session's* work only.
 
-**Reliability requirement (2026-07-24):** the ACCOUNTING block must be
-mechanically complete, not impressionistically complete. Before writing each
-bucket, scan: (1) `git log --oneline -10` for recent commits, (2) `git status`
-for uncommitted work, (3) the conversation for stated plans that were not
-executed, (4) any handoffs referenced this session. Do not populate buckets
-from memory alone — verify against workspace evidence. The operator reported
-that accounting is sometimes unreliable; the fix is to ground each bucket
-entry in a tool-call receipt, not recall.
+**Reliability requirement (revised 2026-07-27):** the ACCOUNTING block
+classifies work from **conversation context** (commits, edits, skill
+invocations, decisions made this session), not from workspace state.
+- **Allowed data sources:** (1) `git log --oneline -N` for recent commits
+  (inherently session-scoped — shows what was committed), (2) the conversation
+  for stated plans that were not executed, (3) any handoffs referenced this
+session.
+- **Prohibited:** `git status --short` or any unscoped workspace-state query.
+  `git status` shows the entire workspace including other sessions' work;
+  running it for accounting purposes guarantees the model will see and report
+  out-of-scope files. The ACCOUNTING block's purpose is work classification,
+  not file enumeration. If you need to know whether this session's edits are
+  committed, check `git log` for the specific files you edited — do not run a
+  full `git status`.
+- Do not populate buckets from memory alone — ground each entry in a
+  tool-call receipt (commit SHA, file written, test run).
 
 ### Handoff completeness check (before declaring done)
 
