@@ -144,6 +144,72 @@ Based on the research, the optimal v0.2 design for cross-session chain traversal
 - Existing wiki: [[handoff-pre-compact-problems]] (skill routing, not chain traversal — different topic but related)
 - Existing wiki: [[llm-handoff-best-practices]] (refines with the five-layer protocol)
 
+## Two distinct use cases (added 2026-07-28)
+
+The v0.2 design above covers **chain traversal** — following a handoff chain
+to inherit context. There's a second, complementary use case that emerged
+from the coverage scanner (`coverage_scan.py` in `/close/__lib/`):
+
+### Use case 1: Chain traversal (continuity) — the v0.2 design above
+
+**Question:** "I'm session B continuing session A's work — show me A's context."
+**Mechanism:** Walk `parent_handoff_path` links, extract five layers, present
+to new session.
+**Owner:** `/handoff continue` (v0.2 — not yet built).
+**Scope:** One chain (this session's lineage).
+
+### Use case 2: Coverage scan (workspace status)
+
+**Question:** "What threads are still open across all sessions?"
+**Mechanism:** Scan ALL handoffs for `status: open` or `ready-to-implement`.
+Group by recency and session-chain membership.
+**Owner:** `coverage_scan.py` (built 2026-07-28).
+**Scope:** Entire handoffs directory (~185 dirs, ~3s scan).
+
+**Implementation:** `coverage_scan.py` reads only the YAML frontmatter
+(first 1KB) of each handoff — fast enough to scan 185 directories in ~3
+seconds. It identifies session-chain membership via compaction INDEX.md
+(the prior session IDs in the compaction lineage), not via
+`parent_handoff_path` walking. This is a deliberately simpler mechanism
+than full chain traversal — coverage doesn't need narrative context, just
+status + age + chain membership.
+
+**Usage:**
+```powershell
+python ~/.grok/skills/close/__lib/coverage_scan.py --session <session-id>
+python ~/.grok/skills/close/__lib/coverage_scan.py --session <session-id> --json
+```
+
+**Output:** compact table showing 🔗 (same-chain) vs plain (other sessions),
+sorted by age (today → 7d+), with status and handoff name.
+
+**Why this is separate from chain traversal:** coverage is a read-only
+status query ("what's open?"). Chain traversal is a context-inheritance
+operation ("load the prior session's understanding"). Different consumers,
+different mechanisms, different complexity. The concept's "DON'T build
+cross-session chain traversal as a single mega-pipeline" applies — coverage
+is intentionally lightweight and does not walk `parent_handoff_path` chains.
+
+**Companion skills that benefit from coverage scan:**
+- `/tp` — suggests `/close` for coverage questions; coverage_scan.py provides
+  the mechanical backend
+- `/close` — could call coverage_scan.py as a pre-scan before the full
+  close orchestrator runs
+- Any skill asking "what's open?" — calls the scanner directly
+
+**Relationship to this concept's v0.2 design:** the v0.2 chain traversal
+(walking `parent_handoff_path` with narrative excerpts) and the coverage
+scanner (scanning all handoffs for open status) are both needed. Chain
+traversal answers "what did session A know?" Coverage answers "what's
+unfinished everywhere?" They share the handoff directory as source but
+solve different problems. Neither should be collapsed into the other.
+
+## Receipts
+
+- `~/.grok/skills/close/__lib/coverage_scan.py` — coverage scanner implementation (built 2026-07-28)
+- `~/.grok/skills/close/__lib/close_accounting.py:409` — `scan_handoffs()` session-ID filter that coverage_scan.py deliberately bypasses
+- `~/.grok/skills/tp/SKILL.md:127` — "Workspace coverage" intent routing that suggests `/close` for "what's open?" questions
+
 ## Auto-related
 
 - [[exemption-logic-as-conflict-signal]]
