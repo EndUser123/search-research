@@ -39,6 +39,9 @@ def find_qmd_cli() -> Path | None:
 
 REDIRECT_MARKER = "# FTS5 REDIRECT"
 
+# Also check for the document add redirect
+DOC_ADD_MARKER = "FTS5 wrapper add failed"
+
 
 def is_patched(source: str) -> bool:
     """Check if the redirect is already present."""
