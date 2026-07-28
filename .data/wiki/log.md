@@ -1,5 +1,11 @@
 # Vault Log
 
+## model-fit-and-post-hoc-behavioral-detection
+Source: session-019fa48a
+Agent: grok
+Notes: Model fit (Claude best anti-sycophancy) + post-hoc detection (Stop hook pattern matching + intent drift)
+Page: wiki/concepts/model-fit-and-post-hoc-behavioral-detection.md
+
 ## --concept
 Source: spec-driven-development-tools-and-planning-workflows
 Agent: --action
