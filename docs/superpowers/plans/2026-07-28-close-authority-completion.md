@@ -145,7 +145,8 @@ from close_authority import (
 
 # Non-resolved gate states to enumerate (F-04 fix: test ALL, not just needs_attention)
 NON_RESOLVED_STATES = ["needs_attention", "blocked", "pending", "deferred", "", "unknown"]
-RESOLVED_STATES = frozenset({"resolved", "complete", "satisfied", "skip", "pre_satisfied"})
+# F-NEW-4 fix: actual scanner vocabulary, not fictional strings
+RESOLVED_STATES = frozenset({"pre_satisfied", "skip"})
 
 
 @pytest.fixture
@@ -363,24 +364,31 @@ class Test9ForgedReceiptRejected:
         assert "renderer" in reason.lower()
 
     def test_forged_aar_run_json_detected(self, tmp_path):
-        """F-15 fix: ACTUALLY test that a forged _run.json is rejected by the AAR finalizer."""
+        """F-NEW-3 fix: ACTUALLY exercise the hash-mismatch path, not 'file missing'."""
         run_dir = tmp_path / "aar-run"
         run_dir.mkdir()
         (run_dir / "preprocess").mkdir()
-        # Write a forged _run.json with manually overwritten hash
+        # Create a REAL report file so finalize_aar_run gets past the "missing" check
+        (run_dir / "aar-report.md").write_text("# Fake AAR report\n", encoding="utf-8")
+        # Write a forged _run.json with a hash that doesn't match the report
+        import hashlib
+        real_hash = hashlib.sha256(b"# Fake AAR report\n").hexdigest()
         forged = {
             "status": "completed", "skill": "aar", "session_id": "test-session",
-            "report_sha256": "manually_overwritten_hash",
+            "report_sha256": "manually_overwritten_hash_NOT_" + real_hash[:16],
             "report_path": str(run_dir / "aar-report.md"),
         }
         (run_dir / "_run.json").write_text(json.dumps(forged), encoding="utf-8")
-        # The finalizer must reject: report file doesn't exist AND hash won't match
+        # The finalizer must reject: hash mismatch (report exists, but hash is wrong)
         import sys, os
         sys.path.insert(0, os.path.expanduser("~/.grok/skills/aar/__lib"))
         from completion_receipt import finalize_aar_run
         result = finalize_aar_run(run_dir, run_dir / "aar-report.md", "test-session")
         assert not result["passed"], \
-            f"Forged _run.json was accepted by finalize_aar_run: {result.get('detail', '')}"
+            f"Forged hash was accepted: {result.get('detail', '')}"
+        # F-NEW-3: verify it failed for the RIGHT reason (hash mismatch, not missing file)
+        assert "hash" in result.get("detail", "").lower() or "mismatch" in result.get("detail", "").lower(), \
+            f"Failed but for wrong reason: {result.get('detail', '')}"
 
 
 class Test10RestartReconstructsAuthority:
@@ -394,18 +402,22 @@ class Test10RestartReconstructsAuthority:
         )
         path = persist_close_receipt(receipt, two_terminals["artifacts_a"])
         # Spawn a subprocess to read it back (simulates restart)
+        # F-NEW-8 fix: use as_posix() to avoid Windows backslash issues in f-string
         import subprocess, sys
-        result = subprocess.run(
-            [sys.executable, "-c", f"""
+        lib_path = (Path(__file__).resolve().parent.parent / "__lib").as_posix()
+        artifacts_path = Path(two_terminals["artifacts_a"]).as_posix()
+        script = f"""
 import json, sys
-sys.path.insert(0, r"{Path(__file__).resolve().parent.parent / '__lib'}")
+sys.path.insert(0, r"{lib_path}")
 from close_authority import load_close_receipt
-loaded, reason = load_close_receipt("{two_terminals['session_a']}", "run-1", r"{two_terminals['artifacts_a']}")
+loaded, reason = load_close_receipt("{two_terminals['session_a']}", "run-1", r"{artifacts_path}")
 if loaded is None:
     print("FAIL:" + reason)
 else:
     print("OK:" + loaded.terminal_verdict)
-"""],
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script],
             capture_output=True, text=True, timeout=10,
         )
         assert "OK:CLOSE COMPLETE" in result.stdout, \
@@ -446,6 +458,12 @@ git commit -m "test: acceptance spec v3 — verified API, security-property prob
 - Create: `P:/.agents/__lib/producer_attestation.py` (shared location)
 - Create: `P:/.agents/__lib/__init__.py` (empty, makes it a package)
 
+**F-NEW-5 fix — deployment:** `P:/.agents/__lib/` is a new shared path. After Workstream B merges to main, this directory must exist and contain the module. Verify after merge:
+```bash
+python -c "import sys; sys.path.insert(0, 'P:/.agents/__lib'); from producer_attestation import sign_receipt; print('OK')"
+```
+If the path doesn't exist on a fresh host, both close and aar skills fail at import. Document in the worktree README that `P:/.agents/__lib/` is a shared dependency.
+
 - [ ] **Step 1: Write the module** (same as v2 but at shared path)
 
 - [ ] **Step 2: Verify importable from both locations**
@@ -485,14 +503,16 @@ Define `RESOLVED_STATES` at module level (matching the test constant).
 # Add to CloseReceipt dataclass:
 producer_attestation: str | None = None
 
-# In persist_close_receipt, before write:
+# In persist_close_receipt, before write (F-NEW-6 fix: do NOT mutate the input receipt):
 from producer_attestation import sign_receipt
 import os
 key = os.environ.get("CLOSE_ATTESTATION_KEY", "").encode("utf-8")
 if key:
-    payload = receipt.to_dict()
-    payload.pop("producer_attestation", None)
-    receipt.producer_attestation = sign_receipt(payload, key)
+    # Build a signed COPY, don't mutate the caller's receipt object
+    signed_dict = receipt.to_dict()
+    payload = {k: v for k, v in signed_dict.items() if k != "producer_attestation"}
+    signed_dict["producer_attestation"] = sign_receipt(payload, key)
+    # Write signed_dict, not receipt.to_dict()
 ```
 
 - [ ] **Step 3: Add attestation verification to validate_close_receipt**
@@ -590,7 +610,16 @@ Expected: pass
 
 **Depends on:** D merged to main AND installed to `~/.grok/skills/close/`. The hook calls the installed scanner.
 
-### Task C1: Gate script (blocking-only, no signing)
+### Task C0: Verify scanner installation (F-NEW-7 fix)
+
+- [ ] **Step 1:** Verify `~/.grok/skills/close/__lib/close_accounting.py` exists
+- [ ] **Step 2:** Verify it matches the worktree HEAD (diff the files)
+- [ ] **Step 3:** If mismatched, install via the workspace's standard mechanism (symlink or copy)
+- [ ] **Step 4:** Document the install mechanism in the worktree README
+
+**F-NEW-9 note:** the hook assumes `quality-gate.py` (another Stop hook) does not block close-context responses. If it does, the close hook never fires. Verify by inspecting `quality_gate.py` for close-related logic.
+
+### Task C1: Gate script (blocking-only, reads authority.verdict)
 
 **Files:**
 - Create: `~/.grok/hooks/scripts/close_enforcement_gate.py`
@@ -642,10 +671,14 @@ def main():
             capture_output=True, text=True, timeout=120)
         if r.returncode != 0:
             log_fail_open(f"scanner exit {r.returncode}", r.returncode); sys.exit(0)
-        gates = json.loads(r.stdout).get("gates", {})
-        attention = {k for k, v in gates.items() if v.get("state") == "needs_attention"}
-        if attention:
-            reason = f"Close scanner gates need attention: {', '.join(attention)}"
+        data = json.loads(r.stdout)
+        # F-NEW-1/2 fix: read the canonical authority verdict, NOT raw gates.
+        # close_accounting.py:2864 states: "All downstream consumers MUST use
+        # resolved_gates, not the raw gates above." The authority verdict is
+        # the sole mechanically-valid close verdict.
+        verdict = data.get("authority", {}).get("verdict", "")
+        if verdict != "CLOSE COMPLETE":
+            reason = f"Close authority verdict is {verdict!r} — not CLOSE COMPLETE"
             print(json.dumps({"decision": "block", "reason": reason}))
             sys.stderr.write(reason + "\n")
             sys.exit(2)
@@ -711,4 +744,27 @@ After 8 blocks in one turn, the gate is overridden and the model emits anyway. T
 
 - v1 → Round 0 (/tp): 14 findings (5 critical) → revised to v2
 - v2 → Round 1 (mandatory loop): 21 findings (5 critical) → revised to v3 (this document)
-- v3 → Round 2 (mandatory loop): **REQUIRED before execution**
+- v3 → Round 2 (mandatory loop): 9 new findings (1 critical, 3 high) → revised to v4
+- v4 → Round 3 (mandatory loop): **REQUIRED before execution**
+
+---
+
+## Round 2 fixes (v4)
+
+**F-NEW-1 [CRITICAL] fix:** Hook reads `authority.verdict`, not raw `gates`. The scanner explicitly states (close_accounting.py:2864): "All downstream consumers MUST use resolved_gates, not the raw gates above." The hook must read `output["authority"]["verdict"]` and block when it is NOT `"CLOSE COMPLETE"`.
+
+**F-NEW-2 [HIGH] fix:** Same fix as F-NEW-1. Reading `authority.verdict` catches `CLOSE SCANNER ERROR` and `CLOSE BLOCKED` automatically.
+
+**F-NEW-3 [HIGH] fix:** Test 9c rewritten to create a real `aar-report.md` file, populate a minimal preprocess dir, and set a hash that doesn't match — exercising the actual hash-mismatch path, not "file missing."
+
+**F-NEW-5 [MEDIUM] fix:** Added Task B0.5 — verify/create `P:/.agents/__lib/` and document deployment.
+
+**F-NEW-6 [HIGH] fix:** `persist_close_receipt` builds a local signed copy instead of mutating the input receipt.
+
+**F-NEW-7 [MEDIUM] fix:** Added Task C0 — verify `~/.grok/skills/close/` is installed and current before deploying the hook.
+
+**F-NEW-4 [MEDIUM] fix:** `RESOLVED_STATES` uses actual scanner vocabulary: `frozenset({"pre_satisfied", "skip"})`.
+
+**F-NEW-8 [LOW] fix:** Test 10 subprocess uses `as_posix()` for path embedding.
+
+**F-NEW-9 [MEDIUM] fix:** Documented that the hook assumes `quality-gate.py` does not block close-context responses.
