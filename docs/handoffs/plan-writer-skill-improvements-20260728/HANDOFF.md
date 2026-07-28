@@ -160,7 +160,7 @@ This handoff would be wrong if the 4 improvements don't survive held-out validat
 
 3. **Imp 4 (plan length budget): REJECTED by operator.** "I really don't care about plan length, it should be as long as it needs to be. Using an arbitrary plan length looks like a footgun." No length budget — arbitrary thresholds become targets (Goodhart's law).
 
-4. **Imp 5 (AGENTS.md consistency check): PENDING — operator asked about implementation reliability.** Question: can this be done reliably via code/symbolic scanning, or does it need a subagent pass? Answer being formulated. The runtime hooks already block destructive git at execution time; a plan-level check would be defense-in-depth at write time.
+4. **Imp 5 (AGENTS.md consistency check): DEFERRED.** Operator agreed to defer. Zero AGENTS.md violations across 24 plans on disk (scanned via `P:/tmp/plan_analysis.py`). Runtime hooks already enforce these rules at execution time. If needed later, a code hook (PostToolUse scanning plan markdown for forbidden git patterns) is the reliable implementation — ~30 lines, deterministic, not subject to the maker-checker blind spot.
 
 5. **Imp 6 (traceability matrix): DEFERRED.** No evidence of the failure mode occurring locally.
 
