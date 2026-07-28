@@ -1,6 +1,18 @@
 # Vault Log
 
 ## --concept
+Source: fleet-wide-friction-taxonomy-20260728
+Agent: --action
+Notes: created
+Page: --source
+
+## fleet-maintenance-skill-design
+Source: session-019fa94d-/www
+Agent: grok
+Notes: Design for /maintain skill: diagnose (workspace-health) + act (cleanup/rotation) + prevent (growth limits). Not a port of Claude main.
+Page: concepts/fleet-maintenance-skill-design.md
+
+## --concept
 Source: deferred-skill-improvements-registry
 Agent: --action
 Notes: created
