@@ -277,9 +277,17 @@ def _cli_smoke(args):
     """Quick smoke test: info + search."""
     _cli_info(args)
     print()
-    args.query = "model routing"
-    args.top_k = 3
-    _cli_search(args)
+    # Build a search args namespace manually
+    import argparse
+    search_args = argparse.Namespace(
+        collection=args.collection,
+        query="model routing",
+        top_k=3,
+        limit=None,
+        format="text",
+        positional_query=None,
+    )
+    _cli_search(search_args)
 
 
 def main():
