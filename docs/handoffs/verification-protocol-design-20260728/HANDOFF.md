@@ -21,6 +21,71 @@ tests after logical unit" tier that catches bugs fastest and cheapest.
 
 OPEN — design clear, implementation needs operator input on where each piece lives.
 
+## NEW (2026-07-28): Stop hook receipt-loop inefficiency
+
+### The problem
+
+The Stop hook receipt system (quality-gate:stop) requires verification receipts
+that bind scope to modified files. But the current implementation creates
+friction loops:
+
+1. **Stale-receipt after filesystem change.** The hook detects that files were
+   modified after the last verification tool call and blocks. But "modified"
+   includes commits by concurrent sessions, auto-generated artifacts, and even
+   the hook's own state files. The model re-runs the same tests repeatedly just
+   to produce a fresh receipt timestamp.
+
+2. **Scope-matching is brittle.** The receipt writer binds scope from explicit
+   path arguments in the command text. But the path format varies (`test_scanner.py`
+   vs `C:\Users\brsth\.grok\skills\close\tests\test_scanner.py`), and the matcher
+   may not recognize all forms. This caused 3+ retry cycles in this session
+   where the tests passed but the receipt wasn't accepted.
+
+3. **Multi-repo scope.** This workspace has two git repos (P:\ and ~/.grok).
+   Modified files may be in either. The receipt system needs to handle both,
+   but the scope-binding only works for files in the current repo.
+
+### Observed cost
+
+In this session, the receipt loop consumed ~5-6 turns and ~3-4 redundant test
+runs to satisfy the hook. Each test run was 0.4-6.2s, but the turns (thinking +
+response + hook evaluation + retry) cost significantly more in latency and
+operator patience.
+
+### Design question
+
+How to make the receipt system precise enough to catch unverified claims but
+not so strict that it creates false-positive blocks on work that IS verified?
+
+**Options to explore:**
+
+A. **Content-hash receipts instead of timestamp receipts.** The receipt records
+   the SHA256 of each modified file at verification time. The hook compares
+   current file hash to receipt hash. If they match, the receipt is still valid
+   regardless of timestamp. This eliminates the "stale receipt after commit"
+   problem.
+
+B. **Scope-glob receipts.** Instead of exact-path matching, use glob patterns.
+   `test_scanner.py` matches `**/test_scanner.py`. More forgiving of path-format
+   variation.
+
+C. **Multi-repo scope support.** Accept file paths from both P:\ and ~/.grok
+   in the same receipt.
+
+D. **Graceful degradation.** After 2 failed receipt attempts on the same file,
+   accept the receipt with a warning instead of blocking indefinitely. The
+   hook's value is catching unverified work, not creating an infinite loop.
+
+E. **Receipt caching.** If the same pytest command was run within the last N
+   minutes and no files changed since, accept the cached receipt without
+   re-running.
+
+**Recommendation:** explore A (content-hash) + B (scope-glob) + D (graceful
+degradation). These address the three root causes (stale receipts, path
+mismatch, infinite loops) without weakening the enforcement.
+
+## Original design (5-tier model)
+
 ## Producing context
 
 The operator asked: "after a file edit or write, what's the best verification
