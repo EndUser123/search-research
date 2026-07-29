@@ -188,9 +188,13 @@ scanning the file_edits bucket for .py target_paths.
 |------|------|----------------|
 | ruff E,F | syntax / unused imports / undefined names | Seeds `deterministic_failures` (verifiers treat as bugs) |
 | pyright errors | type errors (including undefined `self.*` methods — catches `_mark_row` class bugs) | Seeds `deterministic_failures` |
-| **pylint --errors-only** | inference-based: undefined attributes (`no-member`/E1101), resource leaks, import errors. Catches bugs ruff and pyright miss on dynamic/untyped code | Seeds `deterministic_failures` (soft-skip if not installed) |
+| **pylint --errors-only --enable=cyclic-import** | inference-based: undefined attributes (`no-member`/E1101), resource leaks, import errors, **import cycles** (R0401). Catches bugs ruff and pyright miss on dynamic/untyped code | Seeds `deterministic_failures` (soft-skip if not installed) |
 | **trace_check.py** | AST-based definition completeness: traces every `self.*` call to its `def`, flags called-but-undefined methods (the `_mark_row` class of bug). Ported from Claude `/trace` methodology. | Seeds `deterministic_failures` |
+| **bandit -ll** | security SAST: `shell=True`, `eval()`, `pickle.loads`, weak crypto (`random` vs `secrets`), hardcoded passwords, SQL injection patterns. Catches the exact anti-patterns AI agents reproduce. | Seeds `deterministic_failures` (soft-skip if not installed) |
+| **radon cc -n C** | cyclomatic complexity: flags functions with complexity >10 (grade C+). Prevents unmaintainable bug-magnet functions that agents produce by adding one more if/else. | **ADVISORY only** — spot-check candidates for verifiers |
 | **vulture** | unused functions/methods/classes (dead code after refactors) | **ADVISORY only** — never alone fails CHECK; soft-skip if not installed |
+| **pip-audit** | dependency vulnerability scanning: checks requirements.txt/pyproject.toml against PyPA Advisory Database. Catches CVEs in packages agents add freely. | **ADVISORY only** — conditional on requirements file in scope |
+| **diff-cover** | new-line coverage gate: gates coverage on only changed lines (prevents backsliding without forcing legacy catchup). Requires `--cov` output. | **ADVISORY only** — conditional on coverage.xml existing |
 
 **Why vulture is advisory:** framework frameworks (Textual `compose`/`@on`/
 `watch_*`, pytest fixtures, CLI entry points) produce high FP rates without
@@ -230,14 +234,32 @@ if ($pyFiles) {
         --paths @pyFiles `
         --min-confidence 80 `
         --output $vultureOut
-    # Pylint: errors-only (E1101 no-member catches called-but-undefined self.* methods)
-    $pylint = pylint --errors-only --output-format=json @pyFiles 2>$null
+    # Pylint: errors-only + cyclic-import (E1101 no-member + R0401 import cycles)
+    $pylint = pylint --errors-only --enable=cyclic-import --output-format=json @pyFiles 2>$null
     $pylintExit = $LASTEXITCODE
     # Trace check: AST-based definition completeness (catches called-but-undefined methods)
     $traceOut = "$runDir/packets/trace-check.json"
     python "P:/.grok/skills/check/__lib/trace_check.py" `
         --paths @pyFiles `
         --output $traceOut
+    # Bandit: security SAST (shell=True, eval, weak crypto, hardcoded secrets)
+    $banditOut = "$runDir/packets/bandit-check.json"
+    $banditRaw = bandit -f json -ll -x tests @pyFiles 2>$null
+    $banditRaw | Set-Content $banditOut -Encoding UTF8 -ErrorAction SilentlyContinue
+    # Radon: complexity analysis (advisory — grade C+ = complexity >10)
+    $radonOut = "$runDir/packets/radon-complexity.txt"
+    radon cc -s -n C @pyFiles 2>$null | Set-Content $radonOut -Encoding UTF8 -ErrorAction SilentlyContinue
+    # pip-audit: dependency CVEs (advisory — conditional on requirements file in scope)
+    $pipAuditOut = "$runDir/packets/pip-audit.json"
+    $reqFile = @($scopeFiles | Where-Object { $_ -match 'requirements.*\.txt|pyproject\.toml' })[0]
+    if ($reqFile -and (Test-Path $reqFile)) {
+        pip-audit -r $reqFile -f json 2>$null | Set-Content $pipAuditOut -Encoding UTF8 -ErrorAction SilentlyContinue
+    }
+    # diff-cover: new-line coverage gate (advisory — conditional on coverage.xml)
+    $diffCovOut = "$runDir/packets/diff-cover.txt"
+    if (Test-Path "$runDir/packets/coverage.xml") {
+        diff-cover "$runDir/packets/coverage.xml" --fail-under=80 2>$null | Set-Content $diffCovOut -Encoding UTF8 -ErrorAction SilentlyContinue
+    }
     # Merge packet for verifiers
     $packet = @{
         ruff_errors = $ruff
@@ -246,6 +268,14 @@ if ($pyFiles) {
         pylint_errors = $pylint
         pylint_exit = $pylintExit
         trace_check = (Get-Content $traceOut -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json)
+        bandit_check = (Get-Content $banditOut -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json)
+        bandit_policy = "deterministic_failures"
+        radon_advisory = (Get-Content $radonOut -Raw -ErrorAction SilentlyContinue)
+        radon_policy = "advisory_only"
+        pip_audit_advisory = (Get-Content $pipAuditOut -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json)
+        pip_audit_policy = "advisory_only"
+        diff_cover_advisory = (Get-Content $diffCovOut -Raw -ErrorAction SilentlyContinue)
+        diff_cover_policy = "advisory_only"
         vulture_advisory = (Get-Content $vultureOut -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json)
         vulture_policy = "advisory_only"
     }
@@ -255,17 +285,34 @@ if ($pyFiles) {
     } else {
         Write-Host "Deterministic pre-check: ruff/pyright clean"
     }
+    # Bandit findings
+    $bFind = 0
+    if ($packet.bandit_check -and $packet.bandit_check.results) {
+        $bFind = @($packet.bandit_check.results | Where-Object { $_.issue_severity -in @("MEDIUM","HIGH") }).Count
+    }
+    if ($bFind -gt 0) { Write-Host "Deterministic pre-check: bandit findings=$bFind (security — verifiers treat as bugs)" }
+    # Radon advisory
+    $rFind = 0
+    if ($packet.radon_advisory) { $rFind = @($packet.radon_advisory -split "`n" | Where-Object { $_ -match '\b[C-F]\b' }).Count }
+    if ($rFind -gt 0) { Write-Host "Deterministic pre-check: radon advisory=$rFind functions at complexity C+ (spot-check candidates)" }
+    # Vulture advisory
     $vFind = 0
     if ($packet.vulture_advisory -and $packet.vulture_advisory.finding_count) {
         $vFind = [int]$packet.vulture_advisory.finding_count
     }
-    Write-Host "Deterministic pre-check: vulture advisory findings=$vFind (does not block CHECK alone)"
+    if ($vFind -gt 0) { Write-Host "Deterministic pre-check: vulture advisory findings=$vFind (does not block CHECK alone)" }
 }
 ```
 
-**Short-circuit rule:** if the deterministic pre-check finds **ruff E/F, pyright errors, or pylint errors**, the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
+**Short-circuit rule:** if the deterministic pre-check finds **ruff E/F, pyright errors, pylint errors, or bandit MEDIUM/HIGH findings**, the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
 
 **Vulture advisory rule:** include `vulture_advisory` findings in verifier packets as **spot-check candidates** (severity suggestion/gap unless the verifier confirms real dead code). Do **not** auto-FAIL CHECK solely because vulture reported findings. Do **not** delete Textual `compose` / `watch_*` / `@on` handlers based on unfiltered vulture.
+
+**Radon advisory rule:** include `radon_advisory` findings (functions at complexity grade C+) as **spot-check candidates** for the verifier. A function at complexity 15 is not necessarily a bug, but it's a maintenance risk. The verifier decides whether the complexity is inherent (parsing, state machine) or accidental (nested conditionals that should be extracted).
+
+**pip-audit advisory rule:** include `pip_audit_advisory` findings as **dependency risk** signals. The verifier surfaces unpatched CVEs but does not auto-FAIL CHECK (transitive deps may be outside the session's control).
+
+**diff-cover advisory rule:** include `diff_cover_advisory` output as **coverage gap** signals. Uncovered changed lines are spot-check candidates for the verifier, not automatic FAILs.
 
 **Do NOT short-circuit to immediate FAIL** without the LLM verifier — the deterministic check finds syntax/type errors but not logic errors. The LLM verifier still needs to run for the full assessment. The deterministic check just seeds the verifier with confirmed findings so it doesn't waste time rediscovering them.
 
@@ -387,7 +434,8 @@ concern needed it.
 - `python -c`, `python <scratch_script.py>` (ad-hoc verification scripts)
 - Read-only inspection: `grep`, `find`, `cat`, `ls`, `Get-Content`, `Select-String`
 - Linters / type-checkers: `ruff`, `mypy`, `eslint`, `tsc`, `cargo clippy`,
-  `pylint`, `vulture` (via `P:/.grok/skills/check/__lib/vulture_precheck.py` — advisory)
+  `pylint`, `vulture` (via `P:/.grok/skills/check/__lib/vulture_precheck.py` — advisory),
+  `bandit` (security SAST), `radon` (complexity analysis)
 - Builds: `npm run build`, `cargo check`, `tsc`, `pip install -e .`
 - Localhost probes: `curl http://localhost:<port>/health`, `socket.connect_ex`
 
