@@ -39,12 +39,14 @@ relations:
 | 5 | **GLM direct** | api.z.ai | Subscription (Max-Yearly plan) | **1,600 prompts/5h** | GLM-5.2 | 1M |
 | 6 | **OpenCode Zen** | opencode.ai/zen/v1 | Free (free + stealth models work) | Unknown — needs probe | big-pickle, deepseek-v4-flash-free, mimo-v2.5-free, north-mini-code-free, nemotron-3-ultra-free | 128K |
 | 7 | **OpenRouter** (go-*) | openrouter.ai | **~$0.005/1M tokens — NOT free** | Pay-per-use | kimi-k3, kimi-k2.7-code, mimo-v2.5, mimo-v2.5-pro, deepseek-v4-pro, deepseek-v4-flash, qwen3-7-max, qwen3-7-plus, qwen3-6-plus | 200K |
-| 8 | **OpenRouter :free** (or-*) | openrouter.ai :free | **~$0.005/1M tokens — NOT free** | Rate-limited + cost | nemotron-ultra-free, nemotron-super-free, hy3-free, laguna-m1-free | 262K-1M |
+| 8 | **OpenRouter :free** (or-*) | openrouter.ai :free | **$0/1M tokens — genuinely free** (corrected 2026-07-29) | Rate-limited: 20 RPM, 50 RPD (or 1,000 RPD with $10+ lifetime credits) | nemotron-ultra-free, nemotron-super-free, hy3-free, laguna-m1-free, laguna-s-2-1-free, laguna-xs-2-1-free, ling-3-flash-free | 262K-1M |
 
-> **Operator constraint (2026-07-22):** OpenRouter models (go-* and or-*) cost
-> ~$0.005/1M tokens. They are **NOT free**. Use by exception only (manual picker
-> selection), never as part of default routing. They are backup capacity for when
-> all free providers are exhausted, not primary pool members.
+> **Corrected (2026-07-29):** OpenRouter `:free` models (`or-*`) are genuinely
+> $0 per 1M tokens — both input and output. The previous claim of `~$0.005/1M`
+> was incorrect. The `go-*` models (paid variants without `:free`) DO cost money.
+> Sources: openrouter.ai/docs/faq, openrouter.ai/docs/api_reference/limits,
+> openrouter.ai/pricing. Rate limits: 20 req/min always; 50 req/day without $10
+> credits, 1,000 req/day with $10+ lifetime credits.
 
 **Key insight: paths 2-3 and 6 are all FREE and working.** That's 3 free access paths
 (CCR local is currently disabled). Subscription (paths 4-5) provides high per-5h quotas
@@ -96,12 +98,12 @@ use a merged temp file + single tool read instead.
 | `go-kimi-k2-7-code` | OpenRouter | ~$0.005/1M | Operator manually selects; code-specialized |
 | `go-mimo-v2-5` | OpenRouter | ~$0.005/1M | Operator manually selects; verified spawn_subagent OK |
 | `go-deepseek-v4-pro` | OpenRouter | ~$0.005/1M | Operator manually selects; strong reasoning |
-| `or-*` (4 models) | OpenRouter :free | ~$0.005/1M | Operator manually selects; backup capacity |
+| `or-*` (7 models) | OpenRouter :free | **$0/1M (free)** | Rate-limited: 20 RPM, 50-1000 RPD. Corrected 2026-07-29 — these are genuinely free. |
 | `zen-*` (5 models) | OpenCode Zen | Free | **Working** (corrected 2026-07-23): big-pickle, deepseek-v4-flash-free, mimo-v2.5-free, north-mini-code-free, nemotron-3-ultra-free all function when properly configured |
 
-> **OpenRouter is NOT free.** The `:free` suffix is misleading — it costs
-> ~$0.005/1M tokens. Treat go-* and or-* as paid models available by manual
-> exception only. (Operator constraint, 2026-07-22.)
+> **OpenRouter `:free` models ARE free** ($0/1M tokens). The `go-*` paid variants
+> cost ~$0.005/1M. Corrected 2026-07-29 — verified via openrouter.ai/docs/faq
+> and openrouter.ai/docs/api_reference/limits.
 
 ### Reasoning lane pool (plan, architecture, RCA, critic)
 
@@ -344,7 +346,7 @@ between cheap and expensive — not in which specific cheap model you pick.
 | **High-volume mechanical work** | Free pool — NVIDIA has massive headroom (40 RPM = 2,400/hr vs ~170/hr actual) | Save subscription quota |
 | **Subscription quota abundant (start of month)** | `minimax-m3` for instruction-following (16K req/mo) | Use quota while fresh; doesn't roll over |
 | **All free providers down or rate-limited** | `minimax-m3` or `glm-5-2` (subscription) | Subscription is the escalation tier |
-| **Exception: OpenRouter needed** | Manual picker selection of go-*/or-* | NOT default routing; ~$0.005/1M; operator approves |
+| **Exception: OpenRouter paid needed** | Manual picker selection of go-* | NOT default routing; ~$0.005/1M; operator approves. Note: or-* (`:free`) models are genuinely free ($0/M) — corrected 2026-07-29 |
 
 ### The quota arithmetic (corrected with verified data)
 
