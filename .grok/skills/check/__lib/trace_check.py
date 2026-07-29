@@ -54,6 +54,13 @@ def extract_class_methods(
             for base in node.bases:
                 if isinstance(base, ast.Name):
                     base_names.append(base.id)
+                elif isinstance(base, ast.Subscript):
+                    # Generic: Base[T] → unwrap to Base
+                    inner = base.value
+                    if isinstance(inner, ast.Name):
+                        base_names.append(inner.id)
+                    elif isinstance(inner, ast.Attribute):
+                        base_names.append(inner.attr)
             bases[node.name] = base_names
     return methods, bases
 
@@ -192,6 +199,13 @@ def _extract_external_bases(
             elif isinstance(base, ast.Attribute):
                 # e.g., textual.app.App — take last segment
                 base_name = base.attr
+            elif isinstance(base, ast.Subscript):
+                # Generic: ModalScreen[bool] → unwrap to ModalScreen
+                inner = base.value
+                if isinstance(inner, ast.Name):
+                    base_name = inner.id
+                elif isinstance(inner, ast.Attribute):
+                    base_name = inner.attr
             if not base_name:
                 continue
             # External if: imported via from/import, OR not defined in this file
