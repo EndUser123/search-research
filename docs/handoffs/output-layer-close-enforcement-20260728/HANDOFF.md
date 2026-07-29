@@ -145,6 +145,8 @@ The script:
 - **Blocks:** the E7 scanner-bypass failure will recur until this is built
 - **Non-blocking to:** close-authority INTG-1/INTG-2 fixes (separate concern — receipt forgery vs output enforcement)
 
+> **Note:** all file paths in this handoff (`~/.grok/hooks/scripts/close_enforcement_gate.py`, `~/.grok/hooks/close-enforcement.json`) are PROPOSED paths from the design. The files do not exist yet — they are created in v5 plan Workstream B.
+
 ## Suggested next
 
 1. Prototype the gate script (`close_enforcement_gate.py`)

@@ -125,7 +125,7 @@ Default: spec-first. Promote to spec-anchored only for architectural decisions t
 
 Use Mode 2 with:
 - **Training sessions** (motivated the improvements): session 019fa5a1 (over-engineering), the wiki concept's 6 improvements
-- **Held-out sessions** (where plan-writer worked): **24 plan files exist in `P:/docs/superpowers/plans/`** — 23 pre-consolidation plans inherited the same planning logic (triggers, completeness checks, TDD format) from `/plan` + `writing-plans`. These are valid held-out data even though they predate the skill consolidation. A 30-line Python scan (`P:/tmp/plan_analysis.py`) already confirmed: zero AGENTS.md violations, zero destructive git proposals, zero full-file write proposals across all 24. See [[held-out-data-already-on-disk-count-artifacts-not-invocations]].
+- **Held-out sessions** (where plan-writer worked): **24 plan files exist in `P:/docs/superpowers/plans/`** — 23 pre-consolidation plans inherited the same planning logic (triggers, completeness checks, TDD format) from `/plan` + `writing-plans`. These are valid held-out data even though they predate the skill consolidation. A Python scan confirmed: zero AGENTS.md violations, zero destructive git proposals, zero full-file write proposals across all 24.
 - Apply each improvement with held-out validation per Mode 2 Step 4
 
 ## Dependencies
@@ -160,7 +160,7 @@ This handoff would be wrong if the 4 improvements don't survive held-out validat
 
 3. **Imp 4 (plan length budget): REJECTED by operator.** "I really don't care about plan length, it should be as long as it needs to be. Using an arbitrary plan length looks like a footgun." No length budget — arbitrary thresholds become targets (Goodhart's law).
 
-4. **Imp 5 (AGENTS.md consistency check): DEFERRED.** Operator agreed to defer. Zero AGENTS.md violations across 24 plans on disk (scanned via `P:/tmp/plan_analysis.py`). Runtime hooks already enforce these rules at execution time. If needed later, a code hook (PostToolUse scanning plan markdown for forbidden git patterns) is the reliable implementation — ~30 lines, deterministic, not subject to the maker-checker blind spot.
+4. **Imp 5 (AGENTS.md consistency check): DEFERRED.** Operator agreed to defer. Zero AGENTS.md violations across 24 plans on disk. Runtime hooks already enforce these rules at execution time. If needed later, a code hook (PostToolUse scanning plan markdown for forbidden git patterns) is the reliable implementation — ~30 lines, deterministic, not subject to the maker-checker blind spot.
 
 5. **Imp 6 (traceability matrix): DEFERRED.** No evidence of the failure mode occurring locally.
 
