@@ -201,10 +201,37 @@ scanning the file_edits bucket for .py target_paths.
 a whitelist. Policy VULT-01 (2026-07-28): `/check` surfaces filtered findings
 for verifiers; pre-push may later fail-closed with a project whitelist.
 
-**What it does:**
+**What it does — Python script (replaces inline PowerShell):**
+
+```bash
+# Extract scope_files from evidence packet (or git fallback), then run the
+# Python deterministic checker which handles all 9 layers in one call:
+python "P:/.grok/skills/check/__lib/run_deterministic_checks.py" \
+    --py-files <changed_file1.py> <changed_file2.py> \
+    --run-dir "$runDir" \
+    --scope-files <all_scope_files_including_non_py> \
+    --output "$runDir/packets/deterministic-check.json"
+```
+
+The Python script (`run_deterministic_checks.py`) runs all 9 layers in a single
+call, soft-skipping any tool that isn't installed. It handles:
+- Tool availability checks (`shutil.which`)
+- Cross-workspace paths (any drive)
+- pip-audit conditional on requirements file in scope
+- diff-cover conditional on coverage.xml in the run dir
+- Merged JSON output with all layers in one packet
+
+**Why Python, not PowerShell (decision 2026-07-29):** the previous inline
+PowerShell block was 100+ lines of fragile quoting (`@pyFiles` splatting,
+JSON pipe parsing, backtick line continuations). Python is testable
+(pytest), portable, and eliminates the Class C (shell quoting) failure mode.
+The script is at `P:/.grok/skills/check/__lib/run_deterministic_checks.py`.
+
+<details>
+<summary>Previous PowerShell block (archived — replaced by Python script)</summary>
 
 ```powershell
-# Extract scope_files from evidence packet (or git fallback)
+# ARCHIVED: replaced by run_deterministic_checks.py on 2026-07-29
 $scopeFiles = @()
 if ($packet -and $packet.scope_files) {
     # scope_files from transcript preprocessor — includes ALL edited files
@@ -303,6 +330,8 @@ if ($pyFiles) {
     if ($vFind -gt 0) { Write-Host "Deterministic pre-check: vulture advisory findings=$vFind (does not block CHECK alone)" }
 }
 ```
+
+</details>
 
 **Short-circuit rule:** if the deterministic pre-check finds **ruff E/F, pyright errors, pylint errors, or bandit MEDIUM/HIGH findings**, the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
 
