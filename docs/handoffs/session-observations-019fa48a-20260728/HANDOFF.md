@@ -67,6 +67,21 @@ The fresh-subagent `/tp review agents.md` found 8 specific content losses that t
 - Commit `8d22fdc` — refactor verification gap wiki concept
 - `behavioral_check.py:87` — UNNECESSARY_CONFIRMATION pattern narrowed
 
+## Post-AAR update (Revision 2 — 2026-07-29T02:30:00Z)
+
+**Trigger:** `/aar` completed + `/wiki` captured cargo-cult pattern.
+
+**What changed:**
+- AAR completed inline. Key findings: surface-property verification pattern (3 instances), compat-layer cargo-cult (operator correction), receipt-loop fix as highest-value success.
+- AAR OPP-2 (ACT_NOW): hook integration test protocol — add `echo '{"lastAssistantMessage":"test"}' | python hook.py` to deployment checklist.
+- Wiki concept `compat-layer-cargo-cult-porting-without-evaluating-necessity` written from AAR cluster analysis.
+
+**AAR operator signals:**
+- pushback_count: 3 (within baseline)
+- trust_loss_markers: 0
+- deferred_persistence_count: 0
+- No double-loop corrections beyond the cargo-cult pattern already documented
+
 ## Next steps for a fresh session
 
 1. **Commit `~/.grok` changes** — 39 uncommitted files including refactored AGENTS.md, behavioral hooks, config changes, quality_gate.py fix
