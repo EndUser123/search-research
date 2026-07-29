@@ -1,5 +1,11 @@
 # Vault Log
 
+## Cross-session transcript mining survey
+Source: session-019fa276
+Agent: grok
+Notes: /www research: surveyed agent-retro, recursive-improve, cass-memory, alpha-loop. Identified 3-layer architecture convergence and our missing pipeline (transcripts→obligations). Wiki concept written.
+Page: .data/wiki/concepts/cross-session-transcript-mining-continuous-improvement.md
+
 ## decision-transition-auditing-verdict-integrity-controls
 Source: session-2026-07-29 (external LLM review of /behave + /www research)
 Agent: grok
