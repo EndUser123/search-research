@@ -78,6 +78,60 @@ def scan_harvest_store():
     return items
 
 
+def scan_open_handoffs():
+    """Scan P:/docs/handoffs/ for OPEN handoffs with acceptance criteria.
+
+    Used by /tp opportunity scan gate: if a track already has an open handoff
+    with direction + acceptance criteria, it is EXECUTE_OR_DEFER, not RESEARCH.
+    """
+    handoffs_dir = Path("P:/docs/handoffs")
+    if not handoffs_dir.exists():
+        return []
+
+    results = []
+    for hf in handoffs_dir.rglob("HANDOFF.md"):
+        try:
+            text = hf.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        # Parse frontmatter status
+        status = "unknown"
+        if text.startswith("---"):
+            fm_end = text.find("---", 3)
+            if fm_end > 0:
+                fm = text[3:fm_end]
+                for line in fm.splitlines():
+                    if line.strip().startswith("status:"):
+                        status = line.split(":", 1)[1].strip().strip('"').strip("'")
+                        break
+
+        if status != "open":
+            continue
+
+        # Check for acceptance criteria section
+        has_criteria = any(
+            kw in text.lower()
+            for kw in ("## acceptance criteria", "## acceptance", "acceptance criteria")
+        )
+
+        # Extract title from first heading
+        title = hf.parent.name
+        for line in text.splitlines():
+            if line.startswith("# "):
+                title = line.lstrip("# ").strip()
+                break
+
+        results.append({
+            "path": str(hf.relative_to(Path("P:/"))),
+            "title": title[:120],
+            "has_acceptance_criteria": has_criteria,
+            "disposition_hint": "EXECUTE_OR_DEFER" if has_criteria else "RESEARCH",
+        })
+
+    return results
+
+
 def scan_untested_additions():
     """Check if recently-added SKILL.md features have been exercised."""
     # This is heuristic — check if recent git commits added SKILL.md text
@@ -106,6 +160,7 @@ def main():
     report = {
         "harvest_pending": scan_harvest_pending(),
         "harvest_open_items": scan_harvest_store(),
+        "open_handoffs": scan_open_handoffs(),
         "capability_gaps": scan_capability_gaps(),
         "recent_skill_changes": scan_untested_additions(),
     }
@@ -127,6 +182,22 @@ def main():
         for item in report["harvest_open_items"][:10]:
             print(f"  {item}")
         print()
+
+    if report["open_handoffs"]:
+        execute_ready = [h for h in report["open_handoffs"] if h["has_acceptance_criteria"]]
+        research_needed = [h for h in report["open_handoffs"] if not h["has_acceptance_criteria"]]
+        if execute_ready:
+            print(f"Execution-ready handoffs ({len(execute_ready)}) — EXECUTE_OR_DEFER, not RESEARCH:")
+            for h in execute_ready[:15]:
+                print(f"  [{h['disposition_hint']}] {h['title']}")
+                print(f"    → {h['path']}")
+            print()
+        if research_needed:
+            print(f"Open handoffs without acceptance criteria ({len(research_needed)}) — may need RESEARCH:")
+            for h in research_needed[:10]:
+                print(f"  [{h['disposition_hint']}] {h['title']}")
+                print(f"    → {h['path']}")
+            print()
 
     gaps = report["capability_gaps"]
     if gaps and gaps != "none detected" and isinstance(gaps, list):
