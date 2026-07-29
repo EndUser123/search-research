@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019fa48a-fb52-79a3-b8dc-d13c5da284d2
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-28T12:35:00Z
-status: open
+status: closed
 handoff_type: investigation
 accurate_as_of_head: LATEST
 ---
@@ -20,7 +20,13 @@ not research.
 
 ## Status
 
-OPEN — design clear, implementation not started.
+CLOSED — implemented this session (019fa276, 2026-07-29). Two pieces:
+
+1. `workspace_opportunity_scan.py` gained `scan_open_handoffs()` — scans `P:/docs/handoffs/` for OPEN handoffs, parses frontmatter status, checks for acceptance criteria sections, separates into `EXECUTE_OR_DEFER` vs `RESEARCH`. Commit `a63a785`.
+
+2. `/tp` SKILL.md `/tp explore` section gained "Opportunity scan gate" instruction. Commit `66f37fc`.
+
+Wiki concept `research-to-execution-ratio-self-reinforcing-pattern` updated with implementation receipt + amended falsifier. Commit `0232601`.
 
 ## Producing context
 

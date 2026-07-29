@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019fa48a-fb52-79a3-b8dc-d13c5da284d2
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-28T04:50:00Z
-status: open
+status: closed
 handoff_type: investigation
 accurate_as_of_head: c2bad77
 ---
@@ -21,7 +21,7 @@ a "user goal," producing false-positive uncovered candidates.
 
 ## Status
 
-OPEN — both bugs reproduced and diagnosed this session. Fixes are mechanical.
+CLOSED — both bugs fixed by sibling session (Claude Sonnet 4.6, commit `c1f29c1`, 2026-07-28). Verified this session by reading the fixed code: `scan_retrospective()` globs both `_run.json` and `completion_receipt.json` (close_accounting.py lines 1352-1355); `continuation_coverage.py` strips `<user_info>`, `<system-reminder>`, `<git_status>`, `<skill_information>` blocks before parsing goals (lines 448-461). 105/105 tests pass. Harvest item closed.
 
 ## Producing context
 
