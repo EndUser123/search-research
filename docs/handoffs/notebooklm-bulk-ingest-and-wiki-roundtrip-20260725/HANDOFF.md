@@ -124,7 +124,7 @@ The eight shipped items (Evidence §A) are done. The two partial items
 |---|---|---|
 | A1 | Dedup 4244→4143 watch-later videos | `C:/Users/brsth/Downloads/watch-later-1784999007767-deduped.json`; 101 removals (97 dead placeholders + 4 dupes) |
 | A2 | Cluster 4116 addable → 15 themed clusters | `C:/Users/brsth/Downloads/watch-later-1784999007767-deduped-clusters.json`; sizes 154–300, mean 274 |
-| A3 | 15 NotebookLM notebooks created + bulk-added | `P:/tmp/wl_notebooks_run.json`; all 15 with `status: ok`, source_counts: 295/294/299/191/299/154/227/296/297/296/300/299/299/291/279 = 4116 total |
+| A3 | 15 NotebookLM notebooks created + bulk-added | State file (deleted); all 15 with `status: ok`, source_counts: 295/294/299/191/299/154/227/296/297/296/300/299/299/291/279 = 4116 total |
 | A4 | 3 wiki concepts written, validated, indexed, logged | `P:/.data/wiki/concepts/notebooklm-cli-operational-gotchas.md`, `P:/.data/wiki/concepts/semantic-clustering-bounded-size.md`, `P:/.data/wiki/concepts/notebooklm-source-limits-free-vs-paid.md`; all pass `validate_wiki_entry.py`; all in qmd; all logged in `P:/.data/wiki/log.md` |
 | A5 | SCHEMA.md §13 principle #11 added | `P:/.data/wiki/SCHEMA.md:496`; principles #1–#10 intact (no regression) |
 | A6 | `~/.grok/tool-fallbacks.md` nlm recipes added | `~/.grok/tool-fallbacks.md:50-69`; "CLI auth + bulk recipes" section |
@@ -137,7 +137,7 @@ The eight shipped items (Evidence §A) are done. The two partial items
 | # | Item | Gap | Next step |
 |---|---|---|---|
 | B1 | `/nlm-to-wiki` v2 — scripts compile + 14 tests pass | Never run end-to-end against a real notebook. `nlm report create` → parse → write_pages flow not validated against live nlm output | Run `sync.py --notebook <id> --dry-run` against pilot notebook `23bf4931-...` to surface Report-format drift |
-| B2 | Pilot notebook (cluster_id 3) verification | Created + bulk-added successfully (source_count: 191 was confirmed live via `nlm notebook get` during the session), but `P:/tmp/wl_notebooks_run.json` shows `actual: null, status: pilot` — the state file was seeded before the verify step and never updated | One command: `nlm notebook get 23bf4931-d0cb-4550-9d11-f9b38843254a --json` confirms source_count, then patch the state file |
+| B2 | Pilot notebook (cluster_id 3) verification | Created + bulk-added successfully (source_count: 191 was confirmed live via `nlm notebook get` during the session), but state file showed `actual: null, status: pilot` — the state file was seeded before the verify step and never updated | One command: `nlm notebook get 23bf4931-d0cb-4550-9d11-f9b38843254a --json` confirms source_count, then patch the state file |
 
 ### C. Not started (deferred)
 
@@ -166,11 +166,11 @@ The eight shipped items (Evidence §A) are done. The two partial items
 - `P:/.data/wiki/SCHEMA.md` (§13 principle #11 added)
 
 ### Run artifacts (DELETED — superseded by skill scripts)
-- `P:/tmp/wl_notebooks_run.json` — DELETED. Notebook IDs + source_counts preserved in the table below and in the nlm-to-wiki-v3 handoff.
-- `P:/tmp/wl_notebooks_run.log` — DELETED.
-- `P:/tmp/wl_notebooks_driver.py` — DELETED. Superseded by nlm-bulk-ingest skill's `ingest.py`.
-- `P:/tmp/cluster_watchlater.py` — DELETED. Superseded by skill's `cluster.py`.
-- `P:/tmp/dedup_watchlater.py` — DELETED. Superseded by `normalize.py`.
+- wl_notebooks_run.json (DELETED) — Notebook IDs + source_counts preserved in the table below and in the nlm-to-wiki-v3 handoff.
+- wl_notebooks_run.log (DELETED) — run log.
+- wl_notebooks_driver.py (DELETED) — Superseded by nlm-bulk-ingest skill's ingest.py.
+- cluster_watchlater.py (DELETED) — Superseded by skill's cluster.py.
+- dedup_watchlater.py (DELETED) — Superseded by normalize.py.
 
 ### NotebookLM notebooks (15)
 All at `https://notebooklm.google.com/notebook/<id>`:
@@ -205,7 +205,7 @@ All at `https://notebooklm.google.com/notebook/<id>`:
 # Confirm all 15 notebooks still have expected source_counts
 python -c "
 import json, subprocess
-state = json.load(open(r'P:/tmp/wl_notebooks_run.json', encoding='utf-8'))
+state = json.load(open(r'<deleted-state-file-path>', encoding='utf-8'))
 for cid, rec in state['notebooks'].items():
     nb = rec['notebook_id']
     r = subprocess.run(['nlm','notebook','get',nb,'--profile','codex','--json'],

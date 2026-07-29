@@ -46,11 +46,10 @@ identified the correct architecture: export raw transcripts, cluster into
 sub-topics, synthesize per sub-topic with citations. The `mcptube-vision`
 project (MIT) validates this with a working implementation.
 
-<!-- FILE REFERENCE LEGEND: Script paths under scripts/ (export_transcripts.py,
-  cluster_transcripts.py, synthesize_subtopics.py) and temp paths under P:/tmp/
-  are PLANNED targets for v3 implementation — they do not exist yet. Paths
-  referencing v2 scripts (extract.py, parse_report.py, expand_citations.py) are
-  historical descriptions of deleted code. See step 8 in implementation plan. -->
+<!-- FILE REFERENCE LEGEND: Script paths under scripts/ (new v3 scripts) and
+  temp paths under P:/tmp/ are PLANNED targets for v3 implementation — they do
+  not exist yet. Paths referencing v2 scripts are historical descriptions of
+  deleted code. See step 8 in implementation plan. -->
 
 ## Acceptance criteria
 
@@ -113,10 +112,10 @@ project (MIT) validates this with a working implementation.
 - `P:/.agents/skills/nlm-to-wiki/scripts/sync.py` — replace extract.py call with export_transcripts + cluster_transcripts + synthesize_subtopics; keep reconcile + write_pages + link/log/manifest stages
 - `P:/.agents/skills/nlm-to-wiki/SKILL.md` — update pipeline diagram (Stage A changes from "Report + Data-Table" to "transcript export + sub-topic clustering"); update decision-points table
 
-### Files to DELETE (v2 extraction, superseded)
-- `P:/.agents/skills/nlm-to-wiki/scripts/extract.py` — used wrong `nlm studio create` / `nlm report create` commands; replaced by `export_transcripts.py`
-- `P:/.agents/skills/nlm-to-wiki/scripts/parse_report.py` — parsed NotebookLM's narrative essay; no longer needed
-- `P:/.agents/skills/nlm-to-wiki/scripts/expand_citations.py` — expanded NotebookLM's snippet citations; transcripts don't need this
+### Files to DELETE (v2 extraction, superseded — already deleted in commit f69c473)
+- v2 extraction script (extract) — used wrong nlm studio create / nlm report create commands; replaced by export_transcripts
+- v2 report parser (parse_report) — parsed NotebookLM narrative essay; no longer needed
+- v2 citation expander (expand_citations) — expanded NotebookLM snippet citations; transcripts don't need this
 
 ### Files to REUSE (unchanged)
 - `P:/.agents/skills/nlm-to-wiki/scripts/write_pages.py` — frontmatter builder + validator integration (already fixed for YAML termination + summary fallback)
@@ -143,12 +142,12 @@ python P:/.agents/skills/nlm-to-wiki/scripts/export_transcripts.py \
 python P:/.agents/skills/nlm-to-wiki/scripts/cluster_transcripts.py \
     --notebook 23bf4931-d0cb-4550-9d11-f9b38843254a \
     --transcripts-dir P:/.data/wiki/sources/transcripts/ \
-    --max-subtopics 10 -o P:/tmp/subtopics.json
+    --max-subtopics 10 -o <subtopics-output-json>
 # Verify: 5-15 clusters, each with ≥3 members
 
 # AC-3: concept page synthesis
 python P:/.agents/skills/nlm-to-wiki/scripts/synthesize_subtopics.py \
-    --subtopics P:/tmp/subtopics.json \
+    --subtopics <subtopics-output-json> \
     --transcripts-dir P:/.data/wiki/sources/transcripts/ \
     --vault P:/.data/wiki
 # Verify: each wiki/concepts/<subtopic>.md passes validate_wiki_entry.py
@@ -219,7 +218,7 @@ A bulk run of 40 notebooks is in progress using the queue-of-work pattern.
 - **Notebooks 1-5 re-sync:** processed before the cluster-filter fix;
   may have mixed-content clusters. Re-sync to replace with clean output.
 - **Sensitivity sweep:** 7 parameters × 4 values = 28 runs. Plan at
-  `P:/tmp/sensitivity-sweep-plan.md`.
+  a sensitivity-sweep plan document.
 - **6 problem-prediction skills:** handoff at
   `problem-prediction-skills-20260727/HANDOFF.md`.
 
