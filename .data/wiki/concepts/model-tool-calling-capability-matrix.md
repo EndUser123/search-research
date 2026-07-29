@@ -74,6 +74,26 @@ Most models in the host pool support agentic tool calling. The exceptions are **
 **Do:** use `glm-5-2`, `go-mimo-v2-5`, or parent-inherited for tool-grounded / multi-file subagent work.  
 **Don't:** treat a green trivial READY probe as proof Nemotron is pool-safe.
 
+## Nemotron routing preference (operator directive 2026-07-27)
+
+**Policy:** Nemotron-via-OpenRouter (`or-nemotron-ultra-free`) is **last resort / explicit-only**. The operator prefers opencode and PI CLI dispatch for Nemotron work, with OpenRouter used only when required or explicitly requested.
+
+**Routing order for Nemotron work:**
+
+| Priority | Transport | Command | Status |
+|---|---|---|---|
+| 1 (preferred) | **opencode CLI** | `opencode run -m opencode/nemotron-3-ultra-free "<prompt>"` | ✅ verified 2026-07-26 (88.99s, 6 tool calls, exit 0) |
+| 2 (alternative) | **PI CLI** | `pi -p --provider nvidia --model nvidia/nemotron-3-ultra-550b-a55b --thinking off --no-session "<prompt>" --mode json` | ✅ verified 2026-07-26 (70.44s, 3 tool calls, exit 0) |
+| 3 (last resort) | **OpenRouter via spawn** | `spawn_subagent(model="or-nemotron-ultra-free", ...)` | ✅ works (19.22s, 2026-07-27) but **operator restricts to explicit approval** |
+| 4 (never for spawn) | NVIDIA direct via spawn | `spawn_subagent(model="nvidia-nemotron-3-ultra", ...)` | ❌ broken (serde `null, expected u32`) |
+| 4 (never for spawn) | OpenCode Zen via spawn | `spawn_subagent(model="zen-nemotron-3-ultra-free", ...)` | ❌ broken (serde `missing field id`) |
+
+**Implication for skill pools:** the `/tp` auto-pool should NOT lead with `or-nemotron-ultra-free`. For auto-pool spawns (where we don't care which model, just need a fresh lens), use non-Nemotron spawn-compatible models (`glm-5-2`, `go-mimo-v2-5`, parent-inherited). For Nemotron-specific work (where the Nvidia lens is desired), use opencode/PI CLI dispatch, not spawn.
+
+**Why this preference:** OpenRouter is an intermediary that adds a dependency layer. opencode and PI both bypass Grok Build's serde bug by using their own transports, and both reach Nvidia's inference directly. The operator values direct provider relationships over intermediary proxies.
+
+**Falsifier:** this preference is wrong if (a) opencode/PI CLI reliability degrades below OpenRouter's, OR (b) a Grok Build update fixes the serde bug and `nvidia-nemotron-3-ultra` via spawn becomes the simplest path. In case (b), the routing preference may be revisited but the operator's general aversion to intermediaries still applies.
+
 ## Why this concept exists
 
 Session 2026-07-22 exposed a routing gap: `spawn_subagent(model=nvidia-diffusiongemma-26b)` returned empty content for tool-use tasks, but direct-API calls to the same model worked fine. The model was labeled "broken for agent use," but the real story is narrower and more useful: **DiffusionGemma supports function calling in principle (Google ships it for the Gemma 4 family), but its thinking-mode output format breaks the agent frameworks tool-call parser.** Routing the model to no-tool tasks avoids the conflict; using agent-compatible models for tool-grounded work sidesteps it.

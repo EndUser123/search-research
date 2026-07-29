@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-28
 cognitive_load: 3
-summary: Auto-generated index of 987 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 988 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-28 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 987 across 21 scopes.
+**Total skills:** 988 across 21 scopes.
 
 ## How to use this catalog
 
@@ -140,13 +140,14 @@ Auto-generated on 2026-07-28 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | `P:/.grok/skills/check/SKILL.md` |
 | **red-team** | ✓ | — | Multi-agent adversarial review of any proposal, solution, design, or implementation before commitment. Planner → special... | `P:/.grok/skills/red-team/SKILL.md` |
 
-## grok-agents (10 skills)
+## grok-agents (11 skills)
 
 | Skill | G | C | Description (truncated) | Path |
 |---|---|---|---|---|
 | **avant-garde-ui** | ✓ | — | Senior frontend architect and avant-garde UI designer persona for design-intent work. Use when the user wants to create ... | `P:/.agents/skills/avant-garde-ui/SKILL.md` |
 | **config-audit** | ✓ | — | Audit and optimize Grok Build configuration (AGENTS.md, config.toml, plugin settings, MCP servers) against best practice... | `P:/.agents/skills/config-audit/SKILL.md` |
 | **contract-status** | ✓ | — | Show contract system health dashboard (writer + Stop stats) | `P:/.agents/skills/contract-status/SKILL.md` |
+| **email-skill** | ✓ | — | Stateless CLI for cross-agent email access. Wraps himalaya with TTL cache, scoring, and deferral. | `P:/.agents/skills/email-skill/SKILL.md` |
 | **nlm-bulk-ingest** | ✓ | — | Cluster a large list of URLs (YouTube videos, web pages, PDFs) into themed NotebookLM notebooks under the per-notebook s... | `P:/.agents/skills/nlm-bulk-ingest/SKILL.md` |
 | **nlm-to-wiki** | ✓ | — | Sync NotebookLM notebook content into the wiki vault as SCHEMA-compliant concept pages with full 4-hop provenance (conce... | `P:/.agents/skills/nlm-to-wiki/SKILL.md` |
 | **notebooklm** | ✓ | — | Complete API for Google NotebookLM - full programmatic access including features not in the web UI. Create notebooks, ad... | `P:/.agents/skills/notebooklm/SKILL.md` |

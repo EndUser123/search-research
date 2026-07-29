@@ -1,5 +1,29 @@
 # Vault Log
 
+## -e
+Source: compat-layer-cargo-cult
+Agent: -t
+Notes: wiki
+Page: -d
+
+## -e
+Source: refactor-verification-gap
+Agent: -t
+Notes: wiki
+Page: -d
+
+## textual-settings-persistence-lifecycle
+Source: session-019fa94d-/wiki
+Agent: grok
+Notes: X-button settings trap: save on Input.Changed not on_unmount; strip quotes from pasted paths
+Page: concepts/textual-settings-persistence-lifecycle.md
+
+## -e
+Source: close-scanner-false-positive
+Agent: -t
+Notes: wiki
+Page: -d
+
 ## Capability node architecture
 Source: session-2026-07-28
 Agent: grok
