@@ -1,5 +1,17 @@
 # Vault Log
 
+## --concept
+Source: wire-before-build
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
+Source: exploration-vs-execution-intent-signals
+Agent: --action
+Notes: created
+Page: --source
+
 ## Model role assignment public vs custom benchmarks
 Source: session-2026-07-29
 Agent: grok
