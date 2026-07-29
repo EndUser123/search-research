@@ -120,6 +120,36 @@ the relevant prior work — which in turn leads to re-researching what's already
 documented. The substrate-accumulation loop doesn't just waste time; it
 actively degrades the system's ability to find its own knowledge.
 
+## Structural fix — implemented (2026-07-29)
+
+The structural gate described above was implemented in session 019fa276:
+
+1. **`workspace_opportunity_scan.py`** gained `scan_open_handoffs()` — scans
+   `P:/docs/handoffs/` for OPEN handoffs, parses frontmatter status, checks
+   for acceptance criteria sections, and separates results into two groups:
+   `EXECUTE_OR_DEFER` (has acceptance criteria) vs `RESEARCH` (no criteria).
+   Receipt: `P:/.agents/scripts/workspace_opportunity_scan.py` lines 80-130,
+   commit `a63a785`.
+
+2. **`/tp` SKILL.md** `/tp explore` section gained the "Opportunity scan gate"
+   instruction: before tagging any opportunity as `RESEARCH`, cross-reference
+   against the open handoffs from the scan output. Tracks with acceptance
+   criteria get `EXECUTE_OR_DEFER` and are NOT routed to `/www`. Receipt:
+   `C:/Users/brsth/.grok/skills/tp/SKILL.md` lines 530-548, commit `66f37fc`.
+
+The gate has an explicit exception: if context has materially changed since
+the handoff was written, the track can be tagged `RESEARCH — context shift`
+with a one-sentence justification. This prevents the gate from blocking
+legitimate re-investigation while making the override auditable.
+
+**What this does NOT close:** the behavioral layer. The gate is a prompt
+instruction in SKILL.md, not a mechanical hook. It fires when /tp explore
+runs and the agent follows the instruction, but it does not fire under
+closure pressure the way a hook would. A future session may build a
+mechanical equivalent (e.g., a /tp pre-flight script that blocks RESEARCH
+tags on tracks matching open handoffs). The prompt layer is the first
+structural step; the mechanical layer is the second.
+
 ## Falsifier
 
 This pattern is wrong if:
@@ -128,6 +158,11 @@ This pattern is wrong if:
   ones) → the research is genuinely productive, not self-reinforcing
 - The operator never expresses confusion after receiving research output →
   the detection signal doesn't fire because it doesn't need to
+- **The structural gate (2026-07-29) prevents the pattern from recurring** →
+  if future /tp explore runs correctly separate EXECUTE_OR_DEFER from
+  RESEARCH, the gate worked. If /tp explore still routes execution-ready
+  tracks to /www, the prompt-layer gate was insufficient and the mechanical
+  layer is needed.
 
 ## Receipts
 

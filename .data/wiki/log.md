@@ -1,5 +1,11 @@
 # Vault Log
 
+## Research-to-execution-ratio structural fix implemented
+Source: session-019fa276
+Agent: grok
+Notes: Updated concept with implementation receipt: workspace_opportunity_scan.py scan_open_handoffs + /tp explore opportunity scan gate
+Page: .data/wiki/concepts/research-to-execution-ratio-self-reinforcing-pattern.md
+
 ## --concept
 Source: session-start-hooks-cannot-inject-visible-context-grok-build
 Agent: --action
