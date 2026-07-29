@@ -1,0 +1,98 @@
+---
+title: "Research-then-execute-all session pattern: the highest-quality arc"
+created: 2026-07-29
+source: session-019fa94d (operator-identified pattern after /tp session review)
+sources:
+  - internal: session transcript 019fa94d
+tags: [session-pattern, workflow, research, execution, www, go, tiered-recommendations]
+host: both
+agent: grok
+verification: observed
+cognitive_load: 1
+summary: >
+  The session pattern that produces the best outcomes: /www (research) →
+  tiered recommendations → operator says "do all" → /go (execute all tiers)
+  → /check (verify). The research maps the landscape before writing code;
+  tiering separates high-ROI from low-ROI; execute-all avoids one-at-a-time
+  confirmation fatigue; verify closes the loop.
+relations:
+  - target: wiki/concepts/sdlc-proactive-prevention-techniques-2026.md
+    type: produced-by
+  - target: wiki/concepts/shell-to-python-orchestration-threshold.md
+    type: produced-by
+---
+
+# Research-then-execute-all session pattern
+
+## What the pattern is
+
+```
+/www <topic>          → maps the full landscape, produces tiered findings
+                          (Tier 1: highest ROI, Tier 2: medium, Tier 3: application-level)
+Operator says "do all" → eliminates confirmation fatigue
+/go <execute all>     → implements every tier in priority order
+/check                → verifies against the new pipeline (pipeline eats its own dog food)
+```
+
+## Why it works
+
+1. **Research before implementation** prevents the #1 agent failure mode:
+   inventing a solution that already exists in the wiki/skills.
+
+2. **Tiering** separates high-ROI from low-ROI so the operator can say
+   "do all" without reading each item individually. Without tiering, the
+   operator must evaluate N items one at a time.
+
+3. **Execute-all** eliminates the one-at-a-time confirmation loop where
+   the operator says "yes" 7 times. One "0" or "do them all" and the
+   agent executes in priority order.
+
+4. **Verify** closes the loop — the pipeline that was just built verifies
+   the code that was just written.
+
+## When this pattern applies
+
+- Any multi-item improvement where the agent could propose tiered options
+- Skills/pipeline enhancement work (not single-bug fixes)
+- Sessions that start with `/www` or `/tp do?` producing actionable lists
+
+## When it doesn't apply
+
+- Single bug fix (just fix it)
+- Vague exploratory question (needs `/tp` first, not `/www`)
+- Architecture decision (needs `/design`, not tiered implementation)
+
+## Evidence from session 019fa94d
+
+- `/www` on "what else do people do in their SDLC" produced 6 tiered recommendations
+- Operator said "0, please do port /trace" → I did it
+- Operator said "/go please do all recommendations" → I did all 6 + application-level
+- Operator said "0" on the /tp actionable recommendations → I fixed the ruff issues, captured wiki, updated handoffs
+
+The pattern produced the highest-quality output of the session: 9-layer
+deterministic pipeline, 4 skills updated, 2 wiki concepts, 1 AGENTS.md rule,
+1 Python orchestration script, 1 application-level improvement — all from a
+single `/www` → `/go` arc.
+
+## How to trigger it deliberately
+
+When the operator asks an open-ended improvement question ("what should we
+do?", "what else?", "what can we improve?"), the agent should:
+
+1. Run `/www` or `/tp do?` to map the landscape
+2. Produce tiered recommendations (Tier 1: now, Tier 2: next, Tier 3: later)
+3. End with a `0 - Proceed with All` option
+4. Execute all tiers in priority order when the operator says "0" or "do all"
+
+## Falsifier
+
+This pattern is wrong if:
+- Tiering adds overhead without value (for ≤3 items, tiering is unnecessary)
+- Execute-all causes the agent to rush low-tier items (mitigated by: each tier is independent)
+- The research phase is skipped (the pattern collapses to "do everything immediately" without the landscape map)
+
+## Related
+
+- [[sdlc-proactive-prevention-techniques-2026]] — produced by this pattern
+- [[shell-to-python-orchestration-threshold]] — produced by this pattern
+- [[adaptive-orchestration-task-shape-classification]] — the /go classifier that auto-strips ceremony for well-specified tasks

@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --concept
+Source: shell-to-python-orchestration-threshold
+Agent: --title
+Notes: Shell-to-Python orchestration threshold
+Page: --tags
+
+## --concept
 Source: fix-introduces-regression-by-trading-properties
 Agent: --action
 Notes: created
@@ -7617,3 +7623,4 @@ Agent: grok
   - Source: crawl-ingest (ingested)
 130ee804ff3c1d91e39ed68ccb29efafcd72b9f60ba6e859c9c992cf
   - Source: crawl-ingest (ingested)
+d)
