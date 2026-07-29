@@ -6,7 +6,7 @@ skill_name: perf
 source_path: C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/perf/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: perf

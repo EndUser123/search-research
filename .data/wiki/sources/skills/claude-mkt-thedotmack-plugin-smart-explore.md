@@ -6,7 +6,7 @@ skill_name: smart-explore
 source_path: C:/Users/brsth/.claude/plugins/marketplaces/thedotmack/plugin/skills/smart-explore/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: smart-explore

@@ -5,7 +5,7 @@ skill_name: code-review
 source_path: C:/Users/brsth/.grok/bundled/skills/code-review/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: code-review

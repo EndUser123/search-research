@@ -6,7 +6,7 @@ skill_name: command-development
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/b5f93a18bae8/skills/command-development/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: command-development

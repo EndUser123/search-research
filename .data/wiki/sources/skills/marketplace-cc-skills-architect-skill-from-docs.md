@@ -6,7 +6,7 @@ skill_name: skill-from-docs
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-architect/skills/skill-from-docs/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: skill-from-docs

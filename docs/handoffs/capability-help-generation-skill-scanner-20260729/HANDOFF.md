@@ -82,6 +82,13 @@ Two scripts, pure code + free model:
 
 2. **Direct API, not spawn_subagent** — per `[[context-firewall-architecture]]`, mistral fails via spawn_subagent (422) but works via direct HTTP API. The script IS the firewall.
 
-3. **No persistence of LLM classification results** — the pipeline re-runs in ~20s on demand. Saving to P:/tmp is pointless (gitignored). Saving elsewhere creates stale files. The scan+classify is cheap enough to run live each time.
+3. **LLM classification results persisted durably** — saved to `P:/.data/wiki/capabilities/external_skill_domains.json` (git-tracked via `git add -f`). Initial instinct was to save to P:/tmp (operator caught: "you'll just delete them"), then I overreacted by dropping persistence entirely (operator caught again: "are you throwing classifications away?"). Final decision: the classifications cost API calls to reproduce, so they're reference data, not throwaway. Wiki concept: `[[persistence-location-decision-rule]]`. The classify script has `--output` flag for regeneration.
 
 4. **Shared key loader** — extracted `load_api_key.py` as the third script (after dgemma_read.py and benchmark scripts) to use the direct-API pattern. Prevents gitleaks blocks and centralizes key management.
+
+## Revision 1 (2026-07-29, post-/tp-do)
+
+- Updated decision 3: persistence-location corrected from "no persistence" to "durable JSON in capabilities/"
+- Added `--output` flag to classify_skills_llm.py
+- Wiki concept `persistence-location-decision-rule.md` written to capture the decision rule
+- Wiki concept `stop-hook-verification-receipt-capability-hierarchy.md` already written earlier this session

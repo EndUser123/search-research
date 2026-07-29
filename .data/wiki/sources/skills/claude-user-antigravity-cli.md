@@ -5,7 +5,7 @@ skill_name: antigravity-cli
 source_path: C:/Users/brsth/.claude/skills/antigravity-cli/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: antigravity-cli

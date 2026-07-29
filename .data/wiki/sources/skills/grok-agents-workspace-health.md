@@ -5,7 +5,7 @@ skill_name: workspace-health
 source_path: P:/.agents/skills/workspace-health/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: workspace-health

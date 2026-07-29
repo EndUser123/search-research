@@ -6,7 +6,7 @@ skill_name: usage-query-skill
 source_path: C:/Users/brsth/.claude/plugins/cache/local/glm-plan-usage/0.1.0/skills/usage-query-skill/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: usage-query-skill

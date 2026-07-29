@@ -5,7 +5,7 @@ skill_name: resume-codex
 source_path: C:/Users/brsth/.grok/bundled/skills/resume-codex/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: resume-codex

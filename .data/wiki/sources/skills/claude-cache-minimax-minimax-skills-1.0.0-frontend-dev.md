@@ -6,7 +6,7 @@ skill_name: frontend-dev
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/skills/frontend-dev/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: frontend-dev

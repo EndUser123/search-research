@@ -6,7 +6,7 @@ skill_name: ppt-editing-skill
 source_path: C:/Users/brsth/.claude/plugins/cache/minimax-skills/minimax-skills/1.0.0/plugins/pptx-plugin/skills/ppt-editing-skill/SKILL.md
 grok_enabled: n/a
 claude_enabled: false
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: ppt-editing-skill

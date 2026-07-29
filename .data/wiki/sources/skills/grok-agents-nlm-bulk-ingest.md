@@ -5,7 +5,7 @@ skill_name: nlm-bulk-ingest
 source_path: P:/.agents/skills/nlm-bulk-ingest/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: nlm-bulk-ingest

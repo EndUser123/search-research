@@ -1,5 +1,11 @@
 # Vault Log
 
+## persistence-location-decision-rule
+Source: session-2026-07-29 (operator caught 2 persistence errors)
+Agent: grok
+Notes: If output costs API calls/time to reproduce, persist durably — never P:/tmp
+Page: P:/.data/wiki/concepts/persistence-location-decision-rule.md
+
 ## -e
 Source: compat-layer-cargo-cult
 Agent: -t

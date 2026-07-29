@@ -6,7 +6,7 @@ skill_name: find
 source_path: P:/packages/.claude-marketplace/plugins/search-research/skills/find/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: find

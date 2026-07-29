@@ -6,7 +6,7 @@ skill_name: brainstorming
 source_path: C:/Users/brsth/.grok/installed-plugins/superpowers-21e2a56d/skills/brainstorming/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: brainstorming

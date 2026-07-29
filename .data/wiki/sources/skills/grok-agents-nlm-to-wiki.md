@@ -5,7 +5,7 @@ skill_name: nlm-to-wiki
 source_path: P:/.agents/skills/nlm-to-wiki/SKILL.md
 grok_enabled: true
 claude_enabled: n/a
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: nlm-to-wiki

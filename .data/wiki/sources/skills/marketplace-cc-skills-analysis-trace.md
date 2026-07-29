@@ -6,7 +6,7 @@ skill_name: trace
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-analysis/skills/trace/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: trace

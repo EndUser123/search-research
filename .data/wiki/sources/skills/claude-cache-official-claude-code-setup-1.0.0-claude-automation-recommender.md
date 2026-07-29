@@ -6,7 +6,7 @@ skill_name: claude-automation-recommender
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/claude-code-setup/1.0.0/skills/claude-automation-recommender/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: claude-automation-recommender

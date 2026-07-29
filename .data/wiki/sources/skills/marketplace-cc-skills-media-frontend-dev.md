@@ -6,7 +6,7 @@ skill_name: frontend-dev
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-media/skills/frontend-dev/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: frontend-dev

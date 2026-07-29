@@ -6,7 +6,7 @@ skill_name: plugin-creator
 source_path: C:/Users/brsth/.codex/skills/.system/plugin-creator/SKILL.md
 grok_enabled: n/a
 claude_enabled: n/a
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: plugin-creator

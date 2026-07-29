@@ -6,7 +6,7 @@ skill_name: web
 source_path: C:/Users/brsth/.claude/plugins/cache/local/search-research/0.1.123/skills/web/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: web

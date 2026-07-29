@@ -6,7 +6,7 @@ skill_name: plugin-structure
 source_path: C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/plugin-dev/41fc4f13c253/skills/plugin-structure/SKILL.md
 grok_enabled: n/a
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: plugin-structure

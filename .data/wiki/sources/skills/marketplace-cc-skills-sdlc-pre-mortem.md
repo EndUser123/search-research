@@ -6,7 +6,7 @@ skill_name: pre-mortem
 source_path: P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/pre-mortem/.codex/SKILL.md
 grok_enabled: false
 claude_enabled: true
-indexed_date: 2026-07-28
+indexed_date: 2026-07-29
 ---
 
 # Skill: pre-mortem
