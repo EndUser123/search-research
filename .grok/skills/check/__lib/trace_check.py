@@ -115,6 +115,27 @@ def extract_self_calls(source: str) -> list[dict[str, Any]]:
     return calls
 
 
+def _has_external_base(
+    cls: str,
+    methods: dict[str, list[str]],
+    bases: dict[str, list[str]],
+    seen: set[str] | None = None,
+) -> bool:
+    """Check if a class (or any of its same-file ancestors) has
+    a base class defined in another module that we can't resolve."""
+    if seen is None:
+        seen = set()
+    if cls in seen:
+        return False
+    seen.add(cls)
+    for base in bases.get(cls, []):
+        if base not in methods:
+            return True
+        if _has_external_base(base, methods, bases, seen):
+            return True
+    return False
+
+
 def check_file(path: str) -> list[dict[str, Any]]:
     """Check a single Python file for called-but-undefined self.* methods.
 
@@ -154,14 +175,30 @@ def check_file(path: str) -> list[dict[str, Any]]:
         if cls in class_methods:
             available = _resolve_methods(cls, class_methods, class_bases)
             if method not in available:
+                # Check if any base class is external (not in this file)
+                has_external_base = _has_external_base(
+                    cls, class_methods, class_bases
+                )
+                confidence = "low" if has_external_base else "high"
+                policy = (
+                    "advisory" if has_external_base
+                    else "deterministic_failures"
+                )
                 findings.append({
                     "file": path,
                     "line": call["line"],
                     "method": method,
                     "class": cls,
+                    "confidence": confidence,
+                    "policy": policy,
                     "issue": (
                         f"self.{method}() called at line "
                         f"{call['line']} but not defined on class {cls}"
+                        + (
+                            " (class has external base classes "
+                            "— may be inherited, cannot resolve statically)"
+                            if has_external_base else ""
+                        )
                     ),
                 })
         elif cls == "<module>":
@@ -200,12 +237,17 @@ def main(argv: list[str] | None = None) -> int:
             findings = check_file(path)
             all_findings.extend(findings)
 
+    # Count by confidence for status output
+    high_conf = sum(1 for f in all_findings if f.get("confidence") == "high")
+    low_conf = sum(1 for f in all_findings if f.get("confidence") == "low")
+
     result = {
         "status": "ok",
         "findings": all_findings,
         "finding_count": len(all_findings),
+        "high_confidence_count": high_conf,
+        "low_confidence_count": low_conf,
         "files_checked": len(args.paths),
-        "policy": "deterministic_failures",
     }
 
     text = json.dumps(result, indent=2)

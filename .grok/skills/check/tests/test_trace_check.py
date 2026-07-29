@@ -139,3 +139,48 @@ class App:
 """, encoding="utf-8")
     code, stdout = _run(["--paths", str(f)])
     assert "SyntaxError" in stdout
+
+
+def test_external_inheritance_low_confidence(tmp_path):
+    """Missing method on a class with an external base should get
+    confidence=low and policy=advisory, not deterministic_failures."""
+    f = tmp_path / "external.py"
+    f.write_text("""
+from textual.app import App  # App is external
+
+class MyApp(App):  # external base
+    def run(self):
+        self._undefined()  # might be on App — can't resolve
+""", encoding="utf-8")
+    out = tmp_path / "result.json"
+    code, _ = _run(["--paths", str(f), "--output", str(out)])
+    result = json.loads(out.read_text(encoding="utf-8"))
+    assert result["finding_count"] == 1
+    finding = result["findings"][0]
+    assert finding["confidence"] == "low"
+    assert finding["policy"] == "advisory"
+    assert "external base" in finding["issue"]
+
+
+def test_same_file_inheritance_high_confidence(tmp_path):
+    """Missing method on a class with only same-file bases should
+    get confidence=high and policy=deterministic_failures."""
+    f = tmp_path / "internal.py"
+    f.write_text("""
+class Base:
+    def _exists(self):
+        pass
+
+class Child(Base):
+    def run(self):
+        self._exists()   # inherited from same-file Base — OK
+        self._missing()  # NOT on Base or Child — real bug
+""", encoding="utf-8")
+    out = tmp_path / "result.json"
+    code, _ = _run(["--paths", str(f), "--output", str(out)])
+    result = json.loads(out.read_text(encoding="utf-8"))
+    assert result["finding_count"] == 1
+    finding = result["findings"][0]
+    assert finding["confidence"] == "high"
+    assert finding["policy"] == "deterministic_failures"
+    assert "_missing" in finding["method"]
