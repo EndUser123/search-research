@@ -37,7 +37,9 @@ SCOPES = [
 ]
 
 # Patterns for edge extraction
-# delegates_to: /web, /wiki, /why, /tp, /aar, /go, /design, /handoff, etc.
+# delegates_to: "delegates to /web", "calls /wiki", "via /why", etc.
+# Requires explicit slash or delegation verb to reduce false positives
+# (bare words like "go", "check", "web" in prose are too noisy)
 SKILL_REF_PATTERN = re.compile(
     r'(?:delegates?\s+to|calls?|invokes?|via)\s+/?'
     r'(web|wiki|why|tp|aar|go|design|handoff|crawl4ai|firecrawl'
@@ -46,16 +48,14 @@ SKILL_REF_PATTERN = re.compile(
     r'|refine|red-team|notice|create-skill|packet|mmx|agy|codex'
     r'|debrief|maintain|wargame|skill-dev|skill-prune|model-benchmark'
     r'|recover|preflight|todo|tasks|imagine|help)'
-    r'|/?(web|wiki|why|tp|aar|go|design|handoff|crawl4ai'
-    r'|search-fleet|grok-parallel|grok-verify|grok-safe-git'
-    r'|grok-discovery|grok-route|check|close|review|plan-writer'
-    r'|refine|red-team|notice|create-skill|packet|mmx|agy|codex)'
-    r'(?:\s+skill|\(|\s)',
+    r'\b',
     re.IGNORECASE,
 )
 
 # Simpler, more reliable pattern: find /skill-name references
+# Negative lookbehind for / avoids matching paths like P:/.data/wiki/concepts/
 SLASH_SKILL_PATTERN = re.compile(
+    r'(?<![a-zA-Z0-9/])'  # not preceded by alphanum or slash (avoids path matches)
     r'/(web|wiki|why|tp|aar|go|design|handoff|crawl4ai'
     r'|search-fleet|grok-parallel|grok-verify|grok-safe-git'
     r'|grok-discovery|grok-route|check|close|review|plan-writer'

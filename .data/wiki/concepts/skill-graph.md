@@ -68,43 +68,39 @@ When a skill changes its interface or behavior, these callers are affected:
 
 | Target skill | Caller count | Called by |
 |-------------|-------------|-----------|
-| `aar` | 12 | `close`, `dream`, `handoff`, `notice`, `packet`, `plan-writer`, `red-team`, `skill-dev`, `tp`, `wargame`, `why`, `why-old` |
-| `agy` | 8 | `ai-cli`, `check`, `codex`, `mmx`, `search-fleet`, `tasks`, `tp`, `why` |
-| `check` | 150 | `aar`, `agy`, `ai-api`, `ai-cli`, `ai-models`, `ai-probe-benchmark`, `ai-probe-router`, `aid`, `ask`, `behave`, `bf`, `brainstorming`, `build`, `capture`, `changelog`, `chs`, `claude-audit`, `close`, `code`, `code-review`, `codebase-to-course`, `codex`, `concept-mapper`, `config-audit`, `constitutional-patterns`, `context7`, `crawl`, `crawl4ai`, `create-workflow`, `csf-nip-integration`, `debrief`, `design`, `discover`, `dispatching-parallel-agents`, `doc-compiler`, `docs`, `dream`, `epistemic-check`, `evolve`, `execute-plan`, `execution-clarity`, `find`, `finishing-a-development-branch`, `frontend-dev`, `fullstack-dev`, `game-animation-frames`, `game-character-consistency`, `git`, `gitingest`, `gitpack`, `gitready`, `go`, `google-ai-usage-monitor`, `grok-safe-git`, `grok-verify`, `handoff`, `help`, `imagine`, `implement`, `improve`, `init`, `intelligence-stream-analyze`, `keep`, `learn`, `lmc`, `main`, `maintain`, `minimax-music-gen`, `minimax-music-playlist`, `mm-quota`, `mmx`, `model-benchmark`, `nlm`, `nlm-bulk-ingest`, `nlm-to-wiki`, `note`, `notebooklm`, `notice`, `packet`, `pdf`, `perplexity-web-mcp`, `plan-writer`, `planning`, `plugin-installer`, `pptx`, `pr-babysit`, `pre-mortem`, `preflight`, `prime`, `probe`, `prompt-patterns`, `prospect`, `quota`, `rca`, `recap`, `recover`, `red-team`, `refactor`, `refine`, `reflect`, `retro`, `review`, `review_bundle`, `risks`, `rns`, `s`, `sequential-thinking`, `simplify-enhanced`, `skeptic`, `skill-audit`, `skill-dev`, `skill-from-docs`, `skill-similarity`, `skill-to-page`, `skill-write`, `slc`, `snapshot`, `solo-dev-authority`, `stale`, `subagent-driven-development`, `t`, `task`, `tasks`, `tdd`, `team`, `tilldone`, `tldr-code`, `tldr-overview`, `tldr-stats`, `todo`, `tp`, `trace`, `truth`, `using-git-worktrees`, `using-superpowers`, `usm`, `ut`, `ux`, `verification-before-completion`, `video-vision`, `wargame`, `web`, `why`, `why-old`, `wiki`, `workspace-health`, `www`, `yt-is`, `yt-nlm`, `yt-selenium` |
-| `close` | 27 | `aar`, `check`, `claude-audit`, `debrief`, `doc-compiler`, `dream`, `fullstack-dev`, `grok-safe-git`, `grok-verify`, `handoff`, `maintain`, `notice`, `planning`, `pptx`, `probe`, `red-team`, `refactor`, `review`, `skill-dev`, `skill-to-page`, `team`, `todo`, `tp`, `trace`, `writing-skills`, `www`, `yt-selenium` |
-| `codex` | 10 | `check`, `mmx`, `nlm-to-wiki`, `reason`, `resume-codex`, `review`, `tp`, `ut`, `why`, `workspace-health` |
-| `crawl4ai` | 2 | `crawl`, `www` |
+| `aar` | 12 | `close`, `dream`, `handoff`, `notice`, `packet`, `red-team`, `skill-dev`, `todo`, `tp`, `wargame`, `why`, `why-old` |
+| `agy` | 6 | `check`, `codex`, `mmx`, `search-fleet`, `tp`, `why` |
+| `check` | 15 | `aar`, `close`, `debrief`, `doc-compiler`, `dream`, `go`, `grok-verify`, `model-benchmark`, `refactor`, `refine`, `review`, `skill-to-page`, `todo`, `tp`, `www` |
+| `close` | 9 | `aar`, `check`, `dream`, `handoff`, `maintain`, `review`, `skill-dev`, `todo`, `tp` |
+| `codex` | 3 | `mmx`, `tp`, `why` |
+| `crawl4ai` | 1 | `www` |
 | `create-skill` | 1 | `skill-dev` |
-| `debrief` | 19 | `agy`, `behave`, `claude-audit`, `close`, `codex`, `dream`, `export-session`, `friction`, `go`, `handoff`, `improve`, `lmc`, `mlc`, `recap`, `red-team`, `retro`, `skill-audit`, `top-problems`, `tp` |
-| `design` | 65 | `aar`, `agy`, `ai-api`, `ask`, `avant-garde-ui`, `behave`, `bf`, `brainstorming`, `cc-model-router`, `check`, `claude-audit`, `close`, `code`, `code-review`, `codebase-to-course`, `codex`, `debrief`, `decision-tree`, `discover`, `doc-compiler`, `dream`, `evolve`, `execute-plan`, `frontend-dev`, `fullstack-dev`, `game-ui-icons`, `gitpack`, `go`, `grok-parallel`, `handoff`, `implement`, `improve`, `improve-codebase-architecture`, `maintain`, `mm-quota`, `mmx`, `nlm-bulk-ingest`, `notice`, `packet`, `plan-writer`, `planning`, `prompt_refiner`, `reason`, `recap`, `red-team`, `refactor`, `refine`, `review`, `review_bundle`, `risks`, `s`, `skill-audit`, `skill-dev`, `skill-to-page`, `skill-write`, `specify`, `tp`, `using-git-worktrees`, `vision-analysis`, `wargame`, `web`, `why`, `why-old`, `wiki`, `www` |
-| `go` | 59 | `aar`, `ai-api`, `avant-garde-ui`, `brainstorming`, `build`, `check`, `claude-audit`, `close`, `code`, `code-review`, `codebase-to-course`, `debrief`, `debt`, `design`, `doc-compiler`, `docs`, `dream`, `execute-plan`, `finishing-a-development-branch`, `fullstack-dev`, `gitingest`, `gitpack`, `google-ai-usage-monitor`, `grok-go`, `grok-parallel`, `grok-sdlc`, `handoff`, `implement`, `lmc`, `minimax-music-gen`, `minimax-music-playlist`, `mlc`, `model-benchmark`, `notice`, `plan-writer`, `planning`, `pr-babysit`, `prime`, `reason`, `recap`, `red-team`, `refactor`, `refine`, `research`, `review`, `rns`, `ship`, `skeptic`, `skill-to-page`, `skill-write`, `todo`, `tot`, `tp`, `using-git-worktrees`, `wargame`, `why`, `why-old`, `www`, `zoom-out` |
+| `debrief` | 18 | `agy`, `behave`, `claude-audit`, `close`, `codex`, `dream`, `export-session`, `friction`, `handoff`, `improve`, `lmc`, `mlc`, `recap`, `red-team`, `retro`, `skill-audit`, `top-problems`, `tp` |
+| `design` | 22 | `ask`, `close`, `code`, `discover`, `dream`, `evolve`, `execute-plan`, `go`, `handoff`, `plan-writer`, `planning`, `prompt_refiner`, `recap`, `refine`, `s`, `specify`, `tp`, `wargame`, `web`, `why`, `why-old`, `www` |
+| `go` | 23 | `aar`, `check`, `close`, `code`, `design`, `grok-go`, `grok-parallel`, `grok-sdlc`, `handoff`, `model-benchmark`, `notice`, `plan-writer`, `refactor`, `refine`, `research`, `review`, `rns`, `todo`, `tp`, `wargame`, `why`, `why-old`, `www` |
 | `grok-discovery` | 2 | `go`, `grok-parallel` |
 | `grok-parallel` | 2 | `go`, `notice` |
 | `grok-route` | 3 | `go`, `grok-parallel`, `grok-verify` |
 | `grok-safe-git` | 3 | `go`, `grok-parallel`, `grok-verify` |
-| `grok-verify` | 5 | `go`, `grok-parallel`, `refactor`, `skill-dev`, `tp` |
-| `handoff` | 37 | `aar`, `ask`, `behave`, `check`, `chs`, `close`, `code`, `debrief`, `design`, `dream`, `find`, `fullstack-dev`, `go`, `grok-route`, `grok-verify`, `improve`, `maintain`, `notice`, `packet`, `plan-writer`, `planning`, `prompt-patterns`, `prospect`, `recap`, `refactor`, `refine`, `review`, `rns`, `s`, `skill-dev`, `todo`, `tp`, `trace`, `wargame`, `why`, `workspace-health`, `writing-plans` |
-| `help` | 1 | `nlm-to-wiki` |
-| `mmx` | 11 | `design`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `minimax-music-playlist`, `model-benchmark`, `nlm-to-wiki`, `research`, `search-fleet`, `tp`, `web`, `why` |
+| `grok-verify` | 4 | `go`, `grok-parallel`, `skill-dev`, `tp` |
+| `handoff` | 12 | `close`, `design`, `dream`, `go`, `maintain`, `notice`, `packet`, `plan-writer`, `recap`, `refactor`, `refine`, `tp` |
+| `mmx` | 6 | `minimax-multimodal-toolkit`, `minimax-music-gen`, `nlm-to-wiki`, `tp`, `web`, `why` |
 | `model-benchmark` | 1 | `model-discover` |
-| `notice` | 8 | `check`, `close`, `design`, `dream`, `game-tilesets`, `skill-dev`, `skill-write`, `tp` |
-| `packet` | 13 | `aar`, `ai-api`, `ai-cli`, `check`, `close`, `code`, `design`, `go`, `improve`, `planning`, `preflight`, `review`, `why` |
-| `plan-writer` | 4 | `design`, `go`, `grok-parallel`, `refine` |
+| `notice` | 3 | `close`, `skill-dev`, `tp` |
+| `plan-writer` | 3 | `design`, `go`, `refine` |
 | `preflight` | 2 | `design`, `tp` |
 | `recover` | 5 | `config-audit`, `main`, `maintain`, `skill-prune`, `workspace-health` |
-| `red-team` | 20 | `aar`, `claude-audit`, `close`, `debrief`, `design`, `dream`, `gitpack`, `improve`, `notice`, `pre-mortem`, `preflight`, `retro`, `review`, `risks`, `skill-audit`, `skill-dev`, `tp`, `why`, `why-old`, `www` |
-| `refine` | 24 | `aar`, `brainstorming`, `debrief`, `design`, `dream`, `go`, `handoff`, `keep`, `mermaid-c4`, `minimax-music-gen`, `mlc`, `model-benchmark`, `note`, `plan-writer`, `probe`, `prompt_refiner`, `red-team`, `refactor`, `review`, `s`, `sequential-thinking`, `tp`, `wargame`, `www` |
-| `review` | 106 | `aar`, `agy`, `ai-api`, `ai-cli`, `ai-models`, `aid`, `bf`, `brainstorming`, `check`, `chs`, `claude-audit`, `close`, `code-review`, `codebase-to-course`, `codex`, `concept-mapper`, `constitutional-patterns`, `create-workflow`, `debrief`, `debt`, `decision-tree`, `design`, `discover`, `dispatching-parallel-agents`, `doc-compiler`, `dream`, `execute-plan`, `executing-plans`, `friction`, `fullstack-dev`, `git`, `gitready`, `go`, `google-ai-usage-monitor`, `grok-discovery`, `grok-parallel`, `grok-verify`, `handoff`, `imagine`, `implement`, `improve`, `init`, `intelligence-stream-analyze`, `keep`, `learn`, `main`, `main-review`, `marketplace-bridge`, `mermaid-c4`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `mlc`, `mmx`, `model-benchmark`, `model-discover`, `nlm-to-wiki`, `note`, `notice`, `packet`, `plan-writer`, `planning`, `plugin-installer`, `pr-babysit`, `pre-mortem`, `preflight`, `reason`, `recover`, `red-team`, `refactor`, `refine`, `reflect`, `review-pr`, `review_bundle`, `risks`, `sequential-thinking`, `simplify-enhanced`, `skill-audit`, `skill-dev`, `skill-from-docs`, `skill-similarity`, `skill-to-page`, `skill-write`, `snapshot`, `solo-dev-authority`, `specify`, `sqd`, `stale`, `subagent-driven-development`, `t`, `task`, `team`, `tilldone`, `tldr-router`, `todo`, `tp`, `trace`, `uci`, `vision-analysis`, `wargame`, `web`, `why`, `why-old`, `writing-plans`, `www`, `yt-is`, `yt-nlm` |
-| `search-fleet` | 1 | `web` |
+| `red-team` | 17 | `aar`, `claude-audit`, `close`, `debrief`, `dream`, `improve`, `notice`, `pre-mortem`, `preflight`, `retro`, `review`, `risks`, `skill-audit`, `tp`, `why`, `why-old`, `www` |
+| `refine` | 7 | `aar`, `design`, `dream`, `go`, `handoff`, `plan-writer`, `refactor` |
+| `review` | 22 | `aar`, `check`, `claude-audit`, `close`, `debrief`, `dream`, `go`, `improve`, `learn`, `marketplace-bridge`, `model-benchmark`, `red-team`, `refactor`, `refine`, `review-pr`, `risks`, `skill-audit`, `skill-dev`, `sqd`, `todo`, `tp`, `uci` |
 | `skill-dev` | 3 | `create-skill`, `red-team`, `tp` |
 | `skill-prune` | 5 | `config-audit`, `create-skill`, `maintain`, `skill-dev`, `workspace-health` |
-| `tasks` | 2 | `go`, `team` |
 | `todo` | 1 | `design` |
-| `tp` | 31 | `aar`, `ai-api`, `ai-probe-nim`, `bf`, `close`, `config-audit`, `design`, `dream`, `fullstack-dev`, `go`, `handoff`, `id`, `marketplace-bridge`, `mmx`, `model-benchmark`, `model-discover`, `notice`, `plan-writer`, `red-team`, `refactor`, `refine`, `review`, `skill-dev`, `skill-to-page`, `tdd`, `todo`, `web`, `why`, `why-old`, `workspace-health`, `www` |
+| `tp` | 18 | `aar`, `close`, `design`, `dream`, `go`, `handoff`, `model-benchmark`, `notice`, `plan-writer`, `red-team`, `refactor`, `refine`, `review`, `skill-dev`, `todo`, `why`, `why-old`, `www` |
 | `wargame` | 2 | `plan-writer`, `red-team` |
-| `web` | 32 | `agy`, `ai-models`, `brainstorming`, `build-with-ai`, `cks`, `codex`, `crawl`, `crawl4ai`, `design`, `find`, `frontend-dev`, `gitingest`, `go`, `imagine`, `improve`, `keep`, `minimax-multimodal-toolkit`, `mmx`, `nlm-bulk-ingest`, `note`, `notebooklm`, `perplexity-web-mcp`, `prospect`, `risks`, `search-fleet`, `subagent-driven-development`, `tp`, `usm`, `ux`, `www`, `yt-is`, `yt-selenium` |
-| `why` | 79 | `aar`, `ai-models`, `ask`, `av`, `brainstorming`, `check`, `chs`, `cks`, `close`, `code-review`, `codebase-to-course`, `codex`, `config-audit`, `context7`, `debrief`, `decision-tree`, `design`, `doc-compiler`, `dream`, `evolve`, `execute-plan`, `frontend-dev`, `game-animation-frames`, `genius`, `go`, `grok-discovery`, `handoff`, `implement`, `improve`, `improve-codebase-architecture`, `init`, `maintain`, `mm-quota`, `mmx`, `model-benchmark`, `model-discover`, `nlm-bulk-ingest`, `nlm-to-wiki`, `notebooklm`, `notice`, `plan-writer`, `planning`, `plugin-installer`, `pr-babysit`, `probe`, `prompt-patterns`, `prospect`, `reason`, `red-team`, `refactor`, `refine`, `reflect`, `review`, `review_bundle`, `risks`, `s`, `search-fleet`, `skeptic`, `skill-audit`, `skill-dev`, `skill-prune`, `skill-to-page`, `skill-write`, `solo-dev-authority`, `task`, `tldr-code`, `tldr-router`, `todo`, `tp`, `using-git-worktrees`, `verification-before-completion`, `video-vision`, `wargame`, `web`, `why-old`, `wiki`, `workspace-health`, `www`, `yt-selenium` |
-| `wiki` | 46 | `aar`, `ask`, `check`, `claude-audit`, `close`, `config-audit`, `crawl`, `crawl4ai`, `create-skill`, `debrief`, `design`, `doc-compiler`, `dream`, `gitpack`, `go`, `grok-safe-git`, `handoff`, `improve`, `main`, `maintain`, `model-benchmark`, `model-discover`, `nlm-bulk-ingest`, `nlm-to-wiki`, `notice`, `packet`, `plan-writer`, `prompt-patterns`, `prospect`, `qmd-wiki`, `red-team`, `refactor`, `refine`, `review`, `search-fleet`, `skill-dev`, `skill-prune`, `todo`, `tp`, `ut`, `ux`, `wargame`, `web`, `why`, `workspace-health`, `www` |
+| `web` | 6 | `crawl4ai`, `find`, `keep`, `note`, `tp`, `www` |
+| `why` | 12 | `debrief`, `dream`, `model-benchmark`, `notice`, `red-team`, `review`, `skill-dev`, `todo`, `tp`, `wargame`, `why-old`, `www` |
+| `wiki` | 31 | `aar`, `claude-audit`, `close`, `crawl`, `crawl4ai`, `create-skill`, `debrief`, `design`, `dream`, `go`, `grok-safe-git`, `handoff`, `improve`, `main`, `maintain`, `model-benchmark`, `nlm-to-wiki`, `notice`, `plan-writer`, `prompt-patterns`, `refactor`, `refine`, `review`, `skill-dev`, `todo`, `tp`, `ux`, `wargame`, `web`, `why`, `www` |
 
 ## Capability registry (what functions the fleet provides)
 
@@ -312,252 +308,252 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 
 | Skill | Delegates to | Consumes provider | Provides |
 |-------|-------------|------------------|
-| `aar` | `check`, `close`, `design`, `go`, `handoff`, `packet`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `nlm` | `after-action-review`, `opportunity-landscape`, `value-accounting` |
+| `aar` | `check`, `close`, `go`, `red-team`, `refine`, `review`, `tp`, `wiki` | `exa`, `gh`, `nlm` | `after-action-review`, `opportunity-landscape`, `value-accounting` |
 | `adr` | — | — | — |
-| `agy` | `debrief`, `design`, `review`, `web` | `agy`, `exa`, `gh` | `cross-model-second-opinion`, `gemini-reasoning` |
-| `agy` | `check`, `design`, `review` | — | — |
-| `ai-api` | `check`, `design`, `go`, `packet`, `review`, `tp` | — | — |
-| `ai-cli` | `agy`, `check`, `packet`, `review` | `agy` | — |
-| `ai-models` | `check`, `review`, `web`, `why` | — | — |
-| `ai-probe-benchmark` | `check` | — | — |
-| `ai-probe-nim` | `tp` | — | — |
+| `agy` | `debrief` | `agy`, `exa`, `gh` | `cross-model-second-opinion`, `gemini-reasoning` |
+| `agy` | — | — | — |
+| `ai-api` | — | — | — |
+| `ai-cli` | — | `agy` | — |
+| `ai-models` | — | — | — |
+| `ai-probe-benchmark` | — | — | — |
+| `ai-probe-nim` | — | — | — |
 | `ai-probe-openrouter` | — | — | — |
-| `ai-probe-router` | `check` | — | — |
-| `aid` | `check`, `review` | — | — |
+| `ai-probe-router` | — | — | — |
+| `aid` | — | — | — |
 | `all` | — | — | — |
-| `ask` | `check`, `design`, `handoff`, `why`, `wiki` | — | — |
-| `av` | `why` | — | — |
-| `avant-garde-ui` | `design`, `go` | — | — |
-| `behave` | `check`, `debrief`, `design`, `handoff` | — | — |
-| `bf` | `check`, `design`, `review`, `tp` | — | — |
+| `ask` | `design` | — | — |
+| `av` | — | — | — |
+| `avant-garde-ui` | — | — | — |
+| `behave` | `debrief` | — | — |
+| `bf` | — | — | — |
 | `bifrost` | — | — | — |
-| `brainstorming` | `check`, `design`, `go`, `refine`, `review`, `web`, `why` | — | — |
-| `build` | `check`, `go` | — | — |
-| `build-with-ai` | `web` | — | — |
-| `capture` | `check` | — | — |
-| `cc-model-router` | `design` | — | — |
-| `changelog` | `check` | — | — |
-| `check` | `agy`, `close`, `design`, `go`, `handoff`, `notice`, `packet`, `review`, `why`, `wiki` | — | `session-verification`, `subagent-dispatch` |
-| `check` | `codex`, `design`, `go`, `review`, `wiki` | — | — |
-| `chs` | `check`, `handoff`, `review`, `why` | — | — |
+| `brainstorming` | — | — | — |
+| `build` | — | — | — |
+| `build-with-ai` | — | — | — |
+| `capture` | — | — | — |
+| `cc-model-router` | — | — | — |
+| `changelog` | — | — | — |
+| `check` | `agy`, `close`, `go`, `review` | — | `session-verification`, `subagent-dispatch` |
+| `check` | `go` | — | — |
+| `chs` | — | — | — |
 | `chs-eval` | — | — | — |
-| `cks` | `web`, `why` | — | — |
-| `claude-audit` | `check`, `close`, `debrief`, `design`, `go`, `red-team`, `review`, `wiki` | — | — |
-| `close` | `aar`, `check`, `debrief`, `design`, `go`, `handoff`, `notice`, `packet`, `red-team`, `review`, `tp`, `why`, `wiki` | — | `gate-resolution`, `session-close-accounting` |
-| `code` | `check`, `design`, `go`, `handoff`, `packet` | — | — |
+| `cks` | — | — | — |
+| `claude-audit` | `debrief`, `red-team`, `review`, `wiki` | — | — |
+| `close` | `aar`, `check`, `debrief`, `design`, `go`, `handoff`, `notice`, `red-team`, `review`, `tp`, `wiki` | — | `gate-resolution`, `session-close-accounting` |
+| `code` | `design`, `go` | — | — |
 | `code-flow-visualizer` | — | — | — |
-| `code-review` | `design`, `go`, `review`, `why` | — | — |
-| `code-review` | `check`, `review` | — | — |
-| `codebase-to-course` | `check`, `design`, `go`, `review`, `why` | — | — |
-| `codex` | `agy`, `debrief`, `design`, `review`, `web`, `why` | `agy`, `codex`, `exa`, `gh` | `cross-model-second-opinion`, `openai-reasoning` |
-| `codex` | `check`, `design`, `review`, `why` | `codex` | — |
-| `concept-mapper` | `check`, `review` | — | — |
-| `config-audit` | `check`, `recover`, `skill-prune`, `tp`, `why`, `wiki` | — | — |
-| `constitutional-patterns` | `check`, `review` | — | — |
+| `code-review` | — | — | — |
+| `code-review` | — | — | — |
+| `codebase-to-course` | — | — | — |
+| `codex` | `agy`, `debrief` | `agy`, `codex`, `exa`, `gh` | `cross-model-second-opinion`, `openai-reasoning` |
+| `codex` | — | `codex` | — |
+| `concept-mapper` | — | — | — |
+| `config-audit` | `recover`, `skill-prune` | — | — |
+| `constitutional-patterns` | — | — | — |
 | `constraints` | — | — | — |
-| `context7` | `check`, `why` | `context7` | — |
+| `context7` | — | `context7` | — |
 | `contract-status` | — | — | — |
-| `crawl` | `check`, `crawl4ai`, `web`, `wiki` | — | — |
-| `crawl4ai` | `check`, `web`, `wiki` | `exa`, `firecrawl`, `gh` | `web-ingestion` |
+| `crawl` | `wiki` | — | — |
+| `crawl4ai` | `web`, `wiki` | `exa`, `firecrawl`, `gh` | `web-ingestion` |
 | `create-skill` | `skill-dev`, `skill-prune`, `wiki` | `exa` | `skill-scaffolding` |
 | `create-skill` | — | — | — |
-| `create-workflow` | `check`, `review` | — | — |
-| `csf-nip-integration` | `check` | — | — |
-| `debrief` | `check`, `go`, `refine`, `review`, `why`, `wiki` | `gh` | `session-retrospective`, `subagent-dispatch` |
-| `debrief` | `check`, `close`, `design`, `go`, `handoff`, `red-team`, `review`, `why`, `wiki` | — | — |
-| `debt` | `go`, `review` | — | — |
-| `decision-tree` | `design`, `review`, `why` | — | — |
-| `design` | `check`, `go`, `handoff`, `mmx`, `plan-writer`, `preflight`, `red-team`, `refine`, `review`, `todo`, `tp`, `web`, `why`, `wiki` | `exa`, `firecrawl`, `gh`, `mmx` | `design-doc-production` |
-| `design` | `check`, `go`, `notice`, `preflight`, `red-team`, `review`, `web`, `why`, `wiki` | `minimax-search` | — |
-| `design` | `check`, `go`, `packet`, `review` | — | — |
+| `create-workflow` | — | — | — |
+| `csf-nip-integration` | — | — | — |
+| `debrief` | `check`, `review`, `why`, `wiki` | `gh` | `session-retrospective`, `subagent-dispatch` |
+| `debrief` | `red-team`, `review`, `wiki` | — | — |
+| `debt` | — | — | — |
+| `decision-tree` | — | — | — |
+| `design` | `go`, `handoff`, `plan-writer`, `preflight`, `refine`, `todo`, `tp`, `wiki` | `exa`, `firecrawl`, `gh`, `mmx` | `design-doc-production` |
+| `design` | `preflight` | `minimax-search` | — |
+| `design` | `go` | — | — |
 | `diagnose` | — | — | — |
-| `discover` | `check`, `design`, `review` | — | — |
-| `dispatching-parallel-agents` | `check`, `review` | — | — |
-| `doc-compiler` | `check`, `close`, `design`, `go`, `review`, `why`, `wiki` | — | — |
-| `docs` | `check`, `go` | — | — |
+| `discover` | `design` | — | — |
+| `dispatching-parallel-agents` | — | — | — |
+| `doc-compiler` | `check` | — | — |
+| `docs` | — | — | — |
 | `docx` | — | — | — |
-| `dream` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `handoff`, `notice`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `episodic-memory`, `exa`, `gh` | `offline-memory-consolidation` |
-| `dream` | `check` | — | — |
-| `epistemic-check` | `check` | — | — |
+| `dream` | `aar`, `check`, `close`, `debrief`, `design`, `handoff`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `episodic-memory`, `exa`, `gh` | `offline-memory-consolidation` |
+| `dream` | — | — | — |
+| `epistemic-check` | — | — | — |
 | `evidence-driven-experiment-loop` | — | — | — |
-| `evolve` | `check`, `design`, `why` | — | — |
-| `execute-plan` | `check`, `design`, `go`, `review`, `why` | — | — |
-| `executing-plans` | `review` | — | — |
-| `execution-clarity` | `check` | — | — |
+| `evolve` | `design` | — | — |
+| `execute-plan` | `design` | — | — |
+| `executing-plans` | — | — | — |
+| `execution-clarity` | — | — | — |
 | `export-session` | `debrief` | — | — |
-| `find` | `check`, `handoff`, `web` | — | — |
-| `finishing-a-development-branch` | `check`, `go` | — | — |
-| `friction` | `debrief`, `review` | — | — |
-| `frontend-dev` | `check`, `design`, `web`, `why` | — | — |
-| `fullstack-dev` | `check`, `close`, `design`, `go`, `handoff`, `review`, `tp` | — | — |
-| `game-animation-frames` | `check`, `why` | — | — |
+| `find` | `web` | — | — |
+| `finishing-a-development-branch` | — | — | — |
+| `friction` | `debrief` | — | — |
+| `frontend-dev` | — | — | — |
+| `fullstack-dev` | — | — | — |
+| `game-animation-frames` | — | — | — |
 | `game-asset-core` | — | — | — |
-| `game-character-consistency` | `check` | — | — |
-| `game-tilesets` | `notice` | — | — |
-| `game-ui-icons` | `design` | — | — |
+| `game-character-consistency` | — | — | — |
+| `game-tilesets` | — | — | — |
+| `game-ui-icons` | — | — | — |
 | `garden` | — | — | — |
-| `genius` | `why` | — | — |
-| `git` | `check`, `review` | — | — |
-| `gitingest` | `check`, `go`, `web` | `nlm` | — |
-| `gitpack` | `check`, `design`, `go`, `red-team`, `wiki` | — | — |
-| `gitready` | `check`, `review` | — | — |
-| `go` | `check`, `design`, `grok-discovery`, `grok-parallel`, `grok-route`, `grok-safe-git`, `grok-verify`, `handoff`, `packet`, `plan-writer`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `brave`, `exa`, `gh`, `nlm` | `discovery-dispatch`, `engineering-orchestration`, `parallel-implement-dispatch`, `safe-git-preflight-dispatch`, `verify-dispatch` |
-| `go` | `check`, `debrief`, `design`, `handoff`, `review`, `tasks`, `tp`, `why` | — | — |
-| `google-ai-usage-monitor` | `check`, `go`, `review` | — | — |
-| `grok-discovery` | `review`, `why` | `gh` | `source-authority-discovery` |
+| `genius` | — | — | — |
+| `git` | — | — | — |
+| `gitingest` | — | `nlm` | — |
+| `gitpack` | — | — | — |
+| `gitready` | — | — | — |
+| `go` | `check`, `design`, `grok-discovery`, `grok-parallel`, `grok-route`, `grok-safe-git`, `grok-verify`, `handoff`, `plan-writer`, `refine`, `review`, `tp`, `wiki` | `brave`, `exa`, `gh`, `nlm` | `discovery-dispatch`, `engineering-orchestration`, `parallel-implement-dispatch`, `safe-git-preflight-dispatch`, `verify-dispatch` |
+| `go` | `design` | — | — |
+| `google-ai-usage-monitor` | — | — | — |
+| `grok-discovery` | — | `gh` | `source-authority-discovery` |
 | `grok-go` | `go` | — | — |
-| `grok-parallel` | `design`, `go`, `grok-discovery`, `grok-route`, `grok-safe-git`, `grok-verify`, `plan-writer`, `review` | `exa`, `gh` | `parallel-fan-out`, `subagent-dispatch` |
-| `grok-route` | `handoff` | — | `package-routing` |
-| `grok-safe-git` | `check`, `close`, `wiki` | `gh` | `git-safety-preflight` |
+| `grok-parallel` | `go`, `grok-discovery`, `grok-route`, `grok-safe-git`, `grok-verify` | `exa`, `gh` | `parallel-fan-out`, `subagent-dispatch` |
+| `grok-route` | — | — | `package-routing` |
+| `grok-safe-git` | `wiki` | `gh` | `git-safety-preflight` |
 | `grok-sdlc` | `go` | — | — |
-| `grok-verify` | `check`, `close`, `grok-route`, `grok-safe-git`, `handoff`, `review` | `exa`, `gh` | `completion-gate` |
-| `handoff` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `refine`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` | `handoff-auto-update`, `handoff-write` |
-| `help` | `check` | — | `grok-documentation-help` |
-| `id` | `tp` | — | — |
-| `imagine` | `check`, `review`, `web` | `exa`, `gh` | `image-generation-guidance` |
-| `imagine` | `check`, `review`, `web` | — | — |
-| `implement` | `check`, `design`, `go`, `review`, `why` | — | — |
-| `improve` | `check`, `debrief`, `design`, `handoff`, `packet`, `red-team`, `review`, `web`, `why`, `wiki` | — | — |
-| `improve-codebase-architecture` | `design`, `why` | — | — |
+| `grok-verify` | `check`, `grok-route`, `grok-safe-git` | `exa`, `gh` | `completion-gate` |
+| `handoff` | `aar`, `close`, `debrief`, `design`, `go`, `refine`, `tp`, `wiki` | `exa`, `gh` | `handoff-auto-update`, `handoff-write` |
+| `help` | — | — | `grok-documentation-help` |
+| `id` | — | — | — |
+| `imagine` | — | `exa`, `gh` | `image-generation-guidance` |
+| `imagine` | — | — | — |
+| `implement` | — | — | — |
+| `improve` | `debrief`, `red-team`, `review`, `wiki` | — | — |
+| `improve-codebase-architecture` | — | — | — |
 | `index` | — | — | — |
-| `init` | `check`, `review`, `why` | — | — |
-| `intelligence-stream-analyze` | `check`, `review` | — | — |
+| `init` | — | — | — |
+| `intelligence-stream-analyze` | — | — | — |
 | `intelligence-stream-ingest` | — | — | — |
-| `keep` | `check`, `refine`, `review`, `web` | — | — |
-| `learn` | `check`, `review` | — | — |
-| `lmc` | `check`, `debrief`, `go` | — | — |
-| `main` | `check`, `recover`, `review`, `wiki` | — | — |
-| `main-review` | `review` | — | — |
-| `maintain` | `check`, `close`, `design`, `handoff`, `recover`, `skill-prune`, `why`, `wiki` | `gh` | `fleet-maintenance` |
-| `marketplace-bridge` | `review`, `tp` | — | `marketplace-skill-discovery` |
-| `mermaid-c4` | `refine`, `review` | — | — |
-| `minimax-multimodal-toolkit` | `mmx`, `review`, `web` | `mmx` | — |
-| `minimax-music-gen` | `check`, `go`, `mmx`, `refine`, `review` | `mmx` | — |
-| `minimax-music-playlist` | `check`, `go`, `mmx` | `mmx` | — |
-| `mlc` | `debrief`, `go`, `refine`, `review` | — | — |
-| `mm-quota` | `check`, `design`, `why` | — | — |
-| `mmx` | `agy`, `check`, `codex`, `design`, `review`, `tp`, `web`, `why` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cross-model-second-opinion`, `minimax-vision`, `minimax-web-search` |
-| `model-benchmark` | `check`, `go`, `mmx`, `refine`, `review`, `tp`, `why`, `wiki` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cost-tracking`, `latency-benchmark`, `quality-scoring` |
-| `model-discover` | `model-benchmark`, `review`, `tp`, `why`, `wiki` | — | `model-discovery` |
-| `nlm` | `check` | `nlm`, `notebooklm` | — |
-| `nlm-bulk-ingest` | `check`, `design`, `web`, `why`, `wiki` | — | — |
-| `nlm-to-wiki` | `check`, `codex`, `help`, `mmx`, `why`, `wiki` | `mmx`, `notebooklm` | — |
-| `nlm-to-wiki` | `check`, `review`, `wiki` | `nlm` | — |
-| `note` | `check`, `refine`, `review`, `web` | — | — |
-| `notebooklm` | `check`, `web`, `why` | — | — |
-| `notice` | `aar`, `check`, `close`, `design`, `go`, `grok-parallel`, `handoff`, `red-team`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` | `mid-conversation-observation-surfacing` |
+| `keep` | `web` | — | — |
+| `learn` | `review` | — | — |
+| `lmc` | `debrief` | — | — |
+| `main` | `recover`, `wiki` | — | — |
+| `main-review` | — | — | — |
+| `maintain` | `close`, `handoff`, `recover`, `skill-prune`, `wiki` | `gh` | `fleet-maintenance` |
+| `marketplace-bridge` | `review` | — | `marketplace-skill-discovery` |
+| `mermaid-c4` | — | — | — |
+| `minimax-multimodal-toolkit` | `mmx` | `mmx` | — |
+| `minimax-music-gen` | `mmx` | `mmx` | — |
+| `minimax-music-playlist` | — | `mmx` | — |
+| `mlc` | `debrief` | — | — |
+| `mm-quota` | — | — | — |
+| `mmx` | `agy`, `codex` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cross-model-second-opinion`, `minimax-vision`, `minimax-web-search` |
+| `model-benchmark` | `check`, `go`, `review`, `tp`, `why`, `wiki` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cost-tracking`, `latency-benchmark`, `quality-scoring` |
+| `model-discover` | `model-benchmark` | — | `model-discovery` |
+| `nlm` | — | `nlm`, `notebooklm` | — |
+| `nlm-bulk-ingest` | — | — | — |
+| `nlm-to-wiki` | `mmx`, `wiki` | `mmx`, `notebooklm` | — |
+| `nlm-to-wiki` | `wiki` | `nlm` | — |
+| `note` | `web` | — | — |
+| `notebooklm` | — | — | — |
+| `notice` | `aar`, `go`, `grok-parallel`, `handoff`, `red-team`, `tp`, `why`, `wiki` | `exa`, `gh` | `mid-conversation-observation-surfacing` |
 | `pace` | — | — | — |
-| `packet` | `aar`, `check`, `design`, `handoff`, `review`, `wiki` | `exa`, `gh` | `session-export` |
-| `pdf` | `check` | — | — |
+| `packet` | `aar`, `handoff` | `exa`, `gh` | `session-export` |
+| `pdf` | — | — | — |
 | `perf` | — | — | — |
 | `performance-profiler` | — | — | — |
-| `perplexity-web-mcp` | `check`, `web` | `pwm` | — |
-| `plan-writer` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `review`, `tp`, `wargame`, `why`, `wiki` | `exa`, `gh` | `plan-writing` |
-| `planning` | `check`, `close`, `design`, `go`, `handoff`, `packet`, `review`, `why` | — | — |
-| `plugin-installer` | `check`, `review`, `why` | — | — |
-| `pptx` | `check`, `close` | — | — |
-| `pr-babysit` | `check`, `go`, `review`, `why` | — | — |
-| `pre-mortem` | `check`, `red-team`, `review` | — | — |
-| `preflight` | `check`, `red-team`, `review` | — | `evidence-backed-inventory` |
-| `preflight` | `packet` | — | — |
-| `prime` | `check`, `go` | — | — |
-| `probe` | `check`, `close`, `refine`, `why` | — | — |
+| `perplexity-web-mcp` | — | `pwm` | — |
+| `plan-writer` | `design`, `go`, `handoff`, `refine`, `tp`, `wargame`, `wiki` | `exa`, `gh` | `plan-writing` |
+| `planning` | `design` | — | — |
+| `plugin-installer` | — | — | — |
+| `pptx` | — | — | — |
+| `pr-babysit` | — | — | — |
+| `pre-mortem` | `red-team` | — | — |
+| `preflight` | `red-team` | — | `evidence-backed-inventory` |
+| `preflight` | — | — | — |
+| `prime` | — | — | — |
+| `probe` | — | — | — |
 | `profile` | — | — | — |
 | `prompt-enhancer` | — | — | — |
-| `prompt-patterns` | `check`, `handoff`, `why`, `wiki` | `exa`, `gh` | `prompting-techniques-reference` |
-| `prompt_refiner` | `design`, `refine` | — | — |
-| `prospect` | `check`, `handoff`, `web`, `why`, `wiki` | `search-research` | — |
-| `qmd-wiki` | `wiki` | — | — |
-| `quota` | `check` | — | — |
+| `prompt-patterns` | `wiki` | `exa`, `gh` | `prompting-techniques-reference` |
+| `prompt_refiner` | `design` | — | — |
+| `prospect` | — | `search-research` | — |
+| `qmd-wiki` | — | — | — |
+| `quota` | — | — | — |
 | `ralph` | — | — | — |
-| `rca` | `check` | — | — |
-| `reason` | `codex`, `design`, `go`, `review`, `why` | — | — |
-| `recap` | `check`, `debrief`, `design`, `go`, `handoff` | — | — |
-| `recover` | `check`, `review` | — | `file-recovery` |
-| `recover` | `check`, `review` | — | — |
-| `red-team` | `aar`, `check`, `close`, `debrief`, `design`, `go`, `refine`, `review`, `skill-dev`, `tp`, `wargame`, `why`, `wiki` | — | — |
-| `refactor` | `check`, `close`, `go`, `grok-verify`, `handoff`, `refine`, `review`, `tp`, `wiki` | `exa`, `gh`, `nlm` | `structural-refactor` |
-| `refactor` | `check`, `design`, `handoff`, `why` | — | — |
-| `refine` | `check`, `design`, `go`, `handoff`, `plan-writer`, `review`, `tp`, `why`, `wiki` | `exa`, `gh` | `task-refinement` |
-| `reflect` | `check`, `review`, `why` | — | — |
+| `rca` | — | — | — |
+| `reason` | — | — | — |
+| `recap` | `debrief`, `design`, `handoff` | — | — |
+| `recover` | — | — | `file-recovery` |
+| `recover` | — | — | — |
+| `red-team` | `aar`, `debrief`, `review`, `skill-dev`, `tp`, `wargame`, `why` | — | — |
+| `refactor` | `check`, `go`, `handoff`, `refine`, `review`, `tp`, `wiki` | `exa`, `gh`, `nlm` | `structural-refactor` |
+| `refactor` | — | — | — |
+| `refine` | `check`, `design`, `go`, `handoff`, `plan-writer`, `review`, `tp`, `wiki` | `exa`, `gh` | `task-refinement` |
+| `reflect` | — | — | — |
 | `repomix` | — | — | — |
-| `research` | `go`, `mmx` | — | — |
+| `research` | `go` | — | — |
 | `response-atomicity` | — | — | — |
 | `resume-claude` | — | — | — |
-| `resume-codex` | `codex` | `codex` | — |
+| `resume-codex` | — | `codex` | — |
 | `resume-cursor` | — | — | — |
-| `retro` | `check`, `debrief`, `red-team` | — | — |
-| `review` | `check`, `close`, `codex`, `go`, `handoff`, `packet`, `red-team`, `refine`, `tp`, `why`, `wiki` | `codex`, `exa`, `gh` | `code-review`, `subagent-dispatch`, `verified-findings-on-disk` |
-| `review` | `check`, `design`, `tp`, `why` | — | — |
-| `review` | `check`, `design`, `red-team`, `why` | — | — |
+| `retro` | `debrief`, `red-team` | — | — |
+| `review` | `check`, `close`, `go`, `red-team`, `tp`, `why`, `wiki` | `codex`, `exa`, `gh` | `code-review`, `subagent-dispatch`, `verified-findings-on-disk` |
+| `review` | — | — | — |
+| `review` | `red-team` | — | — |
 | `review-pr` | `review` | — | — |
-| `review_bundle` | `check`, `design`, `review`, `why` | — | — |
-| `risks` | `check`, `design`, `red-team`, `review`, `web`, `why` | — | — |
-| `rns` | `check`, `go`, `handoff` | — | — |
-| `s` | `check`, `design`, `handoff`, `refine`, `why` | — | — |
-| `search-fleet` | `agy`, `mmx`, `web`, `why`, `wiki` | `agy`, `ddg`, `exa`, `firecrawl`, `gh`, `mmx`, `perplexity`, `pwm`, `reddit`, `search-research`, `tavily` | `capability-routed-search`, `rrf-aggregation` |
-| `sequential-thinking` | `check`, `refine`, `review` | — | — |
-| `ship` | `go` | — | — |
-| `simplify-enhanced` | `check`, `review` | — | — |
-| `skeptic` | `check`, `go`, `why` | — | — |
-| `skill-audit` | `check`, `debrief`, `design`, `red-team`, `review`, `why` | — | — |
-| `skill-dev` | `aar`, `check`, `close`, `create-skill`, `design`, `grok-verify`, `handoff`, `notice`, `red-team`, `review`, `skill-prune`, `tp`, `why`, `wiki` | `exa`, `gh` | `skill-improvement`, `skill-measurement` |
-| `skill-from-docs` | `check`, `review` | — | — |
-| `skill-prune` | `recover`, `why`, `wiki` | — | `knowledge-hygiene` |
-| `skill-similarity` | `check`, `review` | — | — |
-| `skill-to-page` | `check`, `close`, `design`, `go`, `review`, `tp`, `why` | — | — |
-| `skill-write` | `check`, `design`, `go`, `notice`, `review`, `why` | — | — |
-| `slc` | `check` | — | — |
-| `snapshot` | `check`, `review` | — | — |
-| `solo-dev-authority` | `check`, `review`, `why` | — | — |
-| `specify` | `design`, `review` | — | — |
+| `review_bundle` | — | — | — |
+| `risks` | `red-team`, `review` | — | — |
+| `rns` | `go` | — | — |
+| `s` | `design` | — | — |
+| `search-fleet` | `agy` | `agy`, `ddg`, `exa`, `firecrawl`, `gh`, `mmx`, `perplexity`, `pwm`, `reddit`, `search-research`, `tavily` | `capability-routed-search`, `rrf-aggregation` |
+| `sequential-thinking` | — | — | — |
+| `ship` | — | — | — |
+| `simplify-enhanced` | — | — | — |
+| `skeptic` | — | — | — |
+| `skill-audit` | `debrief`, `red-team`, `review` | — | — |
+| `skill-dev` | `aar`, `close`, `create-skill`, `grok-verify`, `notice`, `review`, `skill-prune`, `tp`, `why`, `wiki` | `exa`, `gh` | `skill-improvement`, `skill-measurement` |
+| `skill-from-docs` | — | — | — |
+| `skill-prune` | `recover` | — | `knowledge-hygiene` |
+| `skill-similarity` | — | — | — |
+| `skill-to-page` | `check` | — | — |
+| `skill-write` | — | — | — |
+| `slc` | — | — | — |
+| `snapshot` | — | — | — |
+| `solo-dev-authority` | — | — | — |
+| `specify` | `design` | — | — |
 | `sqa` | — | — | — |
 | `sqd` | `review` | — | — |
-| `stale` | `check`, `review` | — | — |
-| `subagent-driven-development` | `check`, `review`, `web` | — | — |
-| `t` | `check`, `review` | — | — |
-| `task` | `check`, `review`, `why` | — | — |
-| `tasks` | `agy`, `check` | `agy`, `codex`, `exa`, `gh` | `persistent-task-store` |
-| `tdd` | `check`, `tp` | — | — |
-| `team` | `check`, `close`, `review`, `tasks` | — | — |
-| `tilldone` | `check`, `review` | — | — |
-| `tldr-code` | `check`, `why` | — | — |
+| `stale` | — | — | — |
+| `subagent-driven-development` | — | — | — |
+| `t` | — | — | — |
+| `task` | — | — | — |
+| `tasks` | — | `agy`, `codex`, `exa`, `gh` | `persistent-task-store` |
+| `tdd` | — | — | — |
+| `team` | — | — | — |
+| `tilldone` | — | — | — |
+| `tldr-code` | — | — | — |
 | `tldr-deep` | — | — | — |
-| `tldr-overview` | `check` | — | — |
-| `tldr-router` | `review`, `why` | — | — |
-| `tldr-stats` | `check` | — | — |
-| `todo` | `check`, `close`, `go`, `handoff`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `notebooklm`, `reddit` | `workspace-prioritized-action-list` |
+| `tldr-overview` | — | — | — |
+| `tldr-router` | — | — | — |
+| `tldr-stats` | — | — | — |
+| `todo` | `aar`, `check`, `close`, `go`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `notebooklm`, `reddit` | `workspace-prioritized-action-list` |
 | `top-problems` | `debrief` | — | — |
-| `tot` | `go` | — | — |
-| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `grok-verify`, `handoff`, `mmx`, `notice`, `preflight`, `red-team`, `refine`, `review`, `skill-dev`, `web`, `why`, `wiki` | `codex`, `ddg`, `firecrawl`, `spawn-subagent` | `critical-friend-critique`, `session-opportunity-review`, `subagent-dispatch`, `system-exploration` |
-| `trace` | `check`, `close`, `handoff`, `review` | — | — |
-| `truth` | `check` | — | — |
+| `tot` | — | — | — |
+| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `grok-verify`, `handoff`, `mmx`, `notice`, `preflight`, `red-team`, `review`, `skill-dev`, `web`, `why`, `wiki` | `codex`, `ddg`, `firecrawl`, `spawn-subagent` | `critical-friend-critique`, `session-opportunity-review`, `subagent-dispatch`, `system-exploration` |
+| `trace` | — | — | — |
+| `truth` | — | — | — |
 | `uci` | `review` | — | — |
 | `usage-query-skill` | — | — | — |
-| `using-git-worktrees` | `check`, `design`, `go`, `why` | — | — |
-| `using-superpowers` | `check` | — | — |
-| `usm` | `check`, `web` | — | — |
-| `ut` | `check`, `codex`, `wiki` | — | — |
-| `ux` | `check`, `web`, `wiki` | — | — |
-| `verification-before-completion` | `check`, `why` | — | — |
-| `video-vision` | `check`, `why` | — | — |
-| `vision-analysis` | `design`, `review` | — | — |
-| `wargame` | `aar`, `check`, `design`, `go`, `handoff`, `refine`, `review`, `why`, `wiki` | `codex`, `gh` | `content-discipline-for-plans` |
-| `web` | `check`, `design`, `mmx`, `search-fleet`, `tp`, `why`, `wiki` | `brave`, `ddg`, `duckduckgo`, `exa`, `firecrawl`, `hn-algolia`, `mmx`, `perplexity`, `reddit`, `search-research`, `stackexchange`, `tavily` | `multi-backend-search`, `rrf-merge` |
-| `web` | `review` | `notebooklm`, `serper` | — |
-| `why` | `aar`, `agy`, `check`, `codex`, `design`, `go`, `handoff`, `mmx`, `packet`, `red-team`, `review`, `tp`, `wiki` | `spawn-subagent` | `feedback-to-wiki`, `pattern-library-query`, `root-cause-analysis` |
-| `why` | `check`, `go` | `search-research` | — |
-| `why-old` | `aar`, `check`, `design`, `go`, `red-team`, `review`, `tp`, `why` | `exa`, `gh` | — |
-| `wiki` | `check`, `design`, `why` | `exa`, `gh` | `capability-wiki-query`, `capability-wiki-write` |
-| `wiki` | `check` | — | — |
-| `workspace-health` | `check`, `codex`, `handoff`, `recover`, `skill-prune`, `tp`, `why`, `wiki` | — | — |
-| `writing-plans` | `handoff`, `review` | — | — |
-| `writing-skills` | `close` | — | — |
-| `www` | `check`, `close`, `crawl4ai`, `design`, `go`, `red-team`, `refine`, `review`, `tp`, `web`, `why`, `wiki` | `ddg`, `firecrawl`, `gh`, `github-issues`, `hn-algolia`, `mmx`, `reddit` | `subagent-dispatch`, `wiki-web-wiki-research` |
-| `yt-is` | `check`, `review`, `web` | — | — |
-| `yt-nlm` | `check`, `review` | `notebooklm` | — |
-| `yt-selenium` | `check`, `close`, `web`, `why` | — | — |
-| `zoom-out` | `go` | — | — |
+| `using-git-worktrees` | — | — | — |
+| `using-superpowers` | — | — | — |
+| `usm` | — | — | — |
+| `ut` | — | — | — |
+| `ux` | `wiki` | — | — |
+| `verification-before-completion` | — | — | — |
+| `video-vision` | — | — | — |
+| `vision-analysis` | — | — | — |
+| `wargame` | `aar`, `design`, `go`, `why`, `wiki` | `codex`, `gh` | `content-discipline-for-plans` |
+| `web` | `design`, `mmx`, `wiki` | `brave`, `ddg`, `duckduckgo`, `exa`, `firecrawl`, `hn-algolia`, `mmx`, `perplexity`, `reddit`, `search-research`, `stackexchange`, `tavily` | `multi-backend-search`, `rrf-merge` |
+| `web` | — | `notebooklm`, `serper` | — |
+| `why` | `aar`, `agy`, `codex`, `design`, `go`, `mmx`, `red-team`, `tp`, `wiki` | `spawn-subagent` | `feedback-to-wiki`, `pattern-library-query`, `root-cause-analysis` |
+| `why` | — | `search-research` | — |
+| `why-old` | `aar`, `design`, `go`, `red-team`, `tp`, `why` | `exa`, `gh` | — |
+| `wiki` | — | `exa`, `gh` | `capability-wiki-query`, `capability-wiki-write` |
+| `wiki` | — | — | — |
+| `workspace-health` | `recover`, `skill-prune` | — | — |
+| `writing-plans` | — | — | — |
+| `writing-skills` | — | — | — |
+| `www` | `check`, `crawl4ai`, `design`, `go`, `red-team`, `tp`, `web`, `why`, `wiki` | `ddg`, `firecrawl`, `gh`, `github-issues`, `hn-algolia`, `mmx`, `reddit` | `subagent-dispatch`, `wiki-web-wiki-research` |
+| `yt-is` | — | — | — |
+| `yt-nlm` | — | `notebooklm` | — |
+| `yt-selenium` | — | — | — |
+| `zoom-out` | — | — | — |
 
 ## Machine-readable graph
 
@@ -571,15 +567,11 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [
         "check",
         "close",
-        "design",
         "go",
-        "handoff",
-        "packet",
         "red-team",
         "refine",
         "review",
         "tp",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -605,10 +597,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\agy\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "debrief",
-        "design",
-        "review",
-        "web"
+        "debrief"
       ],
       "consumes_provider": [
         "agy",
@@ -634,11 +623,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "go",
         "handoff",
         "notice",
-        "packet",
         "red-team",
         "review",
         "tp",
-        "why",
         "wiki"
       ],
       "consumes_provider": [],
@@ -658,11 +645,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "agy",
-        "debrief",
-        "design",
-        "review",
-        "web",
-        "why"
+        "debrief"
       ],
       "consumes_provider": [
         "agy",
@@ -682,7 +665,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\crawl4ai\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "check",
         "web",
         "wiki"
       ],
@@ -726,8 +708,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "check",
-        "go",
-        "refine",
         "review",
         "why",
         "wiki"
@@ -747,19 +727,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\design\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "check",
         "go",
         "handoff",
-        "mmx",
         "plan-writer",
         "preflight",
-        "red-team",
         "refine",
-        "review",
         "todo",
         "tp",
-        "web",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -791,9 +765,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "close",
         "debrief",
         "design",
-        "go",
         "handoff",
-        "notice",
         "red-team",
         "refine",
         "review",
@@ -829,13 +801,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "grok-safe-git",
         "grok-verify",
         "handoff",
-        "packet",
         "plan-writer",
         "refine",
         "review",
         "tp",
-        "web",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -860,10 +829,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "grok-discovery",
       "path": "C:\\Users\\brsth\\.grok\\skills\\grok-discovery\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "gh"
       ],
@@ -890,14 +856,11 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\grok-parallel\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "design",
         "go",
         "grok-discovery",
         "grok-route",
         "grok-safe-git",
-        "grok-verify",
-        "plan-writer",
-        "review"
+        "grok-verify"
       ],
       "consumes_provider": [
         "exa",
@@ -914,9 +877,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "grok-route",
       "path": "C:\\Users\\brsth\\.grok\\skills\\grok-route\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "handoff"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [
@@ -929,8 +890,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\grok-safe-git\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "check",
-        "close",
         "wiki"
       ],
       "consumes_provider": [
@@ -962,11 +921,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "check",
-        "close",
         "grok-route",
-        "grok-safe-git",
-        "handoff",
-        "review"
+        "grok-safe-git"
       ],
       "consumes_provider": [
         "exa",
@@ -984,15 +940,12 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "aar",
-        "check",
         "close",
         "debrief",
         "design",
         "go",
         "refine",
-        "review",
         "tp",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -1010,9 +963,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "help",
       "path": "C:\\Users\\brsth\\.grok\\skills\\help\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [
@@ -1024,11 +975,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "imagine",
       "path": "C:\\Users\\brsth\\.grok\\skills\\imagine\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "check",
-        "review",
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "exa",
         "gh"
@@ -1044,13 +991,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\maintain\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "check",
         "close",
-        "design",
         "handoff",
         "recover",
         "skill-prune",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -1069,8 +1013,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\marketplace-bridge\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "review",
-        "tp"
+        "review"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -1085,13 +1028,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "agy",
-        "check",
-        "codex",
-        "design",
-        "review",
-        "tp",
-        "web",
-        "why"
+        "codex"
       ],
       "consumes_provider": [
         "agy",
@@ -1115,8 +1052,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [
         "check",
         "go",
-        "mmx",
-        "refine",
         "review",
         "tp",
         "why",
@@ -1145,11 +1080,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\model-discover\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "model-benchmark",
-        "review",
-        "tp",
-        "why",
-        "wiki"
+        "model-benchmark"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -1164,14 +1095,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "aar",
-        "check",
-        "close",
-        "design",
         "go",
         "grok-parallel",
         "handoff",
         "red-team",
-        "review",
         "tp",
         "why",
         "wiki"
@@ -1197,11 +1124,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "aar",
-        "check",
-        "design",
-        "handoff",
-        "review",
-        "wiki"
+        "handoff"
       ],
       "consumes_provider": [
         "exa",
@@ -1221,16 +1144,12 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\plan-writer\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "aar",
-        "check",
         "design",
         "go",
         "handoff",
         "refine",
-        "review",
         "tp",
         "wargame",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -1251,9 +1170,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\prompt-patterns\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "check",
-        "handoff",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -1274,9 +1190,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "check",
-        "close",
         "go",
-        "grok-verify",
         "handoff",
         "refine",
         "review",
@@ -1309,7 +1223,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "plan-writer",
         "review",
         "tp",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -1335,12 +1248,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [
         "check",
         "close",
-        "codex",
         "go",
-        "handoff",
-        "packet",
         "red-team",
-        "refine",
         "tp",
         "why",
         "wiki"
@@ -1365,11 +1274,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\search-fleet\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "agy",
-        "mmx",
-        "web",
-        "why",
-        "wiki"
+        "agy"
       ],
       "consumes_provider": [
         "agy",
@@ -1397,14 +1302,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "aar",
-        "check",
         "close",
         "create-skill",
-        "design",
         "grok-verify",
-        "handoff",
         "notice",
-        "red-team",
         "review",
         "skill-prune",
         "tp",
@@ -1430,10 +1331,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tasks",
       "path": "C:\\Users\\brsth\\.grok\\skills\\tasks\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "agy",
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "agy",
         "codex",
@@ -1451,10 +1349,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\todo\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
+        "aar",
         "check",
         "close",
         "go",
-        "handoff",
         "review",
         "tp",
         "why",
@@ -1491,7 +1389,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "notice",
         "preflight",
         "red-team",
-        "refine",
         "review",
         "skill-dev",
         "web",
@@ -1526,12 +1423,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "aar",
-        "check",
         "design",
         "go",
-        "handoff",
-        "refine",
-        "review",
         "why",
         "wiki"
       ],
@@ -1550,12 +1443,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\skills\\web\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
-        "check",
         "design",
         "mmx",
-        "search-fleet",
-        "tp",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -1591,15 +1480,11 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [
         "aar",
         "agy",
-        "check",
         "codex",
         "design",
         "go",
-        "handoff",
         "mmx",
-        "packet",
         "red-team",
-        "review",
         "tp",
         "wiki"
       ],
@@ -1625,11 +1510,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "aar",
-        "check",
         "design",
         "go",
         "red-team",
-        "review",
         "tp",
         "why"
       ],
@@ -1652,11 +1535,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "wiki",
       "path": "C:\\Users\\brsth\\.grok\\skills\\wiki\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "check",
-        "design",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "exa",
         "gh"
@@ -1679,13 +1558,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-user",
       "delegates_to": [
         "check",
-        "close",
         "crawl4ai",
         "design",
         "go",
         "red-team",
-        "refine",
-        "review",
         "tp",
         "web",
         "why",
@@ -1718,9 +1594,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "build-with-ai",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\build-with-ai\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1730,12 +1604,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "code-review",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\code-review\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "design",
-        "go",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1755,10 +1624,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "create-workflow",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\create-workflow\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1769,15 +1635,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\design\\SKILL.md",
       "scope": "grok-bundled",
       "delegates_to": [
-        "check",
-        "go",
-        "notice",
-        "preflight",
-        "red-team",
-        "review",
-        "web",
-        "why",
-        "wiki"
+        "preflight"
       ],
       "consumes_provider": [
         "minimax-search"
@@ -1804,11 +1662,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\execute-plan\\SKILL.md",
       "scope": "grok-bundled",
       "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "review",
-        "why"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -1819,10 +1673,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "game-animation-frames",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\game-animation-frames\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1842,9 +1693,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "game-character-consistency",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\game-character-consistency\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1854,9 +1703,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "game-tilesets",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\game-tilesets\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "notice"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1866,9 +1713,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "game-ui-icons",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\game-ui-icons\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "design"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1878,11 +1723,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "imagine",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\imagine\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check",
-        "review",
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1892,13 +1733,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "implement",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\implement\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1908,9 +1743,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "pdf",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\pdf\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1920,10 +1753,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "pptx",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\pptx\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check",
-        "close"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1933,12 +1763,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "pr-babysit",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\pr-babysit\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check",
-        "go",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -1958,9 +1783,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "resume-codex",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\resume-codex\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "codex"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "codex"
       ],
@@ -1982,12 +1805,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "review",
       "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\review\\SKILL.md",
       "scope": "grok-bundled",
-      "delegates_to": [
-        "check",
-        "design",
-        "tp",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2000,14 +1818,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "delegates_to": [
         "agy",
         "close",
-        "design",
         "go",
-        "handoff",
-        "notice",
-        "packet",
-        "review",
-        "why",
-        "wiki"
+        "review"
       ],
       "consumes_provider": [],
       "references_wiki": [
@@ -2026,18 +1838,12 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "scope": "grok-project",
       "delegates_to": [
         "aar",
-        "check",
-        "close",
         "debrief",
-        "design",
-        "go",
-        "refine",
         "review",
         "skill-dev",
         "tp",
         "wargame",
-        "why",
-        "wiki"
+        "why"
       ],
       "consumes_provider": [],
       "references_wiki": [
@@ -2050,10 +1856,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "avant-garde-ui",
       "path": "P:\\.agents\\skills\\avant-garde-ui\\SKILL.md",
       "scope": "grok-agents",
-      "delegates_to": [
-        "design",
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2064,12 +1867,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\.agents\\skills\\config-audit\\SKILL.md",
       "scope": "grok-agents",
       "delegates_to": [
-        "check",
         "recover",
-        "skill-prune",
-        "tp",
-        "why",
-        "wiki"
+        "skill-prune"
       ],
       "consumes_provider": [],
       "references_wiki": [
@@ -2093,13 +1892,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "nlm-bulk-ingest",
       "path": "P:\\.agents\\skills\\nlm-bulk-ingest\\SKILL.md",
       "scope": "grok-agents",
-      "delegates_to": [
-        "check",
-        "design",
-        "web",
-        "why",
-        "wiki"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [
         "notebooklm-cli-operational-gotchas",
@@ -2114,11 +1907,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\.agents\\skills\\nlm-to-wiki\\SKILL.md",
       "scope": "grok-agents",
       "delegates_to": [
-        "check",
-        "codex",
-        "help",
         "mmx",
-        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -2141,11 +1930,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "notebooklm",
       "path": "P:\\.agents\\skills\\notebooklm\\SKILL.md",
       "scope": "grok-agents",
-      "delegates_to": [
-        "check",
-        "web",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2156,9 +1941,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\.agents\\skills\\preflight\\SKILL.md",
       "scope": "grok-agents",
       "delegates_to": [
-        "check",
-        "red-team",
-        "review"
+        "red-team"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2171,10 +1954,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "recover",
       "path": "P:\\.agents\\skills\\recover\\SKILL.md",
       "scope": "grok-agents",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [
         "notebooklm-cli-operational-gotchas"
@@ -2189,9 +1969,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\.agents\\skills\\skill-prune\\SKILL.md",
       "scope": "grok-agents",
       "delegates_to": [
-        "recover",
-        "why",
-        "wiki"
+        "recover"
       ],
       "consumes_provider": [],
       "references_wiki": [
@@ -2207,14 +1985,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\.agents\\skills\\workspace-health\\SKILL.md",
       "scope": "grok-agents",
       "delegates_to": [
-        "check",
-        "codex",
-        "handoff",
         "recover",
-        "skill-prune",
-        "tp",
-        "why",
-        "wiki"
+        "skill-prune"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2225,9 +1997,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "cc-model-router",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-model-router\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "design"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2237,10 +2007,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "debt",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-lazy-closure-debt\\skills\\debt\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "go",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2250,11 +2017,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "agy",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\agy\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2264,14 +2027,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ai-api",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\ai-api\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "packet",
-        "review",
-        "tp"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2281,12 +2037,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ai-cli",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\ai-cli\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "agy",
-        "check",
-        "packet",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "agy"
       ],
@@ -2298,12 +2049,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ai-models",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\ai-models\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "web",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2313,9 +2059,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ai-probe-benchmark",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\ai-probe-benchmark\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2325,9 +2069,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ai-probe-nim",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\ai-probe-nim\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "tp"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2347,9 +2089,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ai-probe-router",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\ai-probe-router\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2359,12 +2099,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "codex",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\codex\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "codex"
       ],
@@ -2376,11 +2111,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "google-ai-usage-monitor",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\google-ai-usage-monitor\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2390,10 +2121,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "intelligence-stream-analyze",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\intelligence-stream-analyze\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2413,10 +2141,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "perplexity-web-mcp",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\perplexity-web-mcp\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "pwm"
       ],
@@ -2428,9 +2153,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "quota",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-ai-api\\skills\\quota\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2441,10 +2164,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\behave\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "debrief",
-        "design",
-        "handoff"
+        "debrief"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2456,11 +2176,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\claude-audit\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "close",
         "debrief",
-        "design",
-        "go",
         "red-team",
         "review",
         "wiki"
@@ -2475,14 +2191,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\debrief\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "close",
-        "design",
-        "go",
-        "handoff",
         "red-team",
         "review",
-        "why",
         "wiki"
       ],
       "consumes_provider": [],
@@ -2495,13 +2205,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\doc-compiler\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "close",
-        "design",
-        "go",
-        "review",
-        "why",
-        "wiki"
+        "check"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2512,9 +2216,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "epistemic-check",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\epistemic-check\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2525,8 +2227,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\friction\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "debrief",
-        "review"
+        "debrief"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2538,10 +2239,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\recap\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
         "debrief",
         "design",
-        "go",
         "handoff"
       ],
       "consumes_provider": [],
@@ -2554,7 +2253,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\retro\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
         "debrief",
         "red-team"
       ],
@@ -2568,9 +2266,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\rns\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "go",
-        "handoff"
+        "go"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2582,12 +2278,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\skill-audit\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
         "debrief",
-        "design",
         "red-team",
-        "review",
-        "why"
+        "review"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2598,10 +2291,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "skill-similarity",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\skill-similarity\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2623,12 +2313,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "trace",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\trace\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "close",
-        "handoff",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2638,10 +2323,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "why",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-analysis\\skills\\why\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "search-research"
       ],
@@ -2654,11 +2336,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\ask\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "design",
-        "handoff",
-        "why",
-        "wiki"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2669,12 +2347,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "bf",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\bf\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "review",
-        "tp"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2684,10 +2357,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "constitutional-patterns",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\constitutional-patterns\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2707,11 +2377,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "decision-tree",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\decision-tree\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "design",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2722,9 +2388,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\evolve\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "design",
-        "why"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2745,10 +2409,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "gitready",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\gitready\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2759,8 +2420,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\prompt_refiner\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "design",
-        "refine"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2781,10 +2441,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "skill-from-docs",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\skill-from-docs\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2795,13 +2452,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\skill-to-page\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "close",
-        "design",
-        "go",
-        "review",
-        "tp",
-        "why"
+        "check"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2812,14 +2463,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "skill-write",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\skill-write\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "notice",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2829,11 +2473,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "solo-dev-authority",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\solo-dev-authority\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2843,11 +2483,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "subagent-driven-development",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\subagent-driven-development\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2857,10 +2493,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "usm",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-architect\\skills\\usm\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2871,11 +2504,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\check\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "codex",
-        "design",
-        "go",
-        "review",
-        "wiki"
+        "go"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2886,10 +2515,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "cks",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\cks\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "web",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2899,10 +2525,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "concept-mapper",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\concept-mapper\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2912,9 +2535,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "csf-nip-integration",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\csf-nip-integration\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2925,9 +2546,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\lmc\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "debrief",
-        "go"
+        "debrief"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2939,10 +2558,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\mlc\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "debrief",
-        "go",
-        "refine",
-        "review"
+        "debrief"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -2953,10 +2569,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "simplify-enhanced",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\simplify-enhanced\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2966,9 +2579,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "slc",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-lab\\skills\\slc\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2978,13 +2589,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "codebase-to-course",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\codebase-to-course\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -2994,12 +2599,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "frontend-dev",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\frontend-dev\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "web",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3009,15 +2609,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "fullstack-dev",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\fullstack-dev\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "close",
-        "design",
-        "go",
-        "handoff",
-        "review",
-        "tp"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3028,9 +2620,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\minimax-multimodal-toolkit\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "mmx",
-        "review",
-        "web"
+        "mmx"
       ],
       "consumes_provider": [
         "mmx"
@@ -3044,11 +2634,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\minimax-music-gen\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "go",
-        "mmx",
-        "refine",
-        "review"
+        "mmx"
       ],
       "consumes_provider": [
         "mmx"
@@ -3061,11 +2647,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "minimax-music-playlist",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\minimax-music-playlist\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go",
-        "mmx"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "mmx"
       ],
@@ -3077,9 +2659,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "nlm",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\nlm\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "nlm",
         "notebooklm"
@@ -3093,8 +2673,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\nlm-to-wiki\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "review",
         "wiki"
       ],
       "consumes_provider": [
@@ -3112,10 +2690,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "video-vision",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\video-vision\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3125,10 +2700,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "vision-analysis",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\vision-analysis\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "design",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3138,11 +2710,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "yt-is",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\yt-is\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3152,10 +2720,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "yt-nlm",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\yt-nlm\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "notebooklm"
       ],
@@ -3167,12 +2732,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "yt-selenium",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-media\\skills\\yt-selenium\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "close",
-        "web",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3182,9 +2742,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "av",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\av\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3194,15 +2752,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "brainstorming",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\brainstorming\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "refine",
-        "review",
-        "web",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3213,11 +2763,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\code\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
         "design",
-        "go",
-        "handoff",
-        "packet"
+        "go"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3238,10 +2785,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "code-review",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\code-review\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3252,10 +2796,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\design\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "go",
-        "packet",
-        "review"
+        "go"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3276,10 +2817,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "dispatching-parallel-agents",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\dispatching-parallel-agents\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3289,10 +2827,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "docs",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\docs\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3312,9 +2847,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "executing-plans",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\executing-plans\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3324,10 +2857,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "finishing-a-development-branch",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\finishing-a-development-branch\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3338,14 +2868,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\go\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "debrief",
-        "design",
-        "handoff",
-        "review",
-        "tasks",
-        "tp",
-        "why"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3356,10 +2879,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "improve-codebase-architecture",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\improve-codebase-architecture\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "design",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3369,10 +2889,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "mermaid-c4",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\mermaid-c4\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "refine",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3403,14 +2920,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\planning\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "close",
-        "design",
-        "go",
-        "handoff",
-        "packet",
-        "review",
-        "why"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3422,9 +2932,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\pre-mortem\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "red-team",
-        "review"
+        "red-team"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3435,9 +2943,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "preflight",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\preflight\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "packet"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3457,9 +2963,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "qmd-wiki",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\qmd-wiki\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "wiki"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3469,9 +2973,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "rca",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\rca\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3481,12 +2983,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "refactor",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\refactor\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "handoff",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3497,10 +2994,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\review\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "design",
-        "red-team",
-        "why"
+        "red-team"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3523,12 +3017,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "review_bundle",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\review_bundle\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3539,12 +3028,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\risks\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "design",
         "red-team",
-        "review",
-        "web",
-        "why"
+        "review"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3555,9 +3040,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ship",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\ship\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3568,8 +3051,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\specify\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "design",
-        "review"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3602,10 +3084,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "t",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\t\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3615,11 +3094,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "task",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\task\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3629,10 +3104,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tdd",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\tdd\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "tp"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3642,12 +3114,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "team",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\team\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "close",
-        "review",
-        "tasks"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3657,10 +3124,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tilldone",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\tilldone\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3670,10 +3134,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tldr-code",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\tldr-code\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3693,9 +3154,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tldr-overview",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\tldr-overview\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3705,10 +3164,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tldr-router",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\tldr-router\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3718,9 +3174,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tldr-stats",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\tldr-stats\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3742,12 +3196,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "using-git-worktrees",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\using-git-worktrees\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3757,9 +3206,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "using-superpowers",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\using-superpowers\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3769,10 +3216,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "verification-before-completion",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\verification-before-completion\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3782,9 +3226,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "wiki",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\wiki\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3794,10 +3236,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "writing-plans",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\writing-plans\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "handoff",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3807,9 +3246,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "writing-skills",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\writing-skills\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "close"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3819,9 +3256,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "zoom-out",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-sdlc\\skills\\zoom-out\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3831,9 +3266,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "dream",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\dream\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3843,9 +3276,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "execution-clarity",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\execution-clarity\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3855,9 +3286,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "genius",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\genius\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3868,7 +3297,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\learn\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
         "review"
       ],
       "consumes_provider": [],
@@ -3890,12 +3318,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "probe",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\probe\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "close",
-        "refine",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3905,13 +3328,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "prospect",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\prospect\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "handoff",
-        "web",
-        "why",
-        "wiki"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "search-research"
       ],
@@ -3923,13 +3340,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "reason",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\reason\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "codex",
-        "design",
-        "go",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3939,11 +3350,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "reflect",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\reflect\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3964,11 +3371,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\s\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "design",
-        "handoff",
-        "refine",
-        "why"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -3979,11 +3382,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "sequential-thinking",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\sequential-thinking\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "refine",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -3993,11 +3392,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "skeptic",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\skeptic\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4007,9 +3402,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "tot",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\tot\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4019,9 +3412,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "truth",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\truth\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4031,11 +3422,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "ut",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\ut\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "codex",
-        "wiki"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4046,8 +3433,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-thinking\\skills\\ux\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "web",
         "wiki"
       ],
       "consumes_provider": [],
@@ -4069,10 +3454,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "git",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\git\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4082,11 +3464,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "init",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\init\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4097,9 +3475,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\main\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
         "recover",
-        "review",
         "wiki"
       ],
       "consumes_provider": [],
@@ -4111,9 +3487,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "main-review",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\main-review\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4123,11 +3497,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "mm-quota",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\mm-quota\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4137,11 +3507,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "plugin-installer",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\plugin-installer\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4151,10 +3517,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "recover",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\recover\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4175,15 +3538,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\improve-partner\\skills\\improve\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
         "debrief",
-        "design",
-        "handoff",
-        "packet",
         "red-team",
         "review",
-        "web",
-        "why",
         "wiki"
       ],
       "consumes_provider": [],
@@ -4215,10 +3572,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "build",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\quickstop\\skills\\build\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4228,9 +3582,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "capture",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\quickstop\\skills\\capture\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4240,9 +3592,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "changelog",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\quickstop\\skills\\changelog\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4262,10 +3612,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "prime",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\quickstop\\skills\\prime\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4275,10 +3622,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "stale",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\quickstop\\skills\\stale\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4288,10 +3632,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "aid",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\aid\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4311,12 +3652,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "chs",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\chs\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "handoff",
-        "review",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4336,10 +3672,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "context7",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\context7\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "why"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "context7"
       ],
@@ -4352,9 +3685,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\crawl\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "crawl4ai",
-        "web",
         "wiki"
       ],
       "consumes_provider": [],
@@ -4370,9 +3700,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\discover\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "design",
-        "review"
+        "design"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -4396,8 +3724,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\find\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "handoff",
         "web"
       ],
       "consumes_provider": [],
@@ -4409,11 +3735,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "gitingest",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\gitingest\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "go",
-        "web"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "nlm"
       ],
@@ -4425,13 +3747,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "gitpack",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\gitpack\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "design",
-        "go",
-        "red-team",
-        "wiki"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4442,9 +3758,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\keep\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "refine",
-        "review",
         "web"
       ],
       "consumes_provider": [],
@@ -4457,9 +3770,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\note\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "check",
-        "refine",
-        "review",
         "web"
       ],
       "consumes_provider": [],
@@ -4482,8 +3792,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\research\\SKILL.md",
       "scope": "marketplace",
       "delegates_to": [
-        "go",
-        "mmx"
+        "go"
       ],
       "consumes_provider": [],
       "references_wiki": [],
@@ -4494,9 +3803,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "web",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\web\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "notebooklm",
         "serper"
@@ -4509,9 +3816,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "id",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\snapshot\\skills\\id\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "tp"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4521,10 +3826,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "name": "snapshot",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\snapshot\\skills\\snapshot\\SKILL.md",
       "scope": "marketplace",
-      "delegates_to": [
-        "check",
-        "review"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
@@ -4533,6 +3835,36 @@ Every capability the skill fleet declares via `provides:` frontmatter:
   ],
   "reverse": {
     "provider_consumers": {
+      "exa": [
+        "aar",
+        "agy",
+        "codex",
+        "crawl4ai",
+        "create-skill",
+        "design",
+        "dream",
+        "go",
+        "grok-parallel",
+        "grok-verify",
+        "handoff",
+        "imagine",
+        "mmx",
+        "model-benchmark",
+        "notice",
+        "packet",
+        "plan-writer",
+        "prompt-patterns",
+        "refactor",
+        "refine",
+        "review",
+        "search-fleet",
+        "skill-dev",
+        "tasks",
+        "todo",
+        "web",
+        "why-old",
+        "wiki"
+      ],
       "gh": [
         "aar",
         "agy",
@@ -4566,36 +3898,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "why-old",
         "wiki",
         "www"
-      ],
-      "exa": [
-        "aar",
-        "agy",
-        "codex",
-        "crawl4ai",
-        "create-skill",
-        "design",
-        "dream",
-        "go",
-        "grok-parallel",
-        "grok-verify",
-        "handoff",
-        "imagine",
-        "mmx",
-        "model-benchmark",
-        "notice",
-        "packet",
-        "plan-writer",
-        "prompt-patterns",
-        "refactor",
-        "refine",
-        "review",
-        "search-fleet",
-        "skill-dev",
-        "tasks",
-        "todo",
-        "web",
-        "why-old",
-        "wiki"
       ],
       "nlm": [
         "aar",
@@ -4651,15 +3953,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "go",
         "web"
       ],
-      "reddit": [
-        "search-fleet",
-        "todo",
-        "web",
-        "www"
-      ],
-      "tavily": [
-        "search-fleet",
-        "web"
+      "pwm": [
+        "perplexity-web-mcp",
+        "search-fleet"
       ],
       "ddg": [
         "search-fleet",
@@ -4671,15 +3967,21 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "search-fleet",
         "web"
       ],
+      "reddit": [
+        "search-fleet",
+        "todo",
+        "web",
+        "www"
+      ],
       "search-research": [
         "prospect",
         "search-fleet",
         "web",
         "why"
       ],
-      "pwm": [
-        "perplexity-web-mcp",
-        "search-fleet"
+      "tavily": [
+        "search-fleet",
+        "web"
       ],
       "notebooklm": [
         "nlm",
@@ -4692,15 +3994,15 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "tp",
         "why"
       ],
-      "hn-algolia": [
-        "web",
-        "www"
+      "stackexchange": [
+        "web"
       ],
       "duckduckgo": [
         "web"
       ],
-      "stackexchange": [
-        "web"
+      "hn-algolia": [
+        "web",
+        "www"
       ],
       "github-issues": [
         "www"
@@ -4716,182 +4018,131 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ]
     },
     "skill_callers": {
-      "go": [
+      "wiki": [
         "aar",
-        "ai-api",
-        "avant-garde-ui",
-        "brainstorming",
-        "build",
-        "check",
         "claude-audit",
         "close",
-        "code",
-        "code-review",
-        "codebase-to-course",
+        "crawl",
+        "crawl4ai",
+        "create-skill",
         "debrief",
-        "debt",
         "design",
-        "doc-compiler",
-        "docs",
         "dream",
-        "execute-plan",
-        "finishing-a-development-branch",
-        "fullstack-dev",
-        "gitingest",
-        "gitpack",
-        "google-ai-usage-monitor",
+        "go",
+        "grok-safe-git",
+        "handoff",
+        "improve",
+        "main",
+        "maintain",
+        "model-benchmark",
+        "nlm-to-wiki",
+        "notice",
+        "plan-writer",
+        "prompt-patterns",
+        "refactor",
+        "refine",
+        "review",
+        "skill-dev",
+        "todo",
+        "tp",
+        "ux",
+        "wargame",
+        "web",
+        "why",
+        "www"
+      ],
+      "close": [
+        "aar",
+        "check",
+        "dream",
+        "handoff",
+        "maintain",
+        "review",
+        "skill-dev",
+        "todo",
+        "tp"
+      ],
+      "go": [
+        "aar",
+        "check",
+        "close",
+        "code",
+        "design",
         "grok-go",
         "grok-parallel",
         "grok-sdlc",
         "handoff",
-        "implement",
-        "lmc",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mlc",
         "model-benchmark",
         "notice",
         "plan-writer",
-        "planning",
-        "pr-babysit",
-        "prime",
-        "reason",
-        "recap",
-        "red-team",
         "refactor",
         "refine",
         "research",
         "review",
         "rns",
-        "ship",
-        "skeptic",
-        "skill-to-page",
-        "skill-write",
         "todo",
-        "tot",
         "tp",
-        "using-git-worktrees",
         "wargame",
         "why",
         "why-old",
-        "www",
-        "zoom-out"
-      ],
-      "refine": [
-        "aar",
-        "brainstorming",
-        "debrief",
-        "design",
-        "dream",
-        "go",
-        "handoff",
-        "keep",
-        "mermaid-c4",
-        "minimax-music-gen",
-        "mlc",
-        "model-benchmark",
-        "note",
-        "plan-writer",
-        "probe",
-        "prompt_refiner",
-        "red-team",
-        "refactor",
-        "review",
-        "s",
-        "sequential-thinking",
-        "tp",
-        "wargame",
         "www"
       ],
-      "why": [
+      "review": [
         "aar",
-        "ai-models",
-        "ask",
-        "av",
-        "brainstorming",
         "check",
-        "chs",
-        "cks",
+        "claude-audit",
         "close",
-        "code-review",
-        "codebase-to-course",
-        "codex",
-        "config-audit",
-        "context7",
         "debrief",
-        "decision-tree",
-        "design",
-        "doc-compiler",
         "dream",
-        "evolve",
-        "execute-plan",
-        "frontend-dev",
-        "game-animation-frames",
-        "genius",
         "go",
-        "grok-discovery",
-        "handoff",
-        "implement",
         "improve",
-        "improve-codebase-architecture",
-        "init",
-        "maintain",
-        "mm-quota",
-        "mmx",
+        "learn",
+        "marketplace-bridge",
         "model-benchmark",
-        "model-discover",
-        "nlm-bulk-ingest",
-        "nlm-to-wiki",
-        "notebooklm",
-        "notice",
-        "plan-writer",
-        "planning",
-        "plugin-installer",
-        "pr-babysit",
-        "probe",
-        "prompt-patterns",
-        "prospect",
-        "reason",
         "red-team",
         "refactor",
         "refine",
-        "reflect",
-        "review",
-        "review_bundle",
+        "review-pr",
         "risks",
-        "s",
-        "search-fleet",
-        "skeptic",
         "skill-audit",
         "skill-dev",
-        "skill-prune",
-        "skill-to-page",
-        "skill-write",
-        "solo-dev-authority",
-        "task",
-        "tldr-code",
-        "tldr-router",
+        "sqd",
         "todo",
         "tp",
-        "using-git-worktrees",
-        "verification-before-completion",
-        "video-vision",
-        "wargame",
-        "web",
-        "why-old",
-        "wiki",
-        "workspace-health",
-        "www",
-        "yt-selenium"
+        "uci"
+      ],
+      "check": [
+        "aar",
+        "close",
+        "debrief",
+        "doc-compiler",
+        "dream",
+        "go",
+        "grok-verify",
+        "model-benchmark",
+        "refactor",
+        "refine",
+        "review",
+        "skill-to-page",
+        "todo",
+        "tp",
+        "www"
+      ],
+      "refine": [
+        "aar",
+        "design",
+        "dream",
+        "go",
+        "handoff",
+        "plan-writer",
+        "refactor"
       ],
       "red-team": [
         "aar",
         "claude-audit",
         "close",
         "debrief",
-        "design",
         "dream",
-        "gitpack",
         "improve",
         "notice",
         "pre-mortem",
@@ -4900,244 +4151,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "review",
         "risks",
         "skill-audit",
-        "skill-dev",
         "tp",
         "why",
         "why-old",
-        "www"
-      ],
-      "check": [
-        "aar",
-        "agy",
-        "ai-api",
-        "ai-cli",
-        "ai-models",
-        "ai-probe-benchmark",
-        "ai-probe-router",
-        "aid",
-        "ask",
-        "behave",
-        "bf",
-        "brainstorming",
-        "build",
-        "capture",
-        "changelog",
-        "chs",
-        "claude-audit",
-        "close",
-        "code",
-        "code-review",
-        "codebase-to-course",
-        "codex",
-        "concept-mapper",
-        "config-audit",
-        "constitutional-patterns",
-        "context7",
-        "crawl",
-        "crawl4ai",
-        "create-workflow",
-        "csf-nip-integration",
-        "debrief",
-        "design",
-        "discover",
-        "dispatching-parallel-agents",
-        "doc-compiler",
-        "docs",
-        "dream",
-        "epistemic-check",
-        "evolve",
-        "execute-plan",
-        "execution-clarity",
-        "find",
-        "finishing-a-development-branch",
-        "frontend-dev",
-        "fullstack-dev",
-        "game-animation-frames",
-        "game-character-consistency",
-        "git",
-        "gitingest",
-        "gitpack",
-        "gitready",
-        "go",
-        "google-ai-usage-monitor",
-        "grok-safe-git",
-        "grok-verify",
-        "handoff",
-        "help",
-        "imagine",
-        "implement",
-        "improve",
-        "init",
-        "intelligence-stream-analyze",
-        "keep",
-        "learn",
-        "lmc",
-        "main",
-        "maintain",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mm-quota",
-        "mmx",
-        "model-benchmark",
-        "nlm",
-        "nlm-bulk-ingest",
-        "nlm-to-wiki",
-        "note",
-        "notebooklm",
-        "notice",
-        "packet",
-        "pdf",
-        "perplexity-web-mcp",
-        "plan-writer",
-        "planning",
-        "plugin-installer",
-        "pptx",
-        "pr-babysit",
-        "pre-mortem",
-        "preflight",
-        "prime",
-        "probe",
-        "prompt-patterns",
-        "prospect",
-        "quota",
-        "rca",
-        "recap",
-        "recover",
-        "red-team",
-        "refactor",
-        "refine",
-        "reflect",
-        "retro",
-        "review",
-        "review_bundle",
-        "risks",
-        "rns",
-        "s",
-        "sequential-thinking",
-        "simplify-enhanced",
-        "skeptic",
-        "skill-audit",
-        "skill-dev",
-        "skill-from-docs",
-        "skill-similarity",
-        "skill-to-page",
-        "skill-write",
-        "slc",
-        "snapshot",
-        "solo-dev-authority",
-        "stale",
-        "subagent-driven-development",
-        "t",
-        "task",
-        "tasks",
-        "tdd",
-        "team",
-        "tilldone",
-        "tldr-code",
-        "tldr-overview",
-        "tldr-stats",
-        "todo",
-        "tp",
-        "trace",
-        "truth",
-        "using-git-worktrees",
-        "using-superpowers",
-        "usm",
-        "ut",
-        "ux",
-        "verification-before-completion",
-        "video-vision",
-        "wargame",
-        "web",
-        "why",
-        "why-old",
-        "wiki",
-        "workspace-health",
-        "www",
-        "yt-is",
-        "yt-nlm",
-        "yt-selenium"
-      ],
-      "packet": [
-        "aar",
-        "ai-api",
-        "ai-cli",
-        "check",
-        "close",
-        "code",
-        "design",
-        "go",
-        "improve",
-        "planning",
-        "preflight",
-        "review",
-        "why"
-      ],
-      "wiki": [
-        "aar",
-        "ask",
-        "check",
-        "claude-audit",
-        "close",
-        "config-audit",
-        "crawl",
-        "crawl4ai",
-        "create-skill",
-        "debrief",
-        "design",
-        "doc-compiler",
-        "dream",
-        "gitpack",
-        "go",
-        "grok-safe-git",
-        "handoff",
-        "improve",
-        "main",
-        "maintain",
-        "model-benchmark",
-        "model-discover",
-        "nlm-bulk-ingest",
-        "nlm-to-wiki",
-        "notice",
-        "packet",
-        "plan-writer",
-        "prompt-patterns",
-        "prospect",
-        "qmd-wiki",
-        "red-team",
-        "refactor",
-        "refine",
-        "review",
-        "search-fleet",
-        "skill-dev",
-        "skill-prune",
-        "todo",
-        "tp",
-        "ut",
-        "ux",
-        "wargame",
-        "web",
-        "why",
-        "workspace-health",
         "www"
       ],
       "tp": [
         "aar",
-        "ai-api",
-        "ai-probe-nim",
-        "bf",
         "close",
-        "config-audit",
         "design",
         "dream",
-        "fullstack-dev",
         "go",
         "handoff",
-        "id",
-        "marketplace-bridge",
-        "mmx",
         "model-benchmark",
-        "model-discover",
         "notice",
         "plan-writer",
         "red-team",
@@ -5145,257 +4171,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "refine",
         "review",
         "skill-dev",
-        "skill-to-page",
-        "tdd",
         "todo",
-        "web",
         "why",
         "why-old",
-        "workspace-health",
         "www"
-      ],
-      "review": [
-        "aar",
-        "agy",
-        "ai-api",
-        "ai-cli",
-        "ai-models",
-        "aid",
-        "bf",
-        "brainstorming",
-        "check",
-        "chs",
-        "claude-audit",
-        "close",
-        "code-review",
-        "codebase-to-course",
-        "codex",
-        "concept-mapper",
-        "constitutional-patterns",
-        "create-workflow",
-        "debrief",
-        "debt",
-        "decision-tree",
-        "design",
-        "discover",
-        "dispatching-parallel-agents",
-        "doc-compiler",
-        "dream",
-        "execute-plan",
-        "executing-plans",
-        "friction",
-        "fullstack-dev",
-        "git",
-        "gitready",
-        "go",
-        "google-ai-usage-monitor",
-        "grok-discovery",
-        "grok-parallel",
-        "grok-verify",
-        "handoff",
-        "imagine",
-        "implement",
-        "improve",
-        "init",
-        "intelligence-stream-analyze",
-        "keep",
-        "learn",
-        "main",
-        "main-review",
-        "marketplace-bridge",
-        "mermaid-c4",
-        "minimax-multimodal-toolkit",
-        "minimax-music-gen",
-        "mlc",
-        "mmx",
-        "model-benchmark",
-        "model-discover",
-        "nlm-to-wiki",
-        "note",
-        "notice",
-        "packet",
-        "plan-writer",
-        "planning",
-        "plugin-installer",
-        "pr-babysit",
-        "pre-mortem",
-        "preflight",
-        "reason",
-        "recover",
-        "red-team",
-        "refactor",
-        "refine",
-        "reflect",
-        "review-pr",
-        "review_bundle",
-        "risks",
-        "sequential-thinking",
-        "simplify-enhanced",
-        "skill-audit",
-        "skill-dev",
-        "skill-from-docs",
-        "skill-similarity",
-        "skill-to-page",
-        "skill-write",
-        "snapshot",
-        "solo-dev-authority",
-        "specify",
-        "sqd",
-        "stale",
-        "subagent-driven-development",
-        "t",
-        "task",
-        "team",
-        "tilldone",
-        "tldr-router",
-        "todo",
-        "tp",
-        "trace",
-        "uci",
-        "vision-analysis",
-        "wargame",
-        "web",
-        "why",
-        "why-old",
-        "writing-plans",
-        "www",
-        "yt-is",
-        "yt-nlm"
-      ],
-      "handoff": [
-        "aar",
-        "ask",
-        "behave",
-        "check",
-        "chs",
-        "close",
-        "code",
-        "debrief",
-        "design",
-        "dream",
-        "find",
-        "fullstack-dev",
-        "go",
-        "grok-route",
-        "grok-verify",
-        "improve",
-        "maintain",
-        "notice",
-        "packet",
-        "plan-writer",
-        "planning",
-        "prompt-patterns",
-        "prospect",
-        "recap",
-        "refactor",
-        "refine",
-        "review",
-        "rns",
-        "s",
-        "skill-dev",
-        "todo",
-        "tp",
-        "trace",
-        "wargame",
-        "why",
-        "workspace-health",
-        "writing-plans"
-      ],
-      "design": [
-        "aar",
-        "agy",
-        "ai-api",
-        "ask",
-        "avant-garde-ui",
-        "behave",
-        "bf",
-        "brainstorming",
-        "cc-model-router",
-        "check",
-        "claude-audit",
-        "close",
-        "code",
-        "code-review",
-        "codebase-to-course",
-        "codex",
-        "debrief",
-        "decision-tree",
-        "discover",
-        "doc-compiler",
-        "dream",
-        "evolve",
-        "execute-plan",
-        "frontend-dev",
-        "fullstack-dev",
-        "game-ui-icons",
-        "gitpack",
-        "go",
-        "grok-parallel",
-        "handoff",
-        "implement",
-        "improve",
-        "improve-codebase-architecture",
-        "maintain",
-        "mm-quota",
-        "mmx",
-        "nlm-bulk-ingest",
-        "notice",
-        "packet",
-        "plan-writer",
-        "planning",
-        "prompt_refiner",
-        "reason",
-        "recap",
-        "red-team",
-        "refactor",
-        "refine",
-        "review",
-        "review_bundle",
-        "risks",
-        "s",
-        "skill-audit",
-        "skill-dev",
-        "skill-to-page",
-        "skill-write",
-        "specify",
-        "tp",
-        "using-git-worktrees",
-        "vision-analysis",
-        "wargame",
-        "web",
-        "why",
-        "why-old",
-        "wiki",
-        "www"
-      ],
-      "close": [
-        "aar",
-        "check",
-        "claude-audit",
-        "debrief",
-        "doc-compiler",
-        "dream",
-        "fullstack-dev",
-        "grok-safe-git",
-        "grok-verify",
-        "handoff",
-        "maintain",
-        "notice",
-        "planning",
-        "pptx",
-        "probe",
-        "red-team",
-        "refactor",
-        "review",
-        "skill-dev",
-        "skill-to-page",
-        "team",
-        "todo",
-        "tp",
-        "trace",
-        "writing-skills",
-        "www",
-        "yt-selenium"
       ],
       "debrief": [
         "agy",
@@ -5406,7 +4185,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "dream",
         "export-session",
         "friction",
-        "go",
         "handoff",
         "improve",
         "lmc",
@@ -5418,73 +4196,78 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "top-problems",
         "tp"
       ],
-      "web": [
-        "agy",
-        "ai-models",
-        "brainstorming",
-        "build-with-ai",
-        "cks",
-        "codex",
-        "crawl",
-        "crawl4ai",
-        "design",
-        "find",
-        "frontend-dev",
-        "gitingest",
-        "go",
-        "imagine",
-        "improve",
-        "keep",
-        "minimax-multimodal-toolkit",
-        "mmx",
-        "nlm-bulk-ingest",
-        "note",
-        "notebooklm",
-        "perplexity-web-mcp",
-        "prospect",
-        "risks",
-        "search-fleet",
-        "subagent-driven-development",
-        "tp",
-        "usm",
-        "ux",
-        "www",
-        "yt-is",
-        "yt-selenium"
-      ],
-      "notice": [
-        "check",
-        "close",
-        "design",
-        "dream",
-        "game-tilesets",
-        "skill-dev",
-        "skill-write",
-        "tp"
-      ],
       "aar": [
         "close",
         "dream",
         "handoff",
         "notice",
         "packet",
-        "plan-writer",
         "red-team",
         "skill-dev",
+        "todo",
         "tp",
         "wargame",
         "why",
         "why-old"
       ],
+      "notice": [
+        "close",
+        "skill-dev",
+        "tp"
+      ],
+      "handoff": [
+        "close",
+        "design",
+        "dream",
+        "go",
+        "maintain",
+        "notice",
+        "packet",
+        "plan-writer",
+        "recap",
+        "refactor",
+        "refine",
+        "tp"
+      ],
+      "design": [
+        "ask",
+        "close",
+        "code",
+        "discover",
+        "dream",
+        "evolve",
+        "execute-plan",
+        "go",
+        "handoff",
+        "plan-writer",
+        "planning",
+        "prompt_refiner",
+        "recap",
+        "refine",
+        "s",
+        "specify",
+        "tp",
+        "wargame",
+        "web",
+        "why",
+        "why-old",
+        "www"
+      ],
       "agy": [
-        "ai-cli",
         "check",
         "codex",
         "mmx",
         "search-fleet",
-        "tasks",
         "tp",
         "why"
+      ],
+      "web": [
+        "crawl4ai",
+        "find",
+        "keep",
+        "note",
+        "tp",
+        "www"
       ],
       "skill-dev": [
         "create-skill",
@@ -5498,33 +4281,42 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "skill-dev",
         "workspace-health"
       ],
-      "preflight": [
-        "design",
-        "tp"
-      ],
-      "mmx": [
-        "design",
-        "minimax-multimodal-toolkit",
-        "minimax-music-gen",
-        "minimax-music-playlist",
+      "why": [
+        "debrief",
+        "dream",
         "model-benchmark",
-        "nlm-to-wiki",
-        "research",
-        "search-fleet",
+        "notice",
+        "red-team",
+        "review",
+        "skill-dev",
+        "todo",
         "tp",
-        "web",
-        "why"
-      ],
-      "plan-writer": [
-        "design",
-        "go",
-        "grok-parallel",
-        "refine"
+        "wargame",
+        "why-old",
+        "www"
       ],
       "todo": [
         "design"
       ],
+      "preflight": [
+        "design",
+        "tp"
+      ],
+      "plan-writer": [
+        "design",
+        "go",
+        "refine"
+      ],
+      "grok-parallel": [
+        "go",
+        "notice"
+      ],
       "grok-route": [
+        "go",
+        "grok-parallel",
+        "grok-verify"
+      ],
+      "grok-safe-git": [
         "go",
         "grok-parallel",
         "grok-verify"
@@ -5536,18 +4328,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "grok-verify": [
         "go",
         "grok-parallel",
-        "refactor",
         "skill-dev",
         "tp"
-      ],
-      "grok-safe-git": [
-        "go",
-        "grok-parallel",
-        "grok-verify"
-      ],
-      "grok-parallel": [
-        "go",
-        "notice"
       ],
       "recover": [
         "config-audit",
@@ -5557,16 +4339,9 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "workspace-health"
       ],
       "codex": [
-        "check",
         "mmx",
-        "nlm-to-wiki",
-        "reason",
-        "resume-codex",
-        "review",
         "tp",
-        "ut",
-        "why",
-        "workspace-health"
+        "why"
       ],
       "model-benchmark": [
         "model-discover"
@@ -5578,22 +4353,23 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "create-skill": [
         "skill-dev"
       ],
-      "search-fleet": [
-        "web"
+      "mmx": [
+        "minimax-multimodal-toolkit",
+        "minimax-music-gen",
+        "nlm-to-wiki",
+        "tp",
+        "web",
+        "why"
       ],
       "crawl4ai": [
-        "crawl",
         "www"
-      ],
-      "help": [
-        "nlm-to-wiki"
-      ],
-      "tasks": [
-        "go",
-        "team"
       ]
     },
     "wiki_referencers": {
+      "operator-collaboration-style-and-leverage": [
+        "aar",
+        "dream"
+      ],
       "parallel-subagent-wait-all-gate": [
         "aar",
         "red-team",
@@ -5605,10 +4381,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ],
       "friction-detection-operator-pushback-as-trigger": [
         "aar"
-      ],
-      "operator-collaboration-style-and-leverage": [
-        "aar",
-        "dream"
       ],
       "agentic-sdlc-skill-lifecycle-architecture": [
         "check",
@@ -5642,19 +4414,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "consistency-drift-as-waste-source-in-iterative-refinement": [
         "design"
       ],
-      "adr-0009-extend-unverified-stance": [
+      "llm-synthesis-quality-and-speed-techniques": [
         "design"
       ],
       "raising-coding-best-practices-in-ai-agents": [
         "design"
       ],
-      "llm-synthesis-quality-and-speed-techniques": [
+      "adr-0009-extend-unverified-stance": [
         "design"
       ],
-      "self-improving-agent-systems-techniques-and-workspace-gaps": [
+      "llm-dreaming-memory-consolidation": [
         "dream"
       ],
-      "llm-dreaming-memory-consolidation": [
+      "self-improving-agent-systems-techniques-and-workspace-gaps": [
         "dream"
       ],
       "multi-terminal-git-coordination-primitives": [
@@ -5670,19 +4442,19 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "model-fleet-provider-pools": [
         "model-benchmark"
       ],
-      "mechanisms-for-thought-partner-behavior": [
+      "wiki-concept": [
         "notice"
       ],
-      "wiki-concept": [
+      "mechanisms-for-thought-partner-behavior": [
         "notice"
       ],
       "proactive-ai-volunteering-mechanisms": [
         "notice"
       ],
-      "agents-md-construction-best-practices": [
+      "conversation-distillation-review-packet-export": [
         "packet"
       ],
-      "conversation-distillation-review-packet-export": [
+      "agents-md-construction-best-practices": [
         "packet"
       ],
       "maker-checker-required-for-enforcement-work": [
@@ -5691,26 +4463,29 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "verification-before-completion-principle": [
         "refactor"
       ],
-      "workflow-definition-over-agent-capability": [
-        "refine"
-      ],
       "trust-escalation-ladder-autonomous-agent-work": [
         "refine"
       ],
-      "task-refinement-interview-detection-template-patterns": [
+      "workflow-definition-over-agent-capability": [
         "refine"
       ],
       "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
         "refine"
       ],
-      "skill-techniques-index": [
+      "task-refinement-interview-detection-template-patterns": [
+        "refine"
+      ],
+      "skill-development-portfolio": [
         "skill-dev"
       ],
       "skill-management-in-agentic-systems-research-survey": [
         "skill-dev"
       ],
-      "skill-development-portfolio": [
+      "skill-techniques-index": [
         "skill-dev"
+      ],
+      "markdown-mermaid-rendering-agentic-clis-windows-11": [
+        "tp"
       ],
       "analyst-exhibits-pattern-being-analyzed": [
         "tp"
@@ -5725,8 +4500,8 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "check",
         "tp"
       ],
-      "markdown-mermaid-rendering-agentic-clis-windows-11": [
-        "tp"
+      "web-search-tool-routing": [
+        "web"
       ],
       "search-tool-landscape-2026": [
         "web"
@@ -5734,17 +4509,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "optimal-multi-backend-search-strategy": [
         "web"
       ],
-      "web-search-tool-routing": [
-        "web"
-      ],
       "web-research-state-2026": [
         "web"
       ],
       "problem-first-systems-decomposition": [
-        "why",
-        "why-old"
-      ],
-      "reactive-pattern-matching-and-closure-pressure": [
         "why",
         "why-old"
       ],
@@ -5755,24 +4523,31 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "compaction-inherited-diagnosis-unverified-propagation": [
         "why"
       ],
-      "plausible-narratives-substitute-for-verification": [
-        "why-old"
-      ],
-      "fabricated-causal-chain-receipt-required": [
+      "reactive-pattern-matching-and-closure-pressure": [
+        "why",
         "why-old"
       ],
       "premature-closure-narrative-sufficiency-external-approaches": [
         "why-old"
       ],
+      "fabricated-causal-chain-receipt-required": [
+        "why-old"
+      ],
+      "plausible-narratives-substitute-for-verification": [
+        "why-old"
+      ],
       "synchronous-review-direct-write-pattern": [
+        "wiki"
+      ],
+      "inline-conditional-over-dispatch-for-skill-design": [
         "wiki"
       ],
       "skill-catalog": [
         "wiki",
         "www"
       ],
-      "inline-conditional-over-dispatch-for-skill-design": [
-        "wiki"
+      "invariants-beat-environment-comfort": [
+        "www"
       ],
       "concurrent-cdp-auth-contention": [
         "nlm-to-wiki",
@@ -5784,9 +4559,6 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "recover",
         "www"
       ],
-      "invariants-beat-environment-comfort": [
-        "www"
-      ],
       "structural-enforcement-for-skipped-rules-grok-build-2026": [
         "config-audit"
       ],
@@ -5794,20 +4566,20 @@ Every capability the skill fleet declares via `provides:` frontmatter:
         "config-audit",
         "skill-prune"
       ],
+      "semantic-clustering-bounded-size": [
+        "nlm-bulk-ingest"
+      ],
       "notebooklm-source-limits-free-vs-paid": [
         "nlm-bulk-ingest",
         "nlm-to-wiki"
       ],
-      "semantic-clustering-bounded-size": [
-        "nlm-bulk-ingest"
-      ],
-      "nlm-to-wiki-optimization-opportunities": [
+      "video-to-wiki-pipeline-transcript-extraction-multimodal": [
         "nlm-to-wiki"
       ],
       "nlm-bulk-ingest": [
         "nlm-to-wiki"
       ],
-      "video-to-wiki-pipeline-transcript-extraction-multimodal": [
+      "nlm-to-wiki-optimization-opportunities": [
         "nlm-to-wiki"
       ],
       "nlm-abc12345-concept-two": [
@@ -5818,13 +4590,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       ]
     },
     "capability_providers": {
-      "after-action-review": [
+      "value-accounting": [
         "aar"
       ],
       "opportunity-landscape": [
         "aar"
       ],
-      "value-accounting": [
+      "after-action-review": [
         "aar"
       ],
       "cross-model-second-opinion": [
@@ -5876,10 +4648,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "verify-dispatch": [
         "go"
       ],
-      "engineering-orchestration": [
+      "discovery-dispatch": [
         "go"
       ],
-      "discovery-dispatch": [
+      "engineering-orchestration": [
         "go"
       ],
       "source-authority-discovery": [
@@ -5921,13 +4693,13 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "minimax-web-search": [
         "mmx"
       ],
+      "latency-benchmark": [
+        "model-benchmark"
+      ],
       "cost-tracking": [
         "model-benchmark"
       ],
       "quality-scoring": [
-        "model-benchmark"
-      ],
-      "latency-benchmark": [
         "model-benchmark"
       ],
       "model-discovery": [
@@ -5951,16 +4723,16 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "task-refinement": [
         "refine"
       ],
-      "code-review": [
-        "review"
-      ],
       "verified-findings-on-disk": [
         "review"
       ],
-      "rrf-aggregation": [
-        "search-fleet"
+      "code-review": [
+        "review"
       ],
       "capability-routed-search": [
+        "search-fleet"
+      ],
+      "rrf-aggregation": [
         "search-fleet"
       ],
       "skill-improvement": [
@@ -5996,10 +4768,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
       "pattern-library-query": [
         "why"
       ],
-      "root-cause-analysis": [
+      "feedback-to-wiki": [
         "why"
       ],
-      "feedback-to-wiki": [
+      "root-cause-analysis": [
         "why"
       ],
       "capability-wiki-query": [
