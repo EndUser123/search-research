@@ -1,5 +1,29 @@
 # Vault Log
 
+## Capability node architecture
+Source: session-2026-07-28
+Agent: grok
+Notes: Two-layer contract + design notes decision
+Page: P:/.data/wiki/concepts/capability-node-architecture.md
+
+## textual-tui-pitfall-checklist
+Source: session-019fa94d-/www
+Agent: grok
+Notes: Checklist of 25+ predictable Textual+Python bugs mapped to KSC findings; pre-flight checklist for any TUI app
+Page: concepts/textual-tui-pitfall-checklist.md
+
+## -e
+Source: behaviors-and-compaction-research
+Agent: -t
+Notes: wiki
+Page: -d
+
+## io-safety-review-lens
+Source: session-019fa94d-tp
+Agent: grok
+Notes: New review lens: catches delete-before-copy and non-atomic write patterns that 4 standard reviews missed
+Page: concepts/io-safety-review-lens.md
+
 ## --concept
 Source: fleet-wide-friction-taxonomy-20260728
 Agent: --action

@@ -146,11 +146,20 @@ orchestration layer, not in the MCP servers themselves.
 
 ## What this means for our workspace
 
-**No custom email scanning code needed.** The plan in
-[[adhd-friendly-unified-todo-workspace-email-scanning]] proposed building
-IMAP+OAuth scanning from scratch. The MCP servers handle all of that.
-`/todo` calls the MCP email tools and applies the TTL cache + deferral
-logic on top.
+**⚠️ UPDATED 2026-07-28:** For email specifically, this MCP-based approach
+has been **superseded** by [[stateless-cli-vs-mcp-for-cross-agent-email-access]].
+MCP email servers are tied to each agent runtime's MCP client (Grok Build,
+Claude Code, Codex each have separate MCP configs), while the fleet needs
+email access from all 5 runtimes. The stateless CLI approach (himalaya +
+ortie + email-skill wrapper) is the cross-agent path for email.
+
+**The MCP servers below remain valid for the social side** (Reddit, HN)
+which is Grok-Build-specific and does not need cross-runtime access.
+
+**Original assessment (retained for reference):** The MCP ecosystem has
+mature servers for every platform. For a single-runtime setup (Grok Build
+only), installing the MCP servers and calling their tools from `/todo` is
+the fastest path.
 
 **For `/www` research:** the Reddit and HN MCP servers replace the
 `site:reddit.com` search workaround documented in
