@@ -46,6 +46,12 @@ identified the correct architecture: export raw transcripts, cluster into
 sub-topics, synthesize per sub-topic with citations. The `mcptube-vision`
 project (MIT) validates this with a working implementation.
 
+<!-- FILE REFERENCE LEGEND: Script paths under scripts/ (export_transcripts.py,
+  cluster_transcripts.py, synthesize_subtopics.py) and temp paths under P:/tmp/
+  are PLANNED targets for v3 implementation — they do not exist yet. Paths
+  referencing v2 scripts (extract.py, parse_report.py, expand_citations.py) are
+  historical descriptions of deleted code. See step 8 in implementation plan. -->
+
 ## Acceptance criteria
 
 ### AC-1: Raw transcript export

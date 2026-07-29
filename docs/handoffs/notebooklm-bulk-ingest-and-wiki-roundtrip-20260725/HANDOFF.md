@@ -125,7 +125,7 @@ The eight shipped items (Evidence §A) are done. The two partial items
 | A1 | Dedup 4244→4143 watch-later videos | `C:/Users/brsth/Downloads/watch-later-1784999007767-deduped.json`; 101 removals (97 dead placeholders + 4 dupes) |
 | A2 | Cluster 4116 addable → 15 themed clusters | `C:/Users/brsth/Downloads/watch-later-1784999007767-deduped-clusters.json`; sizes 154–300, mean 274 |
 | A3 | 15 NotebookLM notebooks created + bulk-added | `P:/tmp/wl_notebooks_run.json`; all 15 with `status: ok`, source_counts: 295/294/299/191/299/154/227/296/297/296/300/299/299/291/279 = 4116 total |
-| A4 | 3 wiki concepts written, validated, indexed, logged | `P:/.data/wiki/concepts/{notebooklm-cli-operational-gotchas,semantic-clustering-bounded-size,notebooklm-source-limits-free-vs-paid}.md`; all pass `validate_wiki_entry.py`; all in qmd; all logged in `P:/.data/wiki/log.md` |
+| A4 | 3 wiki concepts written, validated, indexed, logged | `P:/.data/wiki/concepts/notebooklm-cli-operational-gotchas.md`, `P:/.data/wiki/concepts/semantic-clustering-bounded-size.md`, `P:/.data/wiki/concepts/notebooklm-source-limits-free-vs-paid.md`; all pass `validate_wiki_entry.py`; all in qmd; all logged in `P:/.data/wiki/log.md` |
 | A5 | SCHEMA.md §13 principle #11 added | `P:/.data/wiki/SCHEMA.md:496`; principles #1–#10 intact (no regression) |
 | A6 | `~/.grok/tool-fallbacks.md` nlm recipes added | `~/.grok/tool-fallbacks.md:50-69`; "CLI auth + bulk recipes" section |
 | A7 | `/nlm-bulk-ingest` skill shipped | `P:/.agents/skills/nlm-bulk-ingest/` (SKILL.md + 3 scripts + 2 references); 14-test suite passing; smoke-tested end-to-end on 50 real YT entries |
@@ -165,12 +165,12 @@ The eight shipped items (Evidence §A) are done. The two partial items
 - `P:/.data/wiki/concepts/notebooklm-source-limits-free-vs-paid.md`
 - `P:/.data/wiki/SCHEMA.md` (§13 principle #11 added)
 
-### Run artifacts (uncommitted, in P:/tmp/)
-- `P:/tmp/wl_notebooks_run.json` — notebook IDs + verified source_counts for the 15 notebooks
-- `P:/tmp/wl_notebooks_run.log` — run log
-- `P:/tmp/wl_notebooks_driver.py` — the driver script (reusable template)
-- `P:/tmp/cluster_watchlater.py` — original clustering script (superseded by the skill's `cluster.py`)
-- `P:/tmp/dedup_watchlater.py` — original dedup script (superseded by `normalize.py`)
+### Run artifacts (DELETED — superseded by skill scripts)
+- `P:/tmp/wl_notebooks_run.json` — DELETED. Notebook IDs + source_counts preserved in the table below and in the nlm-to-wiki-v3 handoff.
+- `P:/tmp/wl_notebooks_run.log` — DELETED.
+- `P:/tmp/wl_notebooks_driver.py` — DELETED. Superseded by nlm-bulk-ingest skill's `ingest.py`.
+- `P:/tmp/cluster_watchlater.py` — DELETED. Superseded by skill's `cluster.py`.
+- `P:/tmp/dedup_watchlater.py` — DELETED. Superseded by `normalize.py`.
 
 ### NotebookLM notebooks (15)
 All at `https://notebooklm.google.com/notebook/<id>`:
