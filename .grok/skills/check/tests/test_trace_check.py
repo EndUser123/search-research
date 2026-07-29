@@ -110,3 +110,32 @@ class KeepSmallerCopyApp:
     code, stdout = _run(["--paths", str(f)])
     assert "3 called-but-undefined" in stdout
     assert "_mark_row" in stdout
+
+
+def test_inheritance_not_flagged(tmp_path):
+    """Method defined on base class should NOT be flagged on subclass."""
+    f = tmp_path / "inherit.py"
+    f.write_text("""
+class Base:
+    def _helper(self):
+        pass
+
+class Child(Base):
+    def run(self):
+        self._helper()  # inherited from Base — should be OK
+""", encoding="utf-8")
+    code, stdout = _run(["--paths", str(f)])
+    assert "clean" in stdout
+
+
+def test_syntax_error_reported(tmp_path):
+    """File with syntax error should produce a finding, not silent skip."""
+    f = tmp_path / "broken.py"
+    f.write_text("""
+class App:
+    def run(self):
+        self._ok()
+        def (  # syntax error
+""", encoding="utf-8")
+    code, stdout = _run(["--paths", str(f)])
+    assert "SyntaxError" in stdout

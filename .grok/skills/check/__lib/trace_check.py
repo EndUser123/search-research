@@ -21,27 +21,59 @@ from pathlib import Path
 from typing import Any
 
 
-def extract_class_methods(source: str) -> dict[str, list[str]]:
-    """Map class name → list of method names defined in that class.
+def extract_class_methods(
+    source: str,
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Map class name → method names, and class name → base class names.
 
-    Handles inheritance minimally: if a method is defined in a base class,
-    it's available on subclasses. This script checks direct definitions only —
-    pyright/pylint handle MRO resolution.
+    Returns (methods, bases) where:
+    - methods[class_name] = [method_name, ...]
+    - bases[class_name] = [base_class_name, ...]
+
+    Handles inheritance for classes defined IN THE SAME FILE. Base classes
+    from other modules can't be resolved here — pyright/pylint handle those.
     """
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        return {}
+        return {}, {}
 
-    classes: dict[str, list[str]] = {}
+    methods: dict[str, list[str]] = {}
+    bases: dict[str, list[str]] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
-            methods = []
+            class_methods = []
             for child in ast.iter_child_nodes(node):
                 if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    methods.append(child.name)
-            classes[node.name] = methods
-    return classes
+                    class_methods.append(child.name)
+            methods[node.name] = class_methods
+            # Extract base class names (only Name nodes — string/attribute bases
+            # are from other modules and can't be resolved here)
+            base_names = []
+            for base in node.bases:
+                if isinstance(base, ast.Name):
+                    base_names.append(base.id)
+            bases[node.name] = base_names
+    return methods, bases
+
+
+def _resolve_methods(
+    cls: str,
+    methods: dict[str, list[str]],
+    bases: dict[str, list[str]],
+    seen: set[str] | None = None,
+) -> set[str]:
+    """Get all methods available on a class, including
+    inherited methods from same-file base classes."""
+    if seen is None:
+        seen = set()
+    if cls in seen or cls not in methods:
+        return set()
+    seen.add(cls)
+    result = set(methods[cls])
+    for base in bases.get(cls, []):
+        result |= _resolve_methods(base, methods, bases, seen)
+    return result
 
 
 def extract_self_calls(source: str) -> list[dict[str, Any]]:
@@ -108,7 +140,7 @@ def check_file(path: str) -> list[dict[str, Any]]:
             ),
         }]
 
-    class_methods = extract_class_methods(source)
+    class_methods, class_bases = extract_class_methods(source)
     self_calls = extract_self_calls(source)
 
     findings: list[dict[str, Any]] = []
@@ -118,9 +150,10 @@ def check_file(path: str) -> list[dict[str, Any]]:
         # Skip dunders — they're framework-provided
         if method.startswith("__") and method.endswith("__"):
             continue
-        # Check if method is defined in the class
+        # Check if method is defined in the class or inherited from same-file bases
         if cls in class_methods:
-            if method not in class_methods[cls]:
+            available = _resolve_methods(cls, class_methods, class_bases)
+            if method not in available:
                 findings.append({
                     "file": path,
                     "line": call["line"],

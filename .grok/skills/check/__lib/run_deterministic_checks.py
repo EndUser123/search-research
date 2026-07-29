@@ -70,7 +70,7 @@ def run_pyright(py_files: list[str]) -> dict[str, Any]:
     if parsed and "generalDiagnostics" in parsed:
         errors = [d for d in parsed["generalDiagnostics"]
                   if d.get("severity") == "error"]
-    return {"raw": out[:5000] if out else "",
+    return {"raw": out if out else "",
             "exit_code": code, "errors": errors}
 
 
@@ -118,13 +118,36 @@ def run_radon(py_files: list[str]) -> dict[str, Any]:
         return {"status": "skipped", "reason": "no py_files"}
     if not shutil.which("radon"):
         return {"status": "skipped", "reason": "radon not installed"}
-    code, out, _ = _run(["radon", "cc", "-s", "-n", "C"] + py_files)
-    # Count lines that mention a complexity grade C-F
-    hotspots = [
-        line for line in out.splitlines()
-        if any(f"({g})" in line for g in "CDEF")
-    ] if out else []
-    return {"raw": out, "hotspot_count": len(hotspots), "policy": "advisory_only"}
+    code, out, _ = _run(
+        ["radon", "cc", "-j", "-s", "-n", "C"] + py_files,
+        timeout=120
+    )
+    parsed = _parse_json_safe(out)
+    if not parsed:
+        return {"status": "skipped",
+                "reason": "radon output parse failed",
+                "raw": out[:2000] if out else ""}
+    # Count functions at complexity grade C or worse
+    hotspot_count = 0
+    hotspots = []
+    for filepath, items in parsed.items():
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            rank = item.get("rank", item.get("letter", ""))
+            if rank in ("C", "D", "E", "F"):
+                hotspot_count += 1
+                hotspots.append({
+                    "file": filepath,
+                    "name": item.get("name", "?"),
+                    "complexity": item.get("complexity", 0),
+                    "rank": rank,
+                })
+    return {
+        "hotspot_count": hotspot_count,
+        "hotspots": hotspots,
+        "policy": "advisory_only",
+    }
 
 
 def run_vulture(py_files: list[str], run_dir: Path) -> dict[str, Any]:
@@ -148,14 +171,20 @@ def run_vulture(py_files: list[str], run_dir: Path) -> dict[str, Any]:
 def run_pip_audit(scope_files: list[str]) -> dict[str, Any]:
     if not shutil.which("pip-audit"):
         return {"status": "skipped", "reason": "pip-audit not installed"}
-    # Find requirements.txt or pyproject.toml in scope
+    # Find requirements file in scope — deterministic precedence:
+    # pyproject.toml first, then requirements.txt
     req_file = None
     for f in scope_files:
-        if ("requirements" in f and f.endswith(".txt")
-                or f.endswith("pyproject.toml")):
-            if Path(f).exists():
-                req_file = f
-                break
+        if f.endswith("pyproject.toml") and Path(f).exists():
+            req_file = f
+            break
+    if not req_file:
+        for f in scope_files:
+            if (f.endswith("requirements.txt")
+                    or (f.endswith(".txt") and "requirements" in f)):
+                if Path(f).exists():
+                    req_file = f
+                    break
     if not req_file:
         return {"status": "skipped",
                 "reason": "no requirements file in scope"}
