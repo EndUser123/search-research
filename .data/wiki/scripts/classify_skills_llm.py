@@ -17,7 +17,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 import urllib.request
@@ -35,29 +34,9 @@ MISTRAL_MODEL = "mistral-medium-latest"
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_MODEL = "openai/gpt-oss-20b"
 
-
-def _load_api_keys() -> tuple[str, str]:
-    """Load API keys from environment or config.toml (never hardcoded)."""
-    mistral_key = os.environ.get("MISTRAL_API_KEY", "")
-    nvidia_key = os.environ.get("NVIDIA_API_KEY", "")
-
-    if not mistral_key or not nvidia_key:
-        # Fall back to config.toml
-        import re as _re
-        config_path = Path(os.environ.get("USERPROFILE", "")) / ".grok" / "config.toml"
-        if config_path.exists():
-            config = config_path.read_text(encoding="utf-8", errors="replace")
-            if not mistral_key:
-                m = _re.search(r'\[model\.mistral-medium-latest\].*?api_key\s*=\s*"([^"]+)"', config, _re.DOTALL)
-                if m:
-                    mistral_key = m.group(1)
-            if not nvidia_key:
-                nvidia_key = os.environ.get("NVIDIA_API_KEY", "")
-                if not nvidia_key:
-                    m2 = _re.search(r'nvapi-[A-Za-z0-9]+', config)
-                    if m2:
-                        nvidia_key = m2.group(0)
-    return mistral_key, nvidia_key
+# Shared key loader (avoids hardcoding secrets)
+sys.path.insert(0, str(Path("P:/.agents/scripts/models")))
+from load_api_key import get_api_key  # noqa: E402
 
 
 SYSTEM_PROMPT = """You are a skill classifier. For each skill, output exactly one domain label.
@@ -83,7 +62,7 @@ Output format: one JSON object per line, like:
 
 def call_mistral(messages: list[dict], timeout: int = 30) -> str:
     """Call Mistral API directly via HTTP."""
-    mistral_key, _ = _load_api_keys()
+    mistral_key = get_api_key("mistral")
     if not mistral_key:
         raise RuntimeError("No Mistral API key found (env MISTRAL_API_KEY or config.toml)")
 
@@ -110,7 +89,7 @@ def call_mistral(messages: list[dict], timeout: int = 30) -> str:
 
 def call_nvidia(messages: list[dict], timeout: int = 60) -> str:
     """Call NVIDIA NIM API as fallback."""
-    _, nvidia_key = _load_api_keys()
+    nvidia_key = get_api_key("nvidia")
     if not nvidia_key:
         raise RuntimeError("No NVIDIA API key found (env NVIDIA_API_KEY or config.toml)")
 

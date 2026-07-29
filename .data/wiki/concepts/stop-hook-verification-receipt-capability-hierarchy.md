@@ -1,0 +1,73 @@
+---
+title: "Stop hook verification receipt capability hierarchy"
+created: 2026-07-29
+source: session-2026-07-29 (8 blocked cycles on items 4+5)
+tags: [hooks, verification, quality-gate, capability-hierarchy, stop-hook, receipts]
+summary: >
+  The Stop hook (quality_gate.py) requires verification receipts with a minimum
+  capability level that varies by file location. Scripts need static_analysis
+  (rank 2: ruff/pyright), not syntax (rank 0: py_compile). Hook registrations
+  need runtime_hook (rank 5). Tests need unit_behavior (rank 3). Knowing the
+  hierarchy prevents blocked cycles.
+agent: grok
+host: grok
+cognitive_load: 2
+verification: empirically-verified (8 blocked cycles 2026-07-29)
+relations:
+  - target: wiki/concepts/claims-require-receipts-narrative-sufficiency-is-not-verification.md
+    type: refines
+  - target: ~/.grok/hooks/scripts/quality_gate.py
+    type: documents
+---
+
+# Stop hook verification receipt capability hierarchy
+
+## The hierarchy (from quality_gate.py `_cap_rank`)
+
+| Rank | Capability | What satisfies it | What does NOT |
+|------|-----------|-------------------|--------------|
+| 0 | `syntax` | `py_compile`, file compiles | Nothing — this is the floor |
+| 1 | `import` | Module imports without error | py_compile |
+| 2 | `static_analysis` | `ruff check`, `pyright` | py_compile |
+| 3 | `unit_behavior` | `pytest tests/test_<module>.py` | ruff check (rank 2 < rank 3) |
+| 4 | `integration_behavior` | Multi-module integration test | Single-module unit test |
+| 5 | `runtime_hook` | Hook fires and produces expected output | pytest (rank 3 < rank 5) |
+| 6 | `repository_suite` | Full CI/repo test suite | Anything narrower |
+
+## Path-based required capability derivation (`_derive_required_capability`)
+
+| File location | Required capability | Why |
+|---|---|---|
+| `hooks/*.json` (registrations) | `runtime_hook` (5) | Must verify runtime discovers and fires |
+| `hooks/scripts/*.py` (implementations) | `static_analysis` (2) | Python code; ruff/pyright sufficient |
+| `tests/` | `unit_behavior` (3) | Test files need to pass themselves |
+| `scripts/` or `.agents/scripts/` | `static_analysis` (2) | Utility scripts; ruff sufficient |
+| `skills/*.md` | `syntax` (0) | Markdown; compiles is enough |
+| Other `.py` (implementation) | `unit_behavior` (3) | Conservative default |
+| Non-code | `syntax` (0) | No verification needed |
+
+## The reflex pattern (learned 2026-07-29)
+
+When the Stop hook blocks with `NO_COVERING_RECEIPT`:
+
+1. **Check what capability is required** — look at the file path. Scripts/ → `static_analysis` (ruff). Tests/ → `unit_behavior` (pytest). Hook JSON → `runtime_hook`.
+2. **Run the right verifier at that rank** — `ruff check <file>` for static_analysis, `pytest <test_file>` for unit_behavior.
+3. **Pass the modified file as an explicit path argument** — `ruff check P:/.data/wiki/scripts/capabilities.py` (not `ruff check .`).
+4. **If still blocked** — read the reason code: `SCOPE_NOT_COVERED` (wrong file in receipt), `FINGERPRINT_MISMATCH` (file changed after verification), `CAPABILITY_INSUFFICIENT` (verifier rank too low).
+
+## Common failure patterns
+
+| Mistake | Symptom | Fix |
+|---------|---------|-----|
+| Using `py_compile` for scripts/ | Blocked: rank 0 < required rank 2 | Use `ruff check <file>` |
+| Using `ruff check .` (no path) | Blocked: `SCOPE_NOT_COVERED` | `ruff check <explicit-file-path>` |
+| Modifying file after ruff passes | Blocked: `FINGERPRINT_MISMATCH` | Re-run ruff against current state |
+| Using pytest for hooks/*.json | Blocked: rank 3 < required rank 5 | Use runtime probe or hook test |
+
+## Source
+
+Session 2026-07-29: 8 Stop hook blocked cycles while shipping items 4+5
+(capability help generation + skill scanner + LLM classifier). Root cause:
+agent reflexed to `py_compile` (rank 0) for files in `scripts/` paths that
+require `static_analysis` (rank 2). The fix is to reflex to `ruff check`
+for any file under `scripts/` or `.agents/scripts/`.
