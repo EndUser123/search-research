@@ -33,5 +33,16 @@ accurate_as_of_head: HEAD
 
 ## Open items
 
-- `/aar` not yet run — the scanner flagged this as `needs_attention`
+- ~~`/aar` not yet run~~ — **DONE**: AAR finalized at `20260728-171500/aar-report.md`
 - No background tasks orphaned (both /tp subagents completed cleanly)
+
+## Post-AAR work (session continuation)
+
+After the AAR, the session continued with:
+
+1. **Deferred-improvements-registry** created (`P:/.data/wiki/concepts/deferred-skill-improvements-registry.md`) — fleet-wide tracking of deferred/rejected skill improvements, analogous to `tool-fallbacks.md`.
+2. **Corpus mining** — 20 AARs + 193 handoffs scanned for friction patterns. Fleet-wide friction taxonomy written (`fleet-wide-friction-taxonomy-20260728.md`). Finding: closure-pressure dominates (118 hits/43 files); 9 of 10 friction classes already documented; finding velocity exceeds resolution velocity.
+3. **Handoff-cleanup sweep** executed — 80% open rate is velocity, not hygiene (zero stale handoffs). ~30 early-session items reviewable.
+4. **Removal protocol** ported from Claude Code to Grok Build (`~/.grok/docs/removal-protocol.md`), summary inlined in AGENTS.md.
+5. **Active-surface reading** confirmed `P:/.claude/hooks/` (280 files) is entirely dead on Grok Build (`compat.claude.hooks: OFF`). Cleanup handed off as fresh-session task.
+6. **Hook-timeout deferral** removed from registry — concept already exists at `hook-evidence-collection-cost-vs-timeout-tradeoff.md`.

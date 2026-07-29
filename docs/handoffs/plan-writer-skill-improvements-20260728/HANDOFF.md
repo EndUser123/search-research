@@ -173,4 +173,21 @@ This handoff would be wrong if the 4 improvements don't survive held-out validat
 
 ### Status: mostly resolved
 
-The highest-leverage improvement (wiki #6) is applied. Imps 3 and 4 are dropped/rejected. Imp 6 is deferred. Imp 5 has an open question. The handoff's original framing ("apply 4 improvements via /skill-dev") is no longer accurate — 1 was applied, 3 were dropped/rejected/deferred.
+The highest-leverage improvement (wiki #6) is applied. Imps 3 and 4 are dropped/rejected. Imps 5 and 6 are deferred. The handoff's original framing ("apply 4 improvements via /skill-dev") is no longer accurate — 1 was applied, 5 were dropped/rejected/deferred.
+
+## Revision 2 — 2026-07-28 (post-AAR final updates)
+
+**Trigger:** /close + post-AAR work resolved remaining items.
+
+### Updates
+
+- **Imp 5 resolved:** operator agreed to defer. Zero AGENTS.md violations across 24 plans. Runtime hooks already enforce at execution time.
+- **plan-writer skill /tp review applied:** falsifiability hook added to dim 8, checkpoint/dim8 lens documentation added, provenance prose offloaded to `reference/provenance.md` (640→466 lines).
+- **Root-cause fix shipped:** ripgrep `.gitignore` trap fixed in AGENTS.md (skill-existence checks use catalog not grep) and skill-protocol.md (Anti-Forgetting Checklist rewritten).
+- **Removal protocol ported:** `~/.grok/docs/removal-protocol.md` created, summary inlined in AGENTS.md.
+- **Corpus mining done:** 20 AARs + 193 handoffs scanned. Fleet-wide friction taxonomy written. Deferred-improvements-registry created.
+- **Dead hooks identified:** `P:/.claude/hooks/` (280 files) confirmed dead via `compat.claude.hooks: OFF`. Cleanup handed off as fresh-session task.
+
+### Status: resolved
+
+All plan-writer improvements are triaged. The work stream is complete. The only remaining item is the `P:/.claude/hooks/` cleanup (handed off separately).
