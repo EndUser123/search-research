@@ -51,7 +51,9 @@ snapshot, run:
   gaps, pending suggestions, and untested changes
 
 Present as a brief "open work" summary — one or two lines. Skip if both
-return nothing.
+return nothing. The session-start hook (`session_start_open_work.py`)
+also injects this data mechanically. If the hook fired, surface its
+output in your first response rather than re-running the scripts.
 
 ## Model routing policy (read before dispatching subagents)
 
