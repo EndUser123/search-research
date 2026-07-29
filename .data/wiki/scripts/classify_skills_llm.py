@@ -203,6 +203,10 @@ def main():
     parser.add_argument("--batch-size", type=int, default=10, help="Skills per API call")
     parser.add_argument("--json", action="store_true", help="JSON output")
     parser.add_argument("--all", action="store_true", help="Classify ALL skills (not just unmatched)")
+    parser.add_argument(
+        "--output", metavar="PATH",
+        help="Write JSON results to this durable path (in addition to stdout)",
+    )
     args = parser.parse_args()
 
     print("Scanning all skills...", file=sys.stderr)
@@ -248,7 +252,8 @@ def main():
         })
 
     if args.json:
-        print(json.dumps(classified, indent=2))
+        json_output = json.dumps(classified, indent=2)
+        print(json_output)
     else:
         # Print summary
         from collections import Counter
@@ -262,6 +267,13 @@ def main():
         print("\nDetails:")
         for c in sorted(classified, key=lambda x: (x["llm_domain"], x["name"])):
             print(f"  {c['llm_domain']:20s}  {c['name']:35s} ({c['source']})")
+
+    # Write durable output if requested
+    if args.output:
+        out_path = Path(args.output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(classified, indent=2), encoding="utf-8")
+        print(f"\nWritten to {out_path}", file=sys.stderr)
 
 
 if __name__ == "__main__":

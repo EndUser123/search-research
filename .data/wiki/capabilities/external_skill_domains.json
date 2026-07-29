@@ -1,0 +1,730 @@
+[
+  {
+    "name": "ponytail-debt",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\ponytail\\ponytail\\4.8.4\\skills\\ponytail-debt\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n\nEvery deliberate ponytail shortcut is marked with a `ponytail:` comment naming\nits ceiling and upgrade path. This collects them into one ledger so a"
+  },
+  {
+    "name": "ponytail-gain",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\ponytail\\ponytail\\4.8.4\\skills\\ponytail-gain\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n\n# Ponytail Gain\n\nDisplay this scoreboard when invoked. One-shot: do NOT change mode, write flag\nfiles, or persist anything.\n\nThe figures are the pub"
+  },
+  {
+    "name": "ponytail-help",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\ponytail\\ponytail\\4.8.4\\skills\\ponytail-help\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n\n# Ponytail Help\n\nDisplay this reference card when invoked. One-shot, do NOT change mode,\nwrite flag files, or persist anything.\n\n## Levels\n\n| Level "
+  },
+  {
+    "name": "ponytail-debt",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\ponytail\\ponytail\\4.8.4\\.openclaw\\skills\\ponytail-debt\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\"Harvest every ponytail: shortcut comment into one debt ledger, so deferrals get tracked instead of forgotten. One-shot report.\""
+  },
+  {
+    "name": "pi-cli-runtime",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\pi-plugin-cc\\pi\\0.1.1\\skills\\pi-cli-runtime\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "infrastructure",
+    "description": "\n\n# Pi CLI Runtime\n\nExecute pi coding agent via the `pi-cc` wrapper. This is the single entry point for all pi invocations.\n\n## Quick Reference\n\n```ba"
+  },
+  {
+    "name": "pi-result-handling",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\pi-plugin-cc\\pi\\0.1.1\\skills\\pi-result-handling\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "\n\n# Pi Result Handling\n\nParse pi's JSONL output into a clean format for Claude Code conversation.\n\n## Extraction pattern\n\nPi outputs JSONL. The final "
+  },
+  {
+    "name": "pi-routing",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\pi-plugin-cc\\pi\\0.1.1\\skills\\pi-routing\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "cross-model",
+    "description": "\n\n# Pi Routing\n\nBefore spawning a subagent, check if pi can handle it.\n\n## 3-Stage Decision\n\n### Stage 1: Pi Routing\n- **haiku level** \u2192 pi, always. `"
+  },
+  {
+    "name": "snapshot",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\snapshot\\0.5.33\\skills\\snapshot\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "Session snapshot capture and restore system using snapshot package"
+  },
+  {
+    "name": "aid",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\search-research\\0.1.123\\skills\\aid\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "review",
+    "description": "\n# AI-Distiller (aid) - Code Analysis Skill\n\n## Purpose\n\nInterface to AI-Distiller (aid.exe) for intelligent code distillation \u2014 extracting essential "
+  },
+  {
+    "name": "chs-eval",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\search-research\\0.1.123\\skills\\chs-eval\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "verification",
+    "description": "Run golden-case retrieval evaluation against the CHS database and report per-case + mean recall"
+  },
+  {
+    "name": "context7",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\search-research\\0.1.123\\skills\\context7\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "discovery",
+    "description": "\n# Context7 - Fresh Documentation\n\n**Objective:** Eliminate hallucinations by injecting real-time, version-specific documentation into the context.\n\n#"
+  },
+  {
+    "name": "keep",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\search-research\\0.1.123\\skills\\keep\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\nworkflow_steps: []\n# Keep (`/keep`)\n\nDeliberate write into CKS. Identical behavior to `/note`; this command exists because \"keep\" reads more naturall"
+  },
+  {
+    "name": "note",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\search-research\\0.1.123\\skills\\note\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\nworkflow_steps: []\n# Note (`/note`)\n\nDeliberate write into CKS. Use for a decision you just made, a pattern you noticed, a correction worth not repea"
+  },
+  {
+    "name": "repomix",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\search-research\\0.1.123\\skills\\repomix\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "infrastructure",
+    "description": "\n# repomix\n\n**Goal:** Pack repository contents into a single AI-friendly file for LLM context.\n\n**Prerequisites:** `repomix` installed globally via `n"
+  },
+  {
+    "name": "capture",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\quickstop\\0.1.5\\skills\\capture\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "Scan recent changes and extract durable knowledge into docs"
+  },
+  {
+    "name": "execution-clarity",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-thinking\\1.0.19\\skills\\execution-clarity\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "Atomic execution phases + confidence scoring for risk-aware decision-making."
+  },
+  {
+    "name": "learn",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-thinking\\1.0.19\\skills\\learn\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "Intelligent lesson capture with novelty detection and usefulness filtering"
+  },
+  {
+    "name": "pace",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-thinking\\1.0.19\\skills\\pace\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "Cognitive load and WIP tracking for solo dev throttle"
+  },
+  {
+    "name": "response-atomicity",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-thinking\\1.0.19\\skills\\response-atomicity\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "Enforces atomic responses and phase separation in task execution."
+  },
+  {
+    "name": "diagnose",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\diagnose\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "review",
+    "description": "\n# Structured Diagnostic Protocol\n\n## Overview\nStructured investigation enforcing systematic hypothesis testing.\n\n**Mandatory Protocol:** See `__lib/d"
+  },
+  {
+    "name": "docs",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\docs\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n> [!CAUTION]\n> **Context Safety**: In long sessions, run `/compact` before `/docs` to avoid context overflow.\n>\n> **Scope**: NEVER analyze whole code"
+  },
+  {
+    "name": "mermaid-c4",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\mermaid-c4\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "design",
+    "description": "\n# Mermaid Diagrams (C4 & Architecture)\n\n## Overview\n\nCreate professional software diagrams maintainable alongside code.\n\n**Mandatory Protocol:** See "
+  },
+  {
+    "name": "profile",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\profile\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n\n# /profile - Performance Baseline & Comparison\n\n## Overview\n\nMeasure and compare performance metrics to verify optimizations.\n\n**Mandatory Protocol:"
+  },
+  {
+    "name": "rca",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\rca\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "review",
+    "description": "\n# Debug RCA Skill v2.12.0\n\n## Identity: Root Cause Analysis Specialist\n\nYou are a **Root Cause Analysis specialist**. Your purpose: thorough investig"
+  },
+  {
+    "name": "ship",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\ship\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n# /ship \u2013 Deploy Readiness & Runtime Snapshot\n\n## Purpose\n\nAggregate git, verification, QA, CI/CD, and basic runtime signals into a single \"ship read"
+  },
+  {
+    "name": "sqa",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\sqa\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "\n# /sqa \u2014 Unified SQA Orchestrator\n\nExecute a sequential quality analysis pipeline against a target codebase.\n\n**Evidence-first rule:** Before claimin"
+  },
+  {
+    "name": "t",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\t\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "coding",
+    "description": "\n## Code Editing Patterns\n\nFor Python code editing patterns and anti-patterns:\n- **Authority**: /p Neural Cache\n- **Example**: `/search \"ThreadPoolExe"
+  },
+  {
+    "name": "team",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\team\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "\n# /team - Multi-Agent Task Coordination\n\n## When to Use\n\n- Running multiple Claude Code sessions in parallel\n- Coordinating work across multiple agen"
+  },
+  {
+    "name": "tilldone",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\tilldone\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "\n# /tilldone \u2014 Batch Convergence Runner\n\n## Purpose\n\nRun a command on each package in a target directory with two modes:\n- **Till-done**: Run until ph"
+  },
+  {
+    "name": "tldr-deep",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\tldr-deep\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "review",
+    "description": "\n# TLDR Deep Analysis\n\nFull 5-layer analysis of a specific function. Use when debugging or deeply understanding code.\n\n## Trigger\n- `/tldr-deep <funct"
+  },
+  {
+    "name": "tldr-overview",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\tldr-overview\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n# TLDR Project Overview\n\nGet a token-efficient overview of any project using the TLDR stack.\n\n## Trigger\n- `/overview` or `/tldr-overview`\n- \"give me"
+  },
+  {
+    "name": "tldr-stats",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\tldr-stats\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n# TLDR Stats Skill\n\nShow a beautiful dashboard with token usage, actual API costs, TLDR savings, and hook activity.\n\n## When to Use\n- See how much TL"
+  },
+  {
+    "name": "using-superpowers",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\using-superpowers\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "\n# Using Superpowers\n\n## Overview\n\nUse skills to guide work. Skills are loaded via the Skill tool before any response or action.\n\n**Core principle:** "
+  },
+  {
+    "name": "zoom-out",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\zoom-out\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n# Zoom Out\n\n> \"I don't know this area of code well. Go up a layer of abstraction. Give me a map of all the relevant modules and callers, using the pr"
+  },
+  {
+    "name": "pre-mortem",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-sdlc\\1.0.237\\skills\\pre-mortem\\.codex\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "review",
+    "description": "\n# Pre-Mortem - Codex Adapter\n\nThis is the Codex adapter for the package-owned pre-mortem skill at `P:/packages/cc-skills-sdlc/skills/pre-mortem`.\n\n##"
+  },
+  {
+    "name": "mlc",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-lab\\1.0.16\\skills\\mlc\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "Minimal Lossy Compaction - Conservative token optimization that preserves most information while dropping redundancy"
+  },
+  {
+    "name": "constitutional-patterns",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-architect\\1.0.28\\skills\\constitutional-patterns\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "design",
+    "description": "Standards for constitutional compliance and pattern enforcement."
+  },
+  {
+    "name": "constraints",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-architect\\1.0.28\\skills\\constraints\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "Show active project constraints from CLAUDE.md"
+  },
+  {
+    "name": "ai-cli",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-ai-api\\1.0.22\\skills\\ai-cli\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "cross-model",
+    "description": "\n# /ai-cli\n\n**TLDR \u2014 the 3 commands you actually need:**\n- **agy only:** `python \"P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/ai-c"
+  },
+  {
+    "name": "ai-models",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-ai-api\\1.0.22\\skills\\ai-models\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "cross-model",
+    "description": "\n## EXECUTE\n\n**Run the `llm-models` command with the specified subcommand and arguments:**\n\n```bash\nllm-models \"$@\"\n```\n\n**If the alias is not on PATH"
+  },
+  {
+    "name": "intelligence-stream-analyze",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-ai-api\\1.0.22\\skills\\intelligence-stream-analyze\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n# /csf-analyze \u2014 Video Content Analysis\n\nAnalyze video content using Gemini API and store results in CKS.\n\n## Usage\n\n```\n/csf-analyze <video_id_or_ur"
+  },
+  {
+    "name": "intelligence-stream-ingest",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-ai-api\\1.0.22\\skills\\intelligence-stream-ingest\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n# /csf-ingest \u2014 YouTube Playlist Ingest\n\nIngest YouTube playlist videos using yt-dlp and store analysis in CKS.\n\n## Usage\n\n```\n/csf-ingest <playlist_"
+  },
+  {
+    "name": "quota",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-skills-ai-api\\1.0.22\\skills\\quota\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n# API Quota Status Checker\n\nCheck API credit balances and request quotas for all configured LLM providers.\n\n## Purpose\n\nAPI Provider Quota Status Che"
+  },
+  {
+    "name": "debt",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\local\\cc-lazy-closure-debt\\0.1.12\\skills\\debt\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "review",
+    "description": "\n\n# /debt \u2014 review and manage lazy-closure debt\n\nThe cc-lazy-closure-debt Stop hook records every untracked deferral phrase\n(\"I'll leave that for now\""
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\fd0a481f7601\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\f99764ce02e2\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\ee8867cd83f8\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\edcfd93045ab\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\dc1743aa8efb\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\dbe724ebb0c5\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\d9c5eeb31ec8\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\d5786a45db5c\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\ce457aa61be6\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\cc8eb921a3b9\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\c65173ac8c45\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\ba93fc9e43b6\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\b5f93a18bae8\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\b3f512754862\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\b20ef542ee28\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\acb2956bdfd2\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\aa9f0a575b91\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\a86c2e2fa0b2\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\7ac80d50885b\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\779a5e7f15a0\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\67ff27bf611c\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\41fc4f13c253\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\3ea7c42c4c24\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\35c584f45260\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\2f8d0eaa8e08\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\2dd1e4ee3352\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\20f0e7dba49f\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\1f851f5f7e0f\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\1b7aceb9cbbb\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\1117dcd7fc07\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\0ce3c1d58138\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\0c0a78a60506\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\playground\\09df66490796\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "content",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "troubleshooting",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\chrome-devtools-mcp\\1.6.0\\skills\\troubleshooting\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "infrastructure",
+    "description": "\n\n## Troubleshooting Wizard\n\nYou are acting as a troubleshooting wizard to help the user configure and fix their Chrome DevTools MCP server setup. Whe"
+  },
+  {
+    "name": "troubleshooting",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\cache\\claude-plugins-official\\chrome-devtools-mcp\\1.5.0\\skills\\troubleshooting\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "infrastructure",
+    "description": "\n\n## Troubleshooting Wizard\n\nYou are acting as a troubleshooting wizard to help the user configure and fix their Chrome DevTools MCP server setup. Whe"
+  },
+  {
+    "name": "openclaw",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\thedotmack\\openclaw\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "infrastructure",
+    "description": "\n\n## Step 4: Restart the Gateway and Verify\n\nRestart your OpenClaw gateway so it picks up the new plugin configuration. After restart, check the gatew"
+  },
+  {
+    "name": "do",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\thedotmack\\plugin\\skills\\do\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "\n\n# Do Plan\n\nYou are an ORCHESTRATOR. Deploy subagents to execute *all* work. Do not do the work yourself except to coordinate, route context, and ver"
+  },
+  {
+    "name": "knowledge-agent",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\thedotmack\\plugin\\skills\\knowledge-agent\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n\n# Knowledge Agent\n\nBuild and query AI-powered knowledge bases from claude-mem observations.\n\n## What Are Knowledge Agents?\n\nKnowledge agents are fil"
+  },
+  {
+    "name": "smart-explore",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\thedotmack\\plugin\\skills\\smart-explore\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "discovery",
+    "description": "\n\n# Smart Explore\n\nStructural code exploration using AST parsing. **This skill overrides your default exploration behavior.** While this skill is acti"
+  },
+  {
+    "name": "timeline-report",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\thedotmack\\plugin\\skills\\timeline-report\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n\n# Timeline Report\n\nGenerate a comprehensive narrative analysis of a project's entire development history using claude-mem's persistent memory timeli"
+  },
+  {
+    "name": "query",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\quickstop\\plugins\\inkwell\\skills\\query\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "discovery",
+    "description": "Retrieval-augmented Q&A over the repo's `docs/` tree. Returns a one-paragraph synthesis plus citations (doc path + heading anchor) and per-citation co"
+  },
+  {
+    "name": "tidy",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\quickstop\\plugins\\inkwell\\skills\\tidy\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "Surface (and optionally fix) doc-tree drift \u2014 duplicates, dead links, stale docs, template non-compliance, missing `## Related` blocks. Read-only by d"
+  },
+  {
+    "name": "promote",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\quickstop\\plugins\\avanti\\skills\\promote\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "Move an artifact forward through its lifecycle and record the transition in pulse"
+  },
+  {
+    "name": "pulse",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\quickstop\\plugins\\avanti\\skills\\pulse\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "Append a timestamped entry to today's pulse day-file in project/pulse/"
+  },
+  {
+    "name": "ponytail-debt",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\ponytail\\skills\\ponytail-debt\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n\nEvery deliberate ponytail shortcut is marked with a `ponytail:` comment naming\nits ceiling and upgrade path. This collects them into one ledger so a"
+  },
+  {
+    "name": "ponytail-gain",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\ponytail\\skills\\ponytail-gain\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n\n# Ponytail Gain\n\nDisplay this scoreboard when invoked. One-shot: do NOT change mode, write flag\nfiles, or persist anything.\n\nThe figures are the pub"
+  },
+  {
+    "name": "ponytail-help",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\ponytail\\skills\\ponytail-help\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n\n# Ponytail Help\n\nDisplay this reference card when invoked. One-shot, do NOT change mode,\nwrite flag files, or persist anything.\n\n## Levels\n\n| Level "
+  },
+  {
+    "name": "ponytail-debt",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\ponytail\\.openclaw\\skills\\ponytail-debt\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\"Harvest every ponytail: shortcut comment into one debt ledger, so deferrals get tracked instead of forgotten. One-shot report.\""
+  },
+  {
+    "name": "pi-cli-runtime",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\pi-plugin-cc\\plugins\\pi\\skills\\pi-cli-runtime\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "cross-model",
+    "description": "\n\n# Pi CLI Runtime\n\nExecute pi coding agent via the `pi-cc` wrapper. This is the single entry point for all pi invocations.\n\n## Quick Reference\n\n```ba"
+  },
+  {
+    "name": "pi-result-handling",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\pi-plugin-cc\\plugins\\pi\\skills\\pi-result-handling\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "cross-model",
+    "description": "\n\n# Pi Result Handling\n\nParse pi's JSONL output into a clean format for Claude Code conversation.\n\n## Extraction pattern\n\nPi outputs JSONL. The final "
+  },
+  {
+    "name": "pi-routing",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\pi-plugin-cc\\plugins\\pi\\skills\\pi-routing\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "orchestration",
+    "description": "\n\n# Pi Routing\n\nBefore spawning a subagent, check if pi can handle it.\n\n## 3-Stage Decision\n\n### Stage 1: Pi Routing\n- **haiku level** \u2192 pi, always. `"
+  },
+  {
+    "name": "session-report",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\claude-plugins-official\\plugins\\session-report\\skills\\session-report\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n\n# Session Report\n\nProduce a self-contained HTML report of Claude Code usage and save it to the current working directory.\n\n## Steps\n\n1. **Get data.*"
+  },
+  {
+    "name": "receipts",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\claude-plugins-official\\plugins\\receipts\\skills\\receipts\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "fleet-ops",
+    "description": "\n\n# /receipts \u2014 personal Claude Code impact report\n\nGenerates a markdown report of one developer's own Claude Code activity,\nbuilt entirely from local"
+  },
+  {
+    "name": "playground",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\claude-plugins-official\\plugins\\playground\\skills\\playground\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "design",
+    "description": "\n\n# Playground Builder\n\nA playground is a self-contained HTML file with interactive controls on one side, a live preview on the other, and a prompt ou"
+  },
+  {
+    "name": "cardputer-buddy",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\claude-plugins-official\\plugins\\cwc-makers\\skills\\cardputer-buddy\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "coding",
+    "description": "\n\n# Cardputer Buddy app bundle\n\nThe `buddy/` directory in the local `build-with-claude` clone is the MicroPython payload that `m5-onboard` installs on"
+  },
+  {
+    "name": "m5-onboard",
+    "path": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\claude-plugins-official\\plugins\\cwc-makers\\skills\\m5-onboard\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "infrastructure",
+    "description": "\n\n# M5Stack Onboarding\n\nThis skill automates the full cold-start workflow for an M5Stack ESP32 device: detect on USB, identify model, flash UIFlow 2.0"
+  },
+  {
+    "name": "using-superpowers",
+    "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-21e2a56d\\skills\\using-superpowers\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "cross-model",
+    "description": "\n\n<SUBAGENT-STOP>\nIf you were dispatched as a subagent to execute a specific task, ignore this skill.\n</SUBAGENT-STOP>\n\n<EXTREMELY-IMPORTANT>\nIf you t"
+  },
+  {
+    "name": "remembering-conversations",
+    "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\episodic-memory-479fd403\\skills\\remembering-conversations\\SKILL.md",
+    "source": "plugin",
+    "llm_domain": "knowledge",
+    "description": "\n\n# Remembering Conversations\n\n**Core principle:** Search before reinventing. Searching costs nothing; reinventing or repeating mistakes costs everyth"
+  },
+  {
+    "name": "resume-cursor",
+    "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\resume-cursor\\SKILL.md",
+    "source": "bundled",
+    "llm_domain": "knowledge",
+    "description": "Resume or continue work from a recent Cursor CLI or Cursor Desktop session.\n  Use when the user switched from Cursor, says \"continue from Cursor\" or\n "
+  },
+  {
+    "name": "harvest",
+    "path": "C:\\Users\\brsth\\.grok\\skills\\harvest\\SKILL.md",
+    "source": "grok-fleet",
+    "llm_domain": "infrastructure",
+    "description": "|\n| `-h`, `--help` | `harvest.py --help` |\n| no args | `harvest.py show` |\n| `add ...` | `harvest.py add` \u2014 confirm the id in one line |\n| `collect <i"
+  }
+]
