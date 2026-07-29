@@ -86,6 +86,14 @@ Two scripts, pure code + free model:
 
 4. **Shared key loader** — extracted `load_api_key.py` as the third script (after dgemma_read.py and benchmark scripts) to use the direct-API pattern. Prevents gitleaks blocks and centralizes key management.
 
+## Revision history
+
+### Revision 2 — 2026-07-29T23:30:00Z — noterm
+- This session continued past the original handoff scope into 3 additional work streams
+- See sibling handoff: `P:/docs/handoffs/session-health-behave-verdict-integrity-20260729/HANDOFF.md`
+- Additional work this session: /tp v3.5 session-review-protocol improvements, audit_finding_coverage.py, wiki concepts (persistence-location-decision-rule, stop-hook-verification-receipt-capability-hierarchy, decision-transition-auditing-verdict-integrity-controls)
+- Status remains COMPLETED for items 4+5
+
 ## Revision 1 (2026-07-29, post-/tp-do)
 
 - Updated decision 3: persistence-location corrected from "no persistence" to "durable JSON in capabilities/"
