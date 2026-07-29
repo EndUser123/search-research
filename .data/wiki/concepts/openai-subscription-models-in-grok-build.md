@@ -108,9 +108,45 @@ has not built this integration.
 
 ## What works today
 
+### /codex skill (delegation)
+
 The `/codex` skill delegates to Codex CLI, which uses its own internal API path.
 GPT-5.6 Luna was verified passing both coding and reasoning tests via this path
-(session 2026-07-29). This is the working path for OpenAI subscription models.
+(session 2026-07-29).
+
+### Codex OAuth Bridge (Grok Build config.toml integration)
+
+**Working as of 2026-07-29.** A local Python HTTP bridge translates standard
+OpenAI-compatible API calls to the Codex backend, using the ChatGPT subscription
+OAuth token. Zero per-token cost.
+
+**Source:** `github.com/PandelisZ/grok-bypass` (community project, MIT license)
+
+**How it works:**
+1. Bridge reads `~/.codex/auth.json` for the ChatGPT subscription token
+2. Exposes `http://127.0.0.1:11435/v1` with `/v1/models`, `/v1/responses`, `/v1/chat/completions`
+3. Forwards to `https://chatgpt.com/backend-api/codex/responses` (the real Codex endpoint)
+4. Handles token refresh automatically via `https://auth.openai.com/oauth/token`
+5. Required headers: `Authorization: Bearer <token>`, `ChatGPT-Account-ID`, `User-Agent: codex-cli`
+
+**Installed at:**
+- Bridge scripts: `~/.local/share/grok-codex-bridge/` (codex_bridge.py, codex_auth.py, codex_wire.py)
+- Launcher: `~/.local/bin/codex-bridge.bat`
+- Config.toml entries: `gpt-5-6-luna`, `gpt-5-6-terra`, `gpt-5-6-sol`
+
+**Usage:**
+1. Start bridge: `codex-bridge` (or `python ~/.local/share/grok-codex-bridge/codex_bridge.py`)
+2. Switch model in Grok: `/model gpt-5-6-luna` (or terra, sol)
+3. Use normally — subagents, tools, skills all work through the bridge
+
+**Verified:** GPT-5.6 Luna responds correctly via chat_completions and responses
+endpoints. Math (17*23=391), simple prompts, model listing all pass.
+
+**Limitations:**
+- Bridge must be running before starting Grok session (or restart Grok after starting it)
+- Token expires every 10 days; bridge auto-refreshes via refresh_token
+- Relies on undocumented `chatgpt.com/backend-api/codex` endpoint (could change)
+- No streaming support for chat_completions bridge (returns full response, not SSE)
 
 ## What would need to happen for direct config.toml integration
 
