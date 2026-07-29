@@ -52,9 +52,23 @@ The fresh-subagent `/tp review agents.md` found 8 specific content losses that t
 - `close-scanner-false-positive-resolved-handoff-references` — scanner lifecycle-awareness gap
 - `hook-script-capability-derivation-receipt-loop-fix` — capability derivation + scope mapping fix
 - 10 wiki stubs for previously-dangling wikilinks
+- `refactor-verification-gap-keyword-checks-form-not-content` — generalizable lesson: keyword checks verify form not content
+
+## Post-review update (Revision 1 — 2026-07-29T02:15:00Z)
+
+**Trigger:** `/review` and `/wiki` ran after the initial handoff was written.
+
+**What changed:**
+- `/review` found a false positive in `UNNECESSARY_CONFIRMATION` pattern — "want me to continue" matched legitimate offers. Fixed: removed `continue` from `want me to` and `would you like me to` patterns. All 11 tests pass.
+- `/check` verified all hook script changes: PASS (both verifiers). One accounting discrepancy: `~/.grok/AGENTS.md` is 556 lines, not the 505 originally reported (content was added back after initial count).
+- All session work verified through `/check` → `/review` → `/close` → `/wiki` → `/handoff` pipeline.
+
+**Updated evidence:**
+- Commit `8d22fdc` — refactor verification gap wiki concept
+- `behavioral_check.py:87` — UNNECESSARY_CONFIRMATION pattern narrowed
 
 ## Next steps for a fresh session
 
-1. **Commit `~/.grok` changes** — 39 uncommitted files including refactored AGENTS.md, behavioral hooks, config changes
+1. **Commit `~/.grok` changes** — 39 uncommitted files including refactored AGENTS.md, behavioral hooks, config changes, quality_gate.py fix
 2. **Verify behavioral hooks fire across a full session** — they started firing this session but haven't been tested across many turns
 3. **Stale handoff triage** — 130+ open handoffs, many from resolved work
