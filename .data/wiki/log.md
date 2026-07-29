@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: session-start-hooks-cannot-inject-visible-context-grok-build
+Agent: --action
+Notes: created
+Page: --source
+
 ## OpenAI subscription models investigation
 Source: session-2026-07-29
 Agent: grok
