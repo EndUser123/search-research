@@ -53,7 +53,7 @@ def run_ruff(py_files: list[str]) -> dict[str, Any]:
         return {"status": "skipped", "reason": "ruff not installed"}
     code, out, _ = _run(
         ["ruff", "check", "--select", "E,F",
-         "--output-format=json"] + py_files
+         "--output-format=json", "--"] + py_files
     )
     return {"raw": out, "exit_code": code,
             "findings": _parse_json_safe(out) or []}
@@ -89,14 +89,20 @@ def run_pylint(py_files: list[str]) -> dict[str, Any]:
 
 
 def run_trace_check(py_files: list[str]) -> dict[str, Any]:
+    if not py_files:
+        return {"status": "skipped", "reason": "no py_files"}
     script = _SKILL_LIB / "trace_check.py"
     if not script.exists():
         return {"status": "skipped",
                 "reason": f"trace_check.py not found at {script}"}
     code, out, _ = _run([sys.executable, str(script), "--paths"] + py_files)
-    return _parse_json_safe(out) or {"status": "ok",
-                                     "findings": [],
-                                     "finding_count": 0}
+    parsed = _parse_json_safe(out)
+    if parsed:
+        return parsed
+    if code != 0:
+        return {"status": "error", "exit_code": code,
+                "reason": "trace_check subprocess failed"}
+    return {"status": "ok", "findings": [], "finding_count": 0}
 
 
 def run_bandit(py_files: list[str]) -> dict[str, Any]:
@@ -151,6 +157,8 @@ def run_radon(py_files: list[str]) -> dict[str, Any]:
 
 
 def run_vulture(py_files: list[str], run_dir: Path) -> dict[str, Any]:
+    if not py_files:
+        return {"status": "skipped", "reason": "no py_files"}
     script = _SKILL_LIB / "vulture_precheck.py"
     if not script.exists():
         return {"status": "skipped",
