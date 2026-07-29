@@ -6,7 +6,35 @@ current_terminal_id: grok-build-primary
 produced_at: 2026-07-27T22:30:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 3408581c7ed17fc98aaec8ecaf1da90b7d9cba46
+accurate_as_of_head: HEAD
+
+---
+
+## Revision 2 — 2026-07-28T07:35:00Z (session 019fa5a1)
+
+**Trigger:** auto-update — the close-authority plan went through 5 revision rounds (v1→v5) and was stripped from 4 workstreams to 2. Attestation dropped entirely.
+
+### Plan revision impacts this handoff
+
+**v5 plan (current):** 2 workstreams only:
+1. INTG-2 fix (gate-content check in validate_close_receipt) + CORR-001/002/003 + acceptance tests
+2. Stop hook (output-layer enforcement)
+
+**Attestation (INTG-1) is no longer in the plan.** The decision: the Stop hook reads `authority.verdict` from the scanner (not receipt files), and INTG-2 rejects forged receipts regardless of attestation. Attestation added complexity (shared module, env var, key lifecycle, AAR changes) without being primary enforcement. The simpler plan is more likely to ship correctly.
+
+**What this means for INTG-1:** it remains a real vulnerability (forgeable receipts), but it's deprioritized. The Stop hook is the load-bearing enforcement. INTG-1 can be revisited as defense-in-depth if the Stop hook proves insufficient in practice. The TCB concept documents the reasoning.
+
+### Updated fix priority (per v5 plan)
+
+1. **INTG-2** — gate-content check (reject COMPLETE with unresolved gates) — Workstream A, Task A1
+2. **CORR-001/002/003** — the 3 high-severity bugs — Workstream A, Tasks A2-A4
+3. **Acceptance tests** — the 10 from the spec — Workstream A, Task A5
+4. **Stop hook** — output-layer enforcement — Workstream B
+5. **INTG-1 (attestation)** — DEFERRED to future session if Stop hook proves insufficient
+
+### Status update
+
+The branch remains at `d516ccc`, DO NOT MERGE. The v5 plan is execution-ready (passed Round 3 mandatory review with 0 critical/high findings). Execution should start with the v5 plan, not the original 4-workstream approach.
 ---
 
 # Handoff — Close-authority branch: 2 critical findings, DO NOT MERGE

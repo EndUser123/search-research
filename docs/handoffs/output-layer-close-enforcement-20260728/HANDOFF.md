@@ -7,6 +7,30 @@ produced_at: 2026-07-28T07:10:00Z
 status: open
 handoff_type: design
 accurate_as_of_head: HEAD
+
+---
+
+## Revision 1 — 2026-07-28T07:35:00Z (session 019fa5a1)
+
+**Trigger:** auto-update — this handoff's scope is now Workstream B of the v5 close-authority plan.
+
+### What changed
+
+The output-layer enforcement design in this handoff is now incorporated into the v5 plan as Workstream B. The v5 plan:
+- Reads `authority.verdict` (not raw `gates`) — verified against `close_accounting.py:2864`
+- Uses structural triple-match (blockquote + verdict + section header) for close detection
+- Has exit-2 + JSON decision blocking
+- Has fail-open logging
+
+The v5 plan passed 3 rounds of mandatory review (0 critical/high). This handoff is now supplementary — the plan is the primary artifact.
+
+### What remains specific to this handoff
+
+The design rationale (why output-layer enforcement, the TCB principle, the ring model) lives in the wiki concept `trusted-computing-base-for-agent-enforcement.md` and this handoff's original body. The v5 plan references both.
+
+### Status update
+
+No action needed on this handoff — it's been superseded by the v5 plan for execution purposes. Keep for the design rationale.
 ---
 
 # Handoff — Output-layer close enforcement via Stop hook
