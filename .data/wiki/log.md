@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: confidence-scoring-for-static-analysis-fp-suppression
+Agent: --title
+Notes: Confidence scoring for static analysis FP suppression
+Page: --tags
+
 ## Model pool contracts created
 Source: session-2026-07-29
 Agent: grok
