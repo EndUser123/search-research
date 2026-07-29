@@ -18,12 +18,12 @@ from __future__ import annotations
 
 ACCOUNTS = [
     {
-        "name": "a.hominidae",
+        "name": "a-hominidae",
         "email": "a.hominidae@gmail.com",
         "provider": "gmail",
     },
     {
-        "name": "troup.hominidae",
+        "name": "troup-hominidae",
         "email": "troup.hominidae@gmail.com",
         "provider": "gmail",
     },

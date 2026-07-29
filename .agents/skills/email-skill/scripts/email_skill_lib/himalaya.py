@@ -255,7 +255,7 @@ def scan_account(account: dict, max_items: int = 20) -> dict:
         "-a", name,
         "envelope", "list",
         "-m", "INBOX",
-        "--output", "json",
+        "--json",
     ]
     raw = _run(cmd)
     if raw.get("error"):
@@ -303,7 +303,7 @@ def read_message(account: str, message_id: str) -> dict:
         "himalaya",
         "-a", account,
         "message", "read", message_id,
-        "--output", "json",
+        "--json",
     ]
     return _run(cmd)
 
@@ -318,7 +318,7 @@ def search(account: str, query: str, max_results: int = 20) -> list[dict]:
         "himalaya",
         "-a", account,
         "envelope", "search", query,
-        "--output", "json",
+        "--json",
     ]
     raw = _run(cmd)
     if raw.get("error"):
