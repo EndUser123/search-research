@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-28
 cognitive_load: 3
-summary: Auto-generated index of 985 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 987 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-28 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 985 across 21 scopes.
+**Total skills:** 987 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-07-28 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (41 skills)
+## grok-user (43 skills)
 
 | Skill | G | C | Description (truncated) | Path |
 |---|---|---|---|---|
@@ -52,6 +52,7 @@ Auto-generated on 2026-07-28 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **handoff** | ✓ | — | Write a durable handoff document for the work stream the user asks about. Within-session compaction recovery (reads comp... | `~/.grok/skills/handoff/SKILL.md` |
 | **help** | ✓ | — | Grok documentation and configuration help. Use when users ask about setup, configuration, MCP servers, authentication, s... | `~/.grok/skills/help/SKILL.md` |
 | **imagine** | ✓ | — | How to use the image_gen and image_edit tool calls in Grok Build: when to build a visual with code instead of generating... | `~/.grok/skills/imagine/SKILL.md` |
+| **maintain** | ✓ | — | Fleet maintenance orchestrator for Grok Build. Three layers: DIAGNOSE (workspace health), ACT (cleanup/rotation/repair),... | `~/.grok/skills/maintain/SKILL.md` |
 | **marketplace-bridge** | ✓ | — | Pulls AI-skill listings from four public marketplaces (SkillsMP, SkillHub, ClawHub, skills.sh), fetches each skill's SKI... | `~/.grok/skills/marketplace-bridge/SKILL.md` |
 | **mmx** | ✓ | — | Run MiniMax CLI (mmx) for a cross-model second opinion or web search via the MiniMax index. Conductor evaluates assignme... | `~/.grok/skills/mmx/SKILL.md` |
 | **model-benchmark** | ✓ | — | Latency benchmark, quality scoring, cost tracking, and telemetry for the model fleet. Sends standardized prompts to each... | `~/.grok/skills/model-benchmark/SKILL.md` |
@@ -60,15 +61,16 @@ Auto-generated on 2026-07-28 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **packet** | ✓ | — | Export a filtered, tool-simplified view of a Grok session conversation into a markdown file another LLM can read cold fo... | `~/.grok/skills/packet/SKILL.md` |
 | **plan-writer** | ✓ | — | Comprehensive implementation plans from a spec or requirements. Owns the full planning workflow: when to plan (objective... | `~/.grok/skills/plan-writer/SKILL.md` |
 | **prompt-patterns** | ✓ | — | Reference skill for structural prompting techniques. Loads when writing or improving SKILL.md files, AGENTS.md rules, ha... | `~/.grok/skills/prompt-patterns/SKILL.md` |
-| **refactor** | ✓ | — |  | `~/.grok/skills/refactor/SKILL.md` |
+| **refactor** | ✓ | — | Intelligent structural refactor: plain-language target/mode inference, plan-on-disk then seam execute with verify, multi... | `~/.grok/skills/refactor/SKILL.md` |
 | **refine** | ✓ | — | Turn a rough task or vague handoff into an implementation-ready handoff by inspecting the codebase. Pre-plan stage: tigh... | `~/.grok/skills/refine/SKILL.md` |
 | **review** | ✓ | — | Intelligent code/package review with verified findings on disk. Auto-infers target (local diff, branch, PR, or package p... | `~/.grok/skills/review/SKILL.md` |
 | **search-fleet** | ✓ | — | Capability-routed multi-backend search with RRF aggregation. Reads the tool registry at ~/.grok/search-fleet.toml, class... | `~/.grok/skills/search-fleet/SKILL.md` |
 | **skill-dev** | ✓ | — | Measure and improve Grok skills from evidence. Two modes: (1) measure — evaluate marginal contribution of active skills ... | `~/.grok/skills/skill-dev/SKILL.md` |
 | **tasks** | ✓ | — | Read and write Claude Code's persistent task store at ~/.claude/tasks/project-main-tasks/. Use when the user asks to tra... | `~/.grok/skills/tasks/SKILL.md` |
+| **todo** | ✓ | — | ADHD-friendly "what should I do?" orchestrator. Scans the workspace for unfinished work, unreviewed research, and open t... | `~/.grok/skills/todo/SKILL.md` |
 | **tp** | ✓ | — | Critical-friend / thought-partner. Two modes: (1) critique — a fresh subagent challenges framing, assumptions, and appro... | `~/.grok/skills/tp/SKILL.md` |
 | **wargame** | ✓ | — | Content discipline for plans where observation is expensive, ambiguity is high, or the decision is hard to reverse. Forc... | `~/.grok/skills/wargame/SKILL.md` |
-| **web** | ✓ | — | Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (web-se... | `~/.grok/skills/web/SKILL.md` |
+| **web** | ✓ | — | Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (DDG + ... | `~/.grok/skills/web/SKILL.md` |
 | **why** | ✓ | — | Evidence-tiered, pattern-aware root cause analysis for AI agent failures, diagnostic errors, and system observations. Qu... | `~/.grok/skills/why/SKILL.md` |
 | **why-old** | ✓ | — | ARCHIVED — pre-refactor snapshot of /why preserved 2026-07-25 for A/B comparison. This is the original 5-dimension Ishik... | `~/.grok/skills/why-old/SKILL.md` |
 | **wiki** | ✓ | — | Persistent knowledge base for durable findings AND design decisions. Default (/wiki with no args): distill the current s... | `~/.grok/skills/wiki/SKILL.md` |

@@ -13,7 +13,7 @@ indexed_date: 2026-07-28
 **Scope:** grok-user
 **Path:** `C:/Users/brsth/.grok/skills/web/SKILL.md`
 
-Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (web-search-prime + mmx search + DDG) in parallel, then RRF-merge results. Intent-based routing to Exa, Tavily, Brave, firecrawl, HN Algolia, Stack Exchange, and social platform search is ADDITIVE on top of the default, never a substitute. Research mode with shape= (dos-and-donts, comparisons, anti-patterns, how-tos, facts) and depth= (quick, standard, deep with iterative refinemen...
+Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (DDG + mmx search + firecrawl) in parallel, then RRF-merge results. Intent-based routing to Exa, Tavily, Brave, firecrawl, HN Algolia, Stack Exchange, and social platform search is ADDITIVE on top of the default, never a substitute. Research mode with shape= (dos-and-donts, comparisons, anti-patterns, how-tos, facts) and depth= (quick, standard, deep with iterative refinement) for ...
 
 > This is a lightweight pointer for semantic search. The authoritative source
 > is the SKILL.md file at the path above. Regenerate with

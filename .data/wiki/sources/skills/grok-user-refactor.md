@@ -13,7 +13,7 @@ indexed_date: 2026-07-28
 **Scope:** grok-user
 **Path:** `C:/Users/brsth/.grok/skills/refactor/SKILL.md`
 
-(no description in frontmatter)
+Intelligent structural refactor: plain-language target/mode inference, plan-on-disk then seam execute with verify, multi-terminal isolation, stale-data immunity, worktree cleanup. Use for /refactor, multi-file refactor, extract god module, reduce coupling, implement review findings as structure work, or when /go routes refactor-shaped tasks here. when-to-use: > /refactor, refactor, dry-run refactor, extract module, split god file, implement maintainability findings, reduce dual paths, multi-s...
 
 > This is a lightweight pointer for semantic search. The authoritative source
 > is the SKILL.md file at the path above. Regenerate with
