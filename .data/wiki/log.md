@@ -1,5 +1,11 @@
 # Vault Log
 
+## OpenAI subscription models investigation
+Source: session-2026-07-29
+Agent: grok
+Notes: Codex OAuth token scoped to connectors API only; standard API endpoints reject it; GPT-5.6 model details documented
+Page: wiki/concepts/openai-subscription-models-in-grok-build.md
+
 ## --concept
 Source: confidence-scoring-for-static-analysis-fp-suppression
 Agent: --title
