@@ -161,9 +161,14 @@ but are not available in our current provider pool:
 | **Kimi K3** | #1 on IFEval (92.6%), GPQA #4 (93.5%) | In config as go-kimi-k3 but excluded (operator directive) |
 | **Qwen3.5-27B** | IFEval 95% (#2 globally) | Not in fleet; open weight, could add via NIM |
 
-Of these, **Gemini 3.1 Pro Preview** is the most actionable — the API key already
+Of these, **Gemini 3.1 Pro Preview** is the most actionable on paper — API key
 exists, just needs a config.toml entry. **GPT-5.6 Sol** is viable via codex CLI
 (verified passing both coding and reasoning in this session).
+
+**Operator directive (2026-07-29):** Do NOT prioritize adding Gemini 3.1 Pro to
+config.toml. Current Gemini usage is too low to justify the integration effort.
+Record for future reference only — revisit if Gemini fleet usage increases or if
+GLM-5.2 quality degrades.
 
 ## Falsifier
 
