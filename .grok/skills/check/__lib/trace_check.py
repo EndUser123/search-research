@@ -93,6 +93,21 @@ def check_file(path: str) -> list[dict[str, Any]]:
     except OSError:
         return []
 
+    # Parse errors are findings — a file that can't parse is definitely broken
+    try:
+        ast.parse(source)
+    except SyntaxError as e:
+        return [{
+            "file": path,
+            "line": e.lineno or 0,
+            "method": "<syntax-error>",
+            "class": "<parse>",
+            "issue": (
+                f"SyntaxError at line {e.lineno or 0}: {e.msg}"
+                " — AST parse failed, trace_check cannot analyze"
+            ),
+        }]
+
     class_methods = extract_class_methods(source)
     self_calls = extract_self_calls(source)
 
@@ -117,8 +132,17 @@ def check_file(path: str) -> list[dict[str, Any]]:
                     ),
                 })
         elif cls == "<module>":
-            # Module-level self call — unusual but check anyway
-            pass
+            # self.* at module scope is always a NameError at runtime
+            findings.append({
+                "file": path,
+                "line": call["line"],
+                "method": method,
+                "class": "<module>",
+                "issue": (
+                    f"self.{method}() called at module scope "
+                    f"(line {call['line']}) — NameError guaranteed"
+                ),
+            })
 
     return findings
 

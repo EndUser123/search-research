@@ -47,6 +47,8 @@ def _parse_json_safe(raw: str) -> Any:
 
 
 def run_ruff(py_files: list[str]) -> dict[str, Any]:
+    if not py_files:
+        return {"status": "skipped", "reason": "no py_files"}
     if not shutil.which("ruff"):
         return {"status": "skipped", "reason": "ruff not installed"}
     code, out, _ = _run(
@@ -58,6 +60,8 @@ def run_ruff(py_files: list[str]) -> dict[str, Any]:
 
 
 def run_pyright(py_files: list[str]) -> dict[str, Any]:
+    if not py_files:
+        return {"status": "skipped", "reason": "no py_files"}
     if not shutil.which("pyright"):
         return {"status": "skipped", "reason": "pyright not installed"}
     code, out, _ = _run(["pyright", "--outputjson"] + py_files, timeout=120)
@@ -71,6 +75,8 @@ def run_pyright(py_files: list[str]) -> dict[str, Any]:
 
 
 def run_pylint(py_files: list[str]) -> dict[str, Any]:
+    if not py_files:
+        return {"status": "skipped", "reason": "no py_files"}
     if not shutil.which("pylint"):
         return {"status": "skipped", "reason": "pylint not installed"}
     code, out, _ = _run(
@@ -94,6 +100,8 @@ def run_trace_check(py_files: list[str]) -> dict[str, Any]:
 
 
 def run_bandit(py_files: list[str]) -> dict[str, Any]:
+    if not py_files:
+        return {"status": "skipped", "reason": "no py_files"}
     if not shutil.which("bandit"):
         return {"status": "skipped", "reason": "bandit not installed"}
     code, out, _ = _run(
@@ -106,6 +114,8 @@ def run_bandit(py_files: list[str]) -> dict[str, Any]:
 
 
 def run_radon(py_files: list[str]) -> dict[str, Any]:
+    if not py_files:
+        return {"status": "skipped", "reason": "no py_files"}
     if not shutil.which("radon"):
         return {"status": "skipped", "reason": "radon not installed"}
     code, out, _ = _run(["radon", "cc", "-s", "-n", "C"] + py_files)
@@ -190,6 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     run_dir = Path(args.run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
 
     # Run all layers
     ruff = run_ruff(args.py_files)
@@ -232,6 +243,14 @@ def main(argv: list[str] | None = None) -> int:
                      if isinstance(vulture, dict) else 0)
     radon_count = radon.get("hotspot_count", 0)
 
+    # Add summary to the packet for verifiers
+    packet["summary"] = {
+        "has_errors": has_errors,
+        "bandit_medium_high": bandit_medium_high,
+        "radon_count": radon_count,
+        "vulture_count": vulture_count,
+    }
+
     # Print status
     if has_errors:
         print("DETERMINISTIC_CHECK: ERRORS FOUND (ruff/pyright/pylint)")
@@ -264,7 +283,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"DETERMINISTIC_CHECK: packet written to {output_path}")
 
-    return 0
+    return 1 if has_errors else 0
 
 
 if __name__ == "__main__":
