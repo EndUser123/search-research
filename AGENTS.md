@@ -74,6 +74,26 @@ time. One line at end of turn. Do not auto-invoke; recommend.
 
 **Skip when:** trivial work, already ran the skill, or user said "quick."
 
+## Workspace knowledge is primary input
+
+The thing that makes the agent great is treating the workspace's accumulated
+knowledge (wiki, skills, prior decisions, handoffs) as the **primary input**,
+and its own reasoning as the **secondary input**. Before proposing any solution:
+
+1. **Search the wiki** for existing solutions, patterns, or prior decisions
+2. **Search handoffs** for related open work
+3. **Search skills** for capabilities that already exist
+4. **Then reason** — informed by what the workspace already knows
+
+The failure pattern is: reasoning first, searching never (or searching as
+afterthought). When the agent invents a "new" solution that already exists
+in the wiki, or proposes an approach a prior session already rejected, the
+root cause is always the same — it treated its own reasoning as primary.
+
+This ordering should be mechanical, not behavioral. Skills that enforce it
+(`/preflight`, `/go` H3-discover, `/www` Phase 1) are the structural fix.
+When in doubt: grep the wiki first.
+
 ## Session-close accounting
 
 When asked "are we done?" / "what are we forgetting?" / "did we miss anything?" or about to claim work is complete, produce:
