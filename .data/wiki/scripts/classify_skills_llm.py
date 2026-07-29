@@ -25,7 +25,7 @@ from pathlib import Path
 
 # Import the scanner to get unmatched skills
 sys.path.insert(0, str(Path(__file__).parent))
-from scan_external_skills import scan_all_roots, FLEET_DOMAINS
+from scan_external_skills import scan_all_roots
 
 # Mistral API (free tier, direct API — not spawn_subagent)
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
@@ -169,7 +169,6 @@ def extract_skill_info(skill_path: str) -> dict:
 
 def classify_batch(skills_batch: list[dict]) -> list[str]:
     """Classify a batch of skills via one API call. Returns list of domains (by position)."""
-    import re
 
     # Build the user message with all skills in the batch
     lines = ["Classify each skill into exactly one domain. Output one JSON line per skill, using the skill number.\n"]
@@ -276,12 +275,12 @@ def main():
         from collections import Counter
         domain_counts = Counter(c["llm_domain"] for c in classified)
         print(f"\nClassification complete: {len(classified)} skills")
-        print(f"\nBy domain (LLM-classified):")
+        print("\nBy domain (LLM-classified):")
         for domain, count in domain_counts.most_common():
             print(f"  {domain:20s}: {count}")
 
         # Print details
-        print(f"\nDetails:")
+        print("\nDetails:")
         for c in sorted(classified, key=lambda x: (x["llm_domain"], x["name"])):
             print(f"  {c['llm_domain']:20s}  {c['name']:35s} ({c['source']})")
 
