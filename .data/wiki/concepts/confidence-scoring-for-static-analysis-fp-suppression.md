@@ -85,17 +85,28 @@ remain visible but are deprioritized.
 
 ## What we implemented in trace_check.py
 
-Following the consensus pattern:
+Following the consensus pattern, trace_check now uses **import-aware
+resolution with 3-tier fallback**:
 
-| Finding context | Confidence | Policy | Verifier treatment |
-|----------------|-----------|--------|-------------------|
-| All bases in same file | `"high"` | `deterministic_failures` | Confirmed bug — must address |
-| Has external base classes | `"low"` | `advisory` | Spot-check candidate — might be inherited |
-| Syntax error | N/A | N/A | Always reported as parse failure |
+```
+self.method() not in same-file methods
+  │
+  ├── Class has external base?
+  │     │
+  │     ├── Yes → try to import the base module
+  │     │     │
+  │     │     ├── hasattr(base, method) == True → SUPPRESS (confirmed defined)
+  │     │     ├── hasattr(base, method) == False → confidence="high" (real bug!)
+  │     │     └── Import failed → confidence="low" (advisory fallback)
+  │     │
+  │     └── No → confidence="high" (same-file, fully resolved)
+```
 
-The `_has_external_base()` function walks the same-file inheritance
-chain to detect whether any ancestor is from another module. If yes,
-findings for that class get `confidence="low"`.
+This matches pylint's `astroid` approach (import-aware inference) rather
+than pyright's stubs-only approach. For our use case (verifying code we
+just wrote, on a machine where the packages are installed), import-based
+resolution gives the right answer almost always. The confidence-scoring
+fallback handles the rare case where the package isn't installed.
 
 ## Why this is better than fail open
 
