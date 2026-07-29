@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -136,6 +137,120 @@ def _has_external_base(
     return False
 
 
+def _extract_imports(source: str) -> dict[str, str]:
+    """Map imported class/function names to their module paths.
+
+    Handles `from X import Y` → {"Y": "X"} and
+    `import X.Y` → {"X": "X"}.
+    Returns name → module_path mapping.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return {}
+
+    imports: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            for alias in node.names:
+                name = alias.asname or alias.name
+                imports[name] = module
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.asname or alias.name.split(".")[0]
+                imports[name] = alias.name
+    return imports
+
+
+def _extract_external_bases(
+    source: str,
+    methods: dict[str, list[str]],
+    bases: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    """Find external base class names for each class.
+
+    Returns class_name → [external_base_name, ...] for bases that
+    come from imports or builtins (anything not defined in this file).
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return {}
+
+    imports = _extract_imports(source)
+    external_bases: dict[str, list[str]] = {}
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        ext_names = []
+        for base in node.bases:
+            base_name = None
+            if isinstance(base, ast.Name):
+                base_name = base.id
+            elif isinstance(base, ast.Attribute):
+                # e.g., textual.app.App — take last segment
+                base_name = base.attr
+            if not base_name:
+                continue
+            # External if: imported via from/import, OR not defined in this file
+            is_imported = base_name in imports
+            is_not_in_file = base_name not in methods
+            if is_imported or is_not_in_file:
+                ext_names.append(base_name)
+        if ext_names:
+            external_bases[node.name] = ext_names
+
+    return external_bases
+
+
+def _try_resolve_external_method(
+    class_name: str,
+    method_name: str,
+    external_bases: dict[str, list[str]],
+    imports: dict[str, str],
+) -> str:
+    """Try to resolve whether a method exists on an external base class.
+
+    Returns:
+        "defined" — method confirmed to exist on the external base
+        "undefined" — method confirmed to NOT exist
+        "unresolved" — couldn't import or inspect the base
+    """
+    ext_base_names = external_bases.get(class_name, [])
+    for base_name in ext_base_names:
+        # Try import-map resolution first (for `from X import Y`)
+        module_path = imports.get(base_name)
+
+        # Handle builtins (dict, list, Exception, etc.) — no import needed
+        base_obj = None
+        if module_path:
+            try:
+                mod = importlib.import_module(module_path)
+                base_obj = getattr(mod, base_name, None)
+            except Exception:
+                pass
+        if base_obj is None:
+            # Try builtins (dict, list, str, Exception, etc.)
+            import builtins
+            base_obj = getattr(builtins, base_name, None)
+
+        if base_obj is None:
+            continue
+
+        if hasattr(base_obj, method_name):
+            return "defined"
+        # Check via MRO for inherited methods on class types
+        if isinstance(base_obj, type):
+            for klass in base_obj.__mro__:
+                if method_name in klass.__dict__:
+                    return "defined"
+            # Found the class, checked MRO, method not there — confirmed undefined
+            return "undefined"
+    return "unresolved"
+
+
 def check_file(path: str) -> list[dict[str, Any]]:
     """Check a single Python file for called-but-undefined self.* methods.
 
@@ -163,6 +278,8 @@ def check_file(path: str) -> list[dict[str, Any]]:
 
     class_methods, class_bases = extract_class_methods(source)
     self_calls = extract_self_calls(source)
+    imports = _extract_imports(source)
+    external_bases = _extract_external_bases(source, class_methods, class_bases)
 
     findings: list[dict[str, Any]] = []
     for call in self_calls:
@@ -175,15 +292,34 @@ def check_file(path: str) -> list[dict[str, Any]]:
         if cls in class_methods:
             available = _resolve_methods(cls, class_methods, class_bases)
             if method not in available:
-                # Check if any base class is external (not in this file)
-                has_external_base = _has_external_base(
-                    cls, class_methods, class_bases
+                # Try to resolve via external base class import
+                resolution = _try_resolve_external_method(
+                    cls, method, external_bases, imports
                 )
-                confidence = "low" if has_external_base else "high"
-                policy = (
-                    "advisory" if has_external_base
-                    else "deterministic_failures"
-                )
+                if resolution == "defined":
+                    # Confirmed defined on external base — suppress
+                    continue
+                elif resolution == "undefined":
+                    # Confirmed undefined even on external base — real bug
+                    confidence = "high"
+                    policy = "deterministic_failures"
+                    resolution_note = (
+                        " (confirmed undefined on external base "
+                        f"{external_bases.get(cls, [])} via import resolution)"
+                    )
+                else:
+                    # Couldn't resolve — fall back to confidence scoring
+                    has_external = bool(external_bases.get(cls))
+                    confidence = "low" if has_external else "high"
+                    policy = (
+                        "advisory" if has_external
+                        else "deterministic_failures"
+                    )
+                    resolution_note = (
+                        " (class has external base classes — "
+                        "may be inherited, import resolution failed)"
+                        if has_external else ""
+                    )
                 findings.append({
                     "file": path,
                     "line": call["line"],
@@ -191,14 +327,11 @@ def check_file(path: str) -> list[dict[str, Any]]:
                     "class": cls,
                     "confidence": confidence,
                     "policy": policy,
+                    "resolution": resolution,
                     "issue": (
                         f"self.{method}() called at line "
-                        f"{call['line']} but not defined on class {cls}"
-                        + (
-                            " (class has external base classes "
-                            "— may be inherited, cannot resolve statically)"
-                            if has_external_base else ""
-                        )
+                        f"{call['line']} but not defined "
+                        f"on class {cls}{resolution_note}"
                     ),
                 })
         elif cls == "<module>":

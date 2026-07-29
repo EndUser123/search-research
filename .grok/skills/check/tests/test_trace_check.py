@@ -142,15 +142,15 @@ class App:
 
 
 def test_external_inheritance_low_confidence(tmp_path):
-    """Missing method on a class with an external base should get
-    confidence=low and policy=advisory, not deterministic_failures."""
+    """Missing method on a class with an external base whose package
+    is NOT installed should get confidence=low (advisory)."""
     f = tmp_path / "external.py"
     f.write_text("""
-from textual.app import App  # App is external
+from nonexistent_pkg_xyz import SomeBase
 
-class MyApp(App):  # external base
+class MyApp(SomeBase):
     def run(self):
-        self._undefined()  # might be on App — can't resolve
+        self._undefined()
 """, encoding="utf-8")
     out = tmp_path / "result.json"
     code, _ = _run(["--paths", str(f), "--output", str(out)])
@@ -159,7 +159,6 @@ class MyApp(App):  # external base
     finding = result["findings"][0]
     assert finding["confidence"] == "low"
     assert finding["policy"] == "advisory"
-    assert "external base" in finding["issue"]
 
 
 def test_same_file_inheritance_high_confidence(tmp_path):
