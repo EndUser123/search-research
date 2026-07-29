@@ -55,13 +55,24 @@ When the user's prompt connects a task to a future or separate session (triggers
 
 When current work is in a different subsystem than the original user request, emit once per drift event: `Note: session started on <original task>; current work is <current task>.` Not a question, not a gate. If the user says nothing, continue.
 
-## Proactive verification suggestions
+## Proactive skill suggestions
 
-After completing work, proactively recommend verification:
+After completing work, proactively recommend the right skill at the right
+time. One line at end of turn. Do not auto-invoke; recommend.
+
+**Verification skills:**
 - **`/check`** when: ≥2 concerns touched, runtime claims unverified, about to claim "done."
 - **`/review`** when: hooks/plugins/schemas/dispatch chains touched, new enforcement introduced, shared infrastructure modified.
-- **Skip** when: trivial work, already ran the skill, or user said "quick."
-- One line at end of turn. Do not auto-invoke; recommend.
+
+**Knowledge and continuity skills:**
+- **`/wiki`** when: durable knowledge produced (new pattern, decision with rationale, transferable technique) but not yet captured.
+- **`/handoff`** when: work spans sessions, open workstreams exist, or session is ending with unfinished threads.
+
+**Improvement and learning skills:**
+- **`/harvest`** when: root causes diagnosed, error patterns identified, or unrealized obligations exist (the standing question in /tp, /aar, /harvest fires this).
+- **`/aar`** when: ≥2 operator corrections happened (behavioral pattern signal), or session had material failures with recoverable lessons.
+
+**Skip when:** trivial work, already ran the skill, or user said "quick."
 
 ## Session-close accounting
 
