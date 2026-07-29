@@ -239,6 +239,10 @@ def build_reverse_index(skills: list[SkillNode]) -> dict:
         "skill_callers": {k: sorted(set(v)) for k, v in skill_callers.items()},
         "wiki_referencers": {k: sorted(set(v)) for k, v in wiki_referencers.items()},
         "capability_providers": {k: sorted(set(v)) for k, v in capability_providers.items()},
+        "shared_services": {
+            k: sorted(set(v)) for k, v in provider_consumers.items()
+            if len(set(v)) >= 3
+        },
     }
 
 
@@ -275,6 +279,17 @@ def generate_markdown(skills: list[SkillNode], reverse: dict) -> str:
     for cap in sorted(reverse.get("capability_providers", {})):
         providers = reverse["capability_providers"][cap]
         cap_lines.append(f"| `{cap}` | {', '.join(f'`{p}`' for p in sorted(set(providers)))} |")
+
+    # Shared services: capabilities with 3+ providers+consumers, and tools with 3+ consumers
+    shared_lines = []
+    for cap_name in sorted(reverse.get("capability_providers", {})):
+        provs = set(reverse["capability_providers"][cap_name])
+        if len(provs) >= 3:
+            shared_lines.append(f"| `{cap_name}` | capability | {len(provs)} | {', '.join(f'`{p}`' for p in sorted(provs))} |")
+    for tool_name in sorted(reverse.get("provider_consumers", {})):
+        cons = set(reverse["provider_consumers"][tool_name])
+        if len(cons) >= 5:
+            shared_lines.append(f"| `{tool_name}` | tool | {len(cons)} | {', '.join(f'`{c}`' for c in sorted(cons)[:8])}{'...' if len(cons) > 8 else ''} |")
 
     # Domain-grouped capability view
     # Read capability domains from contract files in capabilities/
@@ -381,6 +396,15 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | Capability | Provided by |
 |------------|-------------|
 {chr(10).join(cap_lines) if cap_lines else '| — | — |'}
+
+## Shared services (used by 3+ skills)
+
+Infrastructure that many skills depend on — capabilities and tools with
+high consumer counts. Changes to these have fleet-wide blast radius.
+
+| Service | Type | Consumer count | Skills |
+|---------|------|---------------|--------|
+{chr(10).join(shared_lines) if shared_lines else '| — | — | 0 | — |'}
 
 ## Capabilities by domain
 
