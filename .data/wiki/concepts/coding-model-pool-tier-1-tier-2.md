@@ -46,42 +46,46 @@ frontmatter `consumes:` declarations.
 
 ## Tier-1: Primary coding pool
 
-These models pass code-exec and sustain multi-call sequences without rate
-limiting. Use these for agent loops, subagent dispatches, and any task
-that generates or modifies code.
+These models pass code-exec, sustain multi-call sequences, and scored
+13/13 on deep-reasoning. Use these for agent loops, subagent dispatches,
+and any task that generates or modifies code.
 
-| Model | Provider | Code-exec | Speed | Quota | Why tier-1 |
-|---|---|---|---|---|---|
-| **mistral-medium-latest** | Mistral (free) | 5/5 | 2s | No limits observed | Perfect quality, fastest, most reliable |
-| **nim-openai-gpt-oss-20b** | NVIDIA (free) | 4/5 | 8s | No limits | GPT-OSS family, US-hosted, stable |
-| **minimax-m3** | MiniMax (sub) | 4/5 | 6s | 4,500/5h | Subscription workhorse, consistent |
+| Model | Provider | Code-exec | Reasoning | Speed | Quota | Why tier-1 |
+|---|---|---|---|---|---|---|
+| **or-ling-3-flash-free** | OpenRouter (free) | 5/5 | 13/13 | 2.2s | 20 RPM, 50-1000 RPD | Perfect quality, fastest, $0/M |
+| **mistral-medium-latest** | Mistral (free) | 5/5 | 12/13 | 6.9s | No limits observed | Perfect code quality, reliable |
+| **nim-openai-gpt-oss-20b** | NVIDIA (free) | 4/5 | 13/13 | 7.7s | No limits | GPT-OSS family, spawn verified |
 
 **Selection priority within tier-1:**
-1. mistral-medium-latest (fastest, perfect quality, free)
-2. nim-openai-gpt-oss-20b (if Mistral unavailable)
-3. minimax-m3 (if both free options unavailable — subscription backup)
+1. or-ling-3-flash-free (fastest, perfect quality+reasoning, $0/M)
+2. mistral-medium-latest (if Ling rate-limited or unavailable)
+3. nim-openai-gpt-oss-20b (if both unavailable)
 
 ## Tier-2: Fallback coding pool
 
 When all tier-1 models are unavailable (provider down, quota exhausted),
-these pass code-exec but have limitations:
+these pass code-exec and scored 12-13/13 on reasoning:
 
-| Model | Provider | Code-exec | Limitation |
-|---|---|---|---|
-| **glm-5-2** | GLM (sub) | 4/5 | Reasoning-token exhaustion causes intermittent empty output |
-| **nvidia-nemotron-3-super-120b** | NVIDIA (free) | 4/5 | Slower (17s avg) |
-| **zen-deepseek-v4-flash-free** | OpenCode (free) | 4/5 | OpenCode reliability varies |
-| **nvidia-nemotron-3-ultra** | NVIDIA (free) | 4/5 | Very slow (54s avg) |
+| Model | Provider | Code-exec | Reasoning | Limitation |
+|---|---|---|---|---|
+| **go-deepseek-v4-flash** | OpenCode Go (sub) | 5/5 | 13/13 | Subscription cost; OpenCode Go upstream reliability |
+| **minimax-m3** | MiniMax (sub) | 4/5 | 13/13 | Subscription quota (4,500/5h); agentic #97/129 |
+| **zen-deepseek-v4-flash-free** | Zen (free) | 4/5 | 13/13 | OpenCode Zen reliability varies |
+| **glm-5-2** | GLM (sub) | 4/5 | 12/13 | Reasoning-token exhaustion; reserve for thought-partner role |
 
 ## Excluded from coding pool
 
 | Model | Why excluded |
 |---|---|
-| **Groq models (all)** | Rate-limited on multi-call sequences. Good for single-shot (sub-second latency) but fail during agent loops that make 5+ calls in minutes |
+| **Groq models (all)** | TPM cap (6000-8000) blocks spawn_subagent entirely. 54K system prompt exceeds limit. |
 | **gemma-4-31b-it** | 1/5 on code-exec. Strong reasoning but poor code generation |
-| **nvidia-nemotron-mini-4b** | 1/5. 4B params — too small for code generation |
-| **nvidia-llama-3-1-8b** | 2/5. 8B params — inconsistent code quality |
-| **Gemini Flash models** | Rate-limited (Google free tier RPD cap) |
+| **nvidia-nemotron-mini-4b** | Context limit error; 4B params too small |
+| **nvidia-llama-3-1-8b** | 2/5 code-exec. Inconsistent quality |
+| **go-kimi-k2-7-code** | OpenCode Go upstream failure (all calls return "Error from provider") |
+| **go-kimi-k3** | Operator exclusion directive |
+| **Gemini Flash models** | Google free-tier RPD cap causes 429 under load (6/13 calls failed in sweep) |
+| **or-morph-morph-v3-*** | Reject multi-turn API (no system message support) |
+| **or-arcee-ai-virtuoso-large** | Provider endpoint down |
 
 ## How skills consume this pool
 

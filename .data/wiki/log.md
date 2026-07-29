@@ -1,5 +1,11 @@
 # Vault Log
 
+## Model pool contracts created
+Source: session-2026-07-29
+Agent: grok
+Notes: 4 pool contracts: coding, reasoning, mechanical, critic. Coding pool updated with Ling 3.0 Flash. Fleet pools updated with verified models.
+Page: wiki/capabilities/
+
 ## --concept
 Source: wire-before-build
 Agent: --action

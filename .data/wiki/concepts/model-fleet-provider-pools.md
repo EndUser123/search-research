@@ -422,35 +422,53 @@ fit. That's the failure mode the chain notation creates.
 The wave table should list the POOL, not a chain:
 
 ```text
-Code pool (free):     {ccr-ornith, diffusiongemma, gemini-3.6-flash, gemini-3.5-flash-lite,
-                       gemini-2.5-flash, gemma-4-31b, zen-north-mini-code-free,
-                       go-kimi-k2-7-code, go-mimo-v2-5, or-laguna-m1-free}
-Code escalation:      minimax-m3 (subscription, when free pool exhausted)
+Code pool (free):     {or-ling-3-flash-free, mistral-medium-latest, nim-openai-gpt-oss-20b,
+                       zen-deepseek-v4-flash-free, zen-big-pickle}
+Code escalation:      go-deepseek-v4-flash, minimax-m3, glm-5-2 (when free pool exhausted)
 
-Reasoning pool (free): {nvidia-nemotron-3-ultra, gemini-3.1-pro-preview (if quota),
-                       zen-nemotron-3-ultra-free, or-nemotron-ultra-free}
-Reasoning escalation: glm-5-2 (subscription, when free pool exhausted)
+Reasoning pool (free): {or-ling-3-flash-free, or-arcee-ai-trinity-large-thinking,
+                       nvidia-nemotron-3-ultra, nvidia-nemotron-3-super-120b}
+Reasoning escalation: glm-5-2 (thought-partner: Tau2 #1 world), go-qwen3-7-max
+
+Mechanical pool (free): {or-ling-3-flash-free, mistral-medium-latest,
+                         nvidia-nemotron-3-super-120b, zen-big-pickle}
+Mechanical escalation: minimax-m3 (IFBench #1 globally — use for formatting tasks)
+
+Critic pool:           mistral-medium-latest (code review), glm-5-2 (adversarial),
+                       nvidia-nemotron-3-ultra (large-context review)
+Cross-model review:    /agy (Gemini), /codex (GPT-5.6), /mmx (MiniMax) — NOT pool members
 ```
 
 Selection: pick by **situational fit** (context, speed, availability, provider
 diversity), NOT by fixed ordering within the pool.
 
+**Updated 2026-07-29:** Removed ccr-ornith (disabled), diffusiongemma (fails
+tool-calling), gemini-3.6-flash (1/5 code-exec), laguna-m1-free (no endpoints).
+Added or-ling-3-flash-free (verified 5/5 + 13/13), or-arcee-ai-trinity-large-thinking
+(verified 13/13), zen-big-pickle (verified 13/13). Added 4 pool contracts:
+capabilities/coding-model-pool.md, reasoning-model-pool.md,
+mechanical-model-pool.md, critic-model-pool.md.
+
 ## What needs exercise (gaps in calibration)
 
-| Model | Provider | Status | Needs |
-|-------|----------|--------|-------|
-| `go-kimi-k2-7-code` | go | spawn_subagent verified OK | Quality test (T4-style blind comparison) |
-| `go-mimo-v2-5` | go | spawn_subagent verified OK | Quality test |
-| `go-deepseek-v4-pro` | go | Untested | Quality + spawn_subagent test |
-| `go-qwen3-7-max` | go | Untested | Quality + spawn_subagent test |
-| `zen-north-mini-code-free` | Zen | Untested | Quality test |
-| `zen-big-pickle` | Zen | Untested | Quality test |
-| `or-nemotron-ultra-free` | OR free | Untested | Quality test (same model as NVIDIA path?) |
-| `gemini-3.6-flash` | Google | Config verified | Quality calibration in coding tasks |
+**Updated 2026-07-29:** The models listed below have now been tested via the
+13-problem deep-reasoning sweep (780 calls, 60 models). Results:
 
-Until these are tested, the pool includes them as "qualified candidates" but
-without quality calibration data. Using them is a reasonable bet (they're from
-known model families), not a verified choice.
+| Model | Status | Result |
+|-------|--------|--------|
+| `go-deepseek-v4-flash` | ✅ Verified | 5/5 code-exec, 13/13 reasoning, 6.4s |
+| `go-mimo-v2-5` | ✅ Verified | 13/13 reasoning, 19.5s avg |
+| `go-qwen3-7-max` | ✅ Verified | 13/13 reasoning, IFEval 94.3%, 19s |
+| `zen-north-mini-code-free` | ✅ Verified | 13/13 reasoning, 19.5s |
+| `zen-big-pickle` | ✅ Verified | 13/13 reasoning, 7.2s |
+| `or-nemotron-ultra-free` | ✅ Verified | 10/13 reasoning (0.77 score) |
+
+Remaining gaps:
+| Model | Status | Needs |
+|-------|--------|-------|
+| `go-kimi-k2-7-code` | ❌ Provider failure | OpenCode Go upstream error — retest when provider recovers |
+| `or-ling-3-flash-free` spawn_subagent | Untested | Spawn test (works via direct API) |
+| Pool health baseline | Insufficient data | Need 5+ calls per model for pool_health.py baseline |
 
 ## Relationship to existing concepts
 
