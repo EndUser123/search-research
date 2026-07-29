@@ -33,10 +33,14 @@ nvidia-nemotron-3-ultra (13/13, IFBench #2 globally at 81.4%, 32s avg)
   - Use for: instruction-constrained reasoning, structured analysis
 
 ## Tier-2 (fallback when tier-1 exhausted)
-go-qwen3-7-max (13/13, IFEval 94.3%, 19s, OpenCode sub)
-go-qwen3-7-plus (13/13, IFEval 94.6%, 22s, OpenCode sub)
-zen-deepseek-v4-flash-free (13/13, $0, 7.4s)
-nim-openai-gpt-oss-20b (13/13, free, 7.7s, spawn OK)
+go-deepseek-v4-pro (Tau2 96.2, 13/13, IFEval unknown, 7.8s, OpenCode sub)
+  - Best available fallback: only 2.9 Tau2 points behind GLM-5.2
+deepseek-v4-flash via zen-deepseek-v4-flash-free or go-deepseek-v4-flash
+  (Tau2 95.6, 13/13, 7.4s)
+  - go- and zen- are the SAME provider (opencode.ai/zen/go/v1), different
+    billing path. zen = $0 free tier, go = subscription quota. Use zen first.
+go-qwen3-7-max (Tau2 94.7, IFEval 94.3%, 13/13, 19s)
+go-qwen3-7-plus (Tau2 93.0, IFEval 94.6%, 13/13, 22s)
 
 ## Excluded
 minimax-m3: #97/129 agentic (25th pct). Good at bounded math (13/13) but
