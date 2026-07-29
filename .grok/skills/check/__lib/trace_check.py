@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -56,7 +55,6 @@ def extract_self_calls(source: str) -> list[dict[str, Any]]:
         return []
 
     calls: list[dict[str, Any]] = []
-    current_class: str | None = None
 
     class ClassVisitor(ast.NodeVisitor):
         def __init__(self):
@@ -113,7 +111,10 @@ def check_file(path: str) -> list[dict[str, Any]]:
                     "line": call["line"],
                     "method": method,
                     "class": cls,
-                    "issue": f"self.{method}() called at line {call["line"]} but not defined on class {cls}",
+                    "issue": (
+                        f"self.{method}() called at line "
+                        f"{call['line']} but not defined on class {cls}"
+                    ),
                 })
         elif cls == "<module>":
             # Module-level self call — unusual but check anyway
@@ -124,10 +125,16 @@ def check_file(path: str) -> list[dict[str, Any]]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Definition completeness check — catch called-but-undefined self.* methods"
+        description="Definition completeness check — "
+        "catch called-but-undefined self.* methods"
     )
-    parser.add_argument("--paths", nargs="+", required=True, help="Python files to check")
-    parser.add_argument("--output", "-o", default=None, help="Write JSON result to this path")
+    parser.add_argument(
+        "--paths", nargs="+", required=True, help="Python files to check"
+    )
+    parser.add_argument(
+        "--output", "-o", default=None,
+        help="Write JSON result to this path"
+    )
     args = parser.parse_args(argv)
 
     all_findings: list[dict[str, Any]] = []
