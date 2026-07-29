@@ -3,6 +3,7 @@ name: check
 description: "Multi-concern session verification with PASS/FAIL verdict"
 effort: high
 provides: [session-verification, subagent-dispatch]
+domain: testing
 ---
 
 # /check -- Multi-concern session verification
@@ -176,13 +177,19 @@ that ruff F401 does not catch (unused methods/functions after refactors).
 
 **Trigger:** run when ANY scope file is a `.py` file (determined from the
 evidence packet's `scope_files` or the git-derived packet's `git_changed_files`).
+**Cross-workspace:** files on any drive (P:\, D:\, C:\, network paths) are
+included — not just P:\. The evidence packet's scope_files bucket tracks all
+edited files regardless of location. If scope_files is empty, fall back to
+scanning the file_edits bucket for .py target_paths.
 
 **Layers:**
 
 | Tool | Role | Blocks CHECK? |
 |------|------|----------------|
 | ruff E,F | syntax / unused imports / undefined names | Seeds `deterministic_failures` (verifiers treat as bugs) |
-| pyright errors | type errors | Seeds `deterministic_failures` |
+| pyright errors | type errors (including undefined `self.*` methods — catches `_mark_row` class bugs) | Seeds `deterministic_failures` |
+| **pylint --errors-only** | inference-based: undefined attributes (`no-member`/E1101), resource leaks, import errors. Catches bugs ruff and pyright miss on dynamic/untyped code | Seeds `deterministic_failures` (soft-skip if not installed) |
+| **trace_check.py** | AST-based definition completeness: traces every `self.*` call to its `def`, flags called-but-undefined methods (the `_mark_row` class of bug). Ported from Claude `/trace` methodology. | Seeds `deterministic_failures` |
 | **vulture** | unused functions/methods/classes (dead code after refactors) | **ADVISORY only** — never alone fails CHECK; soft-skip if not installed |
 
 **Why vulture is advisory:** framework frameworks (Textual `compose`/`@on`/
@@ -193,14 +200,28 @@ for verifiers; pre-push may later fail-closed with a project whitelist.
 **What it does:**
 
 ```powershell
+# Extract scope_files from evidence packet (or git fallback)
+$scopeFiles = @()
+if ($packet -and $packet.scope_files) {
+    # scope_files from transcript preprocessor — includes ALL edited files
+    # regardless of drive (P:\, D:\, C:\, etc.)
+    $scopeFiles = @($packet.scope_files | ForEach-Object { $_.detail.files } | Where-Object { $_ })
+} elseif ($gitDiff) {
+    $scopeFiles = @($gitDiff -split "`n" | Where-Object { $_.Trim() -match '\.py$' })
+}
+# Also scan for .py files in scope from the evidence packet's file_edits bucket
+if ($packet -and $packet.signals -and $packet.signals.file_edits -and -not $scopeFiles) {
+    $scopeFiles = @($packet.signals.file_edits | ForEach-Object { $_.detail.target_path } | Where-Object { $_ -match '\.py$' })
+}
+
 # Run deterministic checks on changed .py files only
 $pyFiles = @($scopeFiles | Where-Object { $_ -match '\.py$' })
 if ($pyFiles) {
     $deterministicResult = "$runDir/packets/deterministic-check.json"
-    # Ruff: errors only (E, F rules)
+    # Ruff: errors only (E, F rules) — works on any drive
     $ruff = ruff check --select E,F --output-format=json @pyFiles 2>$null
     $ruffExit = $LASTEXITCODE
-    # Pyright: errors only
+    # Pyright: errors only — works on any drive, catches undefined self.* methods
     $pyright = pyright --outputjson @pyFiles 2>$null | ConvertFrom-Json
     $pyrightErrors = @($pyright.generalDiagnostics | Where-Object { $_.severity -eq "error" })
     # Vulture: ADVISORY dead-code (soft-fail if missing; filters Textual FPs)
@@ -209,17 +230,28 @@ if ($pyFiles) {
         --paths @pyFiles `
         --min-confidence 80 `
         --output $vultureOut
+    # Pylint: errors-only (E1101 no-member catches called-but-undefined self.* methods)
+    $pylint = pylint --errors-only --output-format=json @pyFiles 2>$null
+    $pylintExit = $LASTEXITCODE
+    # Trace check: AST-based definition completeness (catches called-but-undefined methods)
+    $traceOut = "$runDir/packets/trace-check.json"
+    python "P:/.grok/skills/check/__lib/trace_check.py" `
+        --paths @pyFiles `
+        --output $traceOut
     # Merge packet for verifiers
     $packet = @{
         ruff_errors = $ruff
         ruff_exit = $ruffExit
         pyright_errors = $pyrightErrors
+        pylint_errors = $pylint
+        pylint_exit = $pylintExit
+        trace_check = (Get-Content $traceOut -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json)
         vulture_advisory = (Get-Content $vultureOut -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json)
         vulture_policy = "advisory_only"
     }
     $packet | ConvertTo-Json -Depth 8 | Set-Content $deterministicResult -Encoding UTF8
-    if ($ruffExit -ne 0 -or $pyrightErrors.Count -gt 0) {
-        Write-Host "Deterministic pre-check: ERRORS FOUND (ruff/pyright) — see $deterministicResult"
+    if ($ruffExit -ne 0 -or $pyrightErrors.Count -gt 0 -or $pylintExit -ne 0) {
+        Write-Host "Deterministic pre-check: ERRORS FOUND (ruff/pyright/pylint) — see $deterministicResult"
     } else {
         Write-Host "Deterministic pre-check: ruff/pyright clean"
     }
@@ -231,13 +263,33 @@ if ($pyFiles) {
 }
 ```
 
-**Short-circuit rule:** if the deterministic pre-check finds **ruff E/F or pyright errors**, the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
+**Short-circuit rule:** if the deterministic pre-check finds **ruff E/F, pyright errors, or pylint errors**, the orchestrator includes them in every verifier's packet as `deterministic_failures`. Verifiers MUST treat these as confirmed bugs — they don't need to re-run ruff to know it failed. This saves 200-350s of LLM time on checks where the deterministic layer already has the answer.
 
 **Vulture advisory rule:** include `vulture_advisory` findings in verifier packets as **spot-check candidates** (severity suggestion/gap unless the verifier confirms real dead code). Do **not** auto-FAIL CHECK solely because vulture reported findings. Do **not** delete Textual `compose` / `watch_*` / `@on` handlers based on unfiltered vulture.
 
 **Do NOT short-circuit to immediate FAIL** without the LLM verifier — the deterministic check finds syntax/type errors but not logic errors. The LLM verifier still needs to run for the full assessment. The deterministic check just seeds the verifier with confirmed findings so it doesn't waste time rediscovering them.
 
 **Skip when:** no `.py` files in scope, or `--lite` mode.
+
+## Step 0.95 -- Failure-scenario generation (when --failure-scenarios)
+
+**Trigger:** user passes `--failure-scenarios` or the session's scope files
+contain concurrency primitives (claim files, locks, os.replace, multiprocessing).
+
+**What it does:** reads the changed code, identifies failure points (crash
+windows, race conditions, partial-write states, orphan-resource scenarios),
+and generates targeted tests for each. Writes them as
+`$runDir/results/failure_tests.py` and runs them.
+
+**Failure-point patterns to detect:**
+- Two-step operations (claim then publish, write then rename) → crash-between test
+- Concurrent access to shared files → Barrier-synchronized race test
+- Cleanup operations (unlink, rmtree) → crash-before-cleanup test
+- Resource creation without corresponding teardown → orphan-resource test
+
+**The verifier includes these test results alongside the standard test suite.**
+A failure-scenario test that fails is a CHECK FAIL even if all standard tests pass.
+
 
 ## Step 1 -- Detect concerns
 Scan git diff + conversation **and** the evidence packet's `signal_counts`
@@ -335,7 +387,7 @@ concern needed it.
 - `python -c`, `python <scratch_script.py>` (ad-hoc verification scripts)
 - Read-only inspection: `grep`, `find`, `cat`, `ls`, `Get-Content`, `Select-String`
 - Linters / type-checkers: `ruff`, `mypy`, `eslint`, `tsc`, `cargo clippy`,
-  `vulture` (via `P:/.grok/skills/check/__lib/vulture_precheck.py` — advisory)
+  `pylint`, `vulture` (via `P:/.grok/skills/check/__lib/vulture_precheck.py` — advisory)
 - Builds: `npm run build`, `cargo check`, `tsc`, `pip install -e .`
 - Localhost probes: `curl http://localhost:<port>/health`, `socket.connect_ex`
 
@@ -676,6 +728,12 @@ data analysis, research).
    reviewed existing code, verify the agent's findings are correct and check
    for issues the agent missed. In both cases look for:
    - Bugs: logic errors, off-by-one, null/undefined access, unhandled errors
+   - **Method definition check**: for every `self._method_name(...)` call in
+     changed code, verify the method exists on the class. Use grep:
+     `grep "def _method_name" <file>`. Called-but-undefined methods are
+     caused by batch edits accidentally removing definitions (reference:
+     session 019fa94d `_mark_row` incident). Pyright should catch these
+     but may not run on cross-workspace files.
    - Security: injection, XSS, unsafe deserialization, secrets in code
    - Missing validation at system boundaries (user input, API responses)
    - Regressions: did the change break existing behavior?
