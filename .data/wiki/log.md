@@ -1,5 +1,11 @@
 # Vault Log
 
+## decision-transition-auditing-verdict-integrity-controls
+Source: session-2026-07-29 (external LLM review of /behave + /www research)
+Agent: grok
+Notes: Verdict-integrity controls: unsupported claims cannot change design verdicts; 8 control gaps; self-protection pattern detection; McCormick 8-pattern taxonomy; HTC trajectory calibration
+Page: P:/.data/wiki/concepts/decision-transition-auditing-verdict-integrity-controls.md
+
 ## Research-to-execution-ratio structural fix implemented
 Source: session-019fa276
 Agent: grok
