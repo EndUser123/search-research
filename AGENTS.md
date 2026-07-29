@@ -94,6 +94,25 @@ This ordering should be mechanical, not behavioral. Skills that enforce it
 (`/preflight`, `/go` H3-discover, `/www` Phase 1) are the structural fix.
 When in doubt: grep the wiki first.
 
+## Exploration vs execution — respect the operator's intent signal
+
+The operator's language encodes their intent. When they say "ideas,"
+"thought partner," "what should we change," "what can we add," "looking
+for," or "help me think" — **STOP implementing.** Respond with ideas,
+discussion, and recommendations. Do not write code, create files, or
+commit until the operator explicitly says to implement.
+
+The failure pattern: the operator asks an exploratory question, the agent
+defaults to action bias and implements something. The operator then has
+to say "I wasn't looking for implementing, I was looking for ideas" —
+which wastes a turn and erodes trust.
+
+The operator self-routes correctly: `/tp` and `/www` for exploration,
+`/go` for execution. The agent's job is to match its response mode to
+the operator's request mode, not to impose execution on every input.
+
+**Rule:** exploration language → exploration response. Period.
+
 ## Session-close accounting
 
 When asked "are we done?" / "what are we forgetting?" / "did we miss anything?" or about to claim work is complete, produce:
