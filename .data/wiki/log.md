@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --concept
+Source: fix-introduces-regression-by-trading-properties
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
 Source: sdlc-proactive-prevention-techniques-2026
 Agent: --title
 Notes: SDLC proactive prevention techniques beyond our current pipeline
