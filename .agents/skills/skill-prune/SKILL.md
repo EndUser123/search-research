@@ -7,6 +7,8 @@ description: >
   Adapted from Claude-side "garden" for Grok Build (qmd + index_skills.py
   as the inventory layer instead of CKS).
 host: both
+provides: [knowledge-hygiene]
+domain: self-improvement
 ---
 
 # /skill-prune — Skill and wiki knowledge hygiene

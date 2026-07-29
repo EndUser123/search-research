@@ -7,6 +7,8 @@ description: >
   from Claude-side "recover" for Grok Build (session transcripts at
   ~/.grok/sessions/, not ~/.claude/projects/).
 host: both
+provides: [file-recovery]
+domain: fleet-ops
 ---
 
 # /recover — File recovery for multi-agent shared filesystems
