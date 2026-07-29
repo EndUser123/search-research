@@ -48,15 +48,50 @@
 |-------|-------|------|------|
 | **1a** (done) | 1 | Day 0 | — |
 | **1a baseline** | — | Day 1-14 | Observe post-fix telemetry |
-| **1b** | 2, 3, 5 | Day 14+ | Day-14 baseline check |
-| **2** | 4 | Day 28+ | Labeling protocol exists (OQ-9) |
-| **3** | 6 (flag flip) | Day 58+ | All Phase-4 activation criteria met |
+| **1b** | 2, 3, 5 | Day 14+ | See resolved questions below |
+| **2** | 4 | Day 28+ | Proxy-labeled FP data |
+| **3** | 6 (flag flip) | Day 58+ | Phase-4 activation criteria |
 | **4** | — | Future | Separate ADR for blocking mode |
 
-## Open questions for operator
+**(Updated rollout after OQ-9/OQ-10 resolution — see below)**
 
-- **OQ-9:** Labeling protocol for FP measurement. Options: (a) operator weekly review of fp-log samples, (b) use repair outcomes as proxy labels (REVISED=false positive, CONFIRMED=true positive). Blocks Phase 4 activation.
-- **OQ-10:** Substantive vs ceremonial reads — counting bare AGENTS.md reads as grounding may train ceremonial compliance. Affects Unit 2 design.
+## Resolved questions (operator decisions 2026-07-29)
+
+**OQ-9: RESOLVED — repair-outcome proxy labels (option b).** No manual labeling. Proxy label mapping:
+- `RECOMMENDATION_REVISED_AFTER_INSPECTION` → true positive (proposal was ungrounded, model fixed it)
+- `RECOMMENDATION_CONFIRMED_AFTER_INSPECTION` → true positive (grounding was missing, model verified)
+- `RECOMMENDATION_WITHDRAWN_AFTER_INSPECTION` → true positive (proposal was wrong, model withdrew)
+- `EXPIRED_UNRESOLVED` → false positive (model ignored advisory, wasn't actionable)
+- Detections without a repair lifecycle (NO_SIGNAL, SIGNAL_BUT_QUALIFYING_SEARCH) → unlabeled, excluded from FP-rate computation
+
+**Implication for Unit 3:** fp_measurement.py must capture the `outcome` field when `gate_decision == "RESOLVED"`. Wilson CI is computed only on the labeled subset (resolved repairs). Phase 4 activation uses proxy-labeled FP rate, not human-labeled.
+
+**Implication for Phase 4:** the ≥50 detections criterion now means ≥50 *resolved* detections (not raw detections). Expired-unresolved count as FPs in the denominator.
+
+---
+
+**OQ-10: RESOLVED — AGENTS.md reads do NOT count as qualifying evidence.** Reading the rules document is not searching the solution space.
+
+**Implication for Unit 2 (significant simplification):**
+- `operator_directive` becomes a **tracking-only category** — it appears in telemetry and categorization, but is NOT in `QUALIFYING_CATEGORIES`
+- `categorize()` returns `"operator_directive"` for AGENTS.md/CLAUDE.md paths, but `add_evidence()` does NOT promote the repair to `DISCOVERY_PERFORMED` based on this category
+- Reading AGENTS.md alone does NOT satisfy grounding — agent must still read skills/packages/hooks/docs/upstream
+- **R-5 risk eliminated:** since `operator_directive` isn't qualifying, adding it does NOT change the repair trigger rate. The R-5 concern about "categorization changes alter trigger distribution" no longer applies
+- Unit 2 is now lower-risk: it adds observability without changing enforcement semantics. Can ship in Phase 1a alongside Units 1+3 if desired (no baseline-measurement dependency)
+- **Updated `QUALIFYING_CATEGORIES`:** remains the existing 5 (`skill`, `package`, `hook`, `docs`, `upstream`). Does NOT grow. The `docs` category already covers AGENTS.md via path regex — that regex should be narrowed to exclude AGENTS.md/CLAUDE.md (so those paths categorize as `operator_directive`, not `docs`)
+
+**Implementation note:** the existing `docs` regex at `relevance.py:152` (`r"(?:^|/)(?:AGENTS|CLAUDE)\.md$"`) currently classifies AGENTS.md as `docs` (qualifying). Unit 2 must move this match to the new `operator_directive` rule BEFORE the `docs` rule, so AGENTS.md reads categorize as `operator_directive` (non-qualifying) instead of `docs` (qualifying). This is the one behavioral change: AGENTS.md reads stop counting as grounding.
+
+## Updated phased rollout
+
+| Phase | Units | When | Gate |
+|-------|-------|------|------|
+| **1a** (done) | 1 | Day 0 | — |
+| **1a baseline** | — | Day 1-14 | Observe post-fix telemetry |
+| **1b** | 2, 3, 5 | Day 14+ (or sooner — R-5 risk eliminated) | Day-14 baseline (for Unit 3 telemetry comparison) |
+| **2** | 4 | Day 28+ | Proxy-labeled FP rate from repair outcomes |
+| **3** | 6 (flag flip) | Day 58+ | ≥50 resolved detections, Wilson CI ≤30% FP, ≥1 REVISED outcome |
+| **4** | — | Future | Separate ADR for blocking mode |
 
 ## Design doc location
 
