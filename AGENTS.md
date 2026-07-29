@@ -43,6 +43,16 @@ Before assuming a Claude Code feature works identically here, verify against `~/
 
 **Session start:** read `~/.grok/active-surface.last.md` before assuming any documented enforcement is active. Trust the snapshot over documentation when they conflict. Re-run `python ~/.grok/hooks/scripts/active_surface_snapshot.py` if config changed mid-session.
 
+**Session start — surface open work:** after reading the active-surface
+snapshot, run:
+- `harvest show --top 5` (with `HARVEST_HOME=P:/.data/harvest`) — shows
+  open obligations from this and prior sessions
+- `python P:/.agents/scripts/workspace_opportunity_scan.py` — surfaces
+  gaps, pending suggestions, and untested changes
+
+Present as a brief "open work" summary — one or two lines. Skip if both
+return nothing.
+
 ## Model routing policy (read before dispatching subagents)
 
 Read `P:/.data/wiki/concepts/model-pool-selection-policy-speed-quota-diversity.md` and `P:/.data/wiki/concepts/context-firewall-architecture.md` before dispatching subagents. Pass `model=<domain-default>` instead of inheriting parent Grok.
