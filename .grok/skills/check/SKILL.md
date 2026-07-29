@@ -367,6 +367,31 @@ and generates targeted tests for each. Writes them as
 A failure-scenario test that fails is a CHECK FAIL even if all standard tests pass.
 
 
+## Step 0.92 -- Wiring audit (when session created new capabilities)
+
+**Trigger:** session created new scripts in `.agents/scripts/`, new skills,
+new wiki concepts, or new conventions (inter-skill data formats).
+
+**What it checks:** for each new capability, does at least one existing
+skill reference it?
+
+1. **New script** (`.agents/scripts/*.py`): grep all SKILL.md files for
+   the script name. If zero references → flag as "built but not wired."
+2. **New skill**: check `capabilities.py --help-text` for the skill's
+   `provides`/`consumes`. If missing → flag "skill not in capability registry."
+3. **New wiki concept**: check which skills have a Step 0.5 wiki query
+   that would find it. If zero → flag "concept not discoverable by any skill."
+4. **New convention** (e.g., `pending/*.json`): check which skills write
+   to or read from the convention path. If zero producers or zero consumers →
+   flag "convention has no wiring."
+
+**Output:** a "wiring gaps" section in the verifier packet. Each gap is a
+`gap` severity finding (not a bug) with a suggestion for which skill to
+update.
+
+**Skip when:** no new capabilities were created this session.
+
+
 ## Step 1 -- Detect concerns
 Scan git diff + conversation **and** the evidence packet's `signal_counts`
 and `scope_files` bucket. Group into coherent concerns.
