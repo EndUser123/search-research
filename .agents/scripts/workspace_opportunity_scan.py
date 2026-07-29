@@ -136,7 +136,7 @@ def main():
         print()
 
     if report["recent_skill_changes"]:
-        print(f"Recent SKILL.md changes (untested):")
+        print("Recent SKILL.md changes (untested):")
         for c in report["recent_skill_changes"][:5]:
             print(f"  {c}")
         print()

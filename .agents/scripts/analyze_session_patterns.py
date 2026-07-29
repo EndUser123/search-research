@@ -12,9 +12,7 @@ Defaults: scan last 20 sessions, print summary, write pending suggestions.
 from __future__ import annotations
 
 import json
-import os
 import re
-import sys
 from pathlib import Path
 from collections import Counter
 
