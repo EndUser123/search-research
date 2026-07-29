@@ -1,5 +1,23 @@
 # Vault Log
 
+## --concept
+Source: sdlc-proactive-prevention-techniques-2026
+Agent: --title
+Notes: SDLC proactive prevention techniques beyond our current pipeline
+Page: --tags
+
+## code-verification-pipeline-gaps
+Source: session-019fa94d-/www
+Agent: grok
+Notes: Maps verification tools to bug classes; recommends pylint --errors-only in /check over new /trace skill
+Page: concepts/code-verification-pipeline-gaps.md
+
+## cross-workspace-pyright-blind-spot
+Source: session-019fa94d-/wiki
+Agent: grok
+Notes: Files outside P: escape /check pyright scope; _mark_row missing def not caught
+Page: concepts/cross-workspace-pyright-blind-spot.md
+
 ## persistence-location-decision-rule
 Source: session-2026-07-29 (operator caught 2 persistence errors)
 Agent: grok
