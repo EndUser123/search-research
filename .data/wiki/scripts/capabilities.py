@@ -170,15 +170,116 @@ class CapabilityRegistry:
         return sorted(self._capabilities.keys())
 
 
+def _format_help_text(reg: CapabilityRegistry) -> str:
+    """Generate formatted help text showing all domains and their capabilities.
+
+    This is the single source of truth for help displays. Skills should call
+    `python capabilities.py --help-text` instead of hardcoding capability lists.
+    """
+    lines = ["## Fleet capabilities (auto-generated from registry)", ""]
+    domains = reg.get_all_domains()
+    for domain, caps in sorted(domains.items()):
+        lines.append(f"### {domain} domain ({len(caps)} capabilities)")
+        for cap_name in caps:
+            cap = reg._capabilities.get(cap_name)
+            providers = ", ".join(sorted(set(cap.providers))) if cap else ""
+            consumers = ", ".join(sorted(set(cap.consumers))) if cap else ""
+            consumer_note = f" (used by {consumers})" if consumers else ""
+            lines.append(f"- **{cap_name}** -- provided by {providers or '(none)'}{consumer_note}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _format_domain_help(reg: CapabilityRegistry, domain: str) -> str:
+    """Show capabilities in a specific domain — for skill help sections."""
+    caps = reg.get_by_domain(domain)
+    if not caps:
+        return f"No capabilities found in domain '{domain}'."
+    lines = [f"## {domain} domain ({len(caps)} capabilities)", ""]
+    for cap in caps:
+        providers = ", ".join(sorted(set(cap.providers)))
+        consumers = ", ".join(sorted(set(cap.consumers)))
+        lines.append(f"- **{cap.name}** (v{cap.version})")
+        if providers:
+            lines.append(f"  - Provided by: {providers}")
+        if consumers:
+            lines.append(f"  - Used by: {consumers}")
+    return "\n".join(lines)
+
+
+def _format_skill_caps(reg: CapabilityRegistry, skill_name: str) -> str:
+    """Show what a skill provides, consumes, and uses — for skill introspection."""
+    provides = reg._skill_provides.get(skill_name, [])
+    uses = reg._skill_uses_caps.get(skill_name, [])
+    consumes = reg._skill_consumes.get(skill_name, [])
+    domain = reg._skill_domains.get(skill_name, "uncategorized")
+    lines = [f"## {skill_name} (domain: {domain})", ""]
+    if provides:
+        lines.append(f"**Provides:** {', '.join(provides)}")
+    if uses:
+        lines.append(f"**Uses capabilities:** {', '.join(uses)}")
+    if consumes:
+        lines.append(f"**Consumes tools:** {', '.join(consumes)}")
+    if not any([provides, uses, consumes]):
+        lines.append("(no capability frontmatter found)")
+    return "\n".join(lines)
+
+
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Capability registry query and help-text generation"
+    )
+    parser.add_argument(
+        "--help-text", action="store_true",
+        help="Generate formatted markdown for all domains + capabilities",
+    )
+    parser.add_argument(
+        "--for-domain", metavar="DOMAIN",
+        help="Show capabilities in a specific domain",
+    )
+    parser.add_argument(
+        "--for-skill", metavar="SKILL",
+        help="Show what a skill provides, consumes, and uses",
+    )
+    parser.add_argument(
+        "--shared", action="store_true",
+        help="Show capabilities used by 3+ skills (shared services)",
+    )
+    parser.add_argument(
+        "--consumers", metavar="CAPABILITY",
+        help="Show all skills that use a capability",
+    )
+    args = parser.parse_args()
+
     reg = CapabilityRegistry()
-    print(f"Capabilities: {len(reg.list_capabilities())}")
-    print(f"Domains: {len(reg.get_all_domains())}")
-    print()
-    for domain, caps in reg.get_all_domains().items():
-        print(f"  {domain} ({len(caps)}): {', '.join(caps)}")
-    print()
-    shared = reg.get_shared_services(min_consumers=3)
-    print(f"Shared services (3+ skills): {len(shared)}")
-    for name, users in sorted(shared.items(), key=lambda x: -len(x[1])):
-        print(f"  {name}: {len(users)} skills")
+
+    if args.help_text:
+        print(_format_help_text(reg))
+    elif args.for_domain:
+        print(_format_domain_help(reg, args.for_domain))
+    elif args.for_skill:
+        print(_format_skill_caps(reg, args.for_skill))
+    elif args.shared:
+        shared = reg.get_shared_services(min_consumers=3)
+        print(f"Shared services (3+ skills): {len(shared)}")
+        for name, users in sorted(shared.items(), key=lambda x: -len(x[1])):
+            print(f"  {name}: {len(users)} skills -- {', '.join(users)}")
+    elif args.consumers:
+        consumers = reg.get_consumers(args.consumers)
+        providers = reg.get_by_capability(args.consumers)
+        print(f"Capability: {args.consumers}")
+        print(f"  Providers: {', '.join(providers) if providers else '(none)'}")
+        print(f"  Consumers: {', '.join(consumers) if consumers else '(none)'}")
+    else:
+        print(f"Capabilities: {len(reg.list_capabilities())}")
+        print(f"Domains: {len(reg.get_all_domains())}")
+        print()
+        for domain, caps in reg.get_all_domains().items():
+            print(f"  {domain} ({len(caps)}): {', '.join(caps)}")
+        print()
+        shared = reg.get_shared_services(min_consumers=3)
+        print(f"Shared services (3+ skills): {len(shared)}")
+        for name, users in sorted(shared.items(), key=lambda x: -len(x[1])):
+            print(f"  {name}: {len(users)} skills")
