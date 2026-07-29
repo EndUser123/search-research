@@ -1,5 +1,11 @@
 # Vault Log
 
+## Model role assignment public vs custom benchmarks
+Source: session-2026-07-29
+Agent: grok
+Notes: Decision to use public benchmarks for capability assessment; composite ranking confirms GLM-5.2 as thought partner
+Page: wiki/concepts/model-role-assignment-public-vs-custom-benchmarks.md
+
 ## --concept
 Source: shell-to-python-orchestration-threshold
 Agent: --title

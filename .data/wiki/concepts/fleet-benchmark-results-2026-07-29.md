@@ -128,6 +128,14 @@ spawn-based pools. The Zen free models are viable for both coding and
 reasoning. See [[coding-model-pool-tier-1-tier-2]] for the pool
 definition that this data grounds.
 
+**Scope note (added 2026-07-29):** This benchmark measures competition-math
+accuracy through our API paths — it does NOT measure thought-partner quality,
+instruction compliance, or planning ability. For those axes, see
+[[model-role-assignment-public-vs-custom-benchmarks]] which uses public
+benchmarks (IFEval, IFBench, Tau2) to assess fleet models. GLM-5.2 scoring
+12/13 on math does NOT mean M3 is a better thought partner — GLM-5.2 is #1
+globally on Tau2 (multi-turn agent coherence) while M3 is #97/129 on agentic.
+
 The [[opencode-go-zen-quota-and-pricing]] concept documents the quota
 structure — Go subscription models share a $60/month dollar cap, while
 Zen free models ($0/token) have no published rate limit. The
