@@ -6,7 +6,7 @@ from pathlib import Path
 # Add the scripts directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from fmea_scan import BoundaryVisitor, scan_file, scan_pipeline, generate_failure_modes, format_table
+from fmea_scan import BoundaryVisitor, scan_file, scan_pipeline, format_table
 
 
 def test_visitor_finds_glob():
