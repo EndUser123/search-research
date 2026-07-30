@@ -1,5 +1,17 @@
 # Vault Log
 
+## convergence-gap-rca-symptom-restatement-toulmin-enforcement
+Source: session-019fb189
+Agent: grok
+Notes: Updated: added Hermes systematic-debugging benchmark findings (tight feedback loop, Rule of Three, hypothesis diversification, admit ignorance).
+Page: wiki/concepts/convergence-gap-rca-symptom-restatement-toulmin-enforcement.md
+
+## Chrome ACP + Grok Build setup implementation
+Source: session-2026-07-29/30
+Agent: grok
+Notes: Full implementation record: proxy patches (5), extension patch (1), Comet policy patch (1), startup procedure, known limitations
+Page: wiki/concepts/chrome-acp-grok-build-setup-implementation.md
+
 ## self-reflection-in-llms-fails-without-external-evidence
 Source: session-019fb189
 Agent: grok

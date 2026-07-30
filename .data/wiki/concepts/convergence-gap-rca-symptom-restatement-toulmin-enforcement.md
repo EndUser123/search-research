@@ -151,6 +151,26 @@ Mental simulation (2 test cases) confirmed:
 - **do() probe** (counterfactual deletion) is theoretically sound but computationally expensive; reserve for `--verify` mode
 - **The enforcement gap remains:** these are self-populated fields; the best mitigation is making `--verify` default for behavioral-failure RCAs
 
+## Hermes systematic-debugging benchmark (the one peer implementation)
+
+The Hermes Agent (NousResearch/hermes-agent) ships a `systematic-debugging` skill — a 4-phase methodology adapted from obra/superpowers. It's the only shipping AI coding tool with a formal in-repo RCA skill. Benchmarking against it surfaced techniques our redesign was missing:
+
+**What Hermes does that we should adopt:**
+
+1. **Tight feedback loop as mandatory gate.** Hermes's Phase 1 requires: "Before reading code to build a theory, create or identify a tight command that can go red on the user's exact symptom and green when the bug is fixed." This is the operational version of our Toulmin EVIDENCE field — a runnable command that can fail, not just an analytical citation. When /why investigates code/config/scanner issues, the fix recommendation should include a runnable reproduction command.
+
+2. **Hypothesis diversification (Phase 3).** "Generate 3-5 plausible hypotheses before testing any single one. Rank them by likelihood and cheapness to falsify." Hermes already implements what Riddell et al. recommended — and what we proposed adding. Confirms our design direction.
+
+3. **The Rule of Three (Phase 4 step 4-5).** After 3 failed fixes, STOP and question the architecture. "This is NOT a failed hypothesis — this is a wrong architecture." This is the iatrogenic-harm check — it catches the failure mode where each fix creates new problems because the underlying architecture is wrong. More operational than our proposed fix-risk pre-mortem.
+
+4. **Minimize the reproduction (Phase 2 step 0).** "Shrink the repro to the smallest scenario that still goes red." This is the causal isolation step — removing everything non-load-bearing to find the actual mechanism. It's a form of Pearl's `do()` probe, operationalized.
+
+5. **Admit ignorance (Phase 3 step 4).** "Say 'I don't understand X.' Don't pretend to know." Structural permission to stop investigating and ask for help — something our evidence tiers label but don't explicitly gate on.
+
+**What we have that Hermes doesn't:** evidence tiers, pattern-library query, six-layer divergence model, Ishikawa fan-out, agent-control lens, contract-map check, feedback-to-wiki loop, Occam/Hickam convergence discipline. Hermes is a debugging skill; /why is a reasoning-quality skill for agent behavior failures that may not have runnable repro commands.
+
+**Source:** [Hermes systematic-debugging SKILL.md](https://raw.githubusercontent.com/NousResearch/hermes-agent/main/skills/software-development/systematic-debugging/SKILL.md) (v1.1.0, adapted from obra/superpowers)
+
 ## What this means for our workspace
 
 1. **Restructure /why Step 12** to require COUNTEREXAMPLE + EVIDENCE as mandatory fields with MECHANISM under a specificity constraint
@@ -158,6 +178,10 @@ Mental simulation (2 test cases) confirmed:
 3. **Do NOT add a new convergence step** (Step 9.5) — it's redundant and methodology-inverting
 4. **Make `--verify` default** for behavioral-failure RCAs (where performative compliance is highest)
 5. **Drop the do() probe** for routine use; keep as `--verify` option for high-stakes RCAs
+6. **Add tight feedback loop to Step 14** (from Hermes benchmark) — when the root cause is a code/config/scanner issue, recommend a runnable reproduction command as the fix's verification gate
+7. **Add Rule of Three to Step 14** (from Hermes benchmark) — if 3+ fixes have failed for the same issue, flag "this may be architectural, not single-cause" and recommend `/design`
+8. **Add hypothesis diversification to Step 9** (from Hermes + Riddell) — force 3 ranked hypotheses before drilling into any one, preventing anchoring bias (the #1 RCA failure predictor)
+9. **Add "admit ignorance" to Step 11** (from Hermes) — structural permission to say "I don't understand X" rather than fabricating a plausible-sounding cause
 
 The enforcement gap (self-populated fields vs. independent verification) connects to [[problem-first-systems-decomposition]] — decomposition prevents jumping to solutions; convergence prevents stopping at symptoms. Both are structural countermeasures against the pattern documented in [[reactive-pattern-matching-and-closure-pressure]].
 
