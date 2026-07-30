@@ -88,18 +88,28 @@ evaluates each receipt's gate predicate, blocks on failure.
 
 ### Item 3: Sensitivity sweep — STARTED (plan written)
 
-**Plan:** `P:/tmp/sensitivity-sweep-plan.md` — 7 parameters × 4 values = 28 runs.
+**Plan:** `docs/handoffs/nlm-to-wiki-v3-refactor-20260727/sensitivity-sweep-plan.md` (recovered from
+P:/tmp/ which was deleted; preserved in handoff directory) — 7 parameters × 4 values = 28 runs.
 Measurement via existing `report.py --json`. Only the sweep driver
 (`sensitivity_sweep.py`, ~100 lines) needs writing.
 
 **When to run:** after the bulk run completes (transcripts cached).
 
-### Item 4: Evaluate `cc-thinking-skills` — STARTED (subagent dispatched)
+### Item 4: Evaluate `cc-thinking-skills` — EVALUATION PRODUCED (never written to file)
 
-**Subagent:** `019fa6da-b82a-73d3-baae-684d7c44068e` — evaluating the 28
-mental-model frameworks. Output at `P:/tmp/cc-thinking-skills-evaluation.md`.
+**Status:** the subagent (`019fa6da-b82a-73d3-baae-684d7c44068e`) was dispatched as
+`explore` type (read-only, no write tool). It produced the evaluation as a chat response
+but could not write the file. The evaluation content is preserved in the subagent's
+transcript at `~/.grok/sessions/P%3A%5C/019fa6da-b82a-73d3-baae-684d7c44068e/chat_history.jsonl`
+line 31.
 
-**Next step:** read the evaluation, decide which frameworks to port as
+**Summary of findings:** 28 mental-model frameworks; 14 already have workspace equivalents,
+8 missing and worth porting. Prioritized list of 9 framework categories worth porting
+(Reference-Class Forecasting, External-Validity Audit, Probabilistic Calibration,
+Second-Order Thinking, full ACH matrix, FMEA, Sensitivity Analysis, Inversion-as-default,
+Hanlon/Chesterton filters) plus 3 deferral categories.
+
+**Next step:** read the transcript, decide which frameworks to port as
 `/tp` domains or `/red-team` specialist lenses.
 
 ### Item 5: Tree of Thoughts for adaptive `/red-team`
