@@ -137,6 +137,21 @@ From crew.ai, AutoGen, and LangGraph practitioner reports:
 | Synthesis speed | [[llm-synthesis-quality-and-speed-techniques]] | Chunking and coordination cost ceiling |
 | Parallel wait gate | [[parallel-subagent-wait-all-gate]] | Quadratic coordination cost as the reason N should be bounded |
 
+## Research applicability check (Round 3.25)
+
+Per [[research-applicability-checking-dont-cite-without-verifying-assumptions]], each cited finding's conditions were checked against our use case:
+
+| Finding | Applies to us? | Why |
+|---|---|---|
+| RouteLLM 85% savings | ⚠️ Partially | Concept applies (learned routing); specific number is from single-query chat, not multi-step agentic tasks; no independent replication |
+| FrugalGPT 98% savings | ⚠️ Partially | Cascading works for mechanical tasks; unsafe for reasoning tasks where cheap model failure is undetectable (Huang et al.) |
+| Cascade break-even math | ✅ Yes | Most applicable finding — our verifiers are expensive (cross-model review, operator judgment), so the break-even math directly constrains cascade viability |
+| Multi-agent underperforms single-agent | ✅ Yes, per task type | Confirms parent-inherited for reasoning tasks; multi-agent still helps for independent mechanical parallel work |
+| Coordination cost O(N²) | ⚠️ At our scale | Negligible at N=3-6; relevant for N>10. Practical limit ~6-8 agents |
+| Task-tier mapping | ✅ Yes | Confirms our existing [[model-pool-selection-policy-speed-quota-diversity]] |
+
+**Downgrade:** RouteLLM and FrugalGPT headline numbers (85%, 98%) are from different task distributions and should be cited as "potential" not "expected." The cascade break-even math and multi-agent underperformance findings are directly applicable.
+
 ## Receipts
 
 - RouteLLM: 85% cost at 95% GPT-4 quality (arXiv 2406.18665, LMSYS ICLR 2025)
