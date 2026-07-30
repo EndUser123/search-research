@@ -12,9 +12,11 @@ shared directories), generates failure modes with S×O×D ratings and RPN.
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import re
 import sys
+import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
@@ -253,11 +255,90 @@ def format_table(modes: list[FailureMode]) -> str:
     return "\n".join(lines)
 
 
+def _target_hash(pipeline_path: Path) -> str:
+    """Stable hash for a target path (for cache keying)."""
+    return hashlib.md5(str(pipeline_path.resolve()).encode()).hexdigest()[:12]
+
+
+def _collect_file_mtimes(pipeline_path: Path) -> dict:
+    """Collect mtimes of all .py files in the target (for freshness check)."""
+    mtimes = {}
+    if pipeline_path.is_file():
+        files = [pipeline_path]
+    else:
+        files = [f for f in pipeline_path.rglob("*.py")
+                 if "__pycache__" not in str(f) and not f.name.startswith("test_")]
+    for f in files:
+        try:
+            mtimes[str(f)] = f.stat().st_mtime
+        except OSError:
+            pass
+    return mtimes
+
+
+def _check_cache(cache_dir: Path, target_hash: str) -> dict | None:
+    """Check for a fresh cached FMEA result. Returns cached data or None."""
+    cache_file = cache_dir / f"fmea-{target_hash}.json"
+    if not cache_file.exists():
+        return None
+    try:
+        cached = json.loads(cache_file.read_text(encoding="utf-8"))
+        return cached
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _is_cache_fresh(cached: dict, pipeline_path: Path) -> tuple[bool, list[str]]:
+    """Check if cached results are still fresh (no .py files modified since scan).
+
+    Returns (is_fresh, changed_files).
+    """
+    cached_mtimes = cached.get("file_mtimes", {})
+    current_mtimes = _collect_file_mtimes(pipeline_path)
+
+    changed = []
+    for fpath, current_mtime in current_mtimes.items():
+        cached_mtime = cached_mtimes.get(fpath)
+        if cached_mtime is None or current_mtime > cached_mtime:
+            changed.append(fpath)
+
+    # Also check for deleted files (fewer files now = stale)
+    deleted = [f for f in cached_mtimes if f not in current_mtimes]
+
+    is_fresh = len(changed) == 0 and len(deleted) == 0
+    return is_fresh, changed
+
+
+def _write_cache(cache_dir: Path, target_hash: str, modes: list[FailureMode],
+                 pipeline_path: Path, file_mtimes: dict):
+    """Write FMEA results to cache."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = cache_dir / f"fmea-{target_hash}.json"
+    cache_data = {
+        "target": str(pipeline_path),
+        "scanned_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "failure_mode_count": len(modes),
+        "high_rpn_count": len([m for m in modes if m.rpn >= 400]),
+        "file_mtimes": file_mtimes,
+        "modes": [asdict(m) for m in modes],
+    }
+    cache_file.write_text(json.dumps(cache_data, indent=2, default=str), encoding="utf-8")
+
+
+FMEA_CACHE_DIR = Path("P:/.artifacts/fmea-cache")
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="FMEA scanner — find component-level failure modes in Python pipelines")
     parser.add_argument("path", help="pipeline directory or .py file to scan")
     parser.add_argument("--json", action="store_true", help="output as JSON")
+    parser.add_argument("--cache", action="store_true", default=True,
+                        help="use cache: skip re-scan if no .py files changed since last scan (default: on)")
+    parser.add_argument("--no-cache", action="store_true",
+                        help="force re-scan, ignore cache")
+    parser.add_argument("--cache-dir", default=str(FMEA_CACHE_DIR),
+                        help=f"cache directory (default: {FMEA_CACHE_DIR})")
     args = parser.parse_args()
 
     pipeline_path = Path(args.path)
@@ -265,12 +346,60 @@ def main():
         print(f"error: path not found: {pipeline_path}", file=sys.stderr)
         return 1
 
-    modes = scan_pipeline(pipeline_path)
+    use_cache = args.cache and not args.no_cache
+    cache_dir = Path(args.cache_dir)
+    target_hash = _target_hash(pipeline_path)
+
+    # Check cache freshness
+    cached_source = False
+    if use_cache:
+        cached = _check_cache(cache_dir, target_hash)
+        if cached:
+            is_fresh, changed = _is_cache_fresh(cached, pipeline_path)
+            if is_fresh:
+                # Cache is fresh — use it
+                cached_source = True
+                # Reconstruct modes from cached data
+                modes = []
+                for m_data in cached.get("modes", []):
+                    b_data = m_data.get("boundary", {})
+                    b = Boundary(
+                        file=b_data.get("file", ""),
+                        line=b_data.get("line", 0),
+                        boundary_type=b_data.get("boundary_type", ""),
+                        detail=b_data.get("detail", ""),
+                        raw_code=b_data.get("raw_code", ""),
+                    )
+                    modes.append(FailureMode(
+                        component=m_data.get("component", ""),
+                        failure_mode=m_data.get("failure_mode", ""),
+                        cause=m_data.get("cause", ""),
+                        effect=m_data.get("effect", ""),
+                        severity=m_data.get("severity", 0),
+                        occurrence=m_data.get("occurrence", 0),
+                        detection=m_data.get("detection", 0),
+                        rpn=m_data.get("rpn", 0),
+                        boundary=b,
+                    ))
+                cache_age = cached.get("scanned_at", "unknown")
+            else:
+                # Cache exists but stale — re-scan
+                modes = scan_pipeline(pipeline_path)
+                file_mtimes = _collect_file_mtimes(pipeline_path)
+                _write_cache(cache_dir, target_hash, modes, pipeline_path, file_mtimes)
+        else:
+            # No cache — scan and cache
+            modes = scan_pipeline(pipeline_path)
+            file_mtimes = _collect_file_mtimes(pipeline_path)
+            _write_cache(cache_dir, target_hash, modes, pipeline_path, file_mtimes)
+    else:
+        modes = scan_pipeline(pipeline_path)
 
     if args.json:
         print(json.dumps([asdict(m) for m in modes], indent=2, default=str))
     else:
-        print(f"# FMEA Report: {pipeline_path.name}\n")
+        source_note = f" (cached from {cache_age})" if cached_source else ""
+        print(f"# FMEA Report: {pipeline_path.name}{source_note}\n")
         print(f"**Scanned:** {pipeline_path}")
         print(f"**Failure modes found:** {len(modes)}")
         print(f"**High RPN (≥400):** {len([m for m in modes if m.rpn >= 400])}")
