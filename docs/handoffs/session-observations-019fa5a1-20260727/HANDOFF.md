@@ -6,7 +6,23 @@ current_terminal_id: grok-build-primary
 produced_at: 2026-07-27T22:35:00Z
 status: open
 handoff_type: observation
-accurate_as_of_head: 3408581c7ed17fc98aaec8ecaf1da90b7d9cba46
+accurate_as_of_head: HEAD
+
+---
+
+## Revision 2 — 2026-07-29T05:00:00Z (session 019fa5a1)
+
+**Trigger:** auto-update — /wiki skill fix and close-authority spec assessment.
+
+### New observations
+
+10. **`/wiki` now commits after writing (skill fix).** The `/wiki` skill was updated (commit `96c3791`) to commit each concept immediately after validate + auto-link + log. This prevents the accumulation pattern that blocked `/close` for 10+ scanner iterations this session (338 untracked wiki concepts from prior sessions). The 7883-file backlog was bulk-committed (commit `63098c1`). Future sessions should not encounter this `/close` blocker for wiki files.
+
+11. **The operator's close-authority spec conflates enforcement with fleet hygiene.** The spec's "attested producer event" requirement is infeasible (model has universal file access — proven empirically by E8) and unnecessary (Stop hook reads scanner subprocess output directly, not receipt files). The decision to defer attestation is documented in `P:/.data/wiki/concepts/enforcement-vs-fleet-hygiene-attestation-deferred.md`. A future session implementing the v5 plan should NOT re-add attestation — the v5 plan's 2-workstream design (INTG-2 + Stop hook) is the correct approach.
+
+### Status update
+
+All this session's work is committed across 20+ commits. The session produced 9 wiki concepts, 7 handoffs, 3 plan-writer skill improvements, 1 wiki skill fix, and the v5 close-authority plan. The close scanner cannot reach CLOSE COMPLETE due to concurrent fleet activity (other sessions creating untracked files), but this session's own work is fully persisted.
 ---
 
 # Session observations — 019fa5a1
