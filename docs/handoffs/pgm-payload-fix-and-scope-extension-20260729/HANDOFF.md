@@ -1,8 +1,8 @@
 # Handoff: PGM Payload Fix + Scope Extension
 
-**Status:** Unit 1 SHIPPED (payload fix live). Units 2-5 ready for implementation.
-**Date:** 2026-07-29
-**Source:** `/design` run d8173a98
+**Status:** Unit 1 SHIPPED + reviewed + all findings fixed. Units 2-5 ready for implementation.
+**Date:** 2026-07-29 (revision 3: post-review fixes applied)
+**Source:** `/design` run d8173a98, `/check` PASS, `/review` 7 findings all fixed
 
 ## What shipped this session
 
@@ -92,6 +92,22 @@
 | **2** | 4 | Day 28+ | Proxy-labeled FP rate from repair outcomes |
 | **3** | 6 (flag flip) | Day 58+ | ≥50 resolved detections, Wilson CI ≤30% FP, ≥1 REVISED outcome |
 | **4** | — | Future | Separate ADR for blocking mode |
+
+## Revision 3: Post-review fixes (2026-07-29)
+
+A `/review` with 2 specialists found 7 verified findings. All fixed:
+
+| Finding | Fix | Commit |
+|---------|-----|--------|
+| BEH-001: FABRICATED_FATIGUE misses "Should we call it a day?" | Added `call it (a day\|here)` to should-alternative | `0ab0e09` |
+| BEH-002: UNNECESSARY_DEFERRAL misses "pick this up later" | Added pronoun-between-verb-and-particle alternative | `0ab0e09` |
+| BEH-005: FABRICATED_FATIGUE misses "We could stop" | Added `could` to we-alternative | `0ab0e09` |
+| PGM-002: conftest uses wrong field | Updated `make_stop_payload` to use `lastAssistantMessage` | `0ab0e09` |
+| PGM-001: SDK snake_case not handled | Added `last_assistant_message` as tier-1.5 fallback | `6cfc5fb` |
+| PGM-003: Tier-1 dict only reads .text | Extracted `_extract_text_from_dict()` handling content blocks | `6cfc5fb` |
+| BEH-003: NARRATIVE_CLOSURE deletion gap | Documented as structural regex limitation (wiki concept) | `a0ec600` |
+
+PGM `extract_response_text()` now has 5-tier extraction: `lastAssistantMessage` (str/dict) → `last_assistant_message` (str/dict, SDK) → `response` → `messages[-1].content` → `message.content`. 117 tests pass, conftest exercises tier 1.
 
 ## Design doc location
 
