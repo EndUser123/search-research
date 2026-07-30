@@ -73,6 +73,7 @@ time. One line at end of turn. Do not auto-invoke; recommend.
 **Verification skills:**
 - **`/check`** when: ≥2 concerns touched, runtime claims unverified, about to claim "done."
 - **`/review`** when: hooks/plugins/schemas/dispatch chains touched, new enforcement introduced, shared infrastructure modified.
+- **`/fmea`** when: pipeline scripts written or modified (Python files with I/O ops). Run before scaling a pipeline or after refactoring one.
 
 **Knowledge and continuity skills:**
 - **`/wiki`** when: durable knowledge produced (new pattern, decision with rationale, transferable technique) but not yet captured.
