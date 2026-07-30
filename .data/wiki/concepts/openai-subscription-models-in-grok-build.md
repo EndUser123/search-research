@@ -14,6 +14,7 @@ agent: grok
 host: grok
 cognitive_load: 3
 verification: empirically-tested
+status: [INFERENCE: works today — depends on undocumented chatgpt.com/backend-api/codex endpoint that could change without notice]
 sources:
   - "Direct API tests against api.openai.com (3 endpoint variants, all failed)"
   - "Codex CLI source code (github.com/openai/codex, codex-rs/core/src/client.rs)"
