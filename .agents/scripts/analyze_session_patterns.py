@@ -58,7 +58,7 @@ EXECUTION_RE = re.compile(
 # without external signal; mechanical signals are the external signal)
 
 MECHANICAL_SIGNALS = {
-    "failed_tool_call": re.compile(r'"exit":\s*[1-9]|exit code:\s*[1-9]'),
+    "failed_tool_call": re.compile(r'"exit_code":\s*[1-9]|exit code:\s*[1-9]'),
     "traceback": re.compile(r"Traceback \(most recent|SyntaxError|ImportError|ModuleNotFoundError"),
     "permission_denied": re.compile(r"Denied by permission"),
     "timeout": re.compile(r"timed out after|automatically moved to background"),
@@ -96,8 +96,8 @@ def extract_user_messages(chat_file: Path) -> list[str]:
                 # Try multiple extraction patterns
                 for pattern in [
                     r'user_query[^>]*>(.{0,500})',
-                    r'"text":"([^"]{5,300})"',
-                    r'"content":\[.*?"text":"([^"]{5,300})"',
+                    r'"text":"([^"]{1,300})"',
+                    r'"content":\[.*?"text":"([^"]{1,300})"',
                 ]:
                     m = re.search(pattern, line)
                     if m:

@@ -14,6 +14,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -56,11 +57,11 @@ class BoundaryVisitor(ast.NodeVisitor):
     GLOB_METHODS = {"rglob", "glob", "iterdir"}
     SUBPROCESS_FUNCS = {"run", "Popen", "call", "check_call", "check_output"}
 
-    # Shared directory path patterns
+    # Shared directory path patterns (word-boundary anchored to avoid false positives)
     SHARED_DIR_PATTERNS = [
-        re.compile(r"/tmp/|/Temp/|\\\\tmp\\\\", re.IGNORECASE),
-        re.compile(r"/\.data/|/\.state/", re.IGNORECASE),
-        re.compile(r"os\.environ.*TEMP|tempfile", re.IGNORECASE),
+        re.compile(r"/tmp/|[/\\]Temp[/\\]", re.IGNORECASE),
+        re.compile(r"[/\\]\.data[/\\]|[/\\]\.state[/\\]", re.IGNORECASE),
+        re.compile(r"\btempfile\b"),  # module reference only
     ]
 
     def __init__(self, filepath: str):
@@ -92,10 +93,10 @@ class BoundaryVisitor(ast.NodeVisitor):
         if func_name in self.GLOB_METHODS:
             self._add(node, "glob", f"Directory scan via .{func_name}()", ast.unparse(node))
 
-        # Check for subprocess calls
-        if func_name in self.SUBPROCESS_FUNCS or (isinstance(node.func, ast.Attribute) and
-                                                   isinstance(node.func.value, ast.Name) and
-                                                   node.func.value.id == "subprocess"):
+        # Check for subprocess calls (require subprocess module prefix to avoid false positives)
+        if (isinstance(node.func, ast.Attribute) and
+                isinstance(node.func.value, ast.Name) and
+                node.func.value.id == "subprocess"):
             self._add(node, "subprocess", f"Subprocess call: {func_name}", ast.unparse(node))
 
         # Check for os.replace / os.rename (atomic-ish ops)
@@ -253,6 +254,9 @@ def format_table(modes: list[FailureMode]) -> str:
             f"{m.severity} | {m.occurrence} | {m.detection} | **{m.rpn}** | {source} |"
         )
 
+    if len(modes) > 50:
+        lines.append(f"\n*...and {len(modes) - 50} more (sorted by RPN — use --json for full list)*")
+
     return "\n".join(lines)
 
 
@@ -323,7 +327,10 @@ def _write_cache(cache_dir: Path, target_hash: str, modes: list[FailureMode],
         "file_mtimes": file_mtimes,
         "modes": [asdict(m) for m in modes],
     }
-    cache_file.write_text(json.dumps(cache_data, indent=2, default=str), encoding="utf-8")
+    # Atomic write: tmp + os.replace (prevents concurrent readers from seeing torn JSON)
+    tmp_file = cache_file.with_suffix(".tmp")
+    tmp_file.write_text(json.dumps(cache_data, indent=2, default=str), encoding="utf-8")
+    os.replace(tmp_file, cache_file)
 
 
 FMEA_CACHE_DIR = Path("P:/.artifacts/fmea-cache")

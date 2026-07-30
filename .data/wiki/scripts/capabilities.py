@@ -249,9 +249,19 @@ class CapabilityRegistry:
         verified = []
         unwired = []
 
-        # Check depends_on relationships
+        # Build combined dependency list from depends_on + composes
+        all_deps = {}
         for consumer, deps in depends_on.items():
-            for dep in deps:
+            all_deps.setdefault(consumer, []).extend([(d, "depends_on") for d in deps])
+        for consumer, comps in composes.items():
+            # composes entries may be "skill:function" format — extract skill name
+            for c in comps:
+                dep_name = c.split(":")[0] if ":" in c else c
+                all_deps.setdefault(consumer, []).append((dep_name, "composes"))
+
+        # Check each dependency relationship
+        for consumer, dep_list in all_deps.items():
+            for dep, cap_type in dep_list:
                 # Find the provider's scripts directory
                 provider_scripts = None
                 for skills_dir in SKILLS_DIRS:
@@ -278,22 +288,29 @@ class CapabilityRegistry:
                 if not consumer_dirs:
                     continue  # Consumer has no scripts
 
-                # Scan consumer's .py files for references to the provider
+                # Scan consumer's .py files for import-level references to the provider
                 found = False
+                import_patterns = [
+                    f"import {dep}\n",
+                    f"import {dep} ",
+                    f"from {dep} ",
+                    f"from {dep}.",
+                    f'"{dep}/',  # path reference in string
+                    f"'{dep}/",
+                    f"/{dep}/SKILL.md",  # SKILL.md path reference
+                ]
                 for consumer_dir in consumer_dirs:
                     for pyfile in consumer_dir.rglob("*.py"):
                         if "__pycache__" in str(pyfile):
                             continue
                         try:
                             content = pyfile.read_text(encoding="utf-8", errors="replace")
-                            # Check for import or reference to provider name
-                            if f"import {dep}" in content or f"from {dep}" in content:
-                                found = True
-                                break
-                            # Also check for the dep name as a string reference
-                            # (e.g., skill invocation patterns)
-                            if dep in content:
-                                found = True
+                            # Check for import-level references only (not bare substring)
+                            for pattern in import_patterns:
+                                if pattern in content:
+                                    found = True
+                                    break
+                            if found:
                                 break
                         except OSError:
                             continue
@@ -301,9 +318,9 @@ class CapabilityRegistry:
                         break
 
                 if found:
-                    verified.append((consumer, dep, "depends_on"))
+                    verified.append((consumer, dep, cap_type))
                 else:
-                    unwired.append((consumer, dep, "depends_on",
+                    unwired.append((consumer, dep, cap_type,
                                    "no import found — may be prompt-only composition"))
 
         return {
