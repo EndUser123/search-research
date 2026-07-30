@@ -266,3 +266,49 @@ def test_packet_has_all_layer_keys(mod, tmp_path):
         "pip_audit_advisory", "diff_cover_advisory",
     }
     assert expected_keys.issubset(result.keys())
+
+
+def test_coverage_gap_detection(mod, tmp_path):
+    """When a __lib/*.py has no tests/test_*.py, the packet flags it."""
+    # Simulate: P:/fake_pkg/__lib/widget.py with no tests/test_widget.py
+    fake_pkg = tmp_path / "fake_pkg"
+    fake_lib = fake_pkg / "__lib"
+    fake_lib.mkdir(parents=True)
+    fake_file = fake_lib / "widget.py"
+    fake_file.write_text("# fake", encoding="utf-8")
+
+    output = tmp_path / "result.json"
+    with patch("shutil.which", return_value=None):
+        mod.main([
+            "--py-files", str(fake_file),
+            "--run-dir", str(tmp_path),
+            "--output", str(output),
+        ])
+    result = json.loads(output.read_text(encoding="utf-8"))
+    gaps = result.get("test_coverage_gaps", [])
+    assert len(gaps) == 1
+    assert "widget.py" in gaps[0]["message"]
+
+
+def test_coverage_gap_none_when_test_exists(mod, tmp_path):
+    """When tests/test_*.py exists, no gap is reported."""
+    fake_pkg = tmp_path / "fake_pkg"
+    fake_lib = fake_pkg / "__lib"
+    fake_lib.mkdir(parents=True)
+    fake_file = fake_lib / "widget.py"
+    fake_file.write_text("# fake", encoding="utf-8")
+    # Create the test file
+    test_dir = fake_pkg / "tests"
+    test_dir.mkdir()
+    (test_dir / "test_widget.py").write_text("# test", encoding="utf-8")
+
+    output = tmp_path / "result.json"
+    with patch("shutil.which", return_value=None):
+        mod.main([
+            "--py-files", str(fake_file),
+            "--run-dir", str(tmp_path),
+            "--output", str(output),
+        ])
+    result = json.loads(output.read_text(encoding="utf-8"))
+    gaps = result.get("test_coverage_gaps", [])
+    assert len(gaps) == 0

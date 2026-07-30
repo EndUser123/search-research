@@ -851,6 +851,14 @@ data analysis, research).
      verification. Failing tests are an automatic FAIL.
    - Run linters/type-checkers if configured (cargo clippy, eslint, mypy, tsc).
 
+   **Test coverage gap (mandatory when `test_coverage_gaps` in packet):** if the
+   deterministic pre-check found `__lib/*.py` scripts without corresponding
+   `tests/test_*.py` files, write behavioral tests for them as part of
+   verification. Read the source, identify the main functions and edge cases,
+   and write a test file at the expected path. Run `pytest <new_test_file>` to
+   confirm the tests pass. This closes the gap in-session rather than deferring
+   it. A script without tests is incomplete work — the verifier completes it.
+
 7. DESIGN AND RUN VERIFICATION CHECKS (use your shell access):
    You have execute capability — write and run your own tests or checks to
    verify the work is correct. This may include:

@@ -309,6 +309,32 @@ def main(argv: list[str] | None = None) -> int:
             f"{vulture_count} (does not block CHECK alone)"
         )
 
+    # Test coverage gap check: for each __lib/*.py, verify tests/test_*.py exists
+    coverage_gaps = []
+    for py_file in args.py_files:
+        p = Path(py_file)
+        if "__lib" in p.parts:
+            # Walk up to find the package root (parent of __lib)
+            lib_idx = list(p.parts).index("__lib")
+            pkg_root = Path(*p.parts[:lib_idx])
+            test_name = f"test_{p.stem}.py"
+            test_path = pkg_root / "tests" / test_name
+            if not test_path.exists():
+                coverage_gaps.append({
+                    "source": str(p),
+                    "missing_test": str(test_path),
+                    "message": (
+                        f"{p.name} has no test file. "
+                        f"Expected: {test_path}"
+                    ),
+                })
+    packet["test_coverage_gaps"] = coverage_gaps
+    if coverage_gaps:
+        print(
+            f"DETERMINISTIC_CHECK: {len(coverage_gaps)} "
+            "test coverage gap(s) — __lib script(s) without tests"
+        )
+
     # Write output
     output_path = args.output or str(
         run_dir / "packets" / "deterministic-check.json"
