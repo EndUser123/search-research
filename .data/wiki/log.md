@@ -1,5 +1,17 @@
 # Vault Log
 
+## --slug
+Source: wiki-validator-retroactive-sweep
+Agent: --action
+Notes: batch_update
+Page: --agent
+
+## --slug
+Source: fix-nits-when-already-in-file-deferral-is-theater
+Agent: --action
+Notes: created
+Page: --agent
+
 ## Wiki improvement opportunities
 Source: session-019fb177
 Agent: grok
