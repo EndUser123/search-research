@@ -1,5 +1,11 @@
 # Vault Log
 
+## Workspace improvement cycle 6-stage decomposition
+Source: session-019fa276
+Agent: grok
+Notes: Framework: SENSE-REMEMBER-DECIDE-ACT-VERIFY-MEASURE. Layers 1-5 partially built. Layer 6 (MEASURE) doesn't exist. Cross-session scanner implemented to connect SENSE to REMEMBER.
+Page: .data/wiki/concepts/workspace-improvement-cycle-6-stage-decomposition.md
+
 ## Silently dead hooks PGM fleet monitoring gap
 Source: session-019fa48a
 Agent: grok
