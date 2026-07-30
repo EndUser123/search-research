@@ -57,43 +57,64 @@ have repos/skills that check quota. Research found `@slkiser/opencode-quota`
 | **OpenRouter** | Remote API via key | Credits + usage | ✅ 2026-07-30 |
 | **GitHub Copilot** | Remote API via OAuth | Monthly | ✅ 2026-07-30 |
 | **OpenAI (Codex)** | Remote API via auth | Weekly quota | ✅ (needs setup) |
-| **Google AGY** | Remote API | Quota | ✅ (needs companion) |
-| **Google Antigravity** | Remote API | Quota | ✅ (needs companion) |
+| **Google Gemini CLI** | Remote API via OAuth | Gemini Pro/Flash/Flash-Lite % | ✅ 2026-07-30 |
+| **Google AGY** | Remote API | Quota | ⚠️ needs `opencode auth login` |
+| **Google Antigravity** | Remote API | Quota | ⚠️ needs `opencode auth login` |
 | **xAI SuperGrok** | Remote API (automatic) | Quota | ✅ |
 | **Kimi Code** | Remote API | Quota | ✅ (needs config) |
 
 ### Commands
 
+**IMPORTANT:** `show --json` reads from a cache file populated by the live
+`show` command. Run `show` FIRST to trigger live API calls, then `show --json`
+for structured data.
+
 ```bash
-# Quick quota check (all providers)
+# Step 1: Live fetch (hits provider APIs, refreshes cache)
 opencode-quota show
 
-# JSON output for scripts
+# Step 2: Structured output (reads freshly refreshed cache)
 opencode-quota show --json
 
-# Diagnostics (shows auth state per provider)
+# Diagnostics (shows auth state per provider, live probe)
 opencode-quota status
 
 # Single provider
-opencode-quota show --provider minimax-coding-plan
+opencode-quota show --provider google-gemini-cli
 ```
 
-### Companion packages needed
+### Companion packages installed
 
 ```bash
-# Google AGY quota (reads agy's stored auth)
+# Google Gemini CLI — WORKS with existing ~/.gemini/oauth_creds.json refresh token
+npm install -g opencode-gemini-auth
+
+# Google AGY — needs separate `opencode auth login` (different OAuth client)
 npm install -g @anthonyhaussman/opencode-agy-auth
 
-# Google Antigravity quota
+# Google Antigravity — needs separate `opencode auth login` (different OAuth client)
 npm install -g opencode-antigravity-auth
 ```
 
+All three are registered in `~/.config/opencode/opencode.json` under `plugin`.
+The `opencode-gemini-auth` companion shares the Gemini CLI's OAuth client ID
+(`681255809395-...`), so the existing refresh token at `~/.gemini/oauth_creds.json`
+works directly. The auth entry is bridged in `~/.local/share/opencode/auth.json`
+under the `google-gemini-cli` key.
+
+The AGY and Antigravity companions use a different OAuth client ID
+(`1071006060591-...`). The existing Gemini CLI refresh token cannot be
+refreshed with their client credentials (`unauthorized_client` error).
+They need an interactive `opencode auth login` flow to get a token for
+that client.
+
 ### Verified live data (2026-07-30 20:18)
 
-From `opencode-quota status`:
+From `opencode-quota show`:
 
 | Provider | Quota | Remaining | Reset |
 |----------|-------|-----------|-------|
+| Google Gemini CLI | Pro/Flash/Flash-Lite | 100% each | Jul 31 |
 | Z.ai | 5h tokens | 63% | Thu 17:35 |
 | Z.ai | Monthly MCP | 96% (195/4000) | Aug 21 |
 | MiniMax | 5h interval | 92% | Thu 15:00 |
@@ -132,8 +153,9 @@ the interactive command or the opencode-quota companion package.
 ## /model-quota skill
 
 The `/model-quota` skill at `~/.grok/skills/model-quota/SKILL.md` uses
-`opencode-quota show --json` as its primary data source, supplemented by
-the GLM usage-query plugin and OpenRouter direct API.
+`opencode-quota show` (live) then `show --json` (structured) as its primary
+data source, supplemented by the GLM usage-query plugin and OpenRouter
+direct API.
 
 ## Falsifier
 
