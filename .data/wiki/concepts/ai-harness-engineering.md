@@ -3,6 +3,8 @@ title: "AI Harness Engineering"
 created: 2026-07-27
 source: nlm-sync-2026-07-27
 tags: [nlm-synced, reference, harness]
+status: superseded
+superseded_by: wiki/concepts/agentic-harness-seven-components-2026.md
 summary: >
   Harness engineering is the practice of building the wrapper around a large language model, where the harness provides context, defines processes, and orchestrates the components that enable effective agentic behavior. The harness represents the scaffolding, code, and orchestration layer that transfo
 agent: grok

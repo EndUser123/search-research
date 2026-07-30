@@ -3,6 +3,8 @@ title: "Agent Harness Engineering"
 created: 2026-07-27
 source: nlm-sync-2026-07-27
 tags: [nlm-synced, reference, engineering]
+status: superseded
+superseded_by: wiki/concepts/agentic-harness-seven-components-2026.md
 summary: >
   Agent harness engineering refers to the architectural patterns and scaffolding built around AI models to make them reliable and effective in production environments. The sources describe this as the critical distinction between a capable language model and a useful autonomous agent—the harness provi
 agent: grok

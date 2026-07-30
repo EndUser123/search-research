@@ -1,5 +1,17 @@
 # Vault Log
 
+## Updated information on agentic harnesses and repo-maps
+Source: session-20260730
+Agent: grok
+Notes: Codebase-Memory MCP graph (10x fewer tokens) and JetBrains Context (68% fewer turns) as repo-map alternatives to Aider. Agentic harness paper: system prompt is only component that regresses alone (-2.3pp), memory most impactful (+5.6pp). Superseded 2 NLM concepts.
+Page: P:/.data/wiki/concepts/agentic-harness-seven-components-2026.md
+
+## --slug
+Source: two-component-research-winnowing-pattern
+Agent: --action
+Notes: created
+Page: --agent
+
 ## --slug
 Source: wiki-validator-retroactive-sweep
 Agent: --action
