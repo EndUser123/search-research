@@ -80,3 +80,15 @@ python scripts/fmea_scan.py <file.py>
   notebook. FMEA would have flagged: shared directory + no filter = RPN 720.
 - Wiki: `shared-directory-contamination-pattern.md`
 - Wiki: `systematic-problem-anticipation-methods-and-existing-tools.md`
+
+## Reusable internals
+
+| Function | Path | What it does | Stability |
+|----------|------|-------------|-----------|
+| `scan_file(filepath)` | `scripts/fmea_scan.py` | Scan a single .py file via AST for I/O boundaries. Returns FailureMode list. | **stable** |
+| `scan_pipeline(pipeline_path)` | `scripts/fmea_scan.py` | Scan a directory recursively. Returns FailureMode list sorted by RPN desc. | **stable** |
+| `BoundaryVisitor(filepath)` | `scripts/fmea_scan.py` | AST visitor class. Can be subclassed to add custom boundary detection. | **stable** |
+| `generate_failure_modes(boundaries, script_name)` | `scripts/fmea_scan.py` | Convert boundary list to failure modes with S×O×D ratings. | **internal** — rating heuristics, customize per domain |
+| `format_table(modes)` | `scripts/fmea_scan.py` | Render modes as markdown table. | **stable** |
+
+**Caching:** the scanner caches results at `P:/.artifacts/fmea-cache/` keyed by target path hash + file mtimes. Cached results are returned with "(cached from \<timestamp\>)" if no `.py` files changed. Use `--no-cache` to force re-scan. Callers don't need to manage caching — it's transparent.

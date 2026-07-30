@@ -243,3 +243,25 @@ via the TTL cache at `P:/.data/email-scan/cache.json`.
 - `P:/.data/wiki/concepts/concurrent-cdp-auth-contention.md` — the
   multi-terminal auth isolation pattern that motivates the file-lock
   + TTL-cache concurrency model.
+
+## Reusable internals
+
+Other skills can import these functions directly:
+
+| Function | Path | What it does | Stability |
+|----------|------|-------------|-----------|
+| `atomic_write_only(path, content)` | `P:/.agents/__lib/atomic_io.py` | tmp+fsync+os.replace atomic write (no lock). UTF-8. | **stable** |
+| `atomic_write_with_lock(lock, path, content, timeout=30)` | `P:/.agents/__lib/atomic_io.py` | atomic write + cross-platform file lock (msvcrt/fcntl). | **stable** |
+| `acquire_lock(timeout=30)` / `release_lock()` | `email_skill_lib/cache.py` | Cross-platform advisory file lock with stale-lock detection (checks PID alive). | **stable** |
+| `read_cache(ttl_seconds=900)` / `write_cache(data)` | `email_skill_lib/cache.py` | TTL-based JSON cache with auto-expiry. Cross-platform locking. | **stable** |
+| `score_item(item)` / `sort_items(items)` | `email_skill_lib/scoring.py` | 3+3 heuristic scoring (importance × urgency). Returns scored dict. | **internal** — email-specific; generalize before reuse |
+| `apply_filters(items)` | `email_skill_lib/defer.py` | Apply defer/ignore state to a list of items with TTL resurface. | **stable** |
+
+**Import pattern:**
+```python
+import sys; sys.path.insert(0, "P:/.agents/__lib")
+from atomic_io import atomic_write_only, atomic_write_with_lock
+
+sys.path.insert(0, "P:/.agents/skills/email-skill/scripts")
+from email_skill_lib.cache import acquire_lock, release_lock, read_cache, write_cache
+```

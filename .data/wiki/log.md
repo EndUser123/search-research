@@ -1,5 +1,11 @@
 # Vault Log
 
+## Reusable internals catalog
+Source: session-019fa276
+Agent: grok
+Notes: Catalog of shared utilities across skills. 10 functions in 6 categories. Before reinventing, check the catalog.
+Page: .data/wiki/concepts/reusable-internals-catalog.md
+
 ## FMEA skill design — AST-based failure analysis
 Source: session-019fa276
 Agent: grok
