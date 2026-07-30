@@ -204,7 +204,23 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
 
     out_dir.mkdir(parents=True, exist_ok=True)
     exported = skipped = failed = 0
+    from_cache_count = 0
     errors: list[str] = []
+
+    # Build yt-is title bridge once for forward-sync (skip NLM for cached transcripts)
+    _forward_sync_bridge = None
+    try:
+        # Add the scripts directory to path for the forward-sync import
+        _scripts_dir = Path(__file__).resolve().parent
+        if str(_scripts_dir) not in sys.path:
+            sys.path.insert(0, str(_scripts_dir))
+        from yt_is_forward_sync import build_bridge_once, fetch_from_yt_is_cache
+        log("Building yt-is title bridge for forward-sync...")
+        _forward_sync_bridge = build_bridge_once()
+        log(f"  bridge: {len(_forward_sync_bridge)} titles")
+    except Exception as e:
+        log(f"  forward-sync unavailable (fail-through to NLM): {e}")
+
     for i, src in enumerate(sources, 1):
         sid = src.get("id")
         if not sid:
@@ -219,7 +235,21 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
             continue
         title = (src.get("title") or "")[:50]
         log(f"  [{i}/{len(sources)}] export {sid[:12]} ({title})")
-        content, err = fetch_content(sid, profile)
+
+        # Forward-sync: check yt-is cache before calling NotebookLM
+        content = ""
+        if _forward_sync_bridge is not None:
+            try:
+                content, cache_vid = fetch_from_yt_is_cache(src, _forward_sync_bridge)
+                if content:
+                    from_cache_count += 1
+                    if i % 25 == 0 or i <= 3:
+                        log(f"    [cache] hit video_id={cache_vid} ({len(content)} chars)")
+            except Exception:
+                pass  # fail-through to NLM
+
+        if not content:
+            content, err = fetch_content(sid, profile)
         if not content:
             # yt-dlp fallback for sources NotebookLM failed to index (status=3).
             # Recovers the video ID from URL-shaped titles; fetches auto-captions.
@@ -237,13 +267,14 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
         exported += 1
         time.sleep(spacing)
 
-    log(f"Done: exported={exported} skipped={skipped} failed={failed}")
+    log(f"Done: exported={exported} skipped={skipped} failed={failed} from_cache={from_cache_count}")
     return {
         "notebook_id": notebook_id,
         "source_count": len(sources),
         "exported": exported,
         "skipped": skipped,
         "failed": failed,
+        "from_cache_count": from_cache_count,
         "transcripts_dir": str(out_dir),
         "errors": errors[:20],
     }
