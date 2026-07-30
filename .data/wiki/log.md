@@ -1,5 +1,11 @@
 # Vault Log
 
+## INTG-2 resolved gate-state set
+Source: session-019fb177
+Agent: grok
+Notes: needs_llm_check is a valid terminal state
+Page: wiki/concepts/intg2-resolved-gate-state-set-needs-llm-check.md
+
 ## research-quality-principle-efficiency-not-censorship
 Source: session-019fb189
 Agent: grok
