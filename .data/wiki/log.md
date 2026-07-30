@@ -1,5 +1,11 @@
 # Vault Log
 
+## delegation-optimization-chunking-output-backend-discipline
+Source: session-019fb189
+Agent: grok
+Notes: Reusable delegation optimization rules.
+Page: wiki/concepts/delegation-optimization-chunking-output-backend-discipline.md
+
 ## Provider quota API reference updated with opencode-quota
 Source: session-2026-07-30
 Agent: grok
