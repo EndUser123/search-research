@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: test-selection-for-session-verification
+Agent: --title
+Notes: Test selection for session verification: full suite, not testmon
+Page: --tags
+
 ## --agent
 Source: grok
 Agent: --session

@@ -64,7 +64,7 @@ def run_pyright(py_files: list[str]) -> dict[str, Any]:
         return {"status": "skipped", "reason": "no py_files"}
     if not shutil.which("pyright"):
         return {"status": "skipped", "reason": "pyright not installed"}
-    code, out, _ = _run(["pyright", "--outputjson"] + py_files, timeout=120)
+    code, out, _ = _run(["pyright", "--outputjson", "--"] + py_files, timeout=120)
     parsed = _parse_json_safe(out)
     errors = []
     if parsed and "generalDiagnostics" in parsed:
@@ -81,7 +81,7 @@ def run_pylint(py_files: list[str]) -> dict[str, Any]:
         return {"status": "skipped", "reason": "pylint not installed"}
     code, out, _ = _run(
         ["pylint", "--errors-only", "--enable=cyclic-import",
-         "--output-format=json"] + py_files,
+         "--output-format=json", "--"] + py_files,
         timeout=120
     )
     return {"raw": out, "exit_code": code,
@@ -111,7 +111,7 @@ def run_bandit(py_files: list[str]) -> dict[str, Any]:
     if not shutil.which("bandit"):
         return {"status": "skipped", "reason": "bandit not installed"}
     code, out, _ = _run(
-        ["bandit", "-f", "json", "-ll", "-x", "tests"] + py_files,
+        ["bandit", "-f", "json", "-ll", "-x", "tests", "--"] + py_files,
         timeout=60
     )
     return _parse_json_safe(out) or {
@@ -125,7 +125,7 @@ def run_radon(py_files: list[str]) -> dict[str, Any]:
     if not shutil.which("radon"):
         return {"status": "skipped", "reason": "radon not installed"}
     code, out, _ = _run(
-        ["radon", "cc", "-j", "-s", "-n", "C"] + py_files,
+        ["radon", "cc", "-j", "-s", "-n", "C", "--"] + py_files,
         timeout=120
     )
     parsed = _parse_json_safe(out)

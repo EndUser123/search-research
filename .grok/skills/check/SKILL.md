@@ -883,7 +883,12 @@ data analysis, research).
      changed-file-specific tests. This catches integration breaks where a
      change in one file breaks an importer in another. Our suites are small
      (<15s); running the full suite is the industry default for correctness
-     verification. Failing tests are an automatic FAIL.
+     verification. Failing tests are an automatic FAIL. Run with branch
+     coverage: `pytest <package_root>/ --cov-branch --cov-report=xml:coverage.xml`
+     — this produces `coverage.xml` in the cwd, which the diff-cover layer
+     uses for new-line coverage gating. Move `coverage.xml` to
+     `$runDir/packets/coverage.xml` after the run so the deterministic
+     checker's diff-cover layer can find it.
    - Run linters/type-checkers if configured (cargo clippy, eslint, mypy, tsc).
 
    **Test coverage gap (mandatory when `test_coverage_gaps` in packet):** if the

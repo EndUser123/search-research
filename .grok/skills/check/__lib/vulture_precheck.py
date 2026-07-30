@@ -99,7 +99,9 @@ def _decorated_handler_names(path: str) -> set[str]:
     deco_window = 0
     for line in lines:
         stripped = line.strip()
-        if stripped.startswith("@on(") or stripped.startswith("@work(") or stripped.startswith("@work "):
+        if (stripped.startswith("@on(")
+                or stripped.startswith("@work(")
+                or stripped.startswith("@work ")):
             deco_window = 6
             continue
         if deco_window > 0:
@@ -229,7 +231,9 @@ def run_vulture(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Advisory vulture pre-check for /check")
+    parser = argparse.ArgumentParser(
+        description="Advisory vulture pre-check for /check"
+    )
     parser.add_argument(
         "--paths",
         nargs="+",
