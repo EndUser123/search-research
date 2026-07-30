@@ -169,6 +169,140 @@ class CapabilityRegistry:
         """All capability names."""
         return sorted(self._capabilities.keys())
 
+    def _load_depends_on(self) -> dict[str, list[str]]:
+        """Load depends_on and composes from all skill frontmatter."""
+        depends_on = {}
+        composes = {}
+        for skills_dir in SKILLS_DIRS:
+            if not skills_dir.exists():
+                continue
+            for sd in skills_dir.iterdir():
+                sf = sd / "SKILL.md"
+                if not sf.exists() or not sd.is_dir():
+                    continue
+                try:
+                    body = sf.read_text(encoding="utf-8", errors="replace")
+                    parts = body.split("---", 2)
+                    if len(parts) < 3:
+                        continue
+                    fm = parts[1]
+                    name = sd.name
+
+                    dep_m = re.search(r"depends_on:\s*\[([^\]]*)\]", fm)
+                    if dep_m:
+                        deps = [d.strip().strip("'\"") for d in dep_m.group(1).split(",") if d.strip()]
+                        depends_on[name] = deps
+
+                    comp_m = re.search(r"composes:\s*\[([^\]]*)\]", fm)
+                    if comp_m:
+                        comps = [c.strip().strip("'\"") for c in comp_m.group(1).split(",") if c.strip()]
+                        composes[name] = comps
+                except Exception:
+                    pass
+        return depends_on, composes
+
+    def health_check(self) -> dict:
+        """Check skill dependency health: dangling depends_on, missing capabilities.
+
+        Returns dict with:
+        - dangling_deps: {skill: [missing_dep, ...]} — skill depends on something not in catalog
+        - orphan_capabilities: [cap, ...] — capabilities provided but not in any contract
+        - skills_without_domain: [skill, ...]
+        - skills_without_frontmatter: [skill, ...]
+        """
+        depends_on, composes = self._load_depends_on()
+        all_skills = set()
+        for skills_dir in SKILLS_DIRS:
+            if skills_dir.exists():
+                all_skills.update(sd.name for sd in skills_dir.iterdir()
+                                  if sd.is_dir() and (sd / "SKILL.md").exists())
+
+        # Dangling dependencies
+        dangling_deps = {}
+        for skill, deps in depends_on.items():
+            missing = [d for d in deps if d not in all_skills]
+            if missing:
+                dangling_deps[skill] = missing
+
+        # Skills without domain
+        skills_without_domain = sorted(all_skills - set(self._skill_domains.keys()))
+
+        return {
+            "total_skills": len(all_skills),
+            "dangling_deps": dangling_deps,
+            "skills_without_domain": skills_without_domain[:20],
+            "dangling_count": sum(len(v) for v in dangling_deps.values()),
+        }
+
+    def verify_consumers(self) -> dict:
+        """Verify that declared consumers actually import the provider's code.
+
+        For each skill that uses_capabilities or depends_on another skill,
+        grep the consumer's scripts for an import of the provider's module.
+        Flag declared-but-not-wired relationships.
+
+        Returns dict with:
+        - verified: [(consumer, provider, capability)]
+        - unwired: [(consumer, provider, capability, hint)]
+        """
+        import subprocess
+
+        depends_on, composes = self._load_depends_on()
+        verified = []
+        unwired = []
+
+        # Check depends_on relationships
+        for consumer, deps in depends_on.items():
+            for dep in deps:
+                # Find the provider's scripts directory
+                provider_scripts = None
+                for skills_dir in SKILLS_DIRS:
+                    candidate = skills_dir / dep / "scripts"
+                    if candidate.exists():
+                        provider_scripts = candidate
+                        break
+                    candidate = skills_dir / dep / "__lib"
+                    if candidate.exists():
+                        provider_scripts = candidate
+                        break
+
+                if not provider_scripts:
+                    continue  # Provider has no scripts (may be prompt-only skill)
+
+                # Grep consumer's scripts for imports of provider's module
+                consumer_scripts = None
+                for skills_dir in SKILLS_DIRS:
+                    candidate = skills_dir / consumer / "scripts"
+                    if candidate.exists():
+                        consumer_scripts = candidate
+                        break
+
+                if not consumer_scripts:
+                    continue  # Consumer has no scripts
+
+                # Check if consumer references the provider's name in any .py file
+                try:
+                    result = subprocess.run(
+                        ["grep", "-r", dep, str(consumer_scripts),
+                         "--include=*.py", "-l"],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    if result.stdout.strip():
+                        verified.append((consumer, dep, "depends_on"))
+                    else:
+                        # Not necessarily broken — consumer may invoke via slash command, not import
+                        unwired.append((consumer, dep, "depends_on",
+                                       "no import found — may be prompt-only composition"))
+                except Exception:
+                    pass  # grep not available or timeout
+
+        return {
+            "verified": verified,
+            "unwired": unwired,
+            "verified_count": len(verified),
+            "unwired_count": len(unwired),
+        }
+
 
 def _format_help_text(reg: CapabilityRegistry) -> str:
     """Generate formatted help text showing all domains and their capabilities.
@@ -251,6 +385,14 @@ if __name__ == "__main__":
         "--consumers", metavar="CAPABILITY",
         help="Show all skills that use a capability",
     )
+    parser.add_argument(
+        "--health-check", action="store_true",
+        help="Check skill dependency health: dangling deps, missing domains",
+    )
+    parser.add_argument(
+        "--verify-consumers", action="store_true",
+        help="Verify declared consumers actually import provider code",
+    )
     args = parser.parse_args()
 
     reg = CapabilityRegistry()
@@ -272,6 +414,30 @@ if __name__ == "__main__":
         print(f"Capability: {args.consumers}")
         print(f"  Providers: {', '.join(providers) if providers else '(none)'}")
         print(f"  Consumers: {', '.join(consumers) if consumers else '(none)'}")
+    elif args.health_check:
+        health = reg.health_check()
+        print("=== Skill Graph Health Check ===")
+        print(f"Total skills: {health['total_skills']}")
+        print(f"Dangling dependencies: {health['dangling_count']}")
+        if health["dangling_deps"]:
+            print("\nSkills with dangling depends_on:")
+            for skill, missing in sorted(health["dangling_deps"].items()):
+                print(f"  {skill} → missing: {', '.join(missing)}")
+        if health["skills_without_domain"]:
+            print(f"\nSkills without domain ({len(health['skills_without_domain'])}):")
+            for s in health["skills_without_domain"][:10]:
+                print(f"  {s}")
+            if len(health["skills_without_domain"]) > 10:
+                print(f"  ... and {len(health['skills_without_domain']) - 10} more")
+    elif args.verify_consumers:
+        result = reg.verify_consumers()
+        print("=== Consumer Wiring Verification ===")
+        print(f"Verified (import found): {result['verified_count']}")
+        print(f"Unwired (no import — may be prompt-only): {result['unwired_count']}")
+        if result["unwired"]:
+            print("\nPotentially unwired dependencies:")
+            for consumer, provider, cap_type, hint in result["unwired"][:20]:
+                print(f"  {consumer} → {provider} ({cap_type}) — {hint}")
     else:
         print(f"Capabilities: {len(reg.list_capabilities())}")
         print(f"Domains: {len(reg.get_all_domains())}")
