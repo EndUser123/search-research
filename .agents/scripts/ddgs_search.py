@@ -28,7 +28,6 @@ Design principles:
 import argparse
 import json
 import sys
-from pathlib import Path
 
 
 def run_search(query: str, max_results: int = 10, site: str | None = None) -> list[dict]:
