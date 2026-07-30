@@ -1,5 +1,11 @@
 # Vault Log
 
+## prompt-preflight-session-context-completeness-check
+Source: session-019fb189
+Agent: grok
+Notes: Prompt preflight: session-context completeness check before dispatching subagent prompts.
+Page: wiki/concepts/prompt-preflight-session-context-completeness-check.md
+
 ## convergence-gap-rca-symptom-restatement-toulmin-enforcement
 Source: session-019fb189
 Agent: grok
