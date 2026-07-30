@@ -202,4 +202,36 @@ Phase 5 (after Phase 4):
 This plan is wrong if:
 - Architecture smell detection produces too much noise for our package sizes (most <50 files) → drop A1, keep the other analysis dimensions
 - The planner-executor split introduces handoff friction in practice → re-integrate execution into `/refactor` for single-seam cases
-- `pydeps`/`tach` don't work reliably on Windows multi-root workspaces → fall back to AST-based import scanning
+- `pydeps`/`tach` don't work reliably on Windows multi-root workspaces → fall back to AST-based import scanning (DONE: code_analysis.py uses AST, not pydeps)
+
+## Execution Status
+
+Updated: 2026-07-30T17:30:00Z
+Session: 019fb3a8-42b6-7e81-91c9-1fad5f4130e6
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| C1 | ddgs_search.py shared script | ✅ DONE | `P:/.agents/scripts/ddgs_search.py`, 10 tests passing, committed b4fa67a |
+| C2 | /www SKILL.md updated | ✅ DONE | 4 locations updated, committed da986cb |
+| C3 | Subagent shell-quoting wiki concept | ✅ DONE | `P:/.data/wiki/concepts/subagent-shell-quoting-durable-fix.md`, committed b4fa67a |
+| C4 | ddgs in version_check.py | ✅ DONE | Already present (version_check.py line 52/58) |
+| A1-A4 | Cross-file analysis engine (combined) | ✅ DONE | `P:/.agents/scripts/code_analysis.py` — 5 dimensions: import graph, dead code, complexity, duplication, test gaps. Validated on yt-is (10 dup clusters, 52 test gaps). Committed 405ad5c |
+| A5 | seams.json schema evolution | ❌ NOT STARTED | — |
+| A6 | /refactor SKILL.md comprehensive analysis | ✅ DONE | Step 4.1 rewritten + parallelism detection + exit transitions updated. Committed ef62446 |
+| A7 | /refactor developer preferences | ⚠️ PARTIAL | Core preferences already present; comprehensive-analysis scope statement deferred |
+| B1 | /go consume evolved seams.json | ❌ NOT STARTED | — |
+| B2 | /go H4 spawn template (quoting fix) | ⚠️ PARTIAL | ddgs_search.py exists; template update deferred to /go SKILL.md |
+| B3 | /go refactor delegation text | ❌ NOT STARTED | — |
+| D1 | End-to-end pipeline test | ❌ NOT STARTED | — |
+| D2 | End-to-end quoting test | ❌ NOT STARTED | — |
+
+### Hook fixes (bonus — not in original plan)
+| Hook pattern reorder | ✅ DONE | verification_receipt_writer.py, committed 5c04c66 |
+| Hook capability diagnostics | ✅ DONE | quality_gate.py, committed 5c04c66 |
+| 76/76 hook tests passing | ✅ DONE | All 3 test suites green |
+
+### Key findings during execution
+- pydeps requires runtime import (slow, fragile on complex packages) — replaced with AST-based static scanning in code_analysis.py. No external dependency, fast, reliable.
+- _detect_verifier pattern order was wrong (specificity, not rank) — fixed and tested.
+- Block messages lacked capability diagnostics — fixed. Future blocks are self-diagnosing.
