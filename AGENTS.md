@@ -6,7 +6,6 @@ When a skill gives a specific instruction, follow it exactly. If a general rule 
 
 ## Maintenance reminders
 
-- Run `/skill-prune` monthly or when the skill catalog exceeds 1000 entries.
 - Run `/recover` immediately when a file is missing after concurrent agent activity.
 - Run `python P:/.data/wiki/scripts/index_skills.py --audit` quarterly.
 
