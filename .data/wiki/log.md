@@ -1,5 +1,11 @@
 # Vault Log
 
+## research-quality-principle-efficiency-not-censorship
+Source: session-019fb189
+Agent: grok
+Notes: Standing directive.
+Page: wiki/concepts/research-quality-principle-efficiency-not-censorship.md
+
 ## delegation-optimization-chunking-output-backend-discipline
 Source: session-019fb189
 Agent: grok
