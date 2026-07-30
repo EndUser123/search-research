@@ -63,10 +63,11 @@ This document specifies three structurally distinct fixes for failures observed 
 #### RC-2: forward sync from yt-is cache to nlm-to-wiki export
 
 - [FACT — operator-reported] yt-is `transcript_cache` (SQLite at `P:/.data/yt-is/transcripts.sqlite`) has 10,072 `video_id`s with transcripts; 3,918 are from nlm-to-wiki imports. Source: integration session 019fb49b (operator-reported via task brief; not independently re-verified this session via SQL count). **Invalidation impact:** if the counts are wrong, F2's "≥70% bridge-match rate" target (F-16 reframing) requires recomputation.
+- [INFERENCE] Cache source composition: ~96.5% of cache rows are NLM-derived (9,725 notebooklm / 10,072 total). F2 is a re-fetch-skip optimization, not an alternative-source play. Its realized savings depend on notebook↔cache overlap, which is unmeasured. For a notebook of never-cached videos, F2 yields ~0 savings. **Action required:** measure overlap before quoting ROI.
 - [FACT] nlm-to-wiki exports transcripts to `P:/.data/wiki/sources/transcripts/<source_uuid>.md` via `nlm source content <source_uuid>`. Source: `export_transcripts.py:73-99` (read this session).
 - [FACT] Transcripts in nlm-to-wiki are keyed by NotebookLM source UUID; yt-is cache is keyed by YouTube `video_id`. The two keys do not map 1:1 — a UUID matches zero or one videos. Source: read both code paths this session.
 - [FACT — operator-reported] `match_uuids_to_urls.py` exists but returns `url: null` for YouTube sources (NotebookLM discards URLs at source-add time). Source: task brief, code path inferred from the description (the file exists in the nlm-to-wiki scripts directory). **Invalidation impact:** if `match_uuids_to_urls.py` has been modified to extract URLs from a different source, the UUID→video_id matching assumption may be incorrect.
-- [FACT] `import_nlm_transcripts.py` already built a title-match bridge (clusters.json + analysis_status) that resolved 4,287/5,070 YouTube transcripts. Source: read this session.
+- [FACT] `import_nlm_transcripts.py` already built a title-match bridge (clusters.json + analysis_status) that resolved 3,918 of 5,070 YouTube transcripts to the cache (the 4,287 figure from dry-run counts exact-title matches before checking cache state; 3,918 is the count that actually landed in transcript_cache after the session's URL-extraction and API-search imports). Source: session 019fb49b verified via `SELECT COUNT(*) FROM transcript_cache WHERE metadata_json LIKE '%nlm-to-wiki%'` = 3,918.
 - [FACT] yt-is exposes `register_external_transcript_provider` (`csf/transcript.py:139`) — provider signature `(video_id: str, lang: str) -> tuple[bool, str | None, str | None]`. Source: read this session.
 - [FACT] The title-match bridge normalizes titles via `normalize_title()` (lowercase + strip punctuation + collapse whitespace). Source: `import_nlm_transcripts.py:64-70` (read this session).
 - [FACT] `sync.py` Stage A (lines 139-149) calls `export_transcripts.py` and treats rc=5 (partial failure) as non-fatal. Source: read this session.
@@ -605,6 +606,13 @@ The `from_cache_count` field is added to the returned dict from `export_notebook
 
 Per P:/.data/wiki/concepts/youtube-api-search-list-only-endpoint-for-title-to-video-id.md
 the order is: free first (analysis_status, clusters.json, Takeout History),
+then paid (search.list as last resort). **Honesty note:** the 497 orphans are
+*defined* as unmatched against analysis_status and clusters.json — Sources 1-2
+will resolve ~0 by construction. F3's real value is (a) the checkpoint-before-
+import contract (prevents the 257-result loss from recurring) and (b) the
+Takeout History + search.list paths. The free-first ordering is retained for
+completeness and because new data may have been added to analysis_status since
+the original match run.
 paid last (search.list, 100 units/call). Results are checkpointed BEFORE
 any import step — never lose results again.
 
@@ -1019,7 +1027,7 @@ Chosen: (1) — wins because free sources (analysis_status, clusters.json, Takeo
 
 | Threat | Mitigation |
 |--------|-----------|
-| Operator accidentally enables `receipt_authoritative` and a legitimate offload is blocked | Fail-open on any exception; block reason text is specific. Unconditional ALLOW on `stopHookActive=true` is the loop-prevention backstop (the hook re-entry guard; addresses F-11 — the prior "8-continuation cap" reference is unsupported by any mechanism in this design and is removed). |
+| Operator accidentally enables `receipt_authoritative` and a legitimate offload is blocked | Fail-open on any exception; block reason text is specific. Unconditional ALLOW on `stopHookActive=true` is the hook re-entry guard. **Platform backstop:** Grok Build also caps Stop-hook continuations at 8 per turn (`~/.grok/docs/user-guide/10-hooks.md`), after which the gate is overridden — this is a platform feature, not something the hook implements. |
 | Agent crafts a transcript record to fake a wiki-query receipt | Transcript is on disk and read-only from the hook's perspective; faking requires write access. |
 | FIX 2 forward-sync returns stale transcript (yt-is cache out of date with NLM) | Source-side validation: cache write timestamp recorded in metadata_json; downstream reconcilers can flag staleness. `nlm source content` is still authoritative for status=3 sources. |
 | FIX 3 `search.list` quota exhausted → DoS on subsequent runs | Cap (240 calls/run) + per-key rotation; checkpoint file persisted; next-day resume. |
@@ -1168,9 +1176,13 @@ All three fixes ship in this phase. No fix blocks anything. No fix changes user-
 
 ## 13. Implementation Plan
 
+**Ordering rationale (revised per /tp critique):** F2 ships first — it is the goal-aligned, additive, fail-through fix with lowest risk and direct productivity impact (~40% NLM call reduction). F1 ships second — it is the structural behavioral fix (highest root-cause leverage for preventing fabricated blockers, but highest risk because it touches live hook infrastructure). F3 ships last or is deferred — it addresses data completeness, not the duplicate-fetch goal, and spends paid API quota. An operator who prioritizes "stop the behavioral failure" over "optimize the pipeline" may rationally reorder F1 before F2; this plan defaults to goal-alignment.
+
 Each unit is a single commit (or commit group if files are tightly coupled).
 
-### FIX 1 units
+### FIX 1 units (ship SECOND — behavioral root-cause fix, highest leverage for preventing fabricated blockers)
+
+**Scoping note (revised per /tp critique):** F1 is scoped to minimal v1: shadow hook + evidence log only. The `_hook_base.py` extraction, metrics aggregator, and SubagentStop dual-registration are deferred to a v2 AFTER shadow-mode FP rate is measured. The hypothesis is binary: does blocking on offload-without-wiki-receipt reduce fabricated offloads? Test that first. Additionally, the wiki's own cheaper workflow rules (Fix 1+2+3 from `error-handling-loops-skip-wiki-query.md`) were never deployed — the "~50% advisory ceiling" was measured on different rules. Consider trying those before the hook.
 
 #### Unit F1-1 — Extract `_hook_base.py` (if absent)
 
@@ -1201,7 +1213,7 @@ Each unit is a single commit (or commit group if files are tightly coupled).
 | Title | `feat(hooks): register wiki-query-gate on Stop + SubagentStop` |
 | Files affected | `~/.grok/hooks/wiki-query-gate.json` (new) |
 | Dependencies | F1-2 |
-| Description | Register the hook on **both** `Stop` (top-level agent turn) AND `SubagentStop` (sub-agent turn) events, 30s timeout each. Per `~/.grok/docs/user-guide/10-hooks.md:97`, `SubagentStop` is a **separate event** that "fires once, in the subagent, with stop decision control" — distinct from `Stop`. KD-14 commits to gating sub-agent offloads too, so registration MUST cover both events. Mirrors `quality-gate.json` style. The hook script is identical for both events (same envelope fields, same logic); only the event name in the JSON differs. |
+| Description | Register the hook on **both** `Stop` (top-level agent turn) AND `SubagentStop` (sub-agent turn) events, 30s timeout each. Per `~/.grok/docs/user-guide/10-hooks.md:97`, `SubagentStop` is a **separate event** that "fires once, in the subagent, with stop decision control" — distinct from `Stop`. KD-14 commits to gating sub-agent offloads too, so registration MUST cover both events. **Verification gap (per /tp):** the hooks doc also says agent-frontmatter `Stop` hooks "automatically remap" to `SubagentStop` inside subagents — this may make explicit dual-registration redundant (or may double-fire). **Test this empirically before F1-3 ships:** register on `Stop` only, run a subagent that offloads, check whether the hook fires. If it does, drop the `SubagentStop` registration. Mirrors `quality-gate.json` style. |
 | Acceptance | (a) Hook JSON valid; (b) `~/.grok/active-surface.last.md` lists `wiki-query-gate` under BOTH `Stop` and `SubagentStop`; (c) shadow mode emits evidence on both event types; (d) no false-positive blocks |
 | Disposition | **COMMIT_THIS_SESSION** |
 
@@ -1261,7 +1273,7 @@ The registration JSON template (addresses F-07):
 | Acceptance | (a) ≥100 records; (b) FP rate <5%; (c) env var persisted in operator's shell |
 | Disposition | **HANDOFF** (operator decision) |
 
-### FIX 2 units
+### FIX 2 units (ship FIRST — goal-aligned, lowest risk, directly productive)
 
 #### Unit F2-1 — Extract `title_bridge.py`
 
@@ -1307,7 +1319,9 @@ The registration JSON template (addresses F-07):
 | Acceptance | (a) **≥70% of YouTube sources matched by the title bridge** come from cache (revised per F-16/F-20: was ≥40% which used wrong denominator); (b) `.md` files have correct frontmatter (`from_cache: yt_is_cache` field set on cache-imported); (c) transcript body matches cache content |
 | Disposition | **VERIFICATION** (operator or `/go` automated check) |
 
-### FIX 3 units
+### FIX 3 units (DEFERRED or ship LAST — completeness goal, spends paid quota)
+
+**Scoping note (revised per /tp critique):** The 497 orphans don't block the forward-sync goal (F2). F3's real value is the checkpoint-before-import contract — the decision tree's Sources 1-2 are already-failed matchers (~0 yield by construction). The operator may rationally defer F3 entirely from this wave and ship F1-minimal + F2 only. If F3 ships, its sole purpose is the checkpointed, quota-capped search.list path. The 257 lost results are confirmed unrecoverable (no checkpoint files exist on disk).
 
 #### Unit F3-1 — Implement `resolve_orphans.py`
 
