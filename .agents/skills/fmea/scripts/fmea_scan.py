@@ -77,7 +77,6 @@ class BoundaryVisitor(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call):
         # Get the function name being called
         func_name = self._get_func_name(node.func)
-        args_str = ast.dump(node)[:200]  # raw representation for analysis
 
         # Check for file read/write via Path methods or open()
         if func_name in self.FILE_READ_METHODS:
