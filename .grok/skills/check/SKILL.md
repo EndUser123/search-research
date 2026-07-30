@@ -175,12 +175,22 @@ the best available evidence (git-derived packet or LLM-only). Do NOT block
 the same conclusion — just much slower. Also surface **dead-code** signals
 that ruff F401 does not catch (unused methods/functions after refactors).
 
-**Trigger:** run when ANY scope file is a `.py` file (determined from the
-evidence packet's `scope_files` or the git-derived packet's `git_changed_files`).
+**Trigger:** run when ANY scope file is a `.py` file. The orchestrator
+fills `--py-files` from its own session context (the files it changed),
+NOT solely from the evidence packet. The evidence packet is one source;
+the LLM's knowledge of what it edited is authoritative. This avoids the
+cross-workspace blind spot where files on D:\ or other drives escape
+the evidence packet's scope_files bucket.
 **Cross-workspace:** files on any drive (P:\, D:\, C:\, network paths) are
-included — not just P:\. The evidence packet's scope_files bucket tracks all
-edited files regardless of location. If scope_files is empty, fall back to
-scanning the file_edits bucket for .py target_paths.
+included — not just P:\.
+**Package root for pytest:** for each changed `.py` file, identify the
+owning package root (directory containing `tests/`, `__lib/`, or
+`pyproject.toml`). Verifiers run `pytest <package_root>` — the **full
+package test suite**, not just changed-file-specific tests. This is the
+integration check: confirms changed files don't break their callers or
+importers. Per `/www` research: full suite is the industry default for
+correctness verification; test selection (testmon) is a CI cost
+optimization, not a correctness improvement. Our suites are small (<15s).
 
 **Layers:**
 
@@ -204,8 +214,9 @@ for verifiers; pre-push may later fail-closed with a project whitelist.
 **What it does — Python script (replaces inline PowerShell):**
 
 ```bash
-# Extract scope_files from evidence packet (or git fallback), then run the
-# Python deterministic checker which handles all 9 layers in one call:
+# The LLM fills --py-files from session context (what it changed).
+# The evidence packet is a secondary source. Then run the Python
+# deterministic checker which handles all 9 layers in one call:
 python "P:/.grok/skills/check/__lib/run_deterministic_checks.py" \
     --py-files <changed_file1.py> <changed_file2.py> \
     --run-dir "$runDir" \
@@ -534,6 +545,58 @@ verifier is wrong, or (b) the concern split was wrong and both verifiers
 partially saw the same issue. Either way, surface the contradiction rather
 than silently averaging the verdicts.
 
+## Step 4.5 -- Write durable receipt (MANDATORY — every run, PASS or FAIL)
+
+After merging verdicts (Step 4) and before any fix cycles, write the
+`check-state.md` receipt via the script — NOT by hand. This is the file
+`/close` reads to detect whether `/check` ran and what it found. A
+hand-written receipt was the prior failure mode: only ~3 of ~24+ runs
+produced one, so `/close` could not see most `/check FAIL`s.
+
+The script takes a JSON file with the verdict data and writes
+`$runDir/check-state.md` atomically. The orchestrator LLM still
+determines the verdict (judgment); the script produces the receipt
+format (mechanical). Both PASS and FAIL produce a receipt.
+
+**Build the JSON input** (the orchestrator constructs this from the
+verifier results gathered in Step 4):
+
+```powershell
+$receiptData = @{
+    session_id = $sessionId   # the same session ID resolved in Step 0
+    run_dir    = $runDir
+    verdict    = "<PASS or FAIL>"   # the merged verdict from Step 4
+    verifiers  = @(
+        @{ concern = "<concern-name>"; verdict = "<PASS|FAIL>"; finding = "<one-line summary>" }
+        # ... one entry per verifier concern
+    )
+    test_results = "<one-line: 'all N passed', 'M/N failed: <names>', or 'not applicable'>"
+    issues = @(
+        # Only if verdict is FAIL or issues were found:
+        @{ severity = "<bug|gap|regression|suggestion>"; description = "<one-line>" }
+    )
+}
+$receiptJson = "$runDir/packets/check-receipt-input.json"
+$receiptData | ConvertTo-Json -Depth 4 | Set-Content -Path $receiptJson -Encoding UTF8
+
+python "P:/.grok/skills/check/__lib/write_check_state.py" --json "$receiptJson"
+```
+
+**Why a script, not hand-writing:** the receipt format must match the
+regex contract in `close_accounting.py:557-560` exactly:
+`**Session:** <id>` and `**Verdict:** CHECK PASS (N/M verifiers)`.
+A hand-written receipt that gets the format wrong is invisible to close.
+The script guarantees the format on every run. Receipt: audit
+`P:/docs/improvement-system-audit-20260729.md` Intervention 1.
+
+**If the script fails** (exit 1): print the error and continue — do NOT
+block the /check flow on the receipt write. But surface the failure in
+the final report so the operator knows the receipt may be missing.
+
+**After fix cycles (Step 5):** if the verdict changed (FAIL → PASS after
+fixing), re-run Step 4.5 with the updated verdict. The atomic write
+(`os.replace`) safely overwrites the prior receipt.
+
 ## Step 5 -- Fix and reverify (max 3 cycles)
 
 ## Step 6 -- Report, auto-/review escalation, next step
@@ -781,8 +844,11 @@ data analysis, research).
    may have changed since the packet was built. Run from the appropriate cwd:
    - Build the project (e.g. cargo check, npm run build, tsc). A broken build
      is an automatic FAIL.
-   - Run the test suite (e.g. cargo test, pytest, npm test). Failing tests are
-     an automatic FAIL.
+   - Run the **full package test suite** (`pytest <package_root>/`), not just
+     changed-file-specific tests. This catches integration breaks where a
+     change in one file breaks an importer in another. Our suites are small
+     (<15s); running the full suite is the industry default for correctness
+     verification. Failing tests are an automatic FAIL.
    - Run linters/type-checkers if configured (cargo clippy, eslint, mypy, tsc).
 
 7. DESIGN AND RUN VERIFICATION CHECKS (use your shell access):
