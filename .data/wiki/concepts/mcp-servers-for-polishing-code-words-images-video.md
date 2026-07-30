@@ -115,12 +115,12 @@ if polishing the Chrome ACP extension's React UI further.
 
 ## What this means for our workspace
 
-| Priority | Tool | Gap closed | Effort |
-|----------|------|-----------|--------|
-| **High** | Kinocut | Video editing, frame extraction, repurposing | Low (pip + config.toml) |
-| **High** | OpenCV MCP | Image/frame analysis, object detection | Low (pip + config.toml) |
-| **Medium** | mcpolish | MCP tool description quality | Trivial (pip + run) |
-| **Low** | Storybook MCP | UI component testing | Medium |
+| Priority | Tool | Gap closed | Effort | Status |
+|----------|------|-----------|--------|--------|
+| **High** | Kinocut | Video editing, frame extraction, repurposing | Low (uvx + config.toml) | ✅ Installed + verified (2026-07-30) |
+| **High** | OpenCV MCP | Image/frame analysis, object detection | Low (uvx + config.toml) | ✅ Installed + verified (2026-07-30) |
+| **Medium** | mcpolish | MCP tool description quality | Trivial (pip + run) | Not installed — one-shot CLI, not a server |
+| **Low** | Storybook MCP | UI component testing | Medium | Deferred |
 
 The [[skill-domain-map]] shows Domain 12 (Media pipeline) as ⚠️ underdeveloped
 (4 skills, 9 capabilities). Adding Kinocut + OpenCV MCP would materially
@@ -140,13 +140,47 @@ browser-driven workflow. The [[claude-powered-video-editing-workflows]]
 concept documented Higgsfield MCP for media generation; Kinocut + OpenCV
 cover the complementary editing/analysis side.
 
+## Installation + verification (2026-07-30)
+
+Both servers installed and verified live on this Windows 11 host via `uvx`
+(ephemeral environments — no global installs). Registered in
+`~/.grok/config.toml` under `[mcp_servers.kinocut]` and `[mcp_servers.opencv]`.
+
+**Decisive receipts:**
+- **Kinocut** — MCP `video_trim` on a synthetic 4s clip → 2.0s output
+  (ffprobe-confirmed), MCP `success: true`. Server reports 161 tools incl.
+  Video Receipts, rescue, review/publish gates.
+- **OpenCV MCP** — `get_image_stats` on a 320×240 PNG returned real analysis
+  (mean 127.35, per-channel stats, histogram); `resize_image` 320×240→160×120
+  wrote valid output. 22 tools, no model files needed for basic analysis.
+
+**Critical install caveat:** both broke on first launch with
+`ModuleNotFoundError: No module named 'mcp.server.fastmcp'`. Root cause: MCP
+SDK 2.0.0 removed `mcp.server.fastmcp`, which these servers import. Fix
+(already applied): pin `--with "mcp<2"` in the `uvx` args. See
+[[mcp-sdk-2-0-fastmcp-breakage]] for the full pattern — it affects the entire
+1.x-era MCP server ecosystem, not just these two.
+
+**OpenCV model files (optional):** basic tools (resize, crop, stats, edge/
+contour/feature detection, frame extraction — exactly what the video-to-wiki
+pipeline needs) require no model downloads. Only YOLO/DNN object+face
+detection need model files in `OPENCV_DNN_MODELS_DIR`. So the analysis
+pipeline is ready as-is.
+
 ## Falsifier
 
-If Kinocut's guardrails prove too restrictive for real editing tasks (blocking
-valid operations), or if OpenCV MCP has Windows compatibility issues (OpenCV's
-history on Windows is mixed), the combined workflow degrades to transcript-only
-ingestion — which is what we already have. The research would need re-evaluation
-if either tool fails to install or produces poor results on this Windows 11 host.
+**Resolved (2026-07-30):** the original Windows-compatibility concern for
+OpenCV did **not** materialize — basic image tools (read, stats, resize)
+worked on first try on this Windows 11 host. The wiki's stated risk
+("OpenCV's history on Windows is mixed") is overstated for basic processing;
+it may still apply to the optional DNN-model features, which are untested.
+
+**Remaining risks:**
+- If Kinocut's guardrails prove too restrictive for real editing tasks
+  (blocking valid operations), the workflow degrades to raw FFmpeg.
+- The `mcp<2` pin is load-bearing — if a future `uvx` resolver change or a
+  transitive dependency forces `mcp>=2`, both servers break on launch again.
+  Drop the pin only after each server publishes a 2.0-compatible release.
 
 If the MCP ecosystem consolidates around a single media-processing server that
 subsumes both video editing and image analysis (e.g., a future FFmpeg+OpenCV

@@ -1,5 +1,29 @@
 # Vault Log
 
+## MCP media servers installed (Kinocut + OpenCV MCP)
+Source: session-20260730
+Agent: grok
+Notes: Both verified on Windows 11 via stdio handshake + real ops. mcp<2 pin required (SDK 2.0 broke fastmcp import). New concept: mcp-sdk-2-0-fastmcp-breakage.
+Page: wiki/concepts/mcp-servers-for-polishing-code-words-images-video.md
+
+## Karpathy's LLM Wiki Method
+Source: nlm-sync-2026-07-30
+Agent: grok
+Notes: Synced from NotebookLM notebook Perplexity: perplexity-videos-tab
+Page: wiki/concepts/karpathys-llm-wiki-method.md
+
+## Open Knowledge Format (OKF)
+Source: nlm-sync-2026-07-30
+Agent: grok
+Notes: Synced from NotebookLM notebook Perplexity: perplexity-videos-tab
+Page: wiki/concepts/open-knowledge-format-okf.md
+
+## LLM Wiki Knowledge Pattern
+Source: nlm-sync-2026-07-30
+Agent: grok
+Notes: Synced from NotebookLM notebook Perplexity: perplexity-videos-tab
+Page: wiki/concepts/llm-wiki-knowledge-pattern.md
+
 ## MCP Servers for Polishing Code Words Images Video
 Source: session-20260730
 Agent: grok
