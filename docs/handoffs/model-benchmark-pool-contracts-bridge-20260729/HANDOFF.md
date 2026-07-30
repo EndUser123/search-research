@@ -61,7 +61,13 @@ contracts into all subagent-dispatching skills.
 2. **Bridge under real load:** tested simple prompts, NOT tested with
    streaming, tool calling, long context, or multi-turn as parent
 3. **Code-exec benchmark with 13 problems:** current 5-problem set is too
-   easy to discriminate coding pool
+   easy to discriminate coding pool — IN PROGRESS this session
+
+## What does NOT need a session start hook
+
+The bridge runs independently in PowerShell. No hook needed — just run
+`codex-bridge` before starting a Grok session that will use GPT-5.6 models.
+The `check-codex-bridge.ps1` script is for manual verification only.
 
 ## Acceptance criteria
 

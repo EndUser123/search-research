@@ -1,5 +1,17 @@
 # Vault Log
 
+## Scheduled tasks wiki concept
+Source: session-2026-07-29
+Agent: grok
+Notes: Wiki-based date-triggered task table for content freshness maintenance
+Page: wiki/concepts/scheduled-tasks-wiki-content-maintenance.md
+
+## --concept
+Source: test-coverage-gap-detection-structural-fix
+Agent: --title
+Notes: Test coverage gap detection: structural fix
+Page: --tags
+
 ## Reusable internals catalog
 Source: session-019fa276
 Agent: grok

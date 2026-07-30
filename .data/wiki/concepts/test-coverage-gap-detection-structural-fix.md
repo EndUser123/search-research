@@ -1,0 +1,102 @@
+---
+title: "Test coverage gap detection: structural fix for shipping code without tests"
+created: 2026-07-30
+source: session-019fa94d (root cause analysis after run_deterministic_checks.py shipped with 0 tests)
+sources:
+  - internal: P:/.grok/skills/check/__lib/run_deterministic_checks.py (test_coverage_gaps)
+  - internal: P:/.grok/skills/check/SKILL.md (verifier protocol Step 6)
+tags: [testing, coverage, verification, structural-fix, check, root-cause, test-gap]
+host: both
+agent: grok
+verification: observed
+cognitive_load: 1
+summary: >
+  The root cause of shipping 200 lines of orchestration code with zero tests
+  was not "forgot to test" — it was structural: nothing in the pipeline checked
+  whether tests existed. The fix is mechanical detection + verifier action:
+  run_deterministic_checks.py detects __lib/*.py without tests/test_*.py,
+  the verifier writes behavioral tests for gaps found. No behavioral rule
+  needed — detection is structural.
+relations:
+  - target: wiki/concepts/sdlc-proactive-prevention-techniques-2026.md
+    type: extends
+  - target: wiki/concepts/code-verification-pipeline-gaps.md
+    type: related
+  - target: wiki/concepts/confidence-scoring-for-static-analysis-fp-suppression.md
+    type: related
+---
+
+# Test coverage gap detection: structural fix for shipping code without tests
+
+## Decision context
+
+`run_deterministic_checks.py` (200 lines, 9 tool dispatchers, complex
+JSON parsing) shipped with **zero tests**. The M3 review found 3 real bugs.
+The bugs existed despite the `/check` pipeline running ruff, pyright,
+pylint, and trace_check — all passed because they check syntax/types,
+not "does a test file exist?"
+
+**Root cause:** nothing in the pipeline checked whether tests existed
+for new code. The verify step ran existing tests (passed), ruff/pyright
+checked syntax/types (passed), but nobody asked "does a test file exist
+for the new script?"
+
+## The fix: detection + action (not detection + flagging)
+
+**Detection (mechanical):** `run_deterministic_checks.py` checks every
+`__lib/*.py` in scope for a corresponding `tests/test_*.py`. Missing →
+included in packet as `test_coverage_gaps`.
+
+**Action (verifier protocol):** Step 6 instructs verifiers to write
+behavioral tests for gaps found — read the source, identify main functions
+and edge cases, write a test file, run it. The gap is closed in-session.
+
+**No behavioral rule.** Detection is structural; an AGENTS.md rule would
+be redundant noise.
+
+## Why detection + flagging is insufficient
+
+The initial proposal was "flag the gap as a `gap` finding." That's weak —
+detection without action means the gap persists into the next session.
+The operator's push ("Will the check run something that automatically
+creates tests?") correctly identified this.
+
+The verifier already has execute capability and reads source. Making it
+write permanent test files instead of throwaway verification scripts is
+a small protocol change, not new infrastructure.
+
+## What this prevents
+
+| Scenario | Before | After |
+|----------|--------|-------|
+| New `__lib/widget.py` shipped | No check for test file | Gap detected → verifier writes tests |
+| `run_deterministic_checks.py` v2 | Ships with 0 tests again | Gap detected in-session → tests written before CHECK PASS |
+
+## Falsifier
+
+This approach is wrong if:
+- The verifier writes low-quality tests that pass but don't test real
+  behavior. Mitigation: the tests still run in the full package suite,
+  so they're at least exercised.
+- The gap detection is too narrow (only checks `__lib/*.py`). Mitigation:
+  the pattern can be extended to any package structure; `__lib` is the
+  fleet's convention for skill scripts.
+- Verifiers spend too much time writing tests instead of verifying.
+  Mitigation: the verifier writes tests for gaps only — if tests exist,
+  this step is skipped.
+
+## Receipts
+
+- `P:/.grok/skills/check/__lib/run_deterministic_checks.py:312-330` —
+  test_coverage_gaps detection in main()
+- `P:/.grok/skills/check/SKILL.md` verifier Step 6 — "Test coverage gap
+  (mandatory)" instruction
+- `P:/.grok/skills/check/tests/test_run_deterministic_checks.py` —
+  `test_coverage_gap_detection`, `test_coverage_gap_none_when_test_exists`
+- Commit `9f7deda`
+
+## Related
+
+- [[sdlc-proactive-prevention-techniques-2026]] — the 9-layer pipeline this extends
+- [[code-verification-pipeline-gaps]] — the original tool-to-bug-class map
+- [[confidence-scoring-for-static-analysis-fp-suppression]] — another structural fix from this session
