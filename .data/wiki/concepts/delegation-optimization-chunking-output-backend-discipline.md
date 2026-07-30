@@ -161,6 +161,14 @@ Per [[research-applicability-checking-dont-cite-without-verifying-assumptions]],
 - Session 019fb189: 1 agent × 3 angles = 5-8 min; corrected to 1 agent × 1 angle = ~2 min
 - /design writer: 32 issues × ~4 tool calls = ~128 tool calls; killed at 55 in 644s
 
+## What this means for our workspace
+
+1. **Skills that dispatch parallel subagents** (/www, /design, /go, /red-team, /review, /tp) should follow the 3 delegation rules: 1 question per agent, structured findings output, DDG-first for search. These are already in the /www SKILL.md's parallel-dispatch section.
+2. **Model routing should be task-type aware** — mechanical tasks (extraction, search, formatting) to cheap models; reasoning tasks to frontier; adversarial tasks to different model families. The existing [[model-pool-selection-policy-speed-quota-diversity]] already implements this; the task-type mapping table in this concept adds specificity.
+3. **Don't spawn more agents than the work requires** — coordination cost is quadratic. The practical limit is ~6-8 agents before overhead exceeds parallelism benefit. For reasoning tasks, a single strong agent may outperform a multi-agent team (Nature 2025).
+4. **Cascade routing is viable for mechanical tasks only** — the break-even math (escalation rate × verifier cost) makes cascading unsafe for reasoning tasks where cheap-model failure is undetectable (Huang et al.).
+5. **Chunk revision work by severity** — the /design writer failure (32 issues in one turn, killed at 644s) is the canonical example. Revision turns should be chunked: critical first, then majors, then minors/nits.
+
 ## Falsifier
 
 If following these rules produces the same wall-clock time as violating them (because the bottleneck is tool latency or model speed, not delegation structure), the rules are overhead. However, the session evidence shows 3-4× speedup from correct decomposition alone, and the external research (RouteLLM 85% savings, cascade math) confirms delegation structure is typically the dominant factor. The rules compound: chunking enables parallelism, routing reduces per-agent cost, structured output prevents context bloat. Violating any one degrades wall-clock by 2-3×.
