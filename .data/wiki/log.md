@@ -3,6 +3,12 @@
 ## delegation-optimization-chunking-output-backend-discipline
 Source: session-019fb189
 Agent: grok
+Notes: Updated with external research: RouteLLM, FrugalGPT, cascade break-even math, coordination cost ceiling, task-tier mapping, practitioner failure modes.
+Page: wiki/concepts/delegation-optimization-chunking-output-backend-discipline.md
+
+## delegation-optimization-chunking-output-backend-discipline
+Source: session-019fb189
+Agent: grok
 Notes: Reusable delegation optimization rules.
 Page: wiki/concepts/delegation-optimization-chunking-output-backend-discipline.md
 

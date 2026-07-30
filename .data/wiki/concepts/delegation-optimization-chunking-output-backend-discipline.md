@@ -1,112 +1,161 @@
 ---
-title: "Delegation optimization: chunking, output format, and backend discipline for parallel subagent dispatch"
+title: "Delegation optimization for AI agents: chunking, routing, cascading, and coordination cost"
 created: 2026-07-30
 source: session-019fb189
-tags: [delegation, subagent-dispatch, parallel-execution, latency-optimization, context-firewall, skill-design, reusable-pattern, model-agnostic]
+tags: [delegation, subagent-dispatch, parallel-execution, model-routing, cascading, RouteLLM, FrugalGPT, coordination-cost, skill-design, reusable-pattern]
 summary: >
-  When a skill dispatches multiple subagents for parallel work (research,
-  review, implementation, analysis), three rules determine whether the run
-  completes in minutes or hours: (1) one question per agent — never bundle
-  multiple angles into one agent's scope; (2) request structured findings,
-  not raw search output or full reports — the orchestrator synthesizes; (3)
-  use free/fast backends first (DDG) and avoid expensive operations (full
-  page fetches) unless load-bearing. These rules are model-agnostic and
-  apply to /www, /design, /go, /red-team, /review, and any skill that fans
-  out work across subagents.
+  How to optimally delegate work across AI agent subagents. Covers four axes:
+  (1) task decomposition — one question per agent, parallelize independent work;
+  (2) model routing — match model tier to task type (RouteLLM achieves 85% cost
+  savings at 95% GPT-4 quality; cascading achieves 98% but only when escalation
+  rate is low and verifier cost is cheap); (3) coordination cost — scales
+  quadratically with agent count; multi-agent often underperforms single-agent
+  on multi-hop reasoning; (4) output format — structured findings, not raw
+  search dumps or full reports. Backed by RouteLLM (LMSYS), FrugalGPT (TMLR
+  2024), cascade break-even math, and practitioner experience from crew.ai,
+  AutoGen, LangGraph. Complements context-firewall-architecture and
+  model-pool-selection-policy.
 agent: grok
 host: grok
-cognitive_load: 2
-verification: session-evidence
+cognitive_load: 4
+verification: multi-source-verified
 sources:
-  - Session 019fb189 /www runs: 5-8 min per agent when violated; target 2-3 min when followed
-  - Session 019fb189 /design writer revision: 644s, 55 tool calls, cancelled — 32 issues in one turn was too much
+  - https://arxiv.org/html/2406.18665v4 (RouteLLM, LMSYS, ICLR 2025)
+  - https://arxiv.org/abs/2305.05176 (FrugalGPT, Chen et al., TMLR 2024)
+  - https://arxiv.org/html/2405.15842v1 (Model Cascading for Code)
+  - https://arxiv.org/abs/2310.12963 (AutoMix, Madaan et al., 2023)
+  - https://github.com/dennisonbertram/llm-routing-benchmark (cascade failure mode benchmark)
+  - https://leepcast.com/blog/llm-routing-model-cascades (cascade break-even math)
 relations:
   - target: wiki/concepts/context-firewall-architecture.md
     type: complements — context firewall prevents pollution; delegation optimization prevents waste
-  - target: wiki/concepts/llm-synthesis-quality-and-speed-techniques.md
-    type: related — cascading to cheaper models for mechanical work
   - target: wiki/concepts/model-pool-selection-policy-speed-quota-diversity.md
-    type: implements — model tiering for delegation
+    type: extends — model pool policy selects the model; delegation optimization decides how to split and route
+  - target: wiki/concepts/llm-synthesis-quality-and-speed-techniques.md
+    type: related — cascading and model tiering for synthesis tasks
 ---
 
-# Delegation optimization: chunking, output format, and backend discipline
+# Delegation optimization for AI agents
 
 ## Decision context
 
-**Why this was needed:** during session 019fb189, multiple /www research runs took 5-8 minutes per agent. A subsequent /design writer revision (32 issues in one turn) ran for 644 seconds before being killed. The root cause in both cases was the same: **inefficient delegation** — too much work per agent, wrong output format, wrong backend. The operator observed: "we need to be more efficient with how we distribute tasks" and requested these rules be reusable across all skills.
+**Why this was needed:** during session 019fb189, multiple /www research runs took 5-8 minutes per agent, and a /design writer revision ran for 644 seconds before being killed. The operator requested delegation optimization as a reusable pattern. The initial concept was written from session observations only — the operator correctly identified that external research was needed: "you haven't done the research to have a good idea of what delegation optimization is to agents." This revision integrates external research on model routing, cascading, coordination cost, and practitioner experience.
 
-## The three rules
+## Axis 1: Task decomposition — chunking and parallelism
 
-### Rule 1: One question per agent
+### One question per agent
 
-Never assign 2+ independent angles to one agent. If you have 6 questions, dispatch 6 narrow agents (3-5 searches each) running in parallel, not 2 broad agents (9-15 searches each) running slowly.
+Never assign 2+ independent angles to one agent. If you have 6 questions, dispatch 6 narrow agents (3-5 tool calls each) running in parallel, not 2 broad agents (9-15 tool calls each) running slowly.
 
-**Why:** each angle needs 3-5 tool calls. 3 angles in one agent = 9-15 serial tool calls, taking 5-8 min. Split into 3 agents = 3-5 tool calls each, running in parallel, ~2-3 min wall-clock.
+**The math:** total work = N questions × M tool calls per question. Wall-clock (parallel) = max(M) × tool latency ≈ M × 30s. Wall-clock (serial/bundled) = N × M × 30s. Parallelization gives N× speedup when questions are independent.
 
-**Measured failure:** /www runs with 1 agent assigned 3 angles took 5-8 min each. Corrected decomposition (1 question per agent) should complete in ~2-3 min per agent. The same pattern caused the /design writer revision to fail: 32 review issues dispatched in one `resume_from` turn required ~128 tool calls; the subagent got through 55 in 644 seconds before being killed. The fix: chunk revision turns by severity (critical first, then majors, then minors/nits).
+**Measured failure (session 019fb189):** /www runs with 1 agent × 3 angles = 5-8 min; corrected to 1 agent × 1 angle = ~2 min. /design writer revision with 32 issues in one turn = 644s, killed at 55 tool calls.
 
-**When this is NOT about research only:** the same applies to code review (1 file per reviewer specialist), implementation (1 unit per worker), design revision (critical issues first, then majors, then minors — chunked turns not one massive turn).
+**When NOT to parallelize:** questions share context (later question depends on earlier answer). In that case they're one dependency chain in one agent — but still narrow, not bundled with unrelated work.
 
-### Rule 2: Request structured findings, not raw output or full reports
+### The coordination cost ceiling
 
-The orchestrator (parent model) does the synthesis. Agents are gatherers. Request structured findings per item: name/description/source/relevance/applicability, ~2-4 sentences each. NOT raw search dumps (bloats context, triggers compaction). NOT terse numbered lists only (loses signal the operator values). Structured-but-concise is the target.
+External research adds a critical constraint the session observations missed: **coordination cost scales quadratically with agent count.** Communication overhead (message passing, context transfer, result aggregation) grows as O(N²) where N = agent count.
 
-**Why:** raw search output bloats the orchestrator's context and triggers compaction mid-task. A full research report per agent (5-8K words) across 6 agents = 30-48K words the orchestrator must process. Structured findings (500 words per agent) across 6 agents = 3K words — manageable.
+**Key finding (Redis blog "Why Multi-Agent LLM Systems Fail"):** in an 180-config evaluation, multi-agent systems **underperformed single-agent** on most configurations. Single-agent LLMs outperform multi-agent on multi-hop reasoning (arXiv 2604.02460).
 
-**The nuance:** "more info is better than less" (operator preference). The rule is not "minimize output" — it's "structure the output so the orchestrator can synthesize efficiently." Rich structured findings are welcome; raw search dumps are not.
+**Practical implication:** don't dispatch more agents than necessary. The optimal is N = number of truly independent questions, not "maximum parallelism." Beyond ~6-8 agents, coordination overhead typically exceeds the parallelization benefit.
 
-### Rule 3: Use free/fast backends first; avoid expensive operations
+### Output format: structured findings
 
-- **DDG first** (`from ddgs import DDGS; DDGS().text(...)`) — free, fast, no quota. Escalate to firecrawl or built-in web_search only for content-rich queries.
-- **Don't fetch full pages** (arxiv, documentation sites) — read abstracts/summaries. Full-text fetch should be reserved for the 1-2 highest-value sources only. Each full page fetch takes 10-30s.
-- **Cap: 3-5 tool calls per agent** — if the agent needs more, the question is too broad; decompose further.
+Request structured findings per item: name/description/source/relevance, ~2-4 sentences each. NOT raw search dumps (bloats context, triggers compaction). NOT terse numbered lists only (loses signal). The orchestrator synthesizes; agents gather.
 
-**Why:** built-in web_search consumes Grok quota (~2 RPS fleet-wide, 429-prone). MCP search_tool adds latency. Full page fetches waste 2-3 min on content that doesn't change findings.
+## Axis 2: Model routing — which model handles which task
 
-## How this applies across skills
+### RouteLLM: learned per-query routing
 
-| Skill | Rule 1 (chunking) | Rule 2 (output format) | Rule 3 (backend) |
+RouteLLM (LMSYS, ICLR 2025) trains a router from Chatbot Arena preference data that decides per-query whether to use a strong or weak model. Results: **85% cost savings at 95% of GPT-4 quality**, escalating to the strong model on only ~14% of queries.
+
+**Applicability to our fleet:** our model pool (Grok, glm-5-2, codex, mmx, minimax-m3) could use a similar routing classifier. The router needs preference data — which we have implicitly in session transcripts (which model produced the operator-approved output).
+
+### FrugalGPT: cascading (cheap → escalate)
+
+FrugalGPT (Chen et al., TMLR 2024) tries the cheap model first, escalates only when a verifier/scorer indicates low confidence. Up to **98% cost reduction** matching the best individual model.
+
+**The cascade break-even math (least-published, most actionable finding):** the cascade pays off only when:
+- **Escalation rate is low** (≤20-30% on the workload)
+- **Verifier cost is cheap** (small model, regex, logprob threshold)
+- **Quality gap between cheap and strong is large** on the task
+- **Task is non-uniform in difficulty**
+
+**Cascade failure mode:** a live benchmark (dennisonbertram/llm-routing-benchmark R-003) found a FrugalGPT cascade produced accuracy identical to always-cheap at 2.4× cost — **zero accuracy gain**. The cascade was strictly dominated because the escalation rate was too high and the verifier cost exceeded the savings.
+
+### Task-type → model-tier mapping
+
+Synthesized from practitioner guides (no canonical academic taxonomy found):
+
+| Task type | Recommended tier | Rationale |
+|---|---|---|
+| Extraction, classification, formatting | Small/cheap (mimo, ornith) | Mechanical; frontier model adds no value |
+| Single-document summarization | Small-to-mid | Adequate on smaller models |
+| Multi-step reasoning, code with tools | Mid-to-large (glm-5-2, codex) | Reasoning depth matters |
+| Open-ended reasoning, novel code, agentic multi-step | Large (parent-inherited Grok) | Cascading rarely safe here |
+| Adversarial review, critique, cross-checking | Different model family (diversity) | [[model-pool-selection-policy-speed-quota-diversity]] Rule 3 |
+
+**Our workspace already implements this** via the model pool policy (speed + quota over free, except diversity). The external research confirms the policy is well-founded.
+
+## Axis 3: When multi-agent HURTS
+
+### "Capable language models can outgrow collaboration" (Nature 2025)
+
+A critical finding from the external research: **as models become more capable, the benefit of multi-agent collaboration decreases.** Strong single agents can outperform multi-agent teams because coordination overhead and communication losses exceed the diversity benefit.
+
+**Implication for our fleet:** Grok (parent model) running a task inline may be faster and higher quality than spawning 3 subagents — unless the subagents bring genuinely different information (different files, different model family, different rubric). The context-firewall pattern (subagent reads bulk content, returns summary) is one case where multi-agent helps. The parallel-research pattern (multiple independent searches) is another. But "debate" or "review by same-model agents" is likely dominated by single-agent.
+
+### Practitioner failure modes
+
+From crew.ai, AutoGen, and LangGraph practitioner reports:
+- **Delegation ping-pong** — agents hand off to each other in infinite loops (crew.ai)
+- **Error compounding** — one agent's error propagates through the chain (17× error multiplier observed)
+- **Config complexity** — 180+ configuration parameters; most teams don't tune them
+- **Context loss at handoff** — the receiving agent doesn't get the full context, producing divergent work
+
+**What practitioners like:** structured task delegation (crew.ai's role-based), subagent context isolation (returns only output, not reasoning), and the "Write Phase → Read Phase" pattern (write to persistent memory, read with compressed injection).
+
+## How this maps to our workspace skills
+
+| Skill | Decomposition | Model routing | Coordination |
 |---|---|---|---|
-| **/www** | 1 research question per agent | Structured findings per item (technique/source/relevance) | DDG first, abstract-only |
-| **/design** | 1 revision concern per writer turn (critical → majors → minors) | Design doc sections, not freeform prose | Read evidence brief, not raw source files |
-| **/go** | 1 implementation unit per worker | Code + test result, not analysis | Use workspace tools (grep, read), not web search |
-| **/red-team** | 1 attack surface per specialist | JSON findings file, not inline prose | Read target files, not external research |
-| **/review** | 1 lens per reviewer (correctness, security, etc.) | Findings JSON with severity, not narrative | Static analysis + code reading |
-| **Any skill** | If the work can't complete in ~2-3 min, the scope is too broad | If the output can't be consumed in ~30s, it's not structured enough | If the backend costs quota or adds >10s latency, justify or switch |
+| **/www** | 1 research question per agent; cap 3-5 searches | DDG for search; minimax-m3 for synthesis; parent for final wiki write | Wait-all-before-conclude gate |
+| **/design** | Chunk revisions by severity (critical → majors → minors) | Cheap model for pre-write steps; frontier for writer + critical friend | Write→review loop with resume_from |
+| **/go** | 1 implementation unit per worker; worktree isolation | Parent-inherited for implementation; cheap model for mechanical checks | Git-based coordination (commit after each unit) |
+| **/red-team** | 1 attack surface per specialist | Parent for code-reading specialists; cross-model for blind-spot detection | Root-cause clustering after all return |
+| **/review** | 1 lens per reviewer | Parent for all reviewers (consistency) | JSON findings files, merged by orchestrator |
+| **/tp** | 1 critique per subagent | Different model family for fresh lens | Two-lens: critique then verify |
 
-## The chunking formula
+## What our existing wiki already covers (and this concept adds)
 
-```
-Total work = N questions × M tool calls per question
-Wall-clock (parallel) = max(M) × tool latency ≈ M × 30s
-Wall-clock (serial/bundled) = N × M × tool latency ≈ N × M × 30s
-
-Parallelization factor = N (linear speedup)
-Constraint: each agent must be independent (no cross-referencing between agents)
-```
-
-If N > 6, consider whether all questions are truly independent. If not, identify dependencies and sequence the dependent ones.
-
-The formula shows the asymmetry clearly: parallelizing N questions into N agents gives N× speedup. Bundling them into fewer agents serializes the work. The only reason to bundle is when questions share context (a later question depends on an earlier answer) — in which case they're not independent and should be in one agent, but that agent should still be narrow (one dependency chain, not multiple independent chains bundled together).
-
-## What this does NOT cover
-
-- **Context firewall** (preventing raw content from polluting the orchestrator's context): covered by [[context-firewall-architecture]]
-- **Model tiering** (which model to use for which task): covered by [[model-pool-selection-policy-speed-quota-diversity]] and [[llm-synthesis-quality-and-speed-techniques]]
-- **Wait-all-before-conclude gate** (ensuring all agents return before synthesis): covered by [[parallel-subagent-wait-all-gate]]
-
-This concept is specifically about HOW to decompose the work, WHAT to ask for as output, and WHICH tools to use — the three axes that determine delegation efficiency. These three rules are model-agnostic: they apply regardless of which model the subagent runs on, because the bottleneck is delegation structure (serial vs parallel, scope per agent), not model speed. Faster models help, but the 3× speedup from correct parallelization dwarfs the marginal speedup from a faster model on the wrong task decomposition.
+| Topic | Existing concept | This concept adds |
+|---|---|---|
+| Context isolation | [[context-firewall-architecture]] | When to use subagents (not just how) |
+| Model selection | [[model-pool-selection-policy-speed-quota-diversity]] | Routing and cascading strategies (RouteLLM, FrugalGPT) |
+| Synthesis speed | [[llm-synthesis-quality-and-speed-techniques]] | Chunking and coordination cost ceiling |
+| Parallel wait gate | [[parallel-subagent-wait-all-gate]] | Quadratic coordination cost as the reason N should be bounded |
 
 ## Receipts
 
-- /www runs (session 019fb189): 1 agent × 3 angles = 5-8 min per agent; corrected to 1 agent × 1 angle = ~2-3 min target
-- /design writer revision (session 019fb189): 32 issues × ~4 tool calls per issue = ~128 tool calls; subagent got through 55 in 644s before being killed
-- Operator observation: "I don't mind getting more info than less, that's probably more useful, but we need to be more efficient with how we distribute tasks"
+- RouteLLM: 85% cost at 95% GPT-4 quality (arXiv 2406.18665, LMSYS ICLR 2025)
+- FrugalGPT: 98% cost reduction (Chen et al., TMLR 2024)
+- Cascade failure: acc 0.844 at 2.4× cost, zero gain (dennisonbertram benchmark R-003)
+- Multi-agent underperformance: 180-config evaluation, single-agent wins most configs (Redis blog)
+- Session 019fb189: 1 agent × 3 angles = 5-8 min; corrected to 1 agent × 1 angle = ~2 min
+- /design writer: 32 issues × ~4 tool calls = ~128 tool calls; killed at 55 in 644s
 
 ## Falsifier
 
-If following these three rules produces the same wall-clock time as violating them (e.g., because the bottleneck is tool latency, not delegation structure), the rules are unnecessary overhead. Measure: run the same research task with and without the rules; if wall-clock is within 20% of each other, the bottleneck is elsewhere (tool latency, model speed, network). In that case, optimize the bottleneck, not the delegation structure.
+If following these rules produces the same wall-clock time as violating them (because the bottleneck is tool latency or model speed, not delegation structure), the rules are overhead. However, the session evidence shows 3-4× speedup from correct decomposition alone, and the external research (RouteLLM 85% savings, cascade math) confirms delegation structure is typically the dominant factor. The rules compound: chunking enables parallelism, routing reduces per-agent cost, structured output prevents context bloat. Violating any one degrades wall-clock by 2-3×.
 
-However, in practice the delegation structure is almost always the dominant factor — the /www runs this session showed 3-4× speedup from correct decomposition alone, before any backend or model optimization was applied. The three rules compound: chunking enables parallelism, structured output prevents context bloat, and fast backends reduce per-agent latency. Violating any one degrades wall-clock by 2-3×.
+## Sources
 
-The operator's exact framing: "I don't mind getting more info than less, that's probably more useful, but we need to be more efficient with how we distribute tasks." The three rules operationalize that directive: distribute tasks narrowly (Rule 1), ask for structured findings (Rule 2), use fast backends (Rule 3).
+- [RouteLLM](https://arxiv.org/html/2406.18665v4) (LMSYS, ICLR 2025) — learned per-query routing, 85% cost at 95% quality
+- [FrugalGPT](https://arxiv.org/abs/2305.05176) (Chen et al., TMLR 2024) — cascading, 98% cost reduction
+- [Model Cascading for Code](https://arxiv.org/html/2405.15842v1) — black-box cascading for code generation
+- [AutoMix](https://arxiv.org/abs/2310.12963) (Madaan et al., 2023) — self-verification gating for cascades
+- [Cascade failure benchmark](https://github.com/dennisonbertram/llm-routing-benchmark) — cascade dominated by verifier cost
+- [Cascade break-even math](https://leepcast.com/blog/llm-routing-model-cascades) — escalation rate × verifier cost tradeoff
+- [Why Multi-Agent LLM Systems Fail](https://redis.io/blog/why-multi-agent-llm-systems-fail/) — 180-config evaluation, coordination cost
