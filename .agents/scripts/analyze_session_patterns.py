@@ -1,20 +1,28 @@
-"""Scan session transcripts for routing failures, frustration signals, and work patterns.
+"""Cross-session transcript scanner: routing failures, obligations, and work patterns.
 
-Called by /aar (session end) and /dream (offline consolidation).
-Writes harvestable suggestions to P:/.data/harvest/pending/analyze_session_patterns.json.
+Generalized 2026-07-29: now extracts ALL open obligations from session
+transcripts, not just routing failures. Scans both chat_history.jsonl and
+compaction/segment_*.md files for mechanical signals (exit codes, tracebacks,
+operator corrections, hook blocks). Writes harvestable obligations to
+pending/ for /harvest to discover automatically.
+
+Called by /aar (session end), /dream (offline consolidation), and /tp explore
+(pre-step workspace scan).
 
 Usage:
-    python analyze_session_patterns.py [--sessions N] [--output <path>]
+    python analyze_session_patterns.py [--sessions N] [--output <path>] [--obligations-only]
 
 Defaults: scan last 20 sessions, print summary, write pending suggestions.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import time
 from pathlib import Path
-from collections import Counter
+from collections import Counter, defaultdict
 
 SESSIONS_ROOT = Path.home() / ".grok" / "sessions"
 HARVEST_PENDING = Path("P:/.data/harvest/pending")
@@ -46,6 +54,39 @@ EXECUTION_RE = re.compile(
     r"do it|execute|ship|migrate|please do)"
 )
 
+# --- Mechanical signal patterns (from /tp transcript scan) ---
+# Grounded on mechanical evidence (Huang 2024: intrinsic self-correction fails
+# without external signal; mechanical signals are the external signal)
+
+MECHANICAL_SIGNALS = {
+    "failed_tool_call": re.compile(r'"exit":\s*[1-9]|exit code:\s*[1-9]'),
+    "traceback": re.compile(r"Traceback \(most recent|SyntaxError|ImportError|ModuleNotFoundError"),
+    "permission_denied": re.compile(r"Denied by permission"),
+    "timeout": re.compile(r"timed out after|automatically moved to background"),
+    "hook_block": re.compile(r"NO_COVERING_RECEIPT|exit code: 2"),
+    "secret_detected": re.compile(r"SECRET DETECTED|gitleaks"),
+    "post_verify_mutation": re.compile(r"New code was modified"),
+    "file_disappeared": re.compile(r"No such file|can.t open file|FileNotFoundError"),
+    "git_conflict": re.compile(r"CONFLICT \(content\)|merge conflict"),
+}
+
+# Operator correction patterns (behavioral signals from the human)
+OPERATOR_CORRECTIONS = [
+    re.compile(r"(?i)I wasn.t looking for|I didn.t ask (you )?to"),
+    re.compile(r"(?i)stop doing|don.t do that|I never told you"),
+    re.compile(r"(?i)not what I asked|that.s not correct|you.re wrong"),
+    re.compile(r"(?i)overconfident|liar|lazy|you keep (doing|making)"),
+    re.compile(r"(?i)I meant\b|I was looking for"),
+    re.compile(r"(?i)remove it now|undo that"),
+]
+
+# Operator command patterns (requests that may not have been completed)
+OPERATOR_COMMANDS = [
+    re.compile(r"(?i)(go |please )?(fix|implement|add|remove|build|install|create|migrate)"),
+    re.compile(r"(?i)do them all|do it now|ship it|proceed"),
+    re.compile(r"(?i)/go "),
+]
+
 
 def extract_user_messages(chat_file: Path) -> list[str]:
     """Extract user messages from a chat_history.jsonl file."""
@@ -66,6 +107,125 @@ def extract_user_messages(chat_file: Path) -> list[str]:
     except (OSError, UnicodeDecodeError):
         pass
     return messages
+
+
+def scan_raw_signals(file_path: Path) -> dict:
+    """Scan a chat_history.jsonl or compaction segment for mechanical signals.
+
+    Returns counts per signal type + sample context snippets.
+    """
+    counts = defaultdict(int)
+    samples = defaultdict(list)
+
+    try:
+        text = file_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {"counts": {}, "samples": {}, "lines_scanned": 0}
+
+    lines = text.splitlines()
+
+    for line in lines:
+        for signal_name, pattern in MECHANICAL_SIGNALS.items():
+            if pattern.search(line):
+                counts[signal_name] += 1
+                if len(samples[signal_name]) < 3:
+                    # Extract a snippet around the match
+                    snippet = line[:200].replace("\n", " ")
+                    samples[signal_name].append(snippet)
+
+    return {
+        "counts": dict(counts),
+        "samples": dict(samples),
+        "lines_scanned": len(lines),
+    }
+
+
+def extract_obligations_from_session(
+    session_dir: Path, chat_file: Path
+) -> list[dict]:
+    """Extract open obligations from a single session.
+
+    Scans chat_history.jsonl + compaction segments for:
+    - Mechanical signals (exit codes, tracebacks, hook blocks)
+    - Operator corrections (behavioral feedback)
+    - Unfulfilled operator commands (requests near session end)
+
+    Returns a list of obligation dicts suitable for pending/ output.
+    """
+    obligations = []
+    session_id = session_dir.name
+
+    # Scan chat_history.jsonl
+    raw = scan_raw_signals(chat_file)
+
+    # Scan compaction segments if they exist
+    compaction_dir = session_dir / "compaction"
+    if compaction_dir.exists():
+        for seg in sorted(compaction_dir.glob("segment_*.md")):
+            seg_raw = scan_raw_signals(seg)
+            for sig, count in seg_raw["counts"].items():
+                raw["counts"][sig] = raw["counts"].get(sig, 0) + count
+                raw["samples"].setdefault(sig, []).extend(
+                    seg_raw["samples"].get(sig, [])
+                )
+
+    # Convert mechanical signals to obligations
+    SIGNAL_TO_OBLIGATION = {
+        "failed_tool_call": ("Failed tool calls recurring across sessions", "GENERALIZE"),
+        "traceback": ("Code errors / tracebacks in session", "GENERALIZE"),
+        "permission_denied": ("Permission denials blocking work", "CONVERT"),
+        "timeout": ("Timeouts auto-backgrounding commands", "CONVERT"),
+        "hook_block": ("Stop-hook blocks (verification receipts)", "GENERALIZE"),
+        "secret_detected": ("Secret detection events", "COMPLETE"),
+        "post_verify_mutation": ("Post-verify file mutations", "GENERALIZE"),
+        "file_disappeared": ("Files disappearing (multi-agent contention)", "GENERALIZE"),
+        "git_conflict": ("Git merge conflicts", "GENERALIZE"),
+    }
+
+    for signal_name, count in raw["counts"].items():
+        if count < 2:
+            continue  # Single occurrences aren't obligations yet
+        if signal_name not in SIGNAL_TO_OBLIGATION:
+            continue
+
+        title, operation = SIGNAL_TO_OBLIGATION[signal_name]
+        # Dedup key: signal + session
+        dedup = hashlib.md5(f"{signal_name}_{session_id}".encode()).hexdigest()[:12]
+
+        obligations.append({
+            "title": f"{title} ({count} occurrences in {session_id[:8]})",
+            "obligation": f"{count} instances of {signal_name} in session {session_id[:8]}. "
+                          f"Sample: {raw['samples'].get(signal_name, ['(no sample)'])[0][:100]}",
+            "operation": operation,
+            "source": f"cross_session_scanner:{session_id}",
+            "dedup_key": dedup,
+            "signal_type": signal_name,
+            "count": count,
+        })
+
+    # Scan user messages for operator corrections
+    messages = extract_user_messages(chat_file)
+    corrections_found = []
+    for msg in messages:
+        for pattern in OPERATOR_CORRECTIONS:
+            if pattern.search(msg):
+                corrections_found.append(msg[:150])
+                break
+
+    if len(corrections_found) >= 2:
+        dedup = hashlib.md5(f"corrections_{session_id}".encode()).hexdigest()[:12]
+        obligations.append({
+            "title": f"Operator corrections ({len(corrections_found)} in {session_id[:8]})",
+            "obligation": f"{len(corrections_found)} operator corrections in session {session_id[:8]}. "
+                          f"Pattern: {corrections_found[0][:100]}",
+            "operation": "GENERALIZE",
+            "source": f"cross_session_scanner:{session_id}",
+            "dedup_key": dedup,
+            "signal_type": "operator_correction",
+            "count": len(corrections_found),
+        })
+
+    return obligations
 
 
 def classify_session(messages: list[str]) -> dict:
@@ -99,29 +259,35 @@ def classify_session(messages: list[str]) -> dict:
     }
 
 
-def scan_sessions(n: int = 20) -> list[dict]:
-    """Scan the last N sessions."""
+def scan_sessions(n: int = 20, extract_obligations: bool = False) -> tuple[list[dict], list[dict]]:
+    """Scan the last N sessions. Returns (session_analyses, obligations)."""
     if not SESSIONS_ROOT.exists():
-        return []
+        return [], []
 
     # Sessions are nested: sessions/<encoded-cwd>/<session-id>/chat_history.jsonl
-    # Walk two levels deep and collect all chat_history.jsonl files
     chat_files = []
     for session_dir in SESSIONS_ROOT.rglob("chat_history.jsonl"):
         chat_files.append(session_dir)
     chat_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
 
     sessions = []
+    all_obligations = []
+
     for chat_file in chat_files[:n]:
+        session_dir = chat_file.parent
         messages = extract_user_messages(chat_file)
         if not messages:
             continue
         analysis = classify_session(messages)
-        analysis["session_id"] = chat_file.parent.name
-        analysis["cwd"] = chat_file.parent.parent.name
+        analysis["session_id"] = session_dir.name
+        analysis["cwd"] = session_dir.parent.name
         sessions.append(analysis)
 
-    return sessions
+        if extract_obligations:
+            obs = extract_obligations_from_session(session_dir, chat_file)
+            all_obligations.extend(obs)
+
+    return sessions, all_obligations
 
 
 def main():
@@ -129,56 +295,92 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sessions", type=int, default=20, help="number of sessions to scan")
     parser.add_argument("--output", default="", help="output JSON path (default: stdout)")
+    parser.add_argument("--obligations-only", action="store_true",
+                        help="skip pattern analysis, only extract obligations")
+    parser.add_argument("--no-obligations", action="store_true",
+                        help="skip obligation extraction (legacy mode, routing patterns only)")
     args = parser.parse_args()
 
-    results = scan_sessions(args.sessions)
+    extract_obs = not args.no_obligations
+    results, obligations = scan_sessions(args.sessions, extract_obligations=extract_obs)
 
-    # Aggregate
-    total_frustration = sum(s["frustration_count"] for s in results)
-    total_exploration = sum(s["exploration_signals"] for s in results)
-    total_execution = sum(s["execution_signals"] for s in results)
+    if not args.obligations_only:
+        # Pattern analysis (original behavior)
+        total_frustration = sum(s["frustration_count"] for s in results)
+        total_exploration = sum(s["exploration_signals"] for s in results)
+        total_execution = sum(s["execution_signals"] for s in results)
 
-    print(f"=== Session Pattern Analysis ({len(results)} sessions) ===\n")
-    print(f"Total frustration/routing signals: {total_frustration}")
-    print(f"  Avg per session: {total_frustration / max(len(results), 1):.1f}")
-    print(f"Exploration signals: {total_exploration}")
-    print(f"Execution signals: {total_execution}")
-    print()
-
-    # Surface sessions with high frustration
-    high_frustration = [s for s in results if s["frustration_count"] >= 2]
-    if high_frustration:
-        print(f"High-frustration sessions (≥2 signals): {len(high_frustration)}")
-        for s in high_frustration[:5]:
-            print(f"  {s['session_id']}: {s['frustration_count']} signals")
-            for hit in s["frustration_hits"][:2]:
-                print(f"    → {hit}")
+        print(f"=== Session Pattern Analysis ({len(results)} sessions) ===\n")
+        print(f"Total frustration/routing signals: {total_frustration}")
+        print(f"  Avg per session: {total_frustration / max(len(results), 1):.1f}")
+        print(f"Exploration signals: {total_exploration}")
+        print(f"Execution signals: {total_execution}")
         print()
 
-    # Pattern distribution
-    patterns = Counter(s["pattern"] for s in results)
-    print(f"Pattern distribution: {dict(patterns)}")
+        # Surface sessions with high frustration
+        high_frustration = [s for s in results if s["frustration_count"] >= 2]
+        if high_frustration:
+            print(f"High-frustration sessions (≥2 signals): {len(high_frustration)}")
+            for s in high_frustration[:5]:
+                print(f"  {s['session_id']}: {s['frustration_count']} signals")
+                for hit in s["frustration_hits"][:2]:
+                    print(f"    → {hit}")
+            print()
 
-    # Write harvest suggestions if frustration is high
-    suggestions = []
-    if total_frustration >= 5:
-        suggestions.append({
-            "title": f"Routing-correct pattern: {total_frustration} frustration signals across {len(results)} sessions",
-            "obligation": "Operator repeatedly corrects routing — the exploration-vs-execution rule should be reviewed for effectiveness",
-            "operation": "GENERALIZE",
-            "hint": "grep session transcripts for 'I wasn't looking for' to track recurrence",
-        })
+        # Pattern distribution
+        patterns = Counter(s["pattern"] for s in results)
+        print(f"Pattern distribution: {dict(patterns)}")
 
-    if suggestions:
+        # Routing frustration suggestions (original behavior)
+        suggestions = []
+        if total_frustration >= 5:
+            suggestions.append({
+                "title": f"Routing-correct pattern: {total_frustration} frustration signals across {len(results)} sessions",
+                "obligation": "Operator repeatedly corrects routing — the exploration-vs-execution rule should be reviewed for effectiveness",
+                "operation": "GENERALIZE",
+                "hint": "grep session transcripts for 'I wasn't looking for' to track recurrence",
+            })
+    else:
+        suggestions = []
+
+    # Obligation extraction (new behavior)
+    if obligations:
+        # Deduplicate by dedup_key, keeping highest count
+        seen = {}
+        for obs in obligations:
+            key = obs.get("dedup_key", obs["title"][:50])
+            if key not in seen or obs.get("count", 0) > seen[key].get("count", 0):
+                seen[key] = obs
+        deduped = list(seen.values())
+
+        print(f"\n=== Cross-Session Obligation Extraction ({len(deduped)} unique items) ===\n")
+        by_type = Counter(o.get("signal_type", "unknown") for o in deduped)
+        for sig_type, count in by_type.most_common():
+            print(f"  {sig_type}: {count} items")
+
+        # Merge with routing suggestions
+        all_suggestions = suggestions + [
+            {
+                "title": o["title"],
+                "obligation": o["obligation"],
+                "operation": o.get("operation", "CONVERT"),
+            }
+            for o in deduped
+        ]
+    else:
+        all_suggestions = suggestions
+
+    # Write to pending/ for harvest discovery
+    if all_suggestions:
         HARVEST_PENDING.mkdir(parents=True, exist_ok=True)
         output_path = Path(args.output) if args.output else HARVEST_PENDING / "analyze_session_patterns.json"
-        output_path.write_text(json.dumps(suggestions, indent=2), encoding="utf-8")
-        print(f"\nHarvest suggestions written to: {output_path}")
+        output_path.write_text(json.dumps(all_suggestions, indent=2), encoding="utf-8")
+        print(f"\nHarvest suggestions written to: {output_path} ({len(all_suggestions)} items)")
     else:
-        print("\nNo harvest suggestions (frustration below threshold)")
+        print("\nNo harvest suggestions")
 
     if args.output:
-        Path(args.output).write_text(json.dumps(results, indent=2), encoding="utf-8")
+        Path(args.output).write_text(json.dumps({"sessions": results, "obligations": obligations}, indent=2), encoding="utf-8")
         print(f"Full results: {args.output}")
 
 
