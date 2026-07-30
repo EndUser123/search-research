@@ -65,12 +65,14 @@ agent: grok | claude-code           # cross-agent provenance
 host: grok | claude | both          # which host wrote/tested this (2026-07-18 convention)
 cognitive_load: <1-5>               # mental effort to apply (see §3 below)
 verification: local-only | inferred-only | multi-source-verified
+tier: warm                          # retrieval tier: hot | warm | cold (see §16 below)
 
 # Optional (context-dependent)
 evidence_gaps:                      # list of what evidence is missing
   - "<description of gap>"
 source_url: <URL if web source>     # enables --source-drift checks
 source_hash: <SHA256 of source>     # enables --source-drift checks
+superseded_by: wiki/concepts/<page> # if this concept has been replaced, point to the replacement
 relations:                          # typed relationships
   - target: wiki/concepts/<page>
     type: supports | contradicts | refines | supersedes | related
@@ -540,3 +542,86 @@ Claude-side had the manifest pipeline + `/main --fix` automation). This
 SCHEMA.md file resolves the drift by becoming the single convention source.
 Both SKILL.md files now reference this file for conventions and retain only
 per-host orchestration details.
+
+---
+
+## 15. Lifecycle state file (cross-reference)
+
+See `wiki/concepts/wiki-lifecycle-state-file.md` for the per-session state
+machine that tracks wiki operations (discovered → ingesting → linking →
+linting → complete). Not repeated here.
+
+---
+
+## 16. Retrieval tiers (hot | warm | cold)
+
+Concepts carry an optional `tier:` frontmatter field that signals retrieval
+priority. This helps agents decide which concepts to load at session start
+vs. on-demand.
+
+| Tier | Meaning | When to read | Examples |
+|------|---------|-------------|----------|
+| `hot` | Always relevant — identity, invariants, governance rules | Session start, every session | [[invariants-beat-environment-comfort]], [[trust-over-believability]] |
+| `warm` | Domain-specific — read when working in that domain | On-demand, when the domain comes up | [[close-authority-state-machine-design]], [[intg2-resolved-gate-state-set-needs-llm-check]] |
+| `cold` | Historical context — rarely re-read, append-only | Only when investigating history | Completed investigation findings, superseded decisions |
+
+**Default:** if `tier` is omitted, treat as `warm`. Most concepts are warm.
+
+**Promotion:** a concept that is read in ≥5 sessions and hasn't changed in
+≥30 days should be evaluated for promotion to `hot` — or, if it's a rule
+rather than a finding, promoted to AGENTS.md (see §17).
+
+**Demotion:** a concept that hasn't been read in ≥90 days should be
+evaluated for demotion to `cold` or retirement (see `/wiki --prune`).
+
+---
+
+## 17. Promotion discipline (concept → AGENTS.md)
+
+When a wiki concept is genuinely team-wide, stable, and read every session,
+it belongs as a **rule** in `AGENTS.md` — not as a concept file that might
+not be loaded. The promotion path:
+
+**Criteria for promotion:**
+1. The concept has been referenced in ≥5 sessions (grep the transcript or check `log.md`)
+2. The content hasn't changed in ≥30 days
+3. The concept contains a **rule** ("always do X", "never do Y") rather than a **finding** ("X causes Y")
+4. The rule applies to all agents on all hosts, not just one domain
+
+**Procedure:**
+1. Extract the rule as a one-line bullet (≤2 lines) under the appropriate AGENTS.md section
+2. Add `status: promoted` and `promoted_to: <AGENTS.md section>` to the concept frontmatter
+3. Do NOT delete the concept — it retains the rationale, steelman, and falsifier that the AGENTS.md bullet can't carry
+
+**Anti-pattern:** promoting a finding that hasn't been validated across sessions. Findings need repeated verification; rules need repeated application. Don't promote until the distinction is clear.
+
+---
+
+## 18. Supersession (conflict resolution)
+
+When a new concept **supersedes** an existing one (the old concept is now
+incomplete or wrong):
+
+1. In the **old** concept, add to frontmatter:
+   ```yaml
+   status: superseded
+   superseded_by: wiki/concepts/<new-slug>
+   ```
+   And prepend a supersession notice at the top of the body:
+   ```markdown
+   > **SUPERSEDED** by [[<new-slug>]] (YYYY-MM-DD). This concept is retained
+   > for historical context but is no longer authoritative.
+   ```
+
+2. In the **new** concept, add to `relations`:
+   ```yaml
+   relations:
+     - target: wiki/concepts/<old-slug>
+       type: supersedes
+   ```
+
+3. The query path should skip `status: superseded` concepts unless the
+   operator explicitly requests historical context.
+
+This is the ADD/UPDATE/DELETE/NOOP model from Mem0 applied to markdown:
+UPDATE = supersede the old, ADD = new concept, NOOP = redundant (don't write).
