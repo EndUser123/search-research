@@ -117,36 +117,55 @@ toolchain.
 
 ## What this means for our workspace
 
-The [[repo-map-extraction-from-aider-decision]] remains valid for its stated
-goal: a lightweight, always-present context map. But Codebase-Memory is the
-better tool for deep structural navigation ("what calls this function across
-5 roots?", "what breaks if I change this hook?").
+**REVISED after `/tp` critique (same day):** deploy NEITHER tool right now.
 
-**Recommended path:** deploy BOTH.
-- **Aider repomap.py** (or simpler equivalent) for passive context injection
-  at session start — gives every agent a compressed codebase overview
-- **Codebase-Memory MCP server** for active structural queries when an agent
-  needs to trace dependencies, analyze impact, or find callers
+The `/tp` fresh-lens critique measured the actual workspace surface:
 
-This matches the paper's own recommendation: "the optimal architecture is a
-hybrid: graph-based retrieval for structural queries, with fallback to file
-exploration for source-level tasks" (§5.1).
+| Surface | File count | Tool applicability |
+|---------|-----------|-------------------|
+| Wiki concepts | 733 markdown | ❌ Neither tool parses markdown |
+| Docs/handoffs | ~411 markdown | ❌ Neither tool parses markdown |
+| Real Python (scripts, hooks, skills) | ~61 files | Marginal — files are small, readable whole |
+| Plugin cache contamination | ~54K .py | ❌ Ignored per AGENTS.md |
 
-The falsifier from the original decision (Aider ranking quality doesn't
-transfer to multi-root workspaces) remains untested. Codebase-Memory sidesteps
-this concern entirely — it indexes per-project and queries via graph
-traversal, so multi-root is native.
+The dominant navigation problem is **semantic prose search** across 1,200+
+markdown files, not call-graph traversal of a large codebase. These tools
+solve a problem we don't have.
+
+**When these tools DO become relevant:**
+- A code-heavy workspace with 200K+ LOC where you genuinely can't find callers
+  by grepping
+- Enterprise microservice architecture analysis (Codebase-Memory's multi-language
+  graph + HTTP route matching is purpose-built for this)
+- Multi-repo dependency analysis where JetBrains Context's cross-repo search
+  would save real exploration time
+
+**If a structural code query need arises before then:** check `smart-explore`
+(tree-sitter AST code search plugin, listed in skill catalog) before deploying
+either tool. It may already cover the use case with zero setup.
+
+**Where to invest instead:** prose-discovery tooling — `build_skill_graph.py`,
+`index_skills.py`, `skill-catalog.md` — the tools that address the actual
+navigation surface (markdown knowledge base, not code).
+
+## Original recommendation (preserved for reference, now superseded)
+
+The original analysis recommended deploying both Aider repomap + Codebase-Memory.
+This was over-engineering: two parsers of the same ~61 Python files, two Windows
+compatibility risk surfaces, for a codebase that grep already handles. The
+recommendation was reversed after measuring the actual surface.
+
+The technical comparison data above (architecture, token cost, capabilities)
+remains valid for evaluating these tools against a genuine large-codebase scenario.
 
 ## Falsifier
 
-This update is wrong if:
-- Codebase-Memory's C binary doesn't build/run on Windows 11 (the paper claims
-  Windows support but we haven't tested it)
-- The MCP tool-call overhead (agent must decide to query) is worse than
-  Aider's passive injection for our typical task profile (mostly short
-  "where is X" queries, not deep structural analysis)
-- The 83% vs 92% quality gap matters more than the 10× token savings for our
-  use case (we may prefer correctness over efficiency)
+This reversal is wrong if:
+- The workspace evolves toward a substantial application codebase (500+ source files)
+- A specific task arises where grep genuinely fails (e.g., "find all callers of
+  this function across 5 roots" — which would require traversing imports that
+  grep can't follow)
+- The markdown search problem is solved separately and code becomes the bottleneck
 
 ## Sources
 
@@ -160,3 +179,11 @@ This update is wrong if:
 - Paper §4.3 Table 8: Linux kernel 2.1M nodes in ~3 min, incremental ~1.2s
 - Paper §3.5 Table 4: 14 MCP tools listed (index_repository, trace_call_path, detect_changes, etc.)
 - JetBrains blog: "reduced agent turns by up to 68%, latency by up to 59%, execution cost by up to 48%"
+- Workspace measurement (from `/tp` critique subagent): 733 markdown concepts, 411 docs, ~61 real Python files (excluding cache)
+
+## Related concepts
+
+- [[repo-map-extraction-from-aider-decision]] — the original decision (now superseded)
+- [[agentic-harness-seven-components-2026]] — memory is the highest-impact harness component (+5.6pp), which validates investing in prose-discovery over code-structure for this workspace
+- [[skill-dependency-graph-research-2026]] — prior decision that AST extraction isn't worth it for the prose surface
+- [[context-management-in-claude-code]] — MCP repo-map server references and broader context engineering
