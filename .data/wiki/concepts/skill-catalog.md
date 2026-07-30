@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-29
 cognitive_load: 3
-summary: Auto-generated index of 989 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 990 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 989 across 21 scopes.
+**Total skills:** 990 across 21 scopes.
 
 ## How to use this catalog
 
@@ -50,7 +50,7 @@ Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **grok-sdlc** | ✓ | — | Compatibility alias for /go (formerly /grok-sdlc). Use when the user says /grok-sdlc or /sdlc. Immediately load and exec... | `~/.grok/skills/grok-sdlc/SKILL.md` |
 | **grok-verify** | ✓ | — | Evidence-first completion gate: refuse "done/fixed/verified" claims until scope, tests, runtime path, and dirty-tree che... | `~/.grok/skills/grok-verify/SKILL.md` |
 | **handoff** | ✓ | — | Write a durable handoff document for the work stream the user asks about. Within-session compaction recovery (reads comp... | `~/.grok/skills/handoff/SKILL.md` |
-| **harvest** | ✓ | — |  | `~/.grok/skills/harvest/SKILL.md` |
+| **harvest** | ✓ | — | Recover value already produced but not realized. Event-sourced obligation tracking with claim-based concurrency, verific... | `~/.grok/skills/harvest/SKILL.md` |
 | **help** | ✓ | — | Grok documentation and configuration help. Use when users ask about setup, configuration, MCP servers, authentication, s... | `~/.grok/skills/help/SKILL.md` |
 | **imagine** | ✓ | — | How to use the image_gen and image_edit tool calls in Grok Build: when to build a visual with code instead of generating... | `~/.grok/skills/imagine/SKILL.md` |
 | **maintain** | ✓ | — | Fleet maintenance orchestrator for Grok Build. Three layers: DIAGNOSE (workspace health), ACT (cleanup/rotation/repair),... | `~/.grok/skills/maintain/SKILL.md` |
@@ -141,7 +141,7 @@ Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | `P:/.grok/skills/check/SKILL.md` |
 | **red-team** | ✓ | — | Multi-agent adversarial review of any proposal, solution, design, or implementation before commitment. Planner → special... | `P:/.grok/skills/red-team/SKILL.md` |
 
-## grok-agents (11 skills)
+## grok-agents (12 skills)
 
 | Skill | G | C | Description (truncated) | Path |
 |---|---|---|---|---|
@@ -149,6 +149,7 @@ Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **config-audit** | ✓ | — | Audit and optimize Grok Build configuration (AGENTS.md, config.toml, plugin settings, MCP servers) against best practice... | `P:/.agents/skills/config-audit/SKILL.md` |
 | **contract-status** | ✓ | — | Show contract system health dashboard (writer + Stop stats) | `P:/.agents/skills/contract-status/SKILL.md` |
 | **email-skill** | ✓ | — | Stateless CLI for cross-agent email access. Wraps himalaya with TTL cache, scoring, and deferral. | `P:/.agents/skills/email-skill/SKILL.md` |
+| **fmea** | ✓ | — | Failure Modes and Effects Analysis for pipelines and systems. Scans a target directory's Python scripts, identifies I/O ... | `P:/.agents/skills/fmea/SKILL.md` |
 | **nlm-bulk-ingest** | ✓ | — | Cluster a large list of URLs (YouTube videos, web pages, PDFs) into themed NotebookLM notebooks under the per-notebook s... | `P:/.agents/skills/nlm-bulk-ingest/SKILL.md` |
 | **nlm-to-wiki** | ✓ | — | Sync NotebookLM notebook content into the wiki vault as SCHEMA-compliant concept pages with full 4-hop provenance (conce... | `P:/.agents/skills/nlm-to-wiki/SKILL.md` |
 | **notebooklm** | ✓ | — | Complete API for Google NotebookLM - full programmatic access including features not in the web UI. Create notebooks, ad... | `P:/.agents/skills/notebooklm/SKILL.md` |

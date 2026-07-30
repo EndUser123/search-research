@@ -99,9 +99,9 @@ Measurement via existing `report.py --json`. Only the sweep driver
 
 **Status:** the subagent (`019fa6da-b82a-73d3-baae-684d7c44068e`) was dispatched as
 `explore` type (read-only, no write tool). It produced the evaluation as a chat response
-but could not write the file. The evaluation content is preserved in the subagent's
-transcript at `~/.grok/sessions/P%3A%5C/019fa6da-b82a-73d3-baae-684d7c44068e/chat_history.jsonl`
-line 31.
+but could not write the file. **Recovered 2026-07-29** from the subagent's transcript
+to `docs/handoffs/problem-prediction-skills-20260727/cc-thinking-skills-evaluation.md`
+(17,120 chars).
 
 **Summary of findings:** 28 mental-model frameworks; 14 already have workspace equivalents,
 8 missing and worth porting. Prioritized list of 9 framework categories worth porting
