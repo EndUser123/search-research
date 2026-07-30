@@ -138,7 +138,9 @@ handoffs, (3) verify NLM auth then restart queue workers.
 
 ## Last user message (verbatim)
 
-> "should we do /harvest first or /handoff first? Do them in what you think is the right order."
+> "/handoff"
+
+(Operator asked for handoff update after /tp exploration, /go implementation of items 1+3, and /wiki capture.)
 
 ## Epistemic labels
 
@@ -146,3 +148,49 @@ handoffs, (3) verify NLM auth then restart queue workers.
 - [FACT] Harvest item IDs verified via `harvest show --top 20` output
 - [INFERENCE] NLM auth may have expired since last verification (~weeks ago) — needs live check before queue restart
 - [UNKNOWN] Whether sibling sessions already restarted queue workers or applied the quality-gate fix
+
+## Revision history
+
+### Revision 1 — 2026-07-30T02:00:00Z — grok-build-terminal
+
+**Context:** Post-compaction session continued with /tp system improvement exploration, /go implementation of 2 items, and /wiki capture. HEAD moved from `c717d2f` to `eef2b34` (P:) and `f3725d2` (~/.grok).
+
+**Added — shipped this session (post-revision 0):**
+
+| Work | Commit | Harvest ID |
+|------|--------|------------|
+| Cross-session transcript scanner: `analyze_session_patterns.py` extended with 9 mechanical signal types + compaction segment scanning + operator correction detection. Writes to `pending/` for harvest auto-discovery. First run: 38 obligations across 6 sessions. | `efe8891` (P:) | — |
+| /todo synthesis rules: 10 concrete rules with wrong/correct examples from operator feedback. DECIDE must have ≥2 options, AT RISK must be actionable, fleet state removed, email categorized, cost-of-inaction on every item. | `f47eaff` (~/.grok) | — |
+| Harvest `--cost-of-inaction` field: added to `add` + `capture` commands. Displayed in `show`. 81/81 tests pass. | `f47eaff` (~/.grok) | — |
+| Compaction segment analysis via subagent-per-segment pattern: `/tp` SKILL.md + session-review-protocol.md structural fix. Replaces behavioral "read the index" with mechanical "spawn one subagent per segment." | `11b7e1f` (~/.grok) | — |
+| Wiki: `cross-session-transcript-mining-continuous-improvement.md` — ecosystem survey (4 repos, 3-layer architecture) | `c717d2f` (P:) | — |
+| Wiki: `research-to-execution-ratio-self-reinforcing-pattern.md` updated with /tp gate implementation receipt | `0232601` (P:) | — |
+| Wiki: `workspace-improvement-cycle-6-stage-decomposition.md` — 6-stage framework (SENSE→REMEMBER→DECIDE→ACT→VERIFY→MEASURE) | `a63c4eb` (P:) | — |
+| Harvest: 7 new items seeded from compaction segment analysis (items 4-10) | manual | various |
+
+**Added — new harvest items (13 OPEN total now):**
+
+| # | Item | ID | Cost of inaction |
+|---|------|----|-----------------|
+| 4 | nlm-to-wiki queue: 26 notebooks pending | `01KYR4P3G69Z1MQTV86KPJP12H` | Pipeline stalls; wiki doesn't grow |
+| 5 | scan-handoffs misses package-local HANDOFF.md | `01KYR4PMGMDRE1PXCHMZXHB8F9` | Largest workstream invisible to harvest |
+| 6 | Quality-gate timeout 10s→30s | `01KYR4PMGM64JAXP9WWDX33KBH` | Chronic across sessions |
+| 7 | 6 problem-prediction skills unbuilt | `01KYR4PMGMXZK3S147ASV07GRA` | Prediction gap remains |
+| 8 | Notebook 1 0-pages recurring | `01KYR4PMGM4E1H2QXK98F8884T` | Content loss for that notebook |
+| 9 | Email category detection | `01KYR4Q3XKM9HQR0HPJ85XZDFB` | /todo email output unusable |
+| 10 | /tp gate is prompt-only | `01KYR4Q3XKWYJ0SWZ3A5BKBKRM` | Gate won't fire under closure pressure |
+
+**Added — pending/ now has automatic feed:**
+
+The cross-session scanner writes to `P:/.data/harvest/pending/analyze_session_patterns.json`. On first run it produced 38 obligation suggestions from mechanical signals across 6 sessions. Harvest doctor will discover these automatically. This is the pipeline connector that turns harvest from manual notepad to automatic recovery system.
+
+**Changed — open harvest items now 13 (was 12):**
+
+Items 3, 4, 5 (from prior revision) now have sibling-session additions (items 11, 12 — verdict-integrity enforcement + session-health skill + be-have improvement spec). Test item was closed. Net: +1 from last revision.
+
+**Resumption protocol updated:**
+
+1. Run state probes (see State probes section above)
+2. Check `harvest show --top 20` for prioritized obligations — now includes cost-of-inaction
+3. Run `python P:/.agents/scripts/analyze_session_patterns.py` to refresh pending/ with latest session signals
+4. Highest-leverage next actions: (a) apply quality-gate timeout fix (1 line), (b) fix scan-handoffs to scan P:/packages/*/HANDOFF.md, (c) verify NLM auth then restart queue workers, (d) build the MEASURE layer (does any of this actually help?)
