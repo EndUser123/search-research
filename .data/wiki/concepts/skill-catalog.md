@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-29
 cognitive_load: 3
-summary: Auto-generated index of 990 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
+summary: Auto-generated index of 993 skills across 21 directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 990 across 21 scopes.
+**Total skills:** 993 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,12 +28,13 @@ Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (44 skills)
+## grok-user (47 skills)
 
 | Skill | G | C | Description (truncated) | Path |
 |---|---|---|---|---|
 | **aar** | ✓ | — | Evidence-grounded continual-improvement system: reconstructs sessions, performs value accounting, identifies the opportu... | `~/.grok/skills/aar/SKILL.md` |
 | **agy** | ✓ | — | Run Google Antigravity CLI (agy / Gemini) for a second opinion, code review, research, or analysis. Conductor evaluates ... | `~/.grok/skills/agy/SKILL.md` |
+| **behave** | ✓ | — | Structured behavioral analysis for LLM performance debugging — hypothesis testing for session patterns (loops, context d... | `~/.grok/skills/behave/SKILL.md` |
 | **close** | ✓ | — | Session close-out orchestrator. Runs close_accounting.py to scan handoffs, wiki, git commits, temp files, git status, an... | `~/.grok/skills/close/SKILL.md` |
 | **codex** | ✓ | — | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | `~/.grok/skills/codex/SKILL.md` |
 | **crawl4ai** | ✓ | — | Ingest websites into the wiki vault as searchable markdown. Crawls with crawl4ai (local Python), dedupes by SHA256 + eta... | `~/.grok/skills/crawl4ai/SKILL.md` |
@@ -41,6 +42,7 @@ Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **debrief** | ✓ | — | Smart session retrospective. Scans the current session for actionable improvements across 5 lenses: root causes, code qu... | `~/.grok/skills/debrief/SKILL.md` |
 | **design** | ✓ | — | Run the full design-doc-writer and design-doc-reviewer loop until consensus. Produces a polished design document with an... | `~/.grok/skills/design/SKILL.md` |
 | **dream** | ✓ | — | Offline memory consolidation for the LLM agent fleet. Reads the last 90 days of handoffs, AAR artifacts, and the www-led... | `~/.grok/skills/dream/SKILL.md` |
+| **friction** | ✓ | — | Detect interaction friction and workflow automation opportunities from chat history and session evidence. Two categories... | `~/.grok/skills/friction/SKILL.md` |
 | **go** | ✓ | — | Intelligent high-horsepower engineering orchestrator for Grok. Primary slash: /go. From plain language, auto-selects gro... | `~/.grok/skills/go/SKILL.md` |
 | **grok-discovery** | ✓ | — | Build an evidence-backed source-authority inventory before non-trivial plan, implement, refactor, or "does X exist / is ... | `~/.grok/skills/grok-discovery/SKILL.md` |
 | **grok-go** | ✓ | — | Compatibility alias for /go (formerly /grok-go). Use when the user says /grok-go. Immediately load and execute ~/.grok/s... | `~/.grok/skills/grok-go/SKILL.md` |
@@ -59,9 +61,10 @@ Auto-generated on 2026-07-29 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **model-benchmark** | ✓ | — | Latency benchmark, quality scoring, cost tracking, and telemetry for the model fleet. Sends standardized prompts to each... | `~/.grok/skills/model-benchmark/SKILL.md` |
 | **model-discover** | ✓ | — | Alias for `model-benchmark --discover`. Discovers available models from inference providers (NVIDIA, Google, Groq, OpenR... | `~/.grok/skills/model-discover/SKILL.md` |
 | **notice** | ✓ | — | Adaptive mid-conversation observation surfacing driven by content triggers and motivation scoring (not fixed-rate timers... | `~/.grok/skills/notice/SKILL.md` |
-| **packet** | ✓ | — | Export a filtered, tool-simplified view of a Grok session conversation into a markdown file another LLM can read cold fo... | `~/.grok/skills/packet/SKILL.md` |
+| **packet** | ✓ | — | Pack files or a conversation transcript into a compact, self-contained markdown document another LLM can read cold for r... | `~/.grok/skills/packet/SKILL.md` |
 | **plan-writer** | ✓ | — | Comprehensive implementation plans from a spec or requirements. Owns the full planning workflow: when to plan (objective... | `~/.grok/skills/plan-writer/SKILL.md` |
 | **prompt-patterns** | ✓ | — | Reference skill for structural prompting techniques. Loads when writing or improving SKILL.md files, AGENTS.md rules, ha... | `~/.grok/skills/prompt-patterns/SKILL.md` |
+| **recap** | ✓ | — | Generate a handoff-ready session recap across the full session chain. Walks session transcripts oldest-to-newest, extrac... | `~/.grok/skills/recap/SKILL.md` |
 | **refactor** | ✓ | — | Intelligent structural refactor: plain-language target/mode inference, plan-on-disk then seam execute with verify, multi... | `~/.grok/skills/refactor/SKILL.md` |
 | **refine** | ✓ | — | Turn a rough task or vague handoff into an implementation-ready handoff by inspecting the codebase. Pre-plan stage: tigh... | `~/.grok/skills/refine/SKILL.md` |
 | **review** | ✓ | — | Intelligent code/package review with verified findings on disk. Auto-infers target (local diff, branch, PR, or package p... | `~/.grok/skills/review/SKILL.md` |
