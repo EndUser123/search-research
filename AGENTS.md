@@ -70,6 +70,8 @@ When current work is in a different subsystem than the original user request, em
 After completing work, proactively recommend the right skill at the right
 time. One line at end of turn. Do not auto-invoke; recommend.
 
+**Exception — `/wiki` auto-captures (see `~/.grok/AGENTS.md` "Decision-and-fix documentation rule"):** when the agent produces durable findings or decisions, it appends a `WIKI:` marker and auto-runs `/wiki` at session boundaries (before `/handoff` or `/close`). This is the only skill that auto-fires — because knowledge capture has the highest miss-cost and the operator should not have to remember.
+
 **Verification skills:**
 - **`/check`** when: ≥2 concerns touched, runtime claims unverified, about to claim "done."
 - **`/review`** when: hooks/plugins/schemas/dispatch chains touched, new enforcement introduced, shared infrastructure modified.
