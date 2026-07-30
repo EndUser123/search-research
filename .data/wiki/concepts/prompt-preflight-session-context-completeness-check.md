@@ -86,7 +86,7 @@ These were load-bearing facts from the session that the writer needed. A prompt 
 
 ## Falsifier
 
-If the preflight consistently finds zero missing facts (because the operator already scoped the task well), the check is unnecessary overhead for well-scoped invocations. Gate it: only run when the session produced ≥3 load-bearing decisions/evidence items that the dispatch prompt doesn't reference. Measure: run on 5 real skill dispatches; if preflight finds ≥1 missing fact in ≥2 of 5, it earns its cost. If it finds zero in all 5, it's ceremony and should be removed. The gate condition prevents running on well-scoped invocations where the operator already provided complete context.
+If the preflight consistently finds zero missing facts across 10+ real skill dispatches, it's not earning its cost and should be removed. But the cost is so low (~5-10 seconds, a few thousand tokens) that there's no reason to gate it behind a trigger condition — always run it. The cost of a missing fact (a revision round, 5-10 minutes) dwarfs the cost of the check.
 
 ## Implementation seed
 
@@ -99,6 +99,6 @@ If the preflight consistently finds zero missing facts (because the operator alr
 ## What this means for our workspace
 
 1. This is a cross-cutting concern — applies to any skill that dispatches subagent prompts
-2. The gate condition (≥3 load-bearing facts missing) prevents running on well-scoped invocations
+2. **Always run** — the cost (~5-10 seconds) is negligible; the cost of a missing fact (a revision round, 5-10 minutes) dwarfs it. No gate condition needed.
 3. The operator decides whether to use the enhanced prompt — the check suggests, doesn't override
 4. The pattern is a structural instance of the procedural-verification principle documented across three session wiki concepts — same underlying mechanism, different application domain
