@@ -1,3 +1,8 @@
+---
+title: "reasoning-model-pool"
+domain: model-pool
+version: "1.0"
+---
 # reasoning-model-pool
 
 ## Inputs

@@ -1,3 +1,8 @@
+---
+title: "critic-model-pool"
+domain: model-pool
+version: "1.0"
+---
 # critic-model-pool
 
 ## Inputs

@@ -1,3 +1,8 @@
+---
+title: "mechanical-model-pool"
+domain: model-pool
+version: "1.0"
+---
 # mechanical-model-pool
 
 ## Inputs
