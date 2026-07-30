@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019fb189-b2ec-70f0-8d30-16a6e7bb5ad7
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-30T23:00:00Z
-status: open
+status: closed
 handoff_type: investigation
 accurate_as_of_head: TBD
 ---
@@ -83,3 +83,22 @@ The full research + design evidence is in: `P:/.data/wiki/concepts/convergence-g
 Evidence base: P:/.data/wiki/concepts/convergence-gap-rca-symptom-restatement-toulmin-enforcement.md
 Copy temp design artifacts from C:\Users\brsth\AppData\Local\Temp\grok-design-03d74c48\ first (OS will reap).
 ```
+
+---
+
+## Revision 1 — 2026-07-31T00:30:00Z (session 019fb189)
+
+**Trigger:** auto-update — /why redesign was implemented directly (option 2), not through the design doc loop.
+
+**What changed:** The /why SKILL.md was edited directly with all 5 step restructurings:
+- Step 9a: hypothesis diversification (3 ranked before drilling)
+- Step 11c: admit ignorance permission
+- Step 12: Toulmin 5-field structure (CLAIM/MECHANISM/RECURRENCE TEST/COUNTEREXAMPLE/EVIDENCE)
+- Step 14: tight feedback loop + Rule of Three
+- Step 16: Occam/Hickam convergence test
+
+Commit: `45fd3e3` (~/.grok). The design doc and review artifacts in temp served their purpose (produced the specification, surfaced 32 issues including critical interaction problems). The critical issues (F-01 through F-06) were addressed inline during direct implementation.
+
+**Status update:** CLOSED — redesign shipped. Open obligation: A/B test against /why-old (harvest item `01KYSR6ATR7QSTR7DYYEMSXV61`).
+
+**Design doc artifacts** (temp, will be reaped): `C:\Users\brsth\AppData\Local\Temp\grok-design-03d74c48\` — design doc, evidence brief, review file. The evidence base lives durably in `P:/.data/wiki/concepts/convergence-gap-rca-symptom-restatement-toulmin-enforcement.md`.
