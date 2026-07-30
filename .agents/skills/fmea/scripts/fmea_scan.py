@@ -206,7 +206,8 @@ def scan_file(filepath: Path) -> list[FailureMode]:
     try:
         source = filepath.read_text(encoding="utf-8", errors="replace")
         tree = ast.parse(source, filename=str(filepath))
-    except SyntaxError:
+    except SyntaxError as e:
+        print(f"warning: parse error in {filepath}: {e}", file=sys.stderr)
         return []
 
     visitor = BoundaryVisitor(str(filepath.name))
@@ -299,7 +300,7 @@ def _is_cache_fresh(cached: dict, pipeline_path: Path) -> tuple[bool, list[str]]
     changed = []
     for fpath, current_mtime in current_mtimes.items():
         cached_mtime = cached_mtimes.get(fpath)
-        if cached_mtime is None or current_mtime > cached_mtime:
+        if cached_mtime is None or current_mtime != cached_mtime:
             changed.append(fpath)
 
     # Also check for deleted files (fewer files now = stale)
@@ -333,8 +334,6 @@ def main():
     parser = argparse.ArgumentParser(description="FMEA scanner — find component-level failure modes in Python pipelines")
     parser.add_argument("path", help="pipeline directory or .py file to scan")
     parser.add_argument("--json", action="store_true", help="output as JSON")
-    parser.add_argument("--cache", action="store_true", default=True,
-                        help="use cache: skip re-scan if no .py files changed since last scan (default: on)")
     parser.add_argument("--no-cache", action="store_true",
                         help="force re-scan, ignore cache")
     parser.add_argument("--cache-dir", default=str(FMEA_CACHE_DIR),
@@ -346,7 +345,7 @@ def main():
         print(f"error: path not found: {pipeline_path}", file=sys.stderr)
         return 1
 
-    use_cache = args.cache and not args.no_cache
+    use_cache = not args.no_cache
     cache_dir = Path(args.cache_dir)
     target_hash = _target_hash(pipeline_path)
 

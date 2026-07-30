@@ -205,10 +205,10 @@ class CapabilityRegistry:
         """Check skill dependency health: dangling depends_on, missing capabilities.
 
         Returns dict with:
+        - total_skills: count of skills with SKILL.md
         - dangling_deps: {skill: [missing_dep, ...]} — skill depends on something not in catalog
-        - orphan_capabilities: [cap, ...] — capabilities provided but not in any contract
-        - skills_without_domain: [skill, ...]
-        - skills_without_frontmatter: [skill, ...]
+        - skills_without_domain: [skill, ...] — first 20
+        - dangling_count: total missing deps across all skills
         """
         depends_on, composes = self._load_depends_on()
         all_skills = set()
@@ -237,16 +237,14 @@ class CapabilityRegistry:
     def verify_consumers(self) -> dict:
         """Verify that declared consumers actually import the provider's code.
 
-        For each skill that uses_capabilities or depends_on another skill,
-        grep the consumer's scripts for an import of the provider's module.
+        For each skill that depends_on another skill, scan the consumer's
+        Python files for an import or reference to the provider's module.
         Flag declared-but-not-wired relationships.
 
         Returns dict with:
         - verified: [(consumer, provider, capability)]
         - unwired: [(consumer, provider, capability, hint)]
         """
-        import subprocess
-
         depends_on, composes = self._load_depends_on()
         verified = []
         unwired = []
@@ -269,32 +267,44 @@ class CapabilityRegistry:
                 if not provider_scripts:
                     continue  # Provider has no scripts (may be prompt-only skill)
 
-                # Grep consumer's scripts for imports of provider's module
-                consumer_scripts = None
+                # Find consumer's script directories (check both scripts/ and __lib/)
+                consumer_dirs = []
                 for skills_dir in SKILLS_DIRS:
-                    candidate = skills_dir / consumer / "scripts"
-                    if candidate.exists():
-                        consumer_scripts = candidate
-                        break
+                    for subdir in ("scripts", "__lib"):
+                        candidate = skills_dir / consumer / subdir
+                        if candidate.exists():
+                            consumer_dirs.append(candidate)
 
-                if not consumer_scripts:
+                if not consumer_dirs:
                     continue  # Consumer has no scripts
 
-                # Check if consumer references the provider's name in any .py file
-                try:
-                    result = subprocess.run(
-                        ["grep", "-r", dep, str(consumer_scripts),
-                         "--include=*.py", "-l"],
-                        capture_output=True, text=True, timeout=10
-                    )
-                    if result.stdout.strip():
-                        verified.append((consumer, dep, "depends_on"))
-                    else:
-                        # Not necessarily broken — consumer may invoke via slash command, not import
-                        unwired.append((consumer, dep, "depends_on",
-                                       "no import found — may be prompt-only composition"))
-                except Exception:
-                    pass  # grep not available or timeout
+                # Scan consumer's .py files for references to the provider
+                found = False
+                for consumer_dir in consumer_dirs:
+                    for pyfile in consumer_dir.rglob("*.py"):
+                        if "__pycache__" in str(pyfile):
+                            continue
+                        try:
+                            content = pyfile.read_text(encoding="utf-8", errors="replace")
+                            # Check for import or reference to provider name
+                            if f"import {dep}" in content or f"from {dep}" in content:
+                                found = True
+                                break
+                            # Also check for the dep name as a string reference
+                            # (e.g., skill invocation patterns)
+                            if dep in content:
+                                found = True
+                                break
+                        except OSError:
+                            continue
+                    if found:
+                        break
+
+                if found:
+                    verified.append((consumer, dep, "depends_on"))
+                else:
+                    unwired.append((consumer, dep, "depends_on",
+                                   "no import found — may be prompt-only composition"))
 
         return {
             "verified": verified,

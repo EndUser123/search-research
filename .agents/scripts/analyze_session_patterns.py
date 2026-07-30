@@ -157,16 +157,20 @@ def extract_obligations_from_session(
     # Scan chat_history.jsonl
     raw = scan_raw_signals(chat_file)
 
-    # Scan compaction segments if they exist
-    compaction_dir = session_dir / "compaction"
-    if compaction_dir.exists():
-        for seg in sorted(compaction_dir.glob("segment_*.md")):
-            seg_raw = scan_raw_signals(seg)
-            for sig, count in seg_raw["counts"].items():
-                raw["counts"][sig] = raw["counts"].get(sig, 0) + count
-                raw["samples"].setdefault(sig, []).extend(
-                    seg_raw["samples"].get(sig, [])
-                )
+    # Scan compaction segments ONLY if chat_history is empty or very short
+    # (post-compaction sessions have minimal chat_history). Scanning both
+    # when chat_history is substantial causes double-counting because
+    # compaction segments contain summaries of earlier turns.
+    if raw["lines_scanned"] < 50:
+        compaction_dir = session_dir / "compaction"
+        if compaction_dir.exists():
+            for seg in sorted(compaction_dir.glob("segment_*.md")):
+                seg_raw = scan_raw_signals(seg)
+                for sig, count in seg_raw["counts"].items():
+                    raw["counts"][sig] = raw["counts"].get(sig, 0) + count
+                    raw["samples"].setdefault(sig, []).extend(
+                        seg_raw["samples"].get(sig, [])
+                    )
 
     # Convert mechanical signals to obligations
     SIGNAL_TO_OBLIGATION = {
@@ -369,15 +373,16 @@ def main():
     else:
         all_suggestions = suggestions
 
-    # Write to pending/ for harvest discovery
+    # Write harvest suggestions to pending/ (always, regardless of --output)
     if all_suggestions:
         HARVEST_PENDING.mkdir(parents=True, exist_ok=True)
-        output_path = Path(args.output) if args.output else HARVEST_PENDING / "analyze_session_patterns.json"
-        output_path.write_text(json.dumps(all_suggestions, indent=2), encoding="utf-8")
-        print(f"\nHarvest suggestions written to: {output_path} ({len(all_suggestions)} items)")
+        pending_path = HARVEST_PENDING / "analyze_session_patterns.json"
+        pending_path.write_text(json.dumps(all_suggestions, indent=2), encoding="utf-8")
+        print(f"\nHarvest suggestions written to: {pending_path} ({len(all_suggestions)} items)")
     else:
         print("\nNo harvest suggestions")
 
+    # Full results to --output path (separate from harvest pending)
     if args.output:
         Path(args.output).write_text(json.dumps({"sessions": results, "obligations": obligations}, indent=2), encoding="utf-8")
         print(f"Full results: {args.output}")
