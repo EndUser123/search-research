@@ -1,5 +1,11 @@
 # Vault Log
 
+## convergence-gap-rca-symptom-restatement-toulmin-enforcement
+Source: session-019fb189
+Agent: grok
+Notes: Convergence gap in RCA: symptom-restatement, Toulmin enforcement, Occam/Hickam heuristic.
+Page: wiki/concepts/convergence-gap-rca-symptom-restatement-toulmin-enforcement.md
+
 ## --agent
 Source: grok
 Agent: --session
