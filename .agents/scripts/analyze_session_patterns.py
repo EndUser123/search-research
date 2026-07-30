@@ -91,6 +91,11 @@ def extract_user_messages(chat_file: Path) -> list[str]:
     """Extract user messages from a chat_history.jsonl file."""
     messages = []
     try:
+        # KNOWN LIMITATION (F3-05): Substring match on '"type":"user"' instead of
+        # JSON parsing. Cheaper and sufficient for signal detection, but may match
+        # lines where the string appears in tool output rather than the actual user
+        # turn. A JSON-parse approach would be more precise but ~10x slower on large
+        # transcript files. Acceptable trade-off for a scanner, not for a parser.
         for line in chat_file.read_text(encoding="utf-8").splitlines():
             if '"type":"user"' in line:
                 # Try multiple extraction patterns
@@ -112,6 +117,12 @@ def scan_raw_signals(file_path: Path) -> dict:
     """Scan a chat_history.jsonl or compaction segment for mechanical signals.
 
     Returns counts per signal type + sample context snippets.
+
+    KNOWN LIMITATION (F3-06): Reads the entire file into memory via read_text()
+    rather than streaming line-by-line. Session transcript files can be large
+    (segment_004 was ~1.8MB verbose). For a scanner that runs once per session,
+    this is acceptable. If this function were called in a hot loop or on files
+    exceeding ~50MB, switch to iterative line reading (for line in open(...)).
     """
     counts = defaultdict(int)
     samples = defaultdict(list)
