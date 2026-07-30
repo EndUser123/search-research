@@ -216,3 +216,54 @@ Items 3, 4, 5 (from prior revision) now have sibling-session additions (items 11
 - Item 3 (sensitivity sweep): plan recovered, driver not built
 - Item 4 (cc-thinking-skills eval): evaluation recovered, porting not started
 - Item 1 (FMEA): **DONE** — skill built, tested, verified
+
+### Revision 3 — 2026-07-30T04:30:00Z — grok-build-terminal
+
+**Context:** FMEA wiring, /review + /check verification cycle, reusable internals catalog, skill graph health check + consumer verification, 15 review findings fixed.
+
+**Added — shipped:**
+
+| Work | Commit |
+|------|--------|
+| FMEA scanner caching: mtime-based freshness, `--no-cache` flag, atomic writes | `e2627d1` |
+| /fmea wired into /review (`--focus fmea` + Step 2.5 auto-detect with cached-evidence reuse) | `f9a7d26` |
+| /fmea wired into /go H6 (pipeline FMEA check on implementation) | `19adb35` |
+| /fmea added to AGENTS.md proactive skill suggestions | `756af9a` |
+| Reusable internals catalog: 10 shared functions in 6 categories, wiki concept | `9a2d3f9` |
+| `## Reusable internals` sections added to harvest, close, email-skill, fmea SKILL.md | `9a2d3f9`, `4461235` |
+| capabilities.py `--health-check`: cross-reference depends_on against catalog | `3599f62` |
+| capabilities.py `--verify-consumers`: Python-based import verification (replaced grep) | `3599f62` |
+| 15 review findings fixed: 6 blocking + 8 precision + 1 deferred (see below) | `e83e760`, `07316a0` |
+
+**Review findings resolved (15 of 17):**
+
+| ID | Severity | What was wrong | Fix |
+|----|----------|---------------|-----|
+| F1-01 | bug | Cache freshness `>` misses git checkout rollback | Changed to `!=` |
+| F1-02 | bug | `--cache` flag was no-op (store_true+default=True) | Removed flag |
+| F1-03 | bug | SHARED_DIR_PATTERNS substring false positives | Word-boundary anchored |
+| F1-04 | bug | SyntaxError silently swallowed | Added stderr warning |
+| F1-05 | risk | Cache write not atomic (torn JSON risk) | tmp + os.replace |
+| F1-06 | risk | `.run()` detected as subprocess on any object | Require `subprocess.` prefix |
+| F1-07 | risk | Truncated table no annotation | Added "...and N more" |
+| F2-01 | bug | `verify_consumers` used grep subprocess (fails silently on Windows) | Python file scan |
+| F2-02 | bug | Bare substring match caused false positives | Import-specific patterns |
+| F2-03 | bug | Only checked depends_on, not composes | Added composes to loop |
+| F2-04 | bug | Only searched scripts/, not __lib/ | Added __lib/ to consumer dirs |
+| F2-05 | doc | health_check docstring listed fields it never returned | Trimmed to match |
+| F3-01 | bug | Compaction segments double-counted signals | Only scan when chat_history < 50 lines |
+| F3-02 | bug | --output overwrote harvest suggestions | Separated write paths |
+| F3-03 | risk | `"exit":` pattern matched non-failure contexts | Tightened to `"exit_code":` |
+| F3-04 | risk | Short messages (<5 chars) dropped | Lower bound {1,} |
+| F3-05 | risk | **DEFERRED** — substring match vs JSON parse | Document as known limitation |
+| F3-06 | risk | **DEFERRED** — full file read vs streaming | Document as known limitation |
+
+**Impact metrics:**
+- FMEA false positives eliminated: 122→92 modes (30 `.run()` false positives removed)
+- Consumer verification tightened: 20→2 verified (18 bare-substring false positives removed)
+- 10/10 FMEA tests pass. 81/81 harvest tests pass. Ruff clean across all 3 files.
+
+**Deferred to next session:**
+- F3-05/F3-06: add KNOWN LIMITATION comments to analyze_session_patterns.py
+- /fmea SKILL.md still needs `provides` entry in capabilities graph verified (may need reindex)
+- Reusable internals catalog needs maintenance convention documented (when to update)
