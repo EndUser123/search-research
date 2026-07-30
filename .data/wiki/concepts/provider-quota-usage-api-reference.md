@@ -57,9 +57,9 @@ have repos/skills that check quota. Research found `@slkiser/opencode-quota`
 | **OpenRouter** | Remote API via key | Credits + usage | ✅ 2026-07-30 |
 | **GitHub Copilot** | Remote API via OAuth | Monthly | ✅ 2026-07-30 |
 | **OpenAI (Codex)** | Remote API via auth | Weekly quota | ✅ (needs setup) |
-| **Google Gemini CLI** | Remote API via OAuth | Gemini Pro/Flash/Flash-Lite % | ✅ 2026-07-30 |
-| **Google AGY** | Remote API | Quota | ⚠️ needs `opencode auth login` |
-| **Google Antigravity** | Remote API | Quota | ⚠️ needs `opencode auth login` |
+| **Google AGY** | Remote API via OAuth | Gemini weekly % | ✅ 2026-07-30 |
+| **Google Antigravity** | Remote API via OAuth | Claude/Gemini per-account % | ✅ 2026-07-30 |
+| **Google Gemini CLI** | discontinued | — | ❌ endpoint dead |
 | **xAI SuperGrok** | Remote API (automatic) | Quota | ✅ |
 | **Kimi Code** | Remote API | Quota | ✅ (needs config) |
 
@@ -86,27 +86,23 @@ opencode-quota show --provider google-gemini-cli
 ### Companion packages installed
 
 ```bash
-# Google Gemini CLI — WORKS with existing ~/.gemini/oauth_creds.json refresh token
-npm install -g opencode-gemini-auth
-
-# Google AGY — needs separate `opencode auth login` (different OAuth client)
+# Google AGY — Gemini quota via Antigravity CLI OAuth
 npm install -g @anthonyhaussman/opencode-agy-auth
 
-# Google Antigravity — needs separate `opencode auth login` (different OAuth client)
+# Google Antigravity — Claude/Gemini quota via Antigravity IDE OAuth (multi-account)
 npm install -g opencode-antigravity-auth
 ```
 
-All three are registered in `~/.config/opencode/opencode.json` under `plugin`.
-The `opencode-gemini-auth` companion shares the Gemini CLI's OAuth client ID
-(`681255809395-...`), so the existing refresh token at `~/.gemini/oauth_creds.json`
-works directly. The auth entry is bridged in `~/.local/share/opencode/auth.json`
-under the `google-gemini-cli` key.
+Both registered in `~/.config/opencode/opencode.json` under `plugin`. Auth via
+`opencode auth login -p google-agy` and `opencode auth login -p google`.
 
-The AGY and Antigravity companions use a different OAuth client ID
-(`1071006060591-...`). The existing Gemini CLI refresh token cannot be
-refreshed with their client credentials (`unauthorized_client` error).
-They need an interactive `opencode auth login` flow to get a token for
-that client.
+Antigravity accounts need `projectId: "rising-fact-p41fc"` in
+`~/.config/opencode/antigravity-accounts.json` (the plugin's default fallback
+project; `opencode auth login` doesn't write it automatically).
+
+**Gemini CLI (`opencode-gemini-auth`)** is discontinued — the endpoint returns
+"Unavailable (not detected)" as of 2026-07-30. The companion package was removed
+from the plugin config.
 
 ### Verified live data (2026-07-30 20:18)
 
