@@ -1,5 +1,11 @@
 # Vault Log
 
+## FMEA skill design — AST-based failure analysis
+Source: session-019fa276
+Agent: grok
+Notes: Decision: AST static analysis over LLM reasoning for component-level FMEA. First run caught the exact cluster_transcripts.py contamination boundary.
+Page: .data/wiki/concepts/fmea-skill-design-ast-based-failure-analysis.md
+
 ## Workspace improvement cycle 6-stage decomposition
 Source: session-019fa276
 Agent: grok

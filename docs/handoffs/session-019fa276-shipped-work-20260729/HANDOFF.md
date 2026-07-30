@@ -194,3 +194,25 @@ Items 3, 4, 5 (from prior revision) now have sibling-session additions (items 11
 2. Check `harvest show --top 20` for prioritized obligations — now includes cost-of-inaction
 3. Run `python P:/.agents/scripts/analyze_session_patterns.py` to refresh pending/ with latest session signals
 4. Highest-leverage next actions: (a) apply quality-gate timeout fix (1 line), (b) fix scan-handoffs to scan P:/packages/*/HANDOFF.md, (c) verify NLM auth then restart queue workers, (d) build the MEASURE layer (does any of this actually help?)
+
+### Revision 2 — 2026-07-30T03:00:00Z — grok-build-terminal
+
+**Context:** Continued with /fmea skill build, stale reference recovery, skill graph update.
+
+**Added — shipped:**
+
+| Work | Commit |
+|------|--------|
+| /fmea skill: AST-based FMEA scanner + 10-test suite. First run found the exact cluster_transcripts.py:195 boundary (RPN 576) that caused the real contamination bug. | `05cb160`, `83c6a12`, `eddf1f0`, `627e534` |
+| cc-thinking-skills evaluation recovered from subagent transcript (17KB) to durable handoff path | `e09358b` |
+| Skill graph: /fmea frontmatter updated (host + uses_capabilities), catalog reindexed (990 skills) | `e09358b` |
+| All 3 stale handoff references resolved (sensitivity-sweep-plan, cc-thinking-skills-evaluation, fmea/SKILL.md) | `77dd140`, `e09358b` |
+
+**Changed — harvest item 7 (problem-prediction skills) now partially resolved:**
+- /fmea (item 1 of 6) is built and tested
+- Items 2-6 remain unbuilt
+
+**Changed — problem-prediction-skills handoff status:**
+- Item 3 (sensitivity sweep): plan recovered, driver not built
+- Item 4 (cc-thinking-skills eval): evaluation recovered, porting not started
+- Item 1 (FMEA): **DONE** — skill built, tested, verified
