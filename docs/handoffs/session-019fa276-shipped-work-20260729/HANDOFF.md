@@ -6,7 +6,7 @@ current_terminal_id: grok-build-terminal
 produced_at: 2026-07-30T01:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: c717d2f
+accurate_as_of_head: cb227d6
 ---
 
 # Session 019fa276 — shipped work, open obligations, and continuation points
@@ -267,3 +267,32 @@ Items 3, 4, 5 (from prior revision) now have sibling-session additions (items 11
 - F3-05/F3-06: add KNOWN LIMITATION comments to analyze_session_patterns.py
 - /fmea SKILL.md still needs `provides` entry in capabilities graph verified (may need reindex)
 - Reusable internals catalog needs maintenance convention documented (when to update)
+
+### Revision 4 — 2026-07-30T05:10:00Z — grok-build-terminal
+
+**Trigger:** auto-update — post-compaction invocation. Segment 004 created (762 turns, timestamp 2026-07-30T04:55:11Z). HEAD moved from `c717d2f` to `cb227d6` (P:) and `6f54d67` (~/.grok).
+
+**What changed since Revision 3:**
+
+| Work | Commit | Notes |
+|------|--------|-------|
+| /check skill: 5 CORR findings fixed (receipt lifecycle correctness) | `cb227d6` (P:) | See table below |
+| /packet skill: unified file packing + transcript export into one command | `8f2c935` (~/.grok) | Sibling (Claude Sonnet 4.6) |
+| /model-benchmark: 8 harder code-exec problems added (total 13) | `563d263` (~/.grok) | Sibling (Claude Sonnet 4.6) |
+| /close: dead `seen_manifest_receipts` variable removed (CORR-003) | `6f54d67` (~/.grok) | Sibling (Claude Sonnet 4.6) |
+
+**CORR findings resolved (5 of 9 reviewed):**
+
+| ID | Severity | What was wrong | Fix |
+|----|----------|---------------|-----|
+| CORR-001 | bug | Malformed verifier results silently produced PASS when other results passed (2 PASS + 1 malformed → PASS(2/2)) | Malformed results now promote verdict to INCOMPLETE |
+| CORR-002 | bug | If manifest update fails after receipt write, close scanner double-counts the receipt | Delete receipt on manifest failure |
+| CORR-003 | bug | Dead `seen_manifest_receipts` variable in close_accounting.py — initialized but never read | Removed (also fixed by sibling in `6f54d67`) |
+| CORR-005 | risk | write_check_state.py main() only caught ValueError, not OSError (disk full, permission denied) | Added OSError catch |
+| CORR-009 | risk | Zero-verifier difference between lifecycle (INCOMPLETE) and legacy writer (FAIL) was undocumented | Documented as intentional |
+
+**Status update:** unchanged — all explicit requests from this session chain addressed. Session at natural stopping point.
+
+**Sibling activity:** Claude Sonnet 4.6 shipped 3 commits concurrently — /packet unification (eliminates /gitpack vs /packet split), model-benchmark expansion (8 code-exec problems), /close dead variable cleanup. These are NOT this session's work but affect the same skill surfaces.
+
+**New open items:** none. Deferred items from Revision 3 still apply (F3-05/F3-06 KNOWN LIMITATION comments not yet added).
