@@ -7,9 +7,7 @@ incomplete runs via check-run.json manifests.
 Uses hermetic temp directories (no real P:/ artifacts).
 """
 
-import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -25,7 +23,6 @@ from check_lifecycle import (
     MANIFEST_FILENAME,
     RECEIPT_FILENAME,
     STATUS_RUNNING,
-    STATUS_COMPLETE,
     STATUS_INCOMPLETE,
     STATUS_FINALIZE_FAILED,
 )
@@ -49,7 +46,6 @@ def cfg(tmp_path):
 @pytest.fixture
 def run_dir(cfg):
     """A /check run dir inside the test artifacts root."""
-    import urllib.parse
     d = cfg.artifacts_dir / "testterm" / "grok-check" / "20260729-120000-000"
     d.mkdir(parents=True)
     (d / "results").mkdir()
