@@ -1,5 +1,17 @@
 # Vault Log
 
+## Provider quota API reference
+Source: session-2026-07-30
+Agent: grok
+Notes: Which API calls work for checking quota per provider
+Page: wiki/concepts/provider-quota-usage-api-reference.md
+
+## research-applicability-checking-dont-cite-without-verifying-assumptions
+Source: session-019fb189
+Agent: grok
+Notes: Research applicability checking — don't cite findings without verifying assumptions apply. Martingale worked example.
+Page: wiki/concepts/research-applicability-checking-dont-cite-without-verifying-assumptions.md
+
 ## convergence-gap-rca-symptom-restatement-toulmin-enforcement
 Source: session-019fb189
 Agent: grok
