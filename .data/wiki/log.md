@@ -1,5 +1,17 @@
 # Vault Log
 
+## Silently dead hooks PGM fleet monitoring gap
+Source: session-019fa48a
+Agent: grok
+Notes: PGM silently dead since ship; 3 hooks same payload bug
+Page: P:/.data/wiki/concepts/silently-dead-hooks-pgm-payload-bug-fleet-monitoring-gap.md
+
+## Multi-subagent workflow failure patterns
+Source: session-019fa48a
+Agent: grok
+Notes: 5 failure modes from /design run d8173a98
+Page: P:/.data/wiki/concepts/multi-subagent-orchestration-workflow-failure-patterns.md
+
 ## Cross-session transcript mining survey
 Source: session-019fa276
 Agent: grok
