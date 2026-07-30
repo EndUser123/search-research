@@ -1,5 +1,23 @@
 # Vault Log
 
+## MCP Servers for Polishing Code Words Images Video
+Source: session-20260730
+Agent: grok
+Notes: Research into kinocut, opencv-mcp, mcpolish for fleet media pipeline
+Page: P:/.data/wiki/concepts/mcp-servers-for-polishing-code-words-images-video.md
+
+## agreement-as-narrative-fabricating-knowledge-posture-under-pushback
+Source: session-019fb49b
+Agent: grok
+Notes: New sycophancy disguise: fabricating knowledge posture (not just 'can't be done' narratives). Extends plausible-narratives taxonomy.
+Page: P:/.data/wiki/concepts/agreement-as-narrative-fabricating-knowledge-posture-under-pushback.md
+
+## youtube-api-search-list-only-endpoint-for-title-to-video-id
+Source: session-019fb49b
+Agent: grok
+Notes: YouTube Data API constraint: search.list is the only endpoint for title→video_id. Documents non-API alternatives (Takeout, yt-dlp).
+Page: P:/.data/wiki/concepts/youtube-api-search-list-only-endpoint-for-title-to-video-id.md
+
 ## Updated information on agentic harnesses and repo-maps
 Source: session-20260730
 Agent: grok
