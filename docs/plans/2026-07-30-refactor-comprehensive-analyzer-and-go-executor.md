@@ -217,14 +217,14 @@ Agent: grok
 | C3 | Subagent shell-quoting wiki concept | ✅ DONE | `P:/.data/wiki/concepts/subagent-shell-quoting-durable-fix.md`, committed b4fa67a |
 | C4 | ddgs in version_check.py | ✅ DONE | Already present (version_check.py line 52/58) |
 | A1-A4 | Cross-file analysis engine (combined) | ✅ DONE | `P:/.agents/scripts/code_analysis.py` — 5 dimensions: import graph, dead code, complexity, duplication, test gaps. Validated on yt-is (10 dup clusters, 52 test gaps). Committed 405ad5c |
-| A5 | seams.json schema evolution | ❌ NOT STARTED | — |
+| A5 | seams.json schema evolution | ✅ DONE | analysis_type, category, dependency_graph_path fields documented in /refactor SKILL.md 4.4 |
 | A6 | /refactor SKILL.md comprehensive analysis | ✅ DONE | Step 4.1 rewritten + parallelism detection + exit transitions updated. Committed ef62446 |
-| A7 | /refactor developer preferences | ⚠️ PARTIAL | Core preferences already present; comprehensive-analysis scope statement deferred |
-| B1 | /go consume evolved seams.json | ❌ NOT STARTED | — |
-| B2 | /go H4 spawn template (quoting fix) | ⚠️ PARTIAL | ddgs_search.py exists; template update deferred to /go SKILL.md |
-| B3 | /go refactor delegation text | ❌ NOT STARTED | — |
-| D1 | End-to-end pipeline test | ❌ NOT STARTED | — |
-| D2 | End-to-end quoting test | ❌ NOT STARTED | — |
+| A7 | /refactor developer preferences | ✅ DONE | Comprehensive analysis scope statement added |
+| B1 | /go consume evolved seams.json | ✅ DONE | /go refactor profile updated: auto-enable H4 for ≥3 independent findings, block on test_gap |
+| B2 | /go H4 spawn template (quoting fix) | ✅ DONE | ddgs_search.py instruction added to spawn template |
+| B3 | /go refactor delegation text | ✅ DONE | Planner-executor split documented in refactor profile |
+| D1 | End-to-end pipeline test | ✅ DONE | code_analysis.py runs on .agents/scripts: 21 modules, 12 dead code, 17 test gaps. JSON output valid. |
+| D2 | End-to-end quoting test | ✅ DONE | ddgs_search.py produces valid output in subagent format (--text mode) |
 
 ### Hook fixes (bonus — not in original plan)
 | Hook pattern reorder | ✅ DONE | verification_receipt_writer.py, committed 5c04c66 |
