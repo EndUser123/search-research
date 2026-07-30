@@ -63,6 +63,28 @@ $runDir
 
 Read `P:/.artifacts/$termSafe/<pkg>-state.md` for context. Never read other terminal.
 
+### Step 0.1 -- Write run manifest (MANDATORY — immediately after runDir creation)
+
+Write a session-bound run manifest so every initialized /check run is durable.
+If this manifest is missing after a /check run, /close detects it as an
+incomplete run and blocks a clean close. This is the lifecycle guarantee:
+**no initialized /check run can disappear.**
+
+```powershell
+# $sessionId is resolved in Step 0.5's transcript block below. Since the
+# manifest needs it NOW (before transcript resolution), resolve it here:
+$sessionId = $env:GROK_SESSION_ID
+if (-not $sessionId) { $sessionId = $env:CLAUDE_SESSION_ID }
+if (-not $sessionId) { $sessionId = "LLM_FILL_FROM_CONTEXT" }
+
+python "P:/.grok/skills/check/__lib/check_lifecycle.py" start `
+    --session "$sessionId" --run-dir "$runDir"
+```
+
+If the manifest cannot be written, /check may still run and show findings, but
+it **must not claim durable CHECK PASS or CHECK FAIL completion.** The manifest
+write is the lifecycle entry point — without it, /close cannot track the run.
+
 ## Step 0.5 -- Build deterministic evidence packet (pre-LLM)
 
 Before any verifier runs, code extracts objective evidence from the session
@@ -524,8 +546,29 @@ A verifier that needs a disallowed command must escalate to the orchestrator
 (parent agent) instead of running it. The orchestrator decides whether to
 authorize, perform it directly, or skip the check.
 
-## Step 4 -- Merge verdicts
+## Step 4 -- Merge verdicts + write structured verifier results
+
 All PASS = CHECK PASS. Any FAIL = CHECK FAIL.
+
+**MANDATORY after each verifier returns:** write a structured verifier result
+file so the finalizer (Step 4.5) can derive the verdict mechanically. The
+orchestrator extracts the verdict from the verifier's response (which the
+output_validator already validates) and writes it:
+
+```powershell
+# For each verifier result (index 0-based, matching spawn order):
+python "P:/.grok/skills/check/__lib/check_lifecycle.py" verifier-result `
+    --run-dir "$runDir" `
+    --index <N> `
+    --concern "<concern-name>" `
+    --verdict <PASS|FAIL> `
+    --issues '[{"severity":"bug","description":"<one-line>"}]'  # JSON array, or omit if none
+```
+
+The finalizer DERIVES the verdict from these structured result files — it
+never trusts an aggregate LLM-supplied verdict. A zero-verifier run produces
+INCOMPLETE, not PASS. This is the mechanical guarantee: **the receipt cannot
+contradict the verifier evidence.**
 
 **Telemetry (after each verifier returns):** log the spawn result for fleet tracking:
 ```bash
@@ -545,57 +588,49 @@ verifier is wrong, or (b) the concern split was wrong and both verifiers
 partially saw the same issue. Either way, surface the contradiction rather
 than silently averaging the verdicts.
 
-## Step 4.5 -- Write durable receipt (MANDATORY — every run, PASS or FAIL)
+## Step 4.5 -- Finalize run (MANDATORY — every terminal path, PASS, FAIL, or INCOMPLETE)
 
-After merging verdicts (Step 4) and before any fix cycles, write the
-`check-state.md` receipt via the script — NOT by hand. This is the file
-`/close` reads to detect whether `/check` ran and what it found. A
-hand-written receipt was the prior failure mode: only ~3 of ~24+ runs
-produced one, so `/close` could not see most `/check FAIL`s.
-
-The script takes a JSON file with the verdict data and writes
-`$runDir/check-state.md` atomically. The orchestrator LLM still
-determines the verdict (judgment); the script produces the receipt
-format (mechanical). Both PASS and FAIL produce a receipt.
-
-**Build the JSON input** (the orchestrator constructs this from the
-verifier results gathered in Step 4):
+After Step 4 writes verifier results, call the finalizer. It reads the
+manifest + verifier result files, DERIVES the verdict, writes the receipt
+atomically, and updates the manifest. **This must be called on EVERY terminal
+path** — normal completion, fix-cycle exhaustion, auto-review escalation, and
+any early exit after verifiers have run.
 
 ```powershell
-$receiptData = @{
-    session_id = $sessionId   # the same session ID resolved in Step 0
-    run_dir    = $runDir
-    verdict    = "<PASS or FAIL>"   # the merged verdict from Step 4
-    verifiers  = @(
-        @{ concern = "<concern-name>"; verdict = "<PASS|FAIL>"; finding = "<one-line summary>" }
-        # ... one entry per verifier concern
-    )
-    test_results = "<one-line: 'all N passed', 'M/N failed: <names>', or 'not applicable'>"
-    issues = @(
-        # Only if verdict is FAIL or issues were found:
-        @{ severity = "<bug|gap|regression|suggestion>"; description = "<one-line>" }
-    )
-}
-$receiptJson = "$runDir/packets/check-receipt-input.json"
-$receiptData | ConvertTo-Json -Depth 4 | Set-Content -Path $receiptJson -Encoding UTF8
-
-python "P:/.grok/skills/check/__lib/write_check_state.py" --json "$receiptJson"
+python "P:/.grok/skills/check/__lib/check_lifecycle.py" finalize --run-dir "$runDir"
 ```
 
-**Why a script, not hand-writing:** the receipt format must match the
-regex contract in `close_accounting.py:557-560` exactly:
-`**Session:** <id>` and `**Verdict:** CHECK PASS (N/M verifiers)`.
-A hand-written receipt that gets the format wrong is invisible to close.
-The script guarantees the format on every run. Receipt: audit
-`P:/docs/improvement-system-audit-20260729.md` Intervention 1.
+**Derived verdict rules (mechanical, not LLM-supplied):**
+- All verifier results PASS → CHECK PASS receipt written
+- Any verifier result FAIL → CHECK FAIL receipt written
+- No verifier results → INCOMPLETE (no receipt; manifest marked INCOMPLETE)
+- Malformed verifier results → INCOMPLETE
 
-**If the script fails** (exit 1): print the error and continue — do NOT
-block the /check flow on the receipt write. But surface the failure in
-the final report so the operator knows the receipt may be missing.
+**Exit codes:**
+- 0: PASS or FAIL receipt written (status COMPLETE)
+- 1: INCOMPLETE or FINALIZE_FAILED (receipt not written or write failed)
 
-**After fix cycles (Step 5):** if the verdict changed (FAIL → PASS after
-fixing), re-run Step 4.5 with the updated verdict. The atomic write
-(`os.replace`) safely overwrites the prior receipt.
+**Failure policy (updated — no longer "just continue"):**
+- If finalization succeeds (exit 0): proceed to Step 5/6 normally.
+- If finalization fails (exit 1): the run is durable as INCOMPLETE or
+  FINALIZE_FAILED in the manifest. /close will detect this and block a clean
+  close. You MAY still show findings to the user, but you MUST NOT emit
+  "CHECK DONE" or "CHECK PASS" or "CHECK FAIL" — the durable verdict is
+  INCOMPLETE. Surface the failure prominently: "Finalization failed — /close
+  will see this run as incomplete."
+
+**After fix cycles (Step 5):** re-run Step 4.5 with the updated verifier
+results. The finalizer re-derives from the current result files and
+atomically overwrites the prior receipt + manifest.
+
+**Every documented terminal path that MUST call Step 4.5:**
+1. Normal PASS (all verifiers PASS)
+2. Normal FAIL (any verifier FAIL)
+3. Fix-cycle PASS (FAIL → fixed → PASS)
+4. Fix-cycle exhaustion (still FAIL after 3 cycles)
+5. Zero concerns / no verifiers spawned (→ INCOMPLETE)
+6. Exception during execution (best-effort finalize in a finally block)
+7. User interrupt (if possible before exit)
 
 ## Step 5 -- Fix and reverify (max 3 cycles)
 

@@ -28,6 +28,25 @@ import sys
 from pathlib import Path
 
 
+def derive_verdict(verifiers: list[dict]) -> str:
+    """Derive PASS or FAIL from verifier results. Never trusts a supplied aggregate.
+
+    Rules:
+    - All verifier verdicts PASS → PASS
+    - Any verifier verdict FAIL → FAIL
+    - Empty verifier list → FAIL (zero-verifier PASS is not proven in /check contract)
+
+    This function exists so that contradictory inputs like
+    {"verdict": "PASS", "verifiers": [{"verdict": "FAIL"}]} can be detected
+    and rejected by write_check_state().
+    """
+    if not verifiers:
+        return "FAIL"  # zero-verifier is not PASS unless explicitly proven
+    if all(v.get("verdict", "").upper() == "PASS" for v in verifiers):
+        return "PASS"
+    return "FAIL"
+
+
 def render_check_state(
     session_id: str,
     verdict: str,
@@ -37,9 +56,14 @@ def render_check_state(
 ) -> str:
     """Render check-state.md content matching the close_accounting consumer contract.
 
+    The verdict is DERIVED from the verifiers list, not trusted from the
+    supplied ``verdict`` parameter. If the supplied verdict disagrees with
+    the derived one, the derived verdict wins. This prevents contradictory
+    receipts like ``CHECK PASS (1/2 verifiers)``.
+
     Args:
         session_id: The Grok session ID this /check run belongs to.
-        verdict: "PASS" or "FAIL".
+        verdict: Supplied aggregate verdict (treated as consistency assertion only).
         verifiers: List of {concern, verdict, finding} dicts.
         test_results: Free-text test summary.
         issues: List of {severity, description} dicts.
@@ -47,7 +71,10 @@ def render_check_state(
     Returns:
         The full check-state.md content as a string.
     """
-    verdict = verdict.upper().strip()
+    # DERIVE the verdict — never trust the supplied aggregate
+    derived = derive_verdict(verifiers)
+    # Validate: if supplied verdict disagrees, the derived wins
+    verdict = derived
     total = len(verifiers)
     passed = sum(1 for v in verifiers if v.get("verdict", "").upper() == "PASS")
 
@@ -119,6 +146,15 @@ def write_check_state(data: dict) -> Path:
     verifiers = data.get("verifiers", [])
     if not isinstance(verifiers, list):
         verifiers = []
+
+    # DERIVE the verdict from verifiers — reject contradictory inputs
+    derived_verdict = derive_verdict(verifiers)
+    if derived_verdict != verdict:
+        # The supplied verdict disagrees with what the verifier results say.
+        # Use the derived verdict (it's authoritative) and note the correction.
+        # Do NOT raise — the receipt must still be written so /close can see it.
+        # But the written receipt will carry the DERIVED verdict, not the supplied one.
+        verdict = derived_verdict
 
     test_results = data.get("test_results", "")
     issues = data.get("issues", [])
