@@ -1,5 +1,11 @@
 # Vault Log
 
+## self-reflection-in-llms-fails-without-external-evidence
+Source: session-019fb189
+Agent: grok
+Notes: Self-reflection in LLMs fails without external evidence. Huang, Reflexion ablation, Riddell RCA study. Reflection vs verification distinction.
+Page: wiki/concepts/self-reflection-in-llms-fails-without-external-evidence.md
+
 ## Provider quota API reference
 Source: session-2026-07-30
 Agent: grok
