@@ -1,5 +1,17 @@
 # Vault Log
 
+## Provider quota API reference updated with opencode-quota
+Source: session-2026-07-30
+Agent: grok
+Notes: opencode-quota checks all providers programmatically; earlier 'no API' claim was wrong
+Page: wiki/concepts/provider-quota-usage-api-reference.md
+
+## Chrome ACP + Grok Build setup — patches 8-10 (cwd trim, browser rules injection, expanded rules)
+Source: session-2026-07-30
+Agent: grok
+Notes: cwd trim fix, _meta.rules injection pattern, browser-use-inspired default rules, Comet policy patch verified
+Page: wiki/concepts/chrome-acp-grok-build-setup-implementation.md
+
 ## prompt-preflight-session-context-completeness-check
 Source: session-019fb189
 Agent: grok

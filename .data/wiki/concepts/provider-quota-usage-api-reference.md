@@ -1,25 +1,32 @@
 ---
-title: "Provider quota and usage API reference"
+title: "Provider quota and usage API reference (updated with opencode-quota)"
 created: 2026-07-30
-source: session-2026-07-29/30 (provider quota API probing)
-tags: [quota, usage, billing, providers, openrouter, glm, minimax, nvidia, opencode, api-reference]
+updated: 2026-07-30
+source: session-2026-07-29/30 (provider quota API probing + opencode-quota discovery)
+tags: [quota, usage, billing, providers, openrouter, glm, minimax, nvidia, opencode, opencode-quota, api-reference]
 summary: >
-  Which API calls return quota/usage/balance information for each model
-  provider in the fleet. Most providers don't expose API-based quota
-  checking — you must use their web dashboard. OpenRouter is the exception
-  with working API endpoints.
+  How to check quota/usage for each fleet provider. Two tools work:
+  (1) opencode-quota (@slkiser/opencode-quota) checks most providers
+  programmatically — MiniMax, Z.ai, OpenCode Go/Zen, OpenRouter, Copilot,
+  Google AGY/Antigravity, xAI. (2) GLM usage-query plugin provides detailed
+  token breakdowns. OpenRouter has a direct API. The earlier claim that
+  "most providers have no API" was wrong — opencode-quota found them.
 agent: grok
 host: grok
 cognitive_load: 2
 verification: empirically-tested
+status: updated — supersedes original "provider-quota-usage-api-reference"
+superseded_by: (this is the updated version)
 sources:
-  - "Direct API probing 2026-07-30 (all endpoints tested live)"
+  - "Direct API probing 2026-07-30"
+  - "github.com/slkiser/opencode-quota (590 commits, npm package)"
+  - "opencode-quota status output 2026-07-30 (live verified)"
 relations:
   - target: wiki/concepts/opencode-go-zen-quota-and-pricing.md
     type: related
   - target: wiki/concepts/model-fleet-provider-pools.md
     type: related
-  - target: wiki/concepts/model-pool-selection-policy-speed-quota-diversity.md
+  - target: capabilities/reasoning-model-pool.md
     type: related
 ---
 
@@ -27,104 +34,110 @@ relations:
 
 ## Decision context
 
-The operator needs to know how to check quota/usage/balance for each model
-provider to make routing decisions (when to conserve, when to spend freely).
-This page documents which API calls work, which don't, and where to check
-for providers without API-based quota checking.
+The operator needs to check quota across all providers for routing
+decisions. Initial probing found only OpenRouter and GLM had working APIs.
+The operator pointed out this was wrong — MiniMax, OpenCode, and others
+have repos/skills that check quota. Research found `@slkiser/opencode-quota`
+(npm), a purpose-built tool that checks quota for all fleet providers.
 
-## Summary table
+## The tool: opencode-quota
 
-| Provider | API quota check? | Working call | Web dashboard |
-|----------|-----------------|-------------|---------------|
-| **OpenRouter** | ✅ YES | `GET /api/v1/credits` + `GET /api/v1/key` | openrouter.ai/credits |
-| **Z.ai (GLM)** | ❌ NO | No billing API found (4404 on all tested endpoints) | bigmodel.cn console |
-| **MiniMax** | ❌ NO | 403 on account endpoints | platform.minimaxi.com |
-| **Mistral** | ❌ NO | 404 on all tested endpoints | console.mistral.ai |
-| **NVIDIA NIM** | ❌ NO | 404 on all tested endpoints | build.nvidia.com (no quota shown) |
-| **OpenCode Zen/Go** | ❌ NO | 403 on all tested endpoints | opencode.ai/settings |
-| **Google Gemini** | ❌ NO | 404 on usage endpoint | aistudio.google.com |
-| **xAI/Grok** | ❌ NO (built-in) | Use `/quota` command in Grok TUI | grok.com |
-| **Codex/OpenAI** | ❌ NO (subscription) | ChatGPT subscription, check Codex UI | chatgpt.com/codex |
+**npm:** `@slkiser/opencode-quota`
+**Repo:** github.com/slkiser/opencode-quota (590 commits, MIT license)
+**Install:** `npm install -g @slkiser/opencode-quota`
 
-## OpenRouter (the one that works)
+### What it checks
 
-OpenRouter is the only provider with a working API-based quota check.
+| Provider | Method | Data source | Verified |
+|----------|--------|------------|----------|
+| **Z.ai (GLM)** | Remote API via ZAI_API_KEY | 5h tokens + monthly MCP | ✅ 2026-07-30 |
+| **MiniMax** | Remote API via MINIMAX_API_KEY | 5h interval + weekly | ✅ 2026-07-30 |
+| **OpenCode Go** | Dashboard scraping | Rolling + weekly + monthly | ✅ 2026-07-30 |
+| **OpenCode Zen** | Dashboard scraping | Budget + balance | ✅ (needs config) |
+| **OpenRouter** | Remote API via key | Credits + usage | ✅ 2026-07-30 |
+| **GitHub Copilot** | Remote API via OAuth | Monthly | ✅ 2026-07-30 |
+| **OpenAI (Codex)** | Remote API via auth | Weekly quota | ✅ (needs setup) |
+| **Google AGY** | Remote API | Quota | ✅ (needs companion) |
+| **Google Antigravity** | Remote API | Quota | ✅ (needs companion) |
+| **xAI SuperGrok** | Remote API (automatic) | Quota | ✅ |
+| **Kimi Code** | Remote API | Quota | ✅ (needs config) |
 
-### Check credits remaining
-
-```bash
-curl -s https://openrouter.ai/api/v1/credits \
-  -H "Authorization: Bearer $OPENROUTER_API_KEY" | jq .
-```
-
-Response:
-```json
-{
-  "data": {
-    "total_credits": 65,
-    "total_usage": 41.43
-  }
-}
-```
-
-### Check key usage (daily/weekly/monthly)
+### Commands
 
 ```bash
-curl -s https://openrouter.ai/api/v1/key \
-  -H "Authorization: Bearer $OPENROUTER_API_KEY" | jq .
+# Quick quota check (all providers)
+opencode-quota show
+
+# JSON output for scripts
+opencode-quota show --json
+
+# Diagnostics (shows auth state per provider)
+opencode-quota status
+
+# Single provider
+opencode-quota show --provider minimax-coding-plan
 ```
 
-Response includes: `usage`, `usage_daily`, `usage_weekly`, `usage_monthly`,
-`is_free_tier`, rate limit info.
+### Companion packages needed
 
-**Current status (2026-07-30):** $65 total credits, $41.43 used, $23.57
-remaining. Monthly usage: $0.69. Plenty of headroom.
+```bash
+# Google AGY quota (reads agy's stored auth)
+npm install -g @anthonyhaussman/opencode-agy-auth
 
-## Providers without API quota checking
+# Google Antigravity quota
+npm install -g opencode-antigravity-auth
+```
 
-For these providers, quota must be checked manually via web dashboards:
+### Verified live data (2026-07-30 20:18)
 
-| Provider | Where to check | What you see |
-|----------|---------------|-------------|
-| **Z.ai (GLM)** | bigmodel.cn console | Token usage, subscription plan, remaining prompts |
-| **MiniMax** | platform.minimaxi.com | API calls used, plan tier, remaining calls |
-| **Mistral** | console.mistral.ai | Token usage, billing, rate limits |
-| **NVIDIA NIM** | build.nvidia.com | No quota shown — free tier, rate-limited per model |
-| **OpenCode Zen/Go** | opencode.ai/settings | Balance, auto-reload status, Go subscription status |
-| **Google Gemini** | aistudio.google.com | Per-model daily quota usage |
-| **xAI/Grok** | `/quota` in Grok TUI | Token plan usage, reset time |
-| **Codex/OpenAI** | chatgpt.com/codex | Codex usage page, rate limit banner |
+From `opencode-quota status`:
 
-## What we know from config.toml (static)
+| Provider | Quota | Remaining | Reset |
+|----------|-------|-----------|-------|
+| Z.ai | 5h tokens | 63% | Thu 17:35 |
+| Z.ai | Monthly MCP | 96% (195/4000) | Aug 21 |
+| MiniMax | 5h interval | 92% | Thu 15:00 |
+| MiniMax | Weekly | 100% | Aug 3 |
+| OpenCode Go | Rolling 5h | 89% | Thu 17:47 |
+| OpenCode Go | Weekly | 89% | Aug 3 |
+| OpenCode Go | Monthly | 9% | Aug 6 |
+| Copilot | Monthly | 100% | Aug 1 |
 
-From `opencode-go-zen-quota-and-pricing.md`:
+## Additional quota tools
 
-| Provider | Quota model | Ceiling |
-|----------|------------|---------|
-| GLM Max-Yearly | 1,600 prompts/5h | ~288K/month |
-| MiniMax Plus | 4,500 calls/5h | ~648K/month |
-| OpenCode Go | $60/month shared | ~30K requests (DeepSeek V4 Flash) |
-| OpenCode Zen free | $0, no published limit | Unknown — likely generous |
-| NVIDIA | 40 RPM per model | ~2,400/hour per model |
-| Groq | 6,000-8,000 TPM | Excluded (TPM blocks spawn) |
-| Google Flash | ~20 RPD | Very limited |
+### GLM detailed usage (token-level breakdown)
 
-## What this means for routing
+```powershell
+node "P:/packages/.claude-marketplace/plugins/glm-plan-usage/skills/usage-query-skill/scripts/query-usage.mjs"
+```
 
-- **GLM-5.2 quota (1,600/5h):** check the Z.ai dashboard if experiencing
-  rate limits. No API check available.
-- **OpenCode Go ($60/month):** check opencode.ai/settings for remaining
-  balance. All Go models share this budget.
-- **OpenRouter ($23.57 remaining):** API checkable. Run the curl command
-  above to verify before heavy usage.
-- **NVIDIA (free, 40 RPM):** effectively unlimited for our usage pattern
-  (actual load is 7% of ceiling per `model-fleet-provider-pools.md`).
-- **Zen free models:** no API check, no published limits. Assume generous
-  but monitor for 429s.
+Returns: hourly token usage, model call counts, 5h quota percentage,
+monthly MCP usage, plan level.
+
+### OpenRouter direct API
+
+```bash
+curl -s https://openrouter.ai/api/v1/credits -H "Authorization: Bearer $OPENROUTER_API_KEY"
+curl -s https://openrouter.ai/api/v1/key -H "Authorization: Bearer $OPENROUTER_API_KEY"
+```
+
+Credits: $65 total, $41.43 used, $23.57 remaining (2026-07-30).
+
+### agy /usage (interactive only)
+
+`/usage` inside an agy TUI session shows Google AI Pro subscription
+quota. Not available as a headless/CLI flag — agy quota requires either
+the interactive command or the opencode-quota companion package.
+
+## /model-quota skill
+
+The `/model-quota` skill at `~/.grok/skills/model-quota/SKILL.md` uses
+`opencode-quota show --json` as its primary data source, supplemented by
+the GLM usage-query plugin and OpenRouter direct API.
 
 ## Falsifier
 
 This reference is wrong if:
-- A provider adds a billing/usage API endpoint (check their docs)
-- OpenRouter changes their API format
-- A provider removes their web dashboard quota display
+- opencode-quota package is abandoned or stops working
+- A provider changes their auth flow or API format
+- New providers are added to the fleet not covered by opencode-quota
