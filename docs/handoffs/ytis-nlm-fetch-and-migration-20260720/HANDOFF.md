@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019f7653-7598-79e0-a0c3-1161f9c0b793
 current_terminal_id: console_aa25af78-8c68-4f72-9ff5-489b78d25ece
 produced_at: 2026-07-21T03:30:00Z
-status: open
+status: superseded
 assigned_to: grok
 assigned_at: 2026-07-20T16:48:47Z
 assigned_by: 019f81b3-4a76-76f3-baf7-b87184b44b7b
@@ -18,6 +18,12 @@ accurate_as_of_head: 4c76891d20a09984e33ca2d3bf40c39537f2ffed
 ---
 
 # Handoff: yt-is NLM fetch enablement + migration
+
+> **SUPERSEDED 2026-07-30** by `yt-is-nlm-to-wiki-integration-20260730`. The 7,000-video
+> NLM fetch was never run; instead, 3,910 transcripts were imported from nlm-to-wiki's
+> already-exported .md store via `scripts/import_nlm_transcripts.py` (title-match bridge).
+> The auth architecture (storage_state.json, backup repo, keepalive) remains in use.
+> Migration Phases 3-7 remain deferred. This handoff is preserved for provenance.
 
 ## 1. Objective (one sentence)
 

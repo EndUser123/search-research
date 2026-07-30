@@ -4,7 +4,7 @@ parent_handoff_path: P:/docs/handoffs/ytis-nlm-fetch-and-migration-20260720/HAND
 current_terminal_id: console_b6dc691c-2a40-4da5-b59c-fdf4
 current_session_id: 019f821c-854e-76c1-a755-add284838bdf
 produced_at: 2026-07-21T08:10:00Z
-status: open
+status: superseded
 assigned_to: grok
 assigned_at: 2026-07-21T14:29:49Z
 assigned_by: 019f8507-6395-7bc0-87a9-9122e28d68c8
@@ -24,6 +24,13 @@ source_transcript: C:\Users\brsth\.grok\sessions\P%3A%5C\019f821c-854e-76c1-a755
 ---
 
 # Handoff: yt-is fetch resume (source-add failure unresolved)
+
+> **SUPERSEDED 2026-07-30** by `yt-is-nlm-to-wiki-integration-20260730`. The integration
+> now imports transcripts from nlm-to-wiki's .md store (which uses `nlm source content` for
+> export, NOT source-add), bypassing the rpc_code=9 source-add failure entirely. The
+> source-add bug in `NLMSyncClient` may still exist if someone attempts the yt-is fetch path
+> (`csf-source fetch` with NotebookLM lane). Diagnostic work in §4-5 remains valuable for
+> that case. This handoff is preserved for provenance.
 
 ## 1. Objective (one sentence)
 
