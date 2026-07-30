@@ -1,5 +1,11 @@
 # Vault Log
 
+## Wiki improvement opportunities
+Source: session-019fb177
+Agent: grok
+Notes: practitioner evidence for agent knowledge bases
+Page: wiki/concepts/wiki-improvement-opportunities-practitioner-evidence.md
+
 ## INTG-2 resolved gate-state set
 Source: session-019fb177
 Agent: grok
