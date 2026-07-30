@@ -6,7 +6,7 @@ current_terminal_id: grok-build-terminal
 produced_at: 2026-07-30T01:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: cb227d6
+accurate_as_of_head: 9aaff3b
 ---
 
 # Session 019fa276 — shipped work, open obligations, and continuation points
@@ -296,3 +296,23 @@ Items 3, 4, 5 (from prior revision) now have sibling-session additions (items 11
 **Sibling activity:** Claude Sonnet 4.6 shipped 3 commits concurrently — /packet unification (eliminates /gitpack vs /packet split), model-benchmark expansion (8 code-exec problems), /close dead variable cleanup. These are NOT this session's work but affect the same skill surfaces.
 
 **New open items:** none. Deferred items from Revision 3 still apply (F3-05/F3-06 KNOWN LIMITATION comments not yet added).
+
+### Revision 5 — 2026-07-30T05:30:00Z — grok-build-terminal
+
+**Trigger:** /tp critique found Revision 4 stale-data violations. HEAD moved from `cb227d6` to `9aaff3b` (3 commits post-Revision-4).
+
+**What changed since Revision 4:**
+
+| Work | Commit | Notes |
+|------|--------|-------|
+| F3-05 + F3-06 KNOWN LIMITATION comments added to analyze_session_patterns.py | `1b809b9` (P:) | Resolves the two deferred review findings from Revision 3. **Revision 4 incorrectly listed these as still deferred.** |
+
+**Corrections (from /tp critique):**
+
+1. **F3-05/F3-06 are RESOLVED, not deferred.** Revision 4's claim "Deferred items from Revision 3 still apply" was factually wrong at publication time — commit `1b809b9` landed 6 minutes after the handoff commit. All 17 review findings are now closed (15 fixed, 2 documented as known limitations).
+2. **Harvest item count is 12, not 13.** Revision 1's "13 OPEN total" was an off-by-one (the table contains 12 items; `harvest show` returns 12). Corrected count: **12 OPEN items**.
+3. **`accurate_as_of_head` bumped** from `cb227d6` to `9aaff3b` (current HEAD).
+
+**Status update:** all review findings resolved. Zero deferred items remain from this session's /review cycle. Session at natural stopping point.
+
+**Root cause of Revision 4 staleness:** same-author continuation — the handoff was written as a checkpoint, then the author continued working (resolved F3-05/F3-06) without updating the handoff. This is the "mid-session checkpoint" pattern; the /handoff skill documents end-of-session timing but not checkpoint timing. Mitigation: run `/handoff verify <path>` after any post-handoff commit.
