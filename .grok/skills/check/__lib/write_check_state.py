@@ -39,9 +39,15 @@ def derive_verdict(verifiers: list[dict]) -> str:
     This function exists so that contradictory inputs like
     {"verdict": "PASS", "verifiers": [{"verdict": "FAIL"}]} can be detected
     and rejected by write_check_state().
+
+    Note: this legacy writer returns FAIL for zero verifiers because it only
+    produces PASS or FAIL (not INCOMPLETE). The lifecycle finalizer
+    (check_lifecycle.derive_verdict) returns INCOMPLETE for zero verifiers,
+    which is the authoritative behavior. This difference is intentional:
+    write_check_state is the simpler path; check_lifecycle is the durable path.
     """
     if not verifiers:
-        return "FAIL"  # zero-verifier is not PASS unless explicitly proven
+        return "FAIL"  # legacy path; lifecycle finalizer returns INCOMPLETE
     if all(v.get("verdict", "").upper() == "PASS" for v in verifiers):
         return "PASS"
     return "FAIL"
@@ -192,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         target = write_check_state(data)
-    except ValueError as exc:
+    except (ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

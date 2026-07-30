@@ -332,8 +332,21 @@ def finalize_run(run_dir: str | Path) -> dict:
     # Derive verdict
     verdict, passed, total, incomplete_reason = derive_verdict(verifier_results)
 
-    # If derivation returned INCOMPLETE, combine with any read errors
-    if verdict == "INCOMPLETE" and result_errors:
+    # CORR-001 fix: if derivation returned PASS/FAIL but there were read errors
+    # (malformed/missing verifier results), promote to INCOMPLETE. The module's
+    # invariant (docstring lines 29-31) states: "Missing, malformed, or unreadable
+    # verifier results produce INCOMPLETE, never PASS."
+    if result_errors and verdict in ("PASS", "FAIL"):
+        verdict = "INCOMPLETE"
+        incomplete_reason = (
+            f"verifier result errors despite {passed}/{total} valid: "
+            f"{'; '.join(result_errors[:3])}"
+        )
+
+    # Combine errors with INCOMPLETE reason
+    if verdict == "INCOMPLETE" and result_errors and incomplete_reason:
+        incomplete_reason = f"{incomplete_reason}; read errors: {'; '.join(result_errors[:3])}"
+    elif verdict == "INCOMPLETE" and result_errors:
         incomplete_reason = f"{incomplete_reason}; read errors: {'; '.join(result_errors[:3])}"
 
     # Collect all issues for the receipt
@@ -375,9 +388,14 @@ def finalize_run(run_dir: str | Path) -> dict:
     try:
         _atomic_write_json(manifest_path, manifest)
     except OSError as exc:
-        # Manifest update failed — this is the worst case. The receipt
-        # may have been written but the manifest still says RUNNING.
-        # Return FINALIZE_FAILED so the caller knows.
+        # CORR-002 fix: manifest update failed after receipt was written.
+        # Delete the receipt so close scanner doesn't double-count it
+        # (receipt as passed/failed AND manifest as RUNNING/incomplete).
+        if receipt_path and receipt_path.exists():
+            try:
+                receipt_path.unlink()
+            except OSError:
+                pass  # best effort — the FINALIZE_FAILED status is the signal
         return {
             "manifest_path": str(manifest_path),
             "receipt_path": str(receipt_path) if receipt_path else None,

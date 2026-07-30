@@ -177,7 +177,11 @@ class TestFinalizeRun:
         assert manifest["failure"] is not None
 
     def test_missing_verifier_result_incomplete(self, started_run):
-        """Scenario 6: if verifier results dir has malformed entries → INCOMPLETE."""
+        """CORR-001 fix: malformed verifier result alongside PASS → INCOMPLETE, not PASS.
+
+        The module invariant (docstring lines 29-31) states: "Missing, malformed,
+        or unreadable verifier results produce INCOMPLETE, never PASS."
+        """
         # Write one valid result
         write_verifier_result(started_run, 0, "concern-a", "PASS")
         # Write one garbage file that looks like a verifier result
@@ -185,13 +189,9 @@ class TestFinalizeRun:
         bad.write_text("NOT JSON AT ALL", encoding="utf-8")
 
         result = finalize_run(started_run)
-        # The garbage file is skipped; the valid one is read.
-        # But since not all expected results are present (garbage skipped),
-        # we still get a derivation from what we have.
-        # If the valid one is PASS, and the garbage is unreadable,
-        # the derivation counts only valid results.
-        assert result["total"] == 1  # only the valid one counted
-        assert result["verdict"] == "PASS"  # the one valid result passes
+        # CORR-001: the garbage file is a read error → INCOMPLETE, not PASS
+        assert result["verdict"] == "INCOMPLETE"
+        assert result["status"] == STATUS_INCOMPLETE
 
     def test_all_malformed_verifier_results_incomplete(self, started_run):
         """Scenario 7: all verifier results malformed → INCOMPLETE."""
