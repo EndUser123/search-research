@@ -1,5 +1,17 @@
 # Vault Log
 
+## --agent
+Source: grok
+Agent: --session
+Notes: 019fa5a1
+Page: --page
+
+## Chrome ACP + Grok Build browser-driven agentic CLIs
+Source: session-2026-07-29 /www research
+Agent: grok
+Notes: ACP maturity, browser-agent security, safe implementation, 6 attack vectors, 2 host invariant violations mitigated
+Page: wiki/concepts/chrome-acp-grok-build-browser-driven-agentic-clis.md
+
 ## Scheduled tasks wiki concept
 Source: session-2026-07-29
 Agent: grok
