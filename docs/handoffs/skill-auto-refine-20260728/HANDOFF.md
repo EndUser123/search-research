@@ -102,7 +102,7 @@ For each skill that produces findings or improvement recommendations:
 - `~/.grok/skills/go/SKILL.md` — Step B "adaptive prompt enhancement" (the
   existing pattern for auto-improving task prompts)
 - `~/.grok/skills/review/SKILL.md` — FINDINGS.md format + severity levels
-- `~/.grok/skills/check/SKILL.md` — verifier issue format
+- `P:/.grok/skills/check/SKILL.md` — verifier issue format
 - `~/.grok/skills/aar/SKILL.md` — opportunity landscape format
 - `~/.grok/skills/close/SKILL.md` — gate resolution tier system (Tier 1 =
   auto-resolve, which is the same concept as auto-refine)
