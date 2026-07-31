@@ -14,6 +14,8 @@ version: "1.0"
 
 ## Procedure
 
+**Step 0 (mandatory):** Check quota first. Run `python ~/.grok/skills/model-quota/scripts/pick_model.py --json --lane reasoning` to get quota-eligible models before reading tier lists. GLM-5.2 has ~1600 calls/5h; when Z.ai drops below threshold, the picker returns the backup.
+
 ### /tp (critical-friend critique) — diversity-first
 
 The entire point of /tp is a DIFFERENT lens. GLM-5.2 is the parent; spawning

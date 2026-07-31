@@ -14,18 +14,26 @@ version: "1.0"
 
 ## Procedure
 
-1. Check pool health.
-2. Select from tier-1 (fastest free models that pass mechanical tier):
-   - For speed: or-ling-3-flash-free or mistral-medium-latest
+1. **Check quota first.** Run `python ~/.grok/skills/model-quota/scripts/pick_model.py --json --lane mechanical` to get quota-eligible models. This filters out any model whose provider is below the quota floor. The quota-aware picker returns only models that won't be denied by the spawn gate.
+2. Check pool health.
+3. Select from tier-1 (fastest free models that pass mechanical tier):
+   - For speed: or-ling-3-flash-free or nim-openai-gpt-oss-20b
    - For IFBench-constrained formatting: minimax-m3
 3. If tier-1 unavailable, fall to tier-2.
 
 ## Tier-1 (verified 2026-07-29)
 or-ling-3-flash-free (2.2s, $0/M, 13/13 reasoning — fastest fleet model)
-mistral-medium-latest (6.9s, free, 5/5 code-exec)
+nim-openai-gpt-oss-20b (7.7s, free, spawn OK)
 minimax-m3 (7.3s, sub, IFBench #1 globally at 82.9%)
   - Use specifically for: formatting, structured output, constraint adherence
-nim-openai-gpt-oss-20b (7.7s, free, spawn OK)
+  - NOTE: fails on tasks with large output budgets — see tool-fallbacks.md (max_tokens_truncation)
+
+## Broken via spawn_subagent (do NOT dispatch)
+mistral-medium-latest — HTTP 422 on every spawn_subagent attempt on this host.
+  Root cause: this host's AGENTS.md context injection (~26K tokens) exceeds
+  Mistral's input limit. Verified 2026-07-21 and re-confirmed 2026-07-29 (4/4
+  /www research subagents failed identically). Works via direct API only.
+  See ~/.grok/tool-fallbacks.md.
 
 ## Tier-2 (fallback)
 nvidia-nemotron-3-super-120b (6.1s, free, 13/13 reasoning)

@@ -607,6 +607,8 @@ backups/
 !.data/wiki/entities/**
 !.data/wiki/sources/
 !.data/wiki/sources/**
+# Regenerable skill stubs — index_skills.py clears and rewrites on every run
+.data/wiki/sources/skills/
 !.data/wiki/scripts/
 !.data/wiki/scripts/**
 !.data/wiki/SCHEMA.md

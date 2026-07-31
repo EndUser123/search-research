@@ -14,6 +14,8 @@ version: "1.0"
 
 ## Procedure
 
+**Step 0 (mandatory):** Check quota first. Run `python ~/.grok/skills/model-quota/scripts/pick_model.py --json --lane critic` to get quota-eligible models before reading tier lists.
+
 ### /review (code review) — quota-aware parallel panel
 
 For /review specialist fan-out, use these models in parallel. The operator

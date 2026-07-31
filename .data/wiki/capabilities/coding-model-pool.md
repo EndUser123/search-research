@@ -9,6 +9,7 @@
 
 ## Procedure
 
+0. **Check quota first.** Run `python ~/.grok/skills/model-quota/scripts/pick_model.py --json --lane coding` to get quota-eligible models before reading tier lists. This filters out any model whose provider is below the quota floor.
 1. Check pool health: read `P:/.data/wiki/capabilities/coding-model-pool-health.json`.
    Skip any model with `status: "degraded"`. Models with `status: "recovering"`
    are usable but not preferred.
