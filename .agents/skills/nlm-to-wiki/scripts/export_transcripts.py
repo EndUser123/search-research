@@ -264,7 +264,29 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
                 time.sleep(spacing)
                 continue
         atomic_write(out_path, build_transcript_md(src, notebook_id, content))
+
+        # Feed-forward: populate yt-is cache so future syncs skip this fetch
+        fed_to_cache = False
+        if _forward_sync_bridge is not None:
+            try:
+                from yt_is_forward_sync import _resolve_video_id
+                vid = _resolve_video_id(src, _forward_sync_bridge)
+                if vid:
+                    from csf.cache import set_cached_transcript
+                    set_cached_transcript(
+                        vid, "en", "notebooklm", content,
+                        metadata={"source": "nlm-to-wiki:feed-forward",
+                                  "nlm_source_id": sid,
+                                  "title": src.get("title", "")},
+                        bind_verified=True,
+                    )
+                    fed_to_cache = True
+            except Exception:
+                pass  # feed-forward is best-effort; never block the pipeline
+
         exported += 1
+        if fed_to_cache and (i <= 3 or i % 25 == 0):
+            log(f"    [feed] cached video_id={vid}")
         time.sleep(spacing)
 
     log(f"Done: exported={exported} skipped={skipped} failed={failed} from_cache={from_cache_count}")

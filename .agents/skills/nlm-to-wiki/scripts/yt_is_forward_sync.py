@@ -75,3 +75,27 @@ def build_bridge_once() -> dict[str, list[str]]:
         return build_title_bridge()
     except Exception:
         return {}
+
+
+def _resolve_video_id(source: dict, bridge: dict[str, list[str]]) -> str:
+    """Resolve a YouTube video_id from a source dict using the title bridge.
+
+    Used by feed-forward (export_transcripts.py) to determine which video_id
+    to cache the transcript under. Returns empty string on failure.
+
+    Args:
+        source: NotebookLM source dict with 'title' field
+        bridge: title->video_id bridge
+
+    Returns:
+        video_id string (11 chars) or "" if unresolvable
+    """
+    try:
+        from title_bridge import match_title
+        title = source.get("title", "")
+        if not title:
+            return ""
+        vid, _ = match_title(title, bridge)
+        return vid or ""
+    except Exception:
+        return ""
