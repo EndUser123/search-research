@@ -14,7 +14,6 @@
    are usable but not preferred.
 2. Select first available model from tier-1 pool (not degraded):
    - or-ling-3-flash-free
-   - mistral-medium-latest
    - nim-openai-gpt-oss-20b
 3. If all tier-1 unavailable or degraded, select from tier-2 (not degraded):
    - go-deepseek-v4-flash
@@ -25,8 +24,9 @@
 
 ## Tier-1 (verified 2026-07-29, 5-problem HumanEval + 13-problem deep-reasoning)
 or-ling-3-flash-free (5/5 code-exec, 13/13 reasoning, 2.2s, $0/M, spawn OK)
-mistral-medium-latest (5/5 code-exec, 12/13 reasoning, 6.9s, free, spawn OK)
 nim-openai-gpt-oss-20b (4/5 code-exec, 13/13 reasoning, 7.7s, free, spawn OK)
+  - NOTE: mistral-medium-latest was tier-1 (5/5 code-exec) but is now spawn-broken
+    (422 context-too-large on this host). Moved to excluded. See fleet-models.json.
 
 ## Tier-2 (fallback when tier-1 exhausted)
 go-deepseek-v4-flash (5/5 code-exec, 13/13 reasoning, 6.4s, OpenCode sub)
