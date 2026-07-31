@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E701, E702
 """queue_sync.py — queue-of-work pattern for parallel wiki-yt ingestion.
 
 Durable location: P:/.agents/skills/wiki-yt/scripts/bin/queue_sync.py
@@ -55,10 +56,14 @@ def _acquire_lock(timeout=30):
     raise TimeoutError(f"Could not acquire queue lock after {timeout}s")
 
 def _release_lock(fd):
-    try: os.close(fd)
-    except OSError: pass
-    try: _lock_path().unlink()
-    except FileNotFoundError: pass
+    try:
+        os.close(fd)
+    except OSError:
+        pass
+    try:
+        _lock_path().unlink()
+    except FileNotFoundError:
+        pass
 
 def load_queue():
     if QUEUE_FILE.exists():
