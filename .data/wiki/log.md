@@ -1,5 +1,11 @@
 # Vault Log
 
+## meta-level-proactivity-skill-graph
+Source: session-019fb177
+Agent: grok
+Notes: Three structural fixes for agent proactivity mapped to the skill graph — meta-checkpoint, cold-read audit, wiki marker scanner
+Page: P:/.data/wiki/concepts/meta-level-proactivity-three-fixes-skill-graph-mapping.md
+
 ## skill-usability-audit
 Source: session-019fb177
 Agent: grok
