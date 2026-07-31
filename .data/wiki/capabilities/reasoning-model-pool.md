@@ -14,12 +14,27 @@ version: "1.0"
 
 ## Procedure
 
-1. Check pool health (same mechanism as coding pool).
-2. Select from tier-1 based on task subtype:
-   - thought-partner / planning / delegation: glm-5-2 (Tau2 #1 globally, agentic #21)
-   - deep-reasoning (free): or-ling-3-flash-free (13/13 our benchmark, 2.2s)
-   - deep-reasoning (if reasoning tokens needed): nvidia-nemotron-3-ultra (13/13, IFBench #2)
-3. If tier-1 unavailable, fall to backup (zen-deepseek-v4-flash-free).
+### /tp (critical-friend critique) — diversity-first
+
+The entire point of /tp is a DIFFERENT lens. GLM-5.2 is the parent; spawning
+a fresh GLM-5.2 subagent is same-model-lens (fresh context, same blind spots).
+Selection prioritizes model-family diversity over raw reasoning power.
+
+1. **2nd lens (spawn_subagent):** zen-deepseek-v4-flash-free
+   - Different family from GLM-5.2 (DeepSeek vs Zhipu)
+   - Tau2 95.6, free, spawn-compatible
+2. **3rd + 4th lens (CLI parallel dispatch):** /codex (GPT) + /agy (Gemini)
+   - Maximum cross-family diversity
+   - Run in parallel when stakes are high
+   - These are CLI skills, not spawn_subagent — separate quota pools
+3. **Last resort:** parent-inherited GLM-5.2 (fresh-context but same-model lens)
+
+### Thought-partner / planning / delegation (orchestrator role)
+glm-5-2 (Tau2 #1 globally, agentic #21) — this is the orchestrator, not a pool pick
+
+### Deep reasoning (free-first, non-critique tasks)
+or-ling-3-flash-free (13/13 our benchmark, 2.2s)
+or-arcee-ai-trinity-large-thinking (13/13, 4.6s, $0/M)
 
 ## Tier-1 (verified 2026-07-29)
 ### Thought-partner / planning / delegation

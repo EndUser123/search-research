@@ -14,29 +14,51 @@ version: "1.0"
 
 ## Procedure
 
-1. Check pool health.
-2. Select from tier-1 based on task subtype:
-   - Code review: mistral-medium-latest (BenchLM coding #12, 91st pct)
-   - Adversarial / logic check: glm-5-2 (Tau2 #1, knowledge #9)
-   - Cross-model second opinion: use CLI skills (/agy, /codex, /mmx) — NOT from this pool
-3. If tier-1 unavailable, fall to tier-2.
+### /review (code review) — quota-aware parallel panel
 
-## Tier-1 (verified 2026-07-29)
-### Code review lane
-mistral-medium-latest (BenchLM coding #12/130 91st pct, 5/5 code-exec, spawn OK)
-  - Use for: maintainability review, correctness check, structural analysis
-nim-openai-gpt-oss-20b (BenchLM coding via provider, 13/13 reasoning, spawn OK)
+For /review specialist fan-out, use these models in parallel. The operator
+has high MiniMax quota and low /review frequency, so M3 is included despite
+being subscription quota.
 
-### Adversarial / logic / assumption testing
-glm-5-2 (Tau2 #1, knowledge #9, agentic #21)
-  - Use for: assumption challenging, logic flaw detection, "could you be wrong" prompts
-nvidia-nemotron-3-ultra (IFBench #2, 13/13 reasoning, 1M context)
-  - Use for: large-context review, long-document analysis
+**Review panel (parallel dispatch):**
+1. **or-ling-3-flash-free** — free, 5/5 code-exec, fast (2.2s)
+2. **zen-deepseek-v4-flash-free** — free, different family (DeepSeek), Tau2 95.6
+3. **nim-openai-gpt-oss-20b** — free, 13/13 reasoning, spawn-compatible
+4. **minimax-m3** — subscription, high quota available, IFBench #1 for formatting/structured output
 
-## Tier-2 (fallback)
-or-ling-3-flash-free (13/13, $0/M, 2.2s — fast but no public review benchmark data)
-zen-deepseek-v4-flash-free (13/13, $0, spawn untested)
-go-qwen3-7-max (IFEval 94.3%, 13/13, 19s)
+**Why these four:** three free-tier models (zero quota cost) plus M3 for
+structured-output quality. The diversity across families (Ling, DeepSeek,
+OpenAI-oss, MiniMax) catches different bug classes. Decomposition makes any
+of them work — per-file or per-lens specialists, not one giant review.
+
+**When to use fewer:** for `--lite` reviews, use or-ling-3-flash-free alone.
+For single-file focused reviews, use zen-deepseek-v4-flash-free (strongest
+reasoning of the free tier).
+
+### /tp (critical-friend critique) — diversity-first
+
+See reasoning-model-pool.md § "/tp" for the /tp-specific model selection.
+The critic pool's role for /tp is to provide cross-model diversity, not
+raw analytical power. Key principle: the critic must be from a DIFFERENT
+model family than the work being reviewed.
+
+**Cross-model CLI dispatch (for high-stakes critique):**
+- /codex (GPT) + /agy (Gemini) in parallel — maximum family diversity
+- These are separate from the review panel above
+
+### Selection criteria
+Critic tasks require both analytical quality and **model-family diversity**
+(context-firewall principle). The critic must be from a different family
+than the parent orchestrator (GLM-5.2/Zhipu). Constitutional AI research
+(Springer 2026) confirms model behavior dominates prompting for sycophancy
+reduction — a weaker-but-different model catches what a stronger-but-same
+model misses.
+
+## Review panel models (verified 2026-07-30, operator directive)
+or-ling-3-flash-free (5/5 code-exec, $0/M, 2.2s — fast, free, spawn OK)
+zen-deepseek-v4-flash-free (13/13 reasoning, $0, Tau2 95.6 — strongest free reasoning)
+nim-openai-gpt-oss-20b (4/5 code-exec, 13/13 reasoning, free, spawn OK)
+minimax-m3 (4/5 code-exec, 13/13 reasoning, IFBench #1 globally, subscription quota available)
 
 ## Cross-model review (separate from this pool)
 For cross-model second opinions, use the CLI skills:
