@@ -88,11 +88,13 @@ This is a specific instance of [[premature-closure-narrative-sufficiency-externa
 
 ## Key files (read-first)
 
+> **Path update 2026-07-31:** Extension files have moved from `C:\Users\brsth\chrome-acp\` to `P:\packages\chrome-acp\`. Proxy files remain at the npm path below.
+
 - `C:\Users\brsth\AppData\Roaming\npm\node_modules\@chrome-acp\proxy-server\dist\cli\command.js` — WORKSPACE_ROOT hard-code
 - `C:\Users\brsth\AppData\Roaming\npm\node_modules\@chrome-acp\proxy-server\dist\server.js` — /restart-proxy endpoint
-- `C:\Users\brsth\chrome-acp\dist\sidepanel-t6n74ra3.js` — button injection + proxy-down detector
-- `C:\Users\brsth\chrome-acp\restart-proxy.js` — detached spawn helper
-- `C:\Users\brsth\chrome-acp\re-apply-patches.ps1` — re-apply script
+- `P:\packages\chrome-acp\dist\sidepanel-t6n74ra3.js` — button injection + proxy-down detector
+- `P:\packages\chrome-acp\restart-proxy.js` — detached spawn helper
+- `P:\packages\chrome-acp\re-apply-patches.ps1` — re-apply script (uses `$PSScriptRoot`)
 - `P:/tmp/test_chrome_acp_patches.py` — pytest verification suite
 - `P:/.data/wiki/concepts/chrome-acp-grok-build-setup-implementation.md` — patch registry
 
