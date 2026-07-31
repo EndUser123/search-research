@@ -17,7 +17,12 @@ Implement three fixes identified by /tp critique, /www research, and /design: (1
 
 ## Status
 
-OPEN — design complete (2 review rounds, 25 findings all addressed). All three fixes are buildable. No implementation started.
+**F2 SHIPPED.** Cache-first + feed-forward implemented, smoke-tested, committed.
+F1 and F3 DEFERRED per /tp critique (F1 is over-scoped; F3 spends paid quota on
+completeness that doesn't block the forward-sync goal).
+
+See `P:/docs/handoffs/wiki-yt-architecture-decisions-20260730/HANDOFF.md` for
+the full architecture decisions.
 
 ## Design document
 
