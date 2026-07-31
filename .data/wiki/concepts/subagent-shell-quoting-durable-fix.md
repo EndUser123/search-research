@@ -66,9 +66,16 @@ This applies beyond DDG. Any Python that subagents run should be a file, not inl
 | Pattern | Status |
 |---|---|
 | DDG searches | ✅ Fixed: `ddgs_search.py` |
+| HTTP+JSON APIs (HN Algolia, GitHub REST, any REST endpoint) | ✅ Fixed: use PowerShell's `Invoke-RestMethod` — native JSON handling, no quoting issue. Verified working 2026-07-31. |
 | JSON parsing of tool output | Use existing scripts or write to `P:/tmp/parse.py` |
 | Multi-line Python (loops, conditionals) | Write to `P:/tmp/script.py`, then execute |
 | Git operations requiring Python orchestration | Write to `P:/tmp/git_op.py`, then execute |
+
+**The `Invoke-RestMethod` pattern (added 2026-07-31):** PowerShell handles HTTP+JSON natively. The HN Algolia query that failed with `python -c` (nested f-strings with dict access) works perfectly with:
+```powershell
+(Invoke-RestMethod "https://hn.algolia.com/api/v1/search?query=<topic>&tags=story" -TimeoutSec 15).hits | Select-Object -First 10 | ForEach-Object { "$($_.points)pts | $($_.title) | $($_.url)" }
+```
+This eliminates the need for `http_json_get.py` — the generic HTTP+JSON wrapper is unnecessary because PowerShell already IS the wrapper. Reserve Python scripts for cases that need Python libraries (DDG's `ddgs` package, youtube-transcript-api, etc.), not plain HTTP GET.
 
 The spawn template in `/go` H4 should include: "For any Python, write a temp `.py` file to `P:/tmp/` and execute it. Never use inline `python -c` with nested quotes."
 
