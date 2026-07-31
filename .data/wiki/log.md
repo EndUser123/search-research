@@ -1,5 +1,11 @@
 # Vault Log
 
+## youtube-throttling-returns-429-not-silent-200
+Source: session-019fb49b
+Agent: grok
+Notes: YouTube throttling returns 429 not 200+empty. yt-is circuit breaker handles it correctly. The 200+empty claim was fabricated.
+Page: P:/.data/wiki/concepts/youtube-throttling-returns-429-not-silent-200.md
+
 ## Asserting runtime behavior from memory — behavioral pattern (operator correction)
 Source: session-20260730
 Agent: grok
