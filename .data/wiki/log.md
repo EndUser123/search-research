@@ -1,5 +1,11 @@
 # Vault Log
 
+## Chrome ACP Patches Update
+Source: session-20260730
+Agent: grok
+Notes: Added P-wd-lock (working directory lock to P:\), IIFE structure docs, CDP debugging section, re-apply procedure, patch placement rules
+Page: wiki/concepts/chrome-acp-grok-build-setup-implementation.md
+
 ## Chromium CDP WebSocket Origin Restriction
 Source: session-20260730
 Agent: grok
