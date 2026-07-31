@@ -21,7 +21,7 @@ relations:
 
 # Chrome ACP → Grok Build — Patches and Customizations
 
-## Status: SHIPPED 2026-07-31 (working directory lock added)
+## Status: SHIPPED 2026-07-31 (working directory lock + tool-result collapse added)
 host: grok
 
 ## Architecture
@@ -105,6 +105,7 @@ try{(function(){
 | Theme-safe CSS | No color overrides — only structural CSS, inherits extension theme |
 | **Working dir lock (P-wd-lock)** | Locks `#working-dir` input to `P:\`, sets `readOnly=true`, dims field, updates label to "(locked to P:\)". Uses native value setter + `input` event dispatch to bypass React controlled-input anti-pattern. Runs BEFORE popover guard so it works on connection screen. `dataset.acpLocked` guard prevents re-processing. |
 | **Restart Proxy button (P-restart-btn)** | Power icon (⏻) button in status bar. Calls `POST /restart-proxy` on the proxy, waits 2.5s, then reloads the extension. Requires the `P-restart` server endpoint. Lets operator restart the proxy without a terminal — picks up code patches (command.js, server.js) without leaving the browser. |
+| **Tool-result collapse (P-collapse-tools)** | Caps `.acp-tc` blocks at `max-height:300px` with `overflow-y:auto` and `scrollbar-width:thin`. A maximize icon button in the floating controls toggles `body.acp-expand-tools` which removes the cap globally. State persists in `localStorage("acp_et")`. Three IIFE edits: CSS rule (mirrors `.acp-hide-thinking`), load-time class restore (mirrors thinking init), toggle button (mirrors thinking toggle in Feature 8). Addresses the "sidepanel sludge" problem where large `browser_read`/file-read/shell results rendered in full and dominated the transcript. Agent still receives full tool results — only the rendered view changes. |
 
 ### P-wd-lock implementation notes
 - **Why:** The agent process is hard-coded to `WORKSPACE_ROOT = "P:\\"` in command.js. The free-form cwd field created a silent mismatch — file browser and agent process could diverge.
@@ -141,6 +142,7 @@ try{(function(){
 - 5/5 files pass `node --check`
 - Proxy health endpoint: ok
 - Live confirmed: connection, session creation, file browser (207 items), dotfiles visible, model picker stays open
+- P-collapse-tools: syntax-verified (`node --check`), patched backup updated, re-apply script updated. **NOT live-verified** — needs extension reload + DevTools confirmation that `.acp-tc` selector matches rendered tool-result blocks.
 
 ## What this means for our workspace
 
