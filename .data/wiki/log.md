@@ -1,5 +1,11 @@
 # Vault Log
 
+## invisible-cross-reference
+Source: session-019fb177
+Agent: grok
+Notes: Reading data is necessary but not sufficient — cross-referencing must produce visible output to be verifiable
+Page: P:/.data/wiki/concepts/invisible-cross-reference-reading-is-not-sufficient.md
+
 ## Model routing community implementations comparison
 Source: session-20260731
 Agent: grok
