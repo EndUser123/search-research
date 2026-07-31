@@ -3,8 +3,8 @@ Index all skills across the workspace into the wiki.
 
 Produces two outputs:
 1. Lightweight stubs at P:/.data/wiki/sources/skills/<scope>-<name>.md
-   (frontmatter only — name, description, path, scope). These let qmd
-   semantically search skill descriptions without duplicating full SKILL.md
+   (frontmatter only — name, description, path, scope). These provide a
+   searchable index of skill descriptions without duplicating full SKILL.md
    content (which would drift).
 
 2. A catalog concept at P:/.data/wiki/concepts/skill-catalog.md
@@ -273,12 +273,12 @@ def _state_yaml(value: str) -> str:
 
 
 def write_stub(entry: SkillEntry, full_body: bool = False) -> Path:
-    """Write a lightweight stub file for qmd indexing.
+    """Write a lightweight stub file for skill indexing.
 
     Args:
         entry: the skill entry to write
         full_body: if True, include the full SKILL.md body (after frontmatter)
-            so qmd indexes the actual techniques/procedures, not just the
+            so the stub contains the actual techniques/procedures, not just the
             description. Opt-in via --full-body flag. Stubs without --full-body
             remain frontmatter-only pointers (prevents drift, original design).
     """
@@ -298,7 +298,7 @@ def write_stub(entry: SkillEntry, full_body: bool = False) -> Path:
                     body_text = raw[fm_match.end():].strip()
                 else:
                     body_text = raw.strip()
-                # Cap at ~8000 chars to bound qmd index size per skill
+                # Cap at ~8000 chars to bound stub file size per skill
                 if len(body_text) > 8000:
                     body_text = body_text[:7997] + "\n..."
         except OSError:
@@ -355,7 +355,7 @@ def write_catalog(entries: list[SkillEntry]) -> None:
         "agent: grok",
         f"verification: generated_{today}",
         "cognitive_load: 3",
-        f"summary: Auto-generated index of {len(entries)} skills across {len(by_scope)} directories. For semantic search of skill descriptions, query qmd; for human reference, scan the tables below.",
+        f"summary: Auto-generated index of {len(entries)} skills across {len(by_scope)} directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.",
         "---",
         "",
         "# Skill catalog",
@@ -367,7 +367,7 @@ def write_catalog(entries: list[SkillEntry]) -> None:
         "",
         "## How to use this catalog",
         "",
-        "- **Semantic search:** `qmd search \"<capability>\" -c wiki` — returns matching skills from `sources/skills/` stubs",
+        "- **Skill search:** grep or read stubs in `sources/skills/` for skill descriptions and paths",
         "- **Authoritative source:** always read the actual `SKILL.md` at the listed path (stubs may lag)",
         "- **Scope meanings:** see the table at the bottom of this page",
         "",
