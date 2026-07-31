@@ -1,5 +1,11 @@
 # Vault Log
 
+## skill-usability-audit
+Source: session-019fb177
+Agent: grok
+Notes: Cold-read critique technique for catching LLM-followability problems in skills — spawn fresh subagent, pass only skill files, ask structured usability questions
+Page: P:/.data/wiki/concepts/skill-usability-audit-cold-read-critique.md
+
 ## dual-path-hazard
 Source: session-019fb177
 Agent: grok
