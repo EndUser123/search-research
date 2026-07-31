@@ -29,7 +29,7 @@ Session 20260730 ran a massive quota-aware model routing buildout (three-layer g
 2. `P:/.data/wiki/concepts/delegation-decision-rule-context-dependency.md` — the delegation decision rule written this session (context-management framing for when to delegate vs keep on orchestrator)
 3. `P:/.data/wiki/concepts/agentic-harness-seven-components-2026.md` — paper finding that system prompt is the only harness component that regresses alone; middleware is what makes prompt rules work
 4. `P:/.data/wiki/concepts/model-role-assignment-public-vs-custom-benchmarks.md` — dual basis for model selection (task-fit + quota isolation); M3 as orchestrator is maddening (operator experience)
-5. `P:/.data/wiki/concepts/execution-path-based-model-routing.md` — the three-layer quota-aware routing architecture built this session
+5. `P:/.data/wiki/concepts/execution-path-based-model-routing-grok-build.md` — the three-layer quota-aware routing architecture built this session
 
 ## 5. Verified facts
 
