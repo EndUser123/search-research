@@ -8,12 +8,14 @@ string handling. This script eliminates the problem by moving the Python code
 into a file — subagents pass the query as a plain argument.
 
 Usage:
-    python P:/.agents/scripts/ddgs_search.py "search query" [--max 10] [--json]
+    python P:/.agents/scripts/ddgs_search.py "search query" [--max 10]
     python P:/.agents/scripts/ddgs_search.py "search query" --site reddit.com
+    python P:/.agents/scripts/ddgs_search.py "q1" "q2" "q3" --max 5  # multi-query batch
     echo "query via stdin" | python P:/.agents/scripts/ddgs_search.py --stdin --max 5
 
 Output (JSON to stdout):
-    [{"title": "...", "href": "...", "body": "..."}, ...]
+    Single query: [{"title": "...", "href": "...", "body": "..."}, ...]
+    Multi-query:  {"query1": [...], "query2": [...], ...}
 
 Exit codes:
     0 = results returned (possibly empty list)
@@ -63,8 +65,8 @@ def main():
     )
     parser.add_argument(
         "query",
-        nargs="?",
-        help="Search query (use --stdin for piped input)",
+        nargs="*",
+        help="Search query (1+ queries for batch, or use --stdin for piped input)",
     )
     parser.add_argument(
         "--stdin",
@@ -92,12 +94,32 @@ def main():
     args = parser.parse_args()
 
     if args.stdin:
-        query = sys.stdin.read().strip()
+        queries = [sys.stdin.read().strip()]
     elif args.query:
-        query = args.query
+        queries = args.query
     else:
         parser.error("Provide a query as positional arg or use --stdin")
 
+    # Multi-query batch mode
+    if len(queries) > 1:
+        batch_results = {}
+        for q in queries:
+            batch_results[q] = run_search(q, max_results=args.max, site=args.site)
+        if args.text:
+            for q, results in batch_results.items():
+                print(f"=== {q} ===")
+                for r in results:
+                    print(f"TITLE: {r['title']}")
+                    print(f"URL:   {r['href']}")
+                    print(f"BODY:  {r['body'][:200]}")
+                    print()
+                print()
+        else:
+            print(json.dumps(batch_results, indent=2, ensure_ascii=False))
+        return
+
+    # Single query mode
+    query = queries[0]
     results = run_search(query, max_results=args.max, site=args.site)
 
     if args.text:
