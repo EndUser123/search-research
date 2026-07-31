@@ -1,5 +1,11 @@
 # Vault Log
 
+## Model routing community implementations comparison
+Source: session-20260731
+Agent: grok
+Notes: 4 community implementations compared: Hermes model-router (5-tier auto-escalation), Hermes issue #5508 (per-skill model frontmatter), Tokenless YC S26 (proxy gateway), Claude Code .claude/rules (behavioral). Our unique differentiator: quota-awareness + serde-broken detection.
+Page: P:/.data/wiki/concepts/model-routing-community-implementations-comparison-2026.md
+
 ## cross-invocation
 Source: session-019fb177
 Agent: grok
