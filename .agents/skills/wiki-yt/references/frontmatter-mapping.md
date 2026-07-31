@@ -23,7 +23,7 @@ sources:                  # all sources that contributed to this concept
 ---
 ```
 
-## Provenance extension (non-SCHEMA, nlm-to-wiki-specific)
+## Provenance extension (non-SCHEMA, wiki-yt-specific)
 
 Appended after `sources:`:
 

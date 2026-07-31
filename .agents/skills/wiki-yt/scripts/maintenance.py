@@ -170,7 +170,7 @@ def audit(profile: str) -> dict:
 
 
 def print_audit(report: dict) -> None:
-    print("\n=== nlm-to-wiki audit ===\n")
+    print("\n=== wiki-yt audit ===\n")
     print(f"Live notebooks in NotebookLM: {report['live_notebook_count']}")
     print(f"Tracked in manifest:          {report['tracked_notebook_count']}")
     print()
@@ -335,7 +335,7 @@ def prune_notebook(nb_id: str, confirm: bool) -> int:
 def disk_report() -> None:
     """Print disk usage breakdown: transcripts + keyframes per notebook."""
     manifest = load_manifest()
-    print("\n=== nlm-to-wiki disk usage ===\n")
+    print("\n=== wiki-yt disk usage ===\n")
     tx_total = dir_size(TRANSCRIPTS_DIR)
     kf_total = dir_size(KEYFRAMES_DIR)
     print(f"Total transcripts: {fmt_bytes(tx_total)} ({TRANSCRIPTS_DIR})")

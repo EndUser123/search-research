@@ -275,7 +275,7 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
                     from csf.cache import set_cached_transcript
                     set_cached_transcript(
                         vid, "en", "notebooklm", content,
-                        metadata={"source": "nlm-to-wiki:feed-forward",
+                        metadata={"source": "wiki-yt:feed-forward",
                                   "nlm_source_id": sid,
                                   "title": src.get("title", "")},
                         bind_verified=True,

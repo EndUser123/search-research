@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sync.py — orchestrator for the full nlm-to-wiki v3 pipeline.
+"""sync.py — orchestrator for the full wiki-yt v3 pipeline.
 
 Usage:
   # Single notebook (canonical case)

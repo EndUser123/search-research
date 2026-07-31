@@ -1,5 +1,5 @@
 ---
-name: nlm-to-wiki
+name: wiki-yt
 description: >
   Sync NotebookLM notebook content into the wiki vault as SCHEMA-compliant
   concept pages with full 4-hop provenance (concept → notebook → cluster →
@@ -13,7 +13,7 @@ description: >
 host: both
 ---
 
-# nlm-to-wiki
+# wiki-yt
 
 Pull concepts out of NotebookLM notebooks into the wiki, with provenance
 that lets a reader click from any claim back to the exact source video or
@@ -22,7 +22,7 @@ URL the concept came from.
 Built to round-trip with `[[nlm-bulk-ingest]]`:
 
 ```
-URL list → nlm-bulk-ingest → 15 notebooks → nlm-to-wiki → ~5-15 sub-topic
+URL list → nlm-bulk-ingest → 15 notebooks → wiki-yt → ~5-15 sub-topic
                                           (v3: transcript export) wiki concept pages
                                                                 with provenance back to original URLs
 ```
@@ -112,53 +112,53 @@ synthesizes locally, so every claim traces to a verbatim source excerpt. See
 
 ```bash
 # DEFAULT (no args): list notebooks with sync status, then pick one
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py
+python P:/.agents/skills/wiki-yt/scripts/sync.py
 # → prints a status table (notebook × synced/transcripts/pages)
 # → run again with --notebook <id> to sync the one you want
 
 # Status only (no sync)
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py --status
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py --status --min-sources 50
+python P:/.agents/skills/wiki-yt/scripts/sync.py --status
+python P:/.agents/skills/wiki-yt/scripts/sync.py --status --min-sources 50
 
 # Sync one notebook (the canonical case)
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
+python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --notebook <uuid> \
     --profile a.hominidae
 
 # Sync all notebooks (sequential; ~10-30 min each)
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
+python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --all \
     --profile a.hominidae \
     --state sync-state.json
 
 # Round-trip from nlm-bulk-ingest output
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
+python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --from-clusters clusters.json \
     --profile codex \
     --state sync-state.json
 
 # Dry run — export + cluster + synthesize + reconcile, no page writes
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
+python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --notebook <uuid> \
     --dry-run
 
 # Re-sync (skips notebooks whose source_ids haven't changed)
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
+python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --notebook <uuid>
 
 # v3: with optional vision enrichment + custom sub-topic count
-python P:/.agents/skills/nlm-to-wiki/scripts/sync.py \
+python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --notebook <uuid> \
     --enrich-vision --max-subtopics 12 --synth-backend mmx
 ```
 
-## Agent invocation pattern (when invoked as `/nlm-to-wiki`)
+## Agent invocation pattern (when invoked as `/wiki-yt`)
 
 **Step 0 — help short-circuit.** If the argument is `-h`, `-help`, `--help`,
 or `help` (case-insensitive), read `references/help.md` and present its
 contents (Quick reference table, Common questions, Troubleshooting). Do NOT
 run the sync pipeline, call `nlm`, or ask which notebook to sync. Stop after
-presenting the help resource. This makes `/nlm-to-wiki -h` the fast path for
+presenting the help resource. This makes `/wiki-yt -h` the fast path for
 "how do I use this?" without side effects.
 
 **Step 1 — no args: status picker.** When invoked without a target notebook
@@ -177,7 +177,7 @@ Do not auto-run `--all` without explicit operator confirmation — 87
 notebooks at ~15-25 min each is multi-hour work.
 
 For the full cheat-sheet, FAQ, and troubleshooting table, see
-`references/help.md` (or run `/nlm-to-wiki -h`). Key pointer: auth expiry
+`references/help.md` (or run `/wiki-yt -h`). Key pointer: auth expiry
 recovers silently via `nlm login --profile a.hominidae` (~10s, no operator
 intervention).
 
@@ -302,7 +302,7 @@ single approved parallel driver — do not mix it with `--all` or manual
 **Durable locations:** the queue file lives at
 `P:/.data/wiki/_state/nlm-sync/queue.json` (not `P:/tmp/` — other agents
 clean tmp). The worker script lives at
-`P:/.agents/skills/nlm-to-wiki/scripts/bin/queue_sync.py`.
+`P:/.agents/skills/wiki-yt/scripts/bin/queue_sync.py`.
 
 ## Operational gotchas (inherited)
 
@@ -329,7 +329,7 @@ The sync manifest at `P:/.data/wiki/_state/nlm-sync-manifest.json` records
 - Source IDs changed → re-export + re-cluster + re-synthesize, then dedup
   against existing pages (refines any that already exist from prior sync)
 
-This makes `nlm-to-wiki sync` idempotent and safe to schedule.
+This makes `wiki-yt sync` idempotent and safe to schedule.
 
 ## Maintenance and cleanup
 
@@ -340,10 +340,10 @@ v2→v3 migrations leave stale slugs. `maintenance.py` audits and repairs.
 
 ```bash
 # Audit (read-only, safe) — report all mismatches
-python P:/.agents/skills/nlm-to-wiki/scripts/maintenance.py --audit
+python P:/.agents/skills/wiki-yt/scripts/maintenance.py --audit
 
 # Status + audit in one pass (the routine health check)
-python P:/.agents/skills/nlm-to-wiki/scripts/maintenance.py --audit --disk-report
+python P:/.agents/skills/wiki-yt/scripts/maintenance.py --audit --disk-report
 
 # Fix stale manifest concept_slugs (pages deleted but slugs remain)
 python maintenance.py --fix-stale-slugs --confirm

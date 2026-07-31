@@ -1,9 +1,9 @@
-# nlm-to-wiki — Help resource
+# wiki-yt — Help resource
 
-Quick reference, common questions, and troubleshooting for the nlm-to-wiki
+Quick reference, common questions, and troubleshooting for the wiki-yt
 skill. Loaded on demand; SKILL.md carries the entry-point summary.
 
-All commands run from `P:/.agents/skills/nlm-to-wiki/scripts/`. The default
+All commands run from `P:/.agents/skills/wiki-yt/scripts/`. The default
 profile is `a.hominidae` (= `a.hominidae@gmail.com` on this host).
 
 ## Quick reference

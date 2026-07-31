@@ -112,7 +112,7 @@ relations:
     if not defn and c.get("details"):
         defn = str(c["details"][0])[:300]  # last resort: first detail
     if not defn:
-        defn = f"Concept extracted from notebook {c.get('notebook_title', '')} via nlm-to-wiki sync."
+        defn = f"Concept extracted from notebook {c.get('notebook_title', '')} via wiki-yt sync."
     # Escape for YAML — strip newlines and quotes
     defn_clean = defn.replace("\n", " ").replace('"', "'")[:300]
 
@@ -240,7 +240,7 @@ def build_body(c: dict) -> str:
         parts.append("about local workspace implementation. Trigger words like")
         parts.append("'mechanism', 'scanner', 'gate', 'hook', 'because' refer to concepts")
         parts.append("discussed in the source videos, not to local code behavior.")
-        parts.append("Implementation path: nlm-to-wiki/scripts/synthesize_subtopics.py")
+        parts.append("Implementation path: wiki-yt/scripts/synthesize_subtopics.py")
         parts.append("(LLM synthesis from transcripts — no local code inspected).")
         parts.append("")
 

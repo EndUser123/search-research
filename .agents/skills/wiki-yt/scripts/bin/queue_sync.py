@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""queue_sync.py — queue-of-work pattern for parallel nlm-to-wiki ingestion.
+"""queue_sync.py — queue-of-work pattern for parallel wiki-yt ingestion.
 
-Durable location: P:/.agents/skills/nlm-to-wiki/scripts/bin/queue_sync.py
+Durable location: P:/.agents/skills/wiki-yt/scripts/bin/queue_sync.py
 Queue file: P:/.data/wiki/_state/nlm-sync/queue.json
 
 Usage:
@@ -32,7 +32,7 @@ PROFILE_META = {
     "brsthomson": {"email": "brsthomson@hotmail.com", "tier": "free", "max_sources": 50},
 }
 QUEUE_FILE = Path("P:/.data/wiki/_state/nlm-sync/queue.json")
-SYNC_SCRIPT = "P:/.agents/skills/nlm-to-wiki/scripts/sync.py"
+SYNC_SCRIPT = "P:/.agents/skills/wiki-yt/scripts/sync.py"
 
 def _run(cmd, timeout=120):
     try:
