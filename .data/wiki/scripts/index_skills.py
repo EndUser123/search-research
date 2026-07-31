@@ -97,6 +97,7 @@ class SkillEntry(NamedTuple):
     path: str
     description: str
     plugin: str | None  # for plugin-sourced skills
+    solves: str = ""   # problem-phrases from frontmatter `solves:` field
     grok_state: str = "—"   # ✓ enabled | ✗ disabled | — n/a
     claude_state: str = "—"  # ✓ enabled | ✗ disabled | — n/a
 
@@ -171,26 +172,31 @@ _NAME_RE = re.compile(r"^name:\s*(.+?)\s*$", re.MULTILINE)
 _DESC_RE = re.compile(
     r"^description:\s*(.+?)(?=^\w+:|\Z)", re.MULTILINE | re.DOTALL
 )
+_SOLVES_RE = re.compile(r"^solves:\s*(.+?)(?=^\w+:|\Z)", re.MULTILINE | re.DOTALL)
 
 
-def parse_frontmatter(text: str) -> tuple[str, str]:
-    """Extract name and description from SKILL.md frontmatter."""
+def parse_frontmatter(text: str) -> tuple[str, str, str]:
+    """Extract name, description, and solves from SKILL.md frontmatter."""
     fm_match = _FRONTMATTER_RE.match(text)
     if not fm_match:
-        return ("", "")
+        return ("", "", "")
     fm = fm_match.group(1)
     name_match = _NAME_RE.search(fm)
     desc_match = _DESC_RE.search(fm)
+    solves_match = _SOLVES_RE.search(fm)
     name = name_match.group(1).strip() if name_match else ""
     desc = desc_match.group(1).strip() if desc_match else ""
+    solves = solves_match.group(1).strip() if solves_match else ""
     # strip YAML multi-line indicators
     desc = desc.strip("- >\n|")
+    solves = solves.strip("- >\n|")
     # collapse whitespace
     desc = re.sub(r"\s+", " ", desc).strip()
+    solves = re.sub(r"\s+", " ", solves).strip()
     # cap length for the stub
     if len(desc) > 500:
         desc = desc[:497] + "..."
-    return (name, desc)
+    return (name, desc, solves)
 
 
 def scan_scope(scope: str, root: Path, plugin_rel: str | None,
@@ -229,7 +235,7 @@ def scan_scope(scope: str, root: Path, plugin_rel: str | None,
             if len(parts) > 2:
                 plugin = parts[0]
         text = skill_md.read_text(encoding="utf-8", errors="replace")
-        name, desc = parse_frontmatter(text)
+        name, desc, solves = parse_frontmatter(text)
         grok_st, claude_st = compute_plugin_state(scope, plugin, grok_disabled, claude_enabled)
         entries.append(
             SkillEntry(
@@ -238,6 +244,7 @@ def scan_scope(scope: str, root: Path, plugin_rel: str | None,
                 path=str(skill_md).replace("\\", "/"),
                 description=desc,
                 plugin=plugin,
+                solves=solves,
                 grok_state=grok_st,
                 claude_state=claude_st,
             )
@@ -408,17 +415,19 @@ def write_catalog(entries: list[SkillEntry]) -> None:
             continue
         lines.append(f"## {scope} ({len(scope_entries)} skills)")
         lines.append("")
-        lines.append("| Skill | G | C | Description (truncated) | Path |")
-        lines.append("|---|---|---|---|---|")
+        lines.append("| Skill | G | C | Description (truncated) | Solves | Path |")
+        lines.append("|---|---|---|---|---|---|")
         for e in scope_entries:
             desc_short = e.description[:120] + ("..." if len(e.description) > 120 else "")
             desc_short = desc_short.replace("|", "\\|").replace("\n", " ")
+            solves_short = e.solves[:80] + ("..." if len(e.solves) > 80 else "") if e.solves else "—"
+            solves_short = solves_short.replace("|", "\\|").replace("\n", " ")
             name_cell = f"**{e.name}**"
             if e.plugin:
                 name_cell += f" _[{e.plugin}]_"
             path_short = e.path.replace("C:/Users/brsth", "~")
             path_short = path_short.replace("P:/packages/.claude-marketplace/plugins", "…/marketplace")
-            lines.append(f"| {name_cell} | {e.grok_state} | {e.claude_state} | {desc_short} | `{path_short}` |")
+            lines.append(f"| {name_cell} | {e.grok_state} | {e.claude_state} | {desc_short} | {solves_short} | `{path_short}` |")
         lines.append("")
 
     lines.extend([
