@@ -80,8 +80,8 @@ try{(function(){
   setInterval(function(){safe(function(){
     /* Feature 0: permission auto-open (BEFORE popover guard) */
     /* Feature 6: working directory lock (BEFORE popover guard — must run on connection screen) */
+    /* Feature 8: HEADER control buttons next to theme toggle (BEFORE guard — always visible incl. pre-connection) */
     /* --- popover guard: if(po)return; --- */
-    /* Feature 1: button injection (AFTER guard — needs connected status bar) */
     /* Features 2-5: resize, file search, thinking/tool toggles, tool-call tagging (AFTER guard) */
   })},800);
 })();}catch(e){...}
@@ -96,16 +96,13 @@ try{(function(){
 | Session progress display | Reads `self.__acpStatus` for dynamic spinner text |
 | Resize handle | Drag to resize sidebar, width persists in localStorage |
 | File search | Filter input at top of file list |
-| Reload button | `chrome.runtime.reload()` in header |
-| Tool-call toggle | Wrench button to show/hide tool entries |
-| Thinking toggle | Brain button to show/hide reasoning text |
 | Permission auto-open | Auto-expands collapsible when permission needed |
 | Error toast | Passive `addEventListener` wrapper for proxy errors |
 | Popover guard | DOM observer pauses when dropdown is open (prevents closing) |
 | Theme-safe CSS | No color overrides — only structural CSS, inherits extension theme |
 | **Working dir lock (P-wd-lock)** | Locks `#working-dir` input to `P:\`, sets `readOnly=true`, dims field, updates label to "(locked to P:\)". Uses native value setter + `input` event dispatch to bypass React controlled-input anti-pattern. Runs BEFORE popover guard so it works on connection screen. `dataset.acpLocked` guard prevents re-processing. |
-| **Restart Proxy button (P-restart-btn)** | Power icon (⏻) button in status bar. Calls `POST /restart-proxy` on the proxy, waits 2.5s, then reloads the extension. Requires the `P-restart` server endpoint. Lets operator restart the proxy without a terminal — picks up code patches (command.js, server.js) without leaving the browser. |
-| **Tool-result collapse (P-collapse-tools)** | Caps `.acp-tc` blocks at `max-height:300px` with `overflow-y:auto` and `scrollbar-width:thin`. A maximize icon button in the floating controls toggles `body.acp-expand-tools` which removes the cap globally. State persists in `localStorage("acp_et")`. Three IIFE edits: CSS rule (mirrors `.acp-hide-thinking`), load-time class restore (mirrors thinking init), toggle button (mirrors thinking toggle in Feature 8). Addresses the "sidepanel sludge" problem where large `browser_read`/file-read/shell results rendered in full and dominated the transcript. Agent still receives full tool results — only the rendered view changes. |
+| **Header control buttons (Feature 8, consolidated 2026-07-31)** | 5 buttons (Reload extension, Restart proxy, Toggle tool calls, Toggle thinking, Expand tool results) injected next to the **theme toggle** in the header. Anchor: iterates `button[data-slot="dropdown-menu-trigger"]` and matches the one whose `span.sr-only` text contains "Toggle theme" — NOT a querySelector first-match (which grabbed the wrong dropdown trigger, e.g. model picker, on the disconnected screen — the root cause of the prior "buttons don't appear" bug). Buttons are inserted as siblings of the theme-toggle wrapper in the header flex row, cloning the theme toggle's className for native styling. `dataset.acpCtrl` guard prevents duplicates. Runs BEFORE the popover guard so buttons render on the pre-connection screen too. **Replaces** the old Feature 1 status-bar injector and the broken first-match Feature 8 — single source of truth, no drift. |
+| **Tool-result collapse (P-collapse-tools)** | Caps `.acp-tc` blocks at `max-height:300px` with `overflow-y:auto` and `scrollbar-width:thin`. The "Expand tool results" button in the header (Feature 8) toggles `body.acp-expand-tools` which removes the cap globally. State persists in `localStorage("acp_et")`. CSS rule mirrors `.acp-hide-thinking`. Addresses the "sidepanel sludge" problem where large `browser_read`/file-read/shell results rendered in full and dominated the transcript. Agent still receives full tool results — only the rendered view changes. |
 
 ### P-wd-lock implementation notes
 - **Why:** The agent process is hard-coded to `WORKSPACE_ROOT = "P:\\"` in command.js. The free-form cwd field created a silent mismatch — file browser and agent process could diverge.
@@ -121,6 +118,8 @@ try{(function(){
 5. **Pause DOM observers during popovers** — mutations trigger Radix outside-click detection
 6. **Run pre-connection features before the popover guard** — the `if(po)return;` guard skips everything after it when a dropdown is open, so features that must work on the connection screen (like the working directory lock) must be placed BEFORE the guard
 7. **Use native setters for React controlled inputs** — direct `.value` assignment is silently ignored by React's controlled components; use the prototype's native setter + `dispatchEvent(new Event("input",{bubbles:true}))` to update React state from injected code
+8. **querySelector first-match is the wrong anchor when multiple dropdown triggers exist** (2026-07-31) — the sidepanel has several `button[data-slot="dropdown-menu-trigger"]` elements (theme toggle, model picker, etc.). A `querySelector(...)` grabs the first in DOM order, which on the disconnected screen was NOT the theme toggle, so injected buttons silently failed to anchor. Fix: iterate `querySelectorAll` and match by discriminative text content ("Toggle theme"). Generalizes: when anchoring into a third-party Radix UI, never assume a single match for a `data-slot` — always filter by visible label.
+9. **Consolidate, don't accumulate** (2026-07-31) — the prior session added a second button injector (Feature 8) alongside an existing one (Feature 1) instead of extending it, producing duplicate/diverged buttons. This is the same anti-pattern as parallel prompt injection. One injector, one source of truth; extend it when adding a button.
 
 ## Re-apply procedure
 1. Extension files are tracked in git at `P:\packages\chrome-acp\` (config files, patched backups, scripts). Large minified bundles (sidepanel.js, index.js, CSS) are gitignored — regenerated by `re-apply-patches.ps1`.
@@ -138,11 +137,12 @@ try{(function(){
 - The debug port is transient — poll immediately after launch and capture within the window
 
 ## Verification
-- 23 pytest tests (test_patched_files.py): server.js, files.js, sidepanel
+- 24 pytest tests (test_patched_files.py): server.js, files.js, sidepanel — includes `test_button_injection_uses_theme_toggle_anchor` and `test_no_redundant_status_bar_injector`
 - 5/5 files pass `node --check`
+- All 4 sidepanel copies (live, .patched backup, user-dir, user-dir backup) hash-identical after consolidation
 - Proxy health endpoint: ok
 - Live confirmed: connection, session creation, file browser (207 items), dotfiles visible, model picker stays open
-- P-collapse-tools: syntax-verified (`node --check`), patched backup updated, re-apply script updated. **NOT live-verified** — needs extension reload + DevTools confirmation that `.acp-tc` selector matches rendered tool-result blocks.
+- P-collapse-tools + Feature 8 header consolidation: syntax-verified (`node --check`), all copies synced, pytest green. **NOT live-verified** — needs extension reload + DevTools confirmation that (a) the 5 buttons appear next to the theme toggle on the disconnected screen, and (b) `.acp-tc` selector matches rendered tool-result blocks.
 
 ## What this means for our workspace
 
