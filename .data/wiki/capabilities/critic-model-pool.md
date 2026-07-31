@@ -57,6 +57,11 @@ model misses.
 ## Review panel models (verified 2026-07-30, operator directive)
 or-ling-3-flash-free (5/5 code-exec, $0/M, 2.2s — fast, free, spawn OK)
 zen-deepseek-v4-flash-free (13/13 reasoning, $0, Tau2 95.6 — strongest free reasoning)
+  - CAVEAT: hit max_tokens_truncation on multi-file code review (224K input
+    tokens consumed via repeated file reads). For code review tasks, INLINE
+    file content in the prompt — do NOT let the subagent discover files via
+    tool calls. Safe for single-file review with inline content and for short
+    critique prompts. See /review SKILL.md "diff-in-bundle optimization."
 nim-openai-gpt-oss-20b (4/5 code-exec, 13/13 reasoning, free, spawn OK)
 minimax-m3 (4/5 code-exec, 13/13 reasoning, IFBench #1 globally, subscription quota available)
 
