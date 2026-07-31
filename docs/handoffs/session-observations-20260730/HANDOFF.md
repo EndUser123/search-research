@@ -6,7 +6,7 @@ current_terminal_id: 3c773c60-e09f-490c-a96b-b14fa5208849
 produced_at: 2026-07-30T13:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 3f2040c
+accurate_as_of_head: 32395cc
 ---
 
 # Session observations — 2026-07-30 close-authority + workflow improvements
@@ -28,3 +28,19 @@ accurate_as_of_head: 3f2040c
 7. **Scanner latency is ~20-28s**: measured during live test. The Stop hook will add this to every /close turn. Not a bug — expected latency.
 
 8. **Reddit MCP search endpoint is broken**: `reddit__search_reddit` fails with "Search failed for all subreddits." Only `reddit__browse_subreddit` works (RSS fallback). The search endpoint may need API credentials that aren't configured.
+
+---
+
+## Revision 1 — 20260731T051500Z (session 019fb177)
+
+**Trigger:** auto-update — post-compaction work addressed several observations.
+
+**Observation status updates:**
+- **#1 (skill-graph enumeration):** RESOLVED — rule added and exercised in subsequent sessions.
+- **#2 (subagents can't access MCP):** Still open. Confirmed again this session when MCP servers disconnected mid-session. The parent-level execution rule in /www is the workaround.
+- **#3 (plan-vs-source contradictions):** Still relevant — the INTG-2 RESOLVED set correction was the instance that motivated the wiki-query-mandatory rule.
+- **#4 (/tp → /review overlap):** RESOLVED — /ship profile now chains them. ship_receipt.py runs mechanical checks.
+- **#5 (WIKI: marker rule untested):** TESTED AND EXTENDED — the marker rule fired multiple times this session (6 wiki concepts produced). The wiki_marker_scan.py script now provides mechanical detection. The meta-checkpoint Q1 formalizes the "did I generalize?" question.
+- **#6 (/ship untested):** PARTIALLY RESOLVED — /ship ran in health-check mode successfully. Feature-branch merge path still untested (SHIP-TEST-01).
+- **#7 (scanner latency):** Still observed. Not blocking.
+- **#8 (Reddit MCP search broken):** Still open. Not addressed this session.

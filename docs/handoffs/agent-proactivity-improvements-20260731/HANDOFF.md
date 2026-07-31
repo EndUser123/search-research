@@ -72,6 +72,13 @@ OPEN — three structural fixes built and committed. Four priority integrations 
 - **goal:** Wire wiki_marker_scan.py into /harvest as a detection layer for unrealized knowledge value
 - **acceptance:** /harvest SKILL.md references the scanner as an input source
 
+### OPP-05: Removal protocol workspace-wide grep fix (from pre-compaction session)
+
+- **goal:** `P:/.claude/rules/removal-protocol.md` needs the "grep the ENTIRE workspace" rule added — currently only greps the package directory, missing cross-package references
+- **problem:** when removing a module, the audit greps only the local package. Cross-package imports (e.g., a hook imported by skills in a different package) are missed, leading to broken imports after removal
+- **acceptance:** removal-protocol.md Step 1 and verification Steps 9-11 say "grep the entire workspace, not just the package directory"
+- **blocked by:** permissions (was read-only for the agent path in the pre-compaction session — may be resolved now)
+
 ## Resumption protocol
 
 1. Read the wiki concept `meta-level-proactivity-three-fixes-skill-graph-mapping.md` for full details

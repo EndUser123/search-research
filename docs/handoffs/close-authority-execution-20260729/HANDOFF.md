@@ -6,7 +6,7 @@ current_terminal_id: 3c773c60-e09f-490c-a96b-b14fa5208849
 produced_at: 2026-07-29T01:30:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 03f36e50dcedffb4483ce0623d8d97468dc22671
+accurate_as_of_head: 32395cc
 ---
 
 # Handoff — Close-authority enforcement completion: executed, review pending
@@ -163,3 +163,30 @@ What would change: if `/check` or `/review` finds a fail-closed path, switch to 
 - [INFERENCE] The 23 test_scanner.py failures are environmental/pre-existing — confirmed by running baseline before changes (23 failed both before and after).
 - [INFERENCE] The Stop hook fail-open behavior is correct in unit tests but LIVE_NOT_PROVEN — no live `/close` run with the hook active has been done.
 - [UNKNOWN] Whether `/review` will find issues — it has not been run yet.
+
+---
+
+## Revision 1 — 20260731T051500Z (session 019fb177)
+
+**Trigger:** auto-update — all three task packets (CA-REVIEW-01, CA-MERGE-01, CA-SKILL-GRAPH-01) completed post-compaction.
+
+**What changed since the original:**
+
+- **CA-REVIEW-01: DONE.** Two review rounds ran (/tp + /review). 6 bugs found total, all fixed before merge. The review caught: INTG-2 RESOLVED set correction (caught in H3 discovery before implementation), CORR-001/002/003 fixes, concurrency WinError 32 fix, dead-code removal (489 lines), IAR fixes.
+- **CA-MERGE-01: DONE.** Branch merged to main (commit `84a71f1`). Scanner installed. Stop hook activated. 423 tests pass on main.
+- **CA-SKILL-GRAPH-01: DONE.** Skill-graph enumeration rule added to AGENTS.md. Agent now enumerates from session skill catalog, not from skills-in-context.
+- **Stop hook false-positive: FOUND AND FIXED.** The hook was blocking ANY close-context output when scanner said non-COMPLETE, including when the model correctly said INCOMPLETE. Fixed: only block when `model_claims_complete AND scanner_says_not_complete` (commit `137cc90`).
+- **close_runner "malformed" label: FIXED.** CLOSE INCOMPLETE (valid verdict) was labeled "malformed" (implies scanner error). Fixed with sentinel `__CLOSE_INCOMPLETE__` → terminal_state "blocked" (commit `3f69bc0`).
+- **Wiki improvements: 6 implemented.** From /www research: tier tagging (hot/warm/cold), promotion discipline, superseded_by frontmatter, capture trigger taxonomy, non-obvious quality gate in validator, SCHEMA §16-18.
+
+**Updated evidence:**
+- Merge commit: `84a71f1`
+- Stop hook fix: `137cc90`
+- close_runner fix: `3f69bc0`
+- Wiki improvements: multiple commits (see wiki concepts `intg2-resolved-gate-state-set-needs-llm-check`, `wiki-improvement-opportunities-practitioner-evidence`)
+
+**Status update:** All three task packets DONE. The close-authority enforcement system is live and working. The Stop hook false-positive was the most critical post-merge fix — enforcement was blocking its own correct behavior. This handoff can be **closed** via `/handoff close`.
+
+**New open items:**
+- 3 failing tests in close skill test suite (503 service unavailable — network-dependent, pre-existing)
+- OPP-05 (removal protocol grep fix) tracked in agent-proactivity-improvements handoff
