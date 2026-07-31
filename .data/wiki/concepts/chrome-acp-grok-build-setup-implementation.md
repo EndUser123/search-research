@@ -47,6 +47,7 @@ Chrome ACP extension ([Areo-Joe/chrome-acp](https://github.com/Areo-Joe/chrome-a
 | P9-P10 | `BROWSER_RULES` module-level constant, injected via `_meta` on newSession, loadSession, AND resumeSession |
 | P17 | Session progress messages — "Starting agent..." → "Agent ready..." → "Creating session..." |
 | P18 | Action-first rules — instruct agent to act before deliberating, keep thinking brief |
+| P-restart (2026-07-30) | `POST /restart-proxy` endpoint — spawns a detached `restart-proxy.js` helper that waits 2s then relaunches `start-proxy.bat`, then exits. Lets the sidepanel "Restart Proxy" button restart the proxy without a terminal. |
 | P11 (reverted) | Persistent process — 4 blocking bugs, reverted. See handoff for proper rewrite |
 
 ## File utilities patches (files.js)
@@ -103,6 +104,7 @@ try{(function(){
 | Popover guard | DOM observer pauses when dropdown is open (prevents closing) |
 | Theme-safe CSS | No color overrides — only structural CSS, inherits extension theme |
 | **Working dir lock (P-wd-lock)** | Locks `#working-dir` input to `P:\`, sets `readOnly=true`, dims field, updates label to "(locked to P:\)". Uses native value setter + `input` event dispatch to bypass React controlled-input anti-pattern. Runs BEFORE popover guard so it works on connection screen. `dataset.acpLocked` guard prevents re-processing. |
+| **Restart Proxy button (P-restart-btn)** | Power icon (⏻) button in status bar. Calls `POST /restart-proxy` on the proxy, waits 2.5s, then reloads the extension. Requires the `P-restart` server endpoint. Lets operator restart the proxy without a terminal — picks up code patches (command.js, server.js) without leaving the browser. |
 
 ### P-wd-lock implementation notes
 - **Why:** The agent process is hard-coded to `WORKSPACE_ROOT = "P:\\"` in command.js. The free-form cwd field created a silent mismatch — file browser and agent process could diverge.
