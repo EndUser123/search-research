@@ -1,0 +1,12 @@
+{
+  "status": "completed",
+  "started_at": "2026-07-31T00:14:00",
+  "skill": "aar",
+  "terminal_id": "grok-main",
+  "session_id": "019fa8f8-7e86-77f0-8e81-a7609f3c8b14",
+  "head": "session-AAR",
+  "completed_at": "2026-07-31T14:22:38.796574+00:00",
+  "report_path": "P:\\.artifacts\\grok-aar\\20260731-close\\aar-report.md",
+  "report_sha256": "2ad9a8ab9a925e0db9392e5ec008ba2d32394a39658c106d9ffd51bbf6dedf9c",
+  "packet_path": "P:\\.artifacts\\grok-aar\\20260731-close\\preprocess"
+}
