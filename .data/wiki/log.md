@@ -1,5 +1,11 @@
 # Vault Log
 
+## code-review-speed-comes-from-richer-context-not-more-agents
+Source: session-019fb49b
+Agent: grok
+Notes: Speed comes from diff-in-bundle not more agents. BugBot 8-pass ensemble for coverage, single-agent sequential for framing. Applied to /tp and /review.
+Page: P:/.data/wiki/concepts/code-review-speed-comes-from-richer-context-not-more-agents.md
+
 ## youtube-throttling-returns-429-not-silent-200
 Source: session-019fb49b
 Agent: grok
