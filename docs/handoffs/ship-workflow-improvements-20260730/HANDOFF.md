@@ -56,6 +56,16 @@ OPEN — code complete and committed, but /ship untested against a real feature 
 - **falsifier:** /ship crashes or produces an incomplete receipt
 - **verification level required:** LIVE_BEHAVIOR
 
+### SHIP-RECEIPT-01: Mechanical receipt generator
+
+- **goal:** Build `~/.grok/skills/go/__lib/ship_receipt.py` that mechanically collects git state + runs Phase 3 checks + assembles the SHIP DONE receipt. The LLM fills only review verdict + handoff/wiki fields.
+- **problem:** The LLM produces thin receipts (missing fields, understated check disclosure). Code enforcement ensures every field is populated.
+- **in scope:** git state collection (branch, HEAD, commits, diff stat), test runner invocation + parsing, lint invocation, doc-check invocation, receipt assembly from template
+- **out of scope:** review specialist (LLM judgment), handoff writing (LLM judgment), merge logic (already in SKILL.md)
+- **acceptance:** running `python ship_receipt.py --repo <path> --since <merge-base>` produces a complete SHIP DONE receipt with all 13 fields populated or explicitly marked SKIP
+- **falsifier:** receipt is missing fields or contains placeholder text instead of real data
+- **verification level required:** UNIT_TEST
+
 ## Resumption protocol
 
 1. Create a small feature branch with a trivial change
