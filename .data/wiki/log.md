@@ -1,5 +1,11 @@
 # Vault Log
 
+## ship-receipt-mechanical-generation
+Source: session-019fb177
+Agent: grok
+Notes: SHIP receipt mechanically generated from per-check results — code-enforced verdict derivation replaces LLM-assembled receipts
+Page: P:/.data/wiki/concepts/ship-receipt-mechanical-generation-from-per-check-results.md
+
 ## code-review-speed-comes-from-richer-context-not-more-agents
 Source: session-019fb49b
 Agent: grok
