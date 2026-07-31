@@ -1,5 +1,11 @@
 # Vault Log
 
+## Chromium CDP WebSocket Origin Restriction
+Source: session-20260730
+Agent: grok
+Notes: Chrome 111+ rejects WebSocket CDP connections with Origin header; suppress_origin=True fix for Python websocket-client; Comet chrome_proxy.exe launch procedure
+Page: wiki/concepts/chromium-cdp-websocket-origin-restriction.md
+
 ## Delegation decision rule: context-dependency not just quota
 Source: session-20260730
 Agent: grok
