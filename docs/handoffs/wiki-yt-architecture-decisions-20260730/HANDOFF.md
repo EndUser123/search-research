@@ -75,20 +75,20 @@ thumbnail extraction) + cross-source COALESCE merge.
 
 ## Status
 
-- Cache-first + feed-forward: SHIPPED and smoke-tested
+- Cache-first + feed-forward: SHIPPED, tested end-to-end (88.8% hit rate, 0 failures)
 - Metadata pipeline (Units 1-3): SHIPPED with 15 tests
 - wiki-yt rename: SHIPPED
 - Stage 0 bypass: REJECTED per /tp critique
-- NotebookLM auth: BROKEN (stale port-map PID from --force run; profiles
-  renamed; "codex" profile corrupted)
+- NotebookLM auth: FIXED (re-authed a.hominidae via silent CDP)
+- export_transcripts.py perf: SHIPPED (conditional sleep, pre-flight auth, dead import removed)
 
 ## Next steps
 
-1. Measure cache-first hit rate on a real wiki-yt sync (`from_cache_count`)
-2. Run yt-is sync to completion (740 channels unchecked from partial run)
-3. Fix NLM auth (clear port-map, try `a.hominidae` profile with Chrome closed)
-4. Build the capability-claim Stop hook (see kill-unverified-claims handoff)
+1. Run yt-is sync to completion (740 channels unchecked)
+2. Run yt-is fetch to process pending videos
+3. Build the capability-claim Stop hook (see kill-unverified-claims handoff)
+4. [OPTIONAL] Async NLM client refactor for export_transcripts.py
 
 ## Last user message (verbatim)
 
-> "0" (accepting all /tp recommendations)
+> "How can we ensure we stop forgetting to actually finish the work we do?"
