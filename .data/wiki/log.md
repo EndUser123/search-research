@@ -1,5 +1,11 @@
 # Vault Log
 
+## retrospective-synthesis
+Source: session-019fb177
+Agent: grok
+Notes: What made the /recap-grok output great: causation chains, meta-narrative, quality assessment
+Page: P:/.data/wiki/concepts/retrospective-synthesis-in-session-recaps.md
+
 ## invisible-cross-reference
 Source: session-019fb177
 Agent: grok
