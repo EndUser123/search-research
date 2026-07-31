@@ -1,5 +1,11 @@
 # Vault Log
 
+## Spec file placement: project root convention (Spec Kit + OpenSpec)
+Source: session-20260730
+Agent: grok
+Notes: Spec belongs at the project root of the effort it describes, not in a workspace-wide docs directory. Confirmed by GitHub Spec Kit + OpenSpec.
+Page: wiki/concepts/spec-file-placement-project-root-convention.md
+
 ## ship-receipt-mechanical-generation
 Source: session-019fb177
 Agent: grok
