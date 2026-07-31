@@ -1,5 +1,11 @@
 # Vault Log
 
+## dual-path-hazard
+Source: session-019fb177
+Agent: grok
+Notes: Delete manual instructions when replacing with mechanical generator — dual-path confusion is the dominant usability hazard
+Page: P:/.data/wiki/concepts/dual-path-hazard-delete-manual-when-adding-mechanical.md
+
 ## Spec file placement: project root convention (Spec Kit + OpenSpec)
 Source: session-20260730
 Agent: grok
