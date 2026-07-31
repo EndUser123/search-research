@@ -1,5 +1,11 @@
 # Vault Log
 
+## Asserting runtime behavior from memory — behavioral pattern (operator correction)
+Source: session-20260730
+Agent: grok
+Notes: Agent asserted Chrome reload behavior as fact without testing. Operator: 'we must kill this behavior.' New concept: asserting-runtime-behavior-from-memory-not-testing.
+Page: wiki/concepts/asserting-runtime-behavior-from-memory-not-testing.md
+
 ## Chrome ACP Patches Update
 Source: session-20260730
 Agent: grok
