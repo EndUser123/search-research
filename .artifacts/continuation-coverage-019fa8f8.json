@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.0",
+  "session_id": "019fa8f8-7e86-77f0-8e81-a7609f3c8b14",
+  "generated_at": "2026-07-31T08:29:25.162248",
+  "candidate_count": 4,
+  "candidates": [
+    {
+      "candidate_id": "goal_opening_01c0083440f5",
+      "title": "\"he companion packages for agy (@anthonyhaussman/opencode-agy-auth) and Antigravity (opencode-antigravity-auth) need ...",
+      "source_classes": [
+        "user_goal"
+      ],
+      "evidence_refs": [
+        "chat_history.jsonl#L3",
+        "C:\\Users\\brsth\\.grok\\sessions\\P%3A%5C\\019fa8f8-7e86-77f0-8e81-a7609f3c8b14\\chat_history.jsonl"
+      ],
+      "materiality": "",
+      "cold_start_needed": false,
+      "terminal_disposition": "COMPLETED",
+      "covered_by": "",
+      "rationale": "Google companion packages configured and verified",
+      "dependencies": [],
+      "confidence": "deterministic",
+      "extraction_source": "transcript_opening_goal"
+    },
+    {
+      "candidate_id": "pivot_5bec926c0811",
+      "title": "<user_query> \"Every dispatching skill now instructs the orchestrator to run pick_model.py <lane> instead of manually ...",
+      "source_classes": [
+        "revised_goal"
+      ],
+      "evidence_refs": [
+        "chat_history.jsonl#L340",
+        "C:\\Users\\brsth\\.grok\\sessions\\P%3A%5C\\019fa8f8-7e86-77f0-8e81-a7609f3c8b14\\chat_history.jsonl"
+      ],
+      "materiality": "",
+      "cold_start_needed": false,
+      "terminal_disposition": "COMPLETED",
+      "covered_by": "",
+      "rationale": "pick_model.py wiring was done then reverted - pool contracts are source of truth",
+      "dependencies": [],
+      "confidence": "inferred",
+      "extraction_source": "transcript_pivot_instead of"
+    },
+    {
+      "candidate_id": "pivot_f09d8768f3ed",
+      "title": "<user_query> /www what does the itnernet say about this issue. </user_query> <skill_information> <skills_referenced> ...",
+      "source_classes": [
+        "revised_goal"
+      ],
+      "evidence_refs": [
+        "chat_history.jsonl#L624",
+        "C:\\Users\\brsth\\.grok\\sessions\\P%3A%5C\\019fa8f8-7e86-77f0-8e81-a7609f3c8b14\\chat_history.jsonl"
+      ],
+      "materiality": "",
+      "cold_start_needed": false,
+      "terminal_disposition": "COMPLETED",
+      "covered_by": "",
+      "rationale": "DDG research completed, findings captured in wiki concepts",
+      "dependencies": [],
+      "confidence": "inferred",
+      "extraction_source": "transcript_pivot_instead of"
+    },
+    {
+      "candidate_id": "pivot_35e9cfe62566",
+      "title": "<user_query> \"Both are faster, don't create temp files, and don't require cleanup. I keep reaching for the write-a-te...",
+      "source_classes": [
+        "revised_goal"
+      ],
+      "evidence_refs": [
+        "chat_history.jsonl#L641",
+        "C:\\Users\\brsth\\.grok\\sessions\\P%3A%5C\\019fa8f8-7e86-77f0-8e81-a7609f3c8b14\\chat_history.jsonl"
+      ],
+      "materiality": "",
+      "cold_start_needed": false,
+      "terminal_disposition": "COMPLETED",
+      "covered_by": "",
+      "rationale": "ddgs_search.py multi-query batch mode implemented",
+      "dependencies": [],
+      "confidence": "inferred",
+      "extraction_source": "transcript_pivot_instead of"
+    }
+  ],
+  "coverage": {
+    "covered": [
+      {
+        "candidate_id": "goal_opening_01c0083440f5",
+        "title": "\"he companion packages for agy (@anthonyhaussman/opencode-agy-auth) and Antigravity (opencode-antigravity-auth) need ...",
+        "source_classes": [
+          "user_goal"
+        ],
+        "terminal_disposition": "COMPLETED",
+        "covered_by": "",
+        "materiality": ""
+      },
+      {
+        "candidate_id": "pivot_5bec926c0811",
+        "title": "<user_query> \"Every dispatching skill now instructs the orchestrator to run pick_model.py <lane> instead of manually ...",
+        "source_classes": [
+          "revised_goal"
+        ],
+        "terminal_disposition": "COMPLETED",
+        "covered_by": "",
+        "materiality": ""
+      },
+      {
+        "candidate_id": "pivot_f09d8768f3ed",
+        "title": "<user_query> /www what does the itnernet say about this issue. </user_query> <skill_information> <skills_referenced> ...",
+        "source_classes": [
+          "revised_goal"
+        ],
+        "terminal_disposition": "COMPLETED",
+        "covered_by": "",
+        "materiality": ""
+      },
+      {
+        "candidate_id": "pivot_35e9cfe62566",
+        "title": "<user_query> \"Both are faster, don't create temp files, and don't require cleanup. I keep reaching for the write-a-te...",
+        "source_classes": [
+          "revised_goal"
+        ],
+        "terminal_disposition": "COMPLETED",
+        "covered_by": "",
+        "materiality": ""
+      }
+    ],
+    "uncovered": [],
+    "needs_update": [],
+    "duplicates": [],
+    "needs_split": [],
+    "merged_candidates": [],
+    "coverage_complete": true,
+    "total_candidates": 4,
+    "material_uncovered": 0
+  },
+  "duplicates": [],
+  "goals": [
+    {
+      "candidate_id": "goal_opening_01c0083440f5",
+      "title": "\"he companion packages for agy (@anthonyhaussman/opencode-agy-auth) and Antigravity (opencode-antigravity-auth) need ...",
+      "source": [
+        "user_goal"
+      ]
+    },
+    {
+      "candidate_id": "pivot_5bec926c0811",
+      "title": "<user_query> \"Every dispatching skill now instructs the orchestrator to run pick_model.py <lane> instead of manually ...",
+      "source": [
+        "revised_goal"
+      ]
+    },
+    {
+      "candidate_id": "pivot_f09d8768f3ed",
+      "title": "<user_query> /www what does the itnernet say about this issue. </user_query> <skill_information> <skills_referenced> ...",
+      "source": [
+        "revised_goal"
+      ]
+    },
+    {
+      "candidate_id": "pivot_35e9cfe62566",
+      "title": "<user_query> \"Both are faster, don't create temp files, and don't require cleanup. I keep reaching for the write-a-te...",
+      "source": [
+        "revised_goal"
+      ]
+    }
+  ],
+  "source_summary": {
+    "user_goal": 1,
+    "revised_goal": 3
+  },
+  "degraded": false,
+  "extraction_error": null
+}

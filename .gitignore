@@ -629,3 +629,5 @@ packages/.github_repos/
 
 # Installer logs (regenerable runtime noise)
 packages/installers/ornith-server.log*
+
+.artifacts/grok-aar/*/preprocess/
