@@ -202,6 +202,13 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
         sources = sources[:limit]
         log(f"  --limit {limit}: processing first {len(sources)}")
 
+    # Pre-flight auth check — fail fast if NLM auth is expired
+    if sources:
+        rc_check, _, err_check = run(["nlm", "notebook", "list", "--json"], timeout=30)
+        if rc_check != 0:
+            log(f"  ⚠ NLM auth may be expired (notebook list rc={rc_check}). "
+                f"Run: nlm login --profile {profile}")
+
     out_dir.mkdir(parents=True, exist_ok=True)
     exported = skipped = failed = 0
     from_cache_count = 0
@@ -238,11 +245,13 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
 
         # Forward-sync: check yt-is cache before calling NotebookLM
         content = ""
+        _from_cache = False
         if _forward_sync_bridge is not None:
             try:
                 content, cache_vid = fetch_from_yt_is_cache(src, _forward_sync_bridge)
                 if content:
                     from_cache_count += 1
+                    _from_cache = True
                     if i % 25 == 0 or i <= 3:
                         log(f"    [cache] hit video_id={cache_vid} ({len(content)} chars)")
             except Exception:
@@ -287,7 +296,9 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
         exported += 1
         if fed_to_cache and (i <= 3 or i % 25 == 0):
             log(f"    [feed] cached video_id={vid}")
-        time.sleep(spacing)
+        # Only rate-limit after NLM API calls — cache hits are instant SQLite reads
+        if not _from_cache:
+            time.sleep(spacing)
 
     log(f"Done: exported={exported} skipped={skipped} failed={failed} from_cache={from_cache_count}")
     return {
