@@ -1,5 +1,17 @@
 # Vault Log
 
+## Hook timeout root cause resolved + list-before-claim rule
+Source: session-019fb937
+Agent: grok
+Notes: Dirty tree 1388->399 by untracking regenerable stubs. Created list-before-claim rule for destructive proposals.
+Page: .data/wiki/concepts/hook-evidence-collection-cost-vs-timeout-tradeoff.md
+
+## Chrome ACP library stack and best practices 2026
+Source: session-2026-07-31
+Agent: grok
+Notes: Research: chrome-acp library stack, 6 Hono CVEs, WXT/CRXJS preferred, ACP ecosystem 80+ clients, installable skills
+Page: wiki/concepts/chrome-acp-library-stack-and-best-practices-2026.md
+
 ## retrospective-synthesis
 Source: session-019fb177
 Agent: grok

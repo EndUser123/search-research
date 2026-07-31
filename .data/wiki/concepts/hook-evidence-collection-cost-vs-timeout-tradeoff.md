@@ -138,3 +138,35 @@ If none of these fire, the pattern is durable and the architectural fixes above 
 - `C:/Users/brsth/.grok/hooks/scripts/mutation_post.py` (full file, 99 lines)
 - `C:/Users/brsth/.grok/hooks/quality-gate.json` (PostToolUse block, lines 23-44)
 - Session 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9 (2026-07-26) — /why RCA on the operator-reported dashboard timeout
+## What this means for our workspace
+
+**RESOLVED (2026-07-31):** the dirty-tree size was NOT a fixed constraint. 71% of the
+"steady-state" 1388 dirty files were regenerable churn — 983 skill stubs in
+`.data/wiki/sources/skills/` rewritten by `index_skills.py` on every run, plus 332
+ghost files (tracked-but-deleted). The actual root cause was upstream of the hook
+architecture: regenerable files were tracked in git, permanently inflating the dirty tree.
+
+**Fix applied (commit `adef081`, session 019fb937):**
+- `git rm --cached`: 983 stubs + 4 ghost files untracked
+- `.gitignore`: re-ignore `.data/wiki/sources/skills/`
+- Result: dirty tree 1388 → 399 files (71% reduction), `git diff --name-only HEAD`
+  1921ms → 929ms (52% reduction)
+
+**What this means for the architectural fixes above:** fixes 1-6 (cache, parallelize,
+bound the loop, skip non-mutating commands) are no longer urgent. At 399 dirty files,
+the hooks have comfortable budget. The architectural fixes remain valid for future-proofing
+(if the dirty tree grows again from other sources), but the immediate problem is solved by
+upstream cleanup, not hook redesign.
+
+**The original RCA's framing error:** the concept treated "994 files / 5804ms is the
+steady-state on this workspace" as a fixed constraint (Falsifier section). It was not
+fixed — it was an artifact of tracking regenerable files. The falsifier was wrong because
+it didn't investigate WHY the dirty tree was large, only that it was. The lesson: when a
+cost scales with workspace state, check whether that state is necessary or accidental
+before optimizing around it.
+
+**Also:** the prior handoff `quality-gate-pretooluse-timeout-20260728` proposed bumping
+the timeout 10→30s and explicitly said "do NOT change post_tool_use timeouts — those are
+fine at 10s." The dashboard disproved this — post_tool_use ALSO timed out. The handoff
+was a bad proposal that survived 4 sessions unapplied. See
+[[list-before-claim-for-destructive-proposal-actions]] for the structural fix.
