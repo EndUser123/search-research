@@ -6,7 +6,7 @@ current_terminal_id: 3c773c60-e09f-490c-a96b-b14fa5208849
 produced_at: 2026-07-30T20:30:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 3f69bc0
+accurate_as_of_head: 32395cc
 ---
 
 # Handoff — /ship profile + workflow improvements + Stop hook false-positive fix
@@ -77,3 +77,30 @@ OPEN — code complete and committed, but /ship untested against a real feature 
 ```
 /go test /ship on a trivial branch change — verify all phases fire and the receipt is complete
 ```
+
+---
+
+## Revision 1 — 20260731T050000Z (session 019fb177)
+
+**Trigger:** auto-update — SHIP-RECEIPT-01 completed, usability fixes applied, ship_receipt.py built and tested.
+
+**What changed since the original:**
+
+- **SHIP-RECEIPT-01: DONE.** Built `~/.grok/skills/go/__lib/ship_receipt.py` (692 lines). Mechanically collects git state, runs 6 Phase 3 checks scoped to changed files, DERIVES the SHIP DONE/BLOCKED verdict from check results. Tested against real workspace state — produced clean SHIP DONE with exit code 0. Dogfooded itself (caught its own lint violations). Commits: `07c863d`, `ba5ae88`.
+- **Spawn gate test fix.** `mistral-medium-latest` was correctly added to `spawn_broken` set but test still used it as "allowed model." Fixed test + added spawn_broken coverage. Commit `485aebc`.
+- **Usability fixes (from /tp cold-read critique).** 5 fixes: deleted 42-line reference list (dual-path hazard), enriched blocker detail (`--tb=short` + failing test names), enriched ship alias, dropped misleading `--since` placeholder, added re-run-after-fix recipe. Commit `85d87bd`.
+- **Phase 3 rewired.** go/SKILL.md Phase 3 now calls ship_receipt.py at Step 3a instead of 12-item manual list. Old list deleted (dual-path hazard). Commit `07c863d`.
+- **SHIP-TEST-01: PARTIALLY DONE.** Ran `/ship` in health-check mode (on main, no feature branch). Script produced correct SHIP DONE. NOT tested against a real feature branch with merge.
+
+**Updated evidence:**
+- `07c863d` — ship_receipt.py + SKILL.md wiring
+- `485aebc` — spawn gate test fix
+- `ba5ae88` — lint fixes (script caught its own issues)
+- `85d87bd` — 5 usability fixes from /tp critique
+- `2479080`, `7c9971d`, `17c9e6c` — wiki concepts for the design decision
+
+**Status update:** SHIP-RECEIPT-01 is DONE. SHIP-TEST-01 is partially done (health-check tested, feature-branch merge NOT tested). The remaining task is a real `/ship` run against a feature branch with a merge.
+
+**New open items:**
+- SHIP-TEST-01 remains: test `/ship` on a real feature branch with Phase 4 (safe-merge) firing
+- 3 failing tests in close skill test suite (503 service unavailable — network-dependent, pre-existing, not our changes)
