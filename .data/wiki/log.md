@@ -1,5 +1,11 @@
 # Vault Log
 
+## Delegation decision rule: context-dependency not just quota
+Source: session-20260730
+Agent: grok
+Notes: Delegate when output is self-contained artifact + summarizable + won't inform future turns. Keep on orchestrator when reasoning process must inform next decision or operator needs to see evolution. Over-isolation destroys orchestrator value.
+Page: P:/.data/wiki/concepts/delegation-decision-rule-context-dependency.md
+
 ## Corrected model-role-assignment concept: dual basis (task-fit + quota isolation)
 Source: session-20260730
 Agent: grok
