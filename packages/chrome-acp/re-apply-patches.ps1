@@ -5,14 +5,15 @@
 #   1. command.js — hard-code WORKSPACE_ROOT = "P:\" (fixes vanishing writes +
 #      empty read_file when proxy is launched from wrong directory)
 #   2. server.js — POST /restart-proxy endpoint (for sidepanel restart button)
-#   3. sidepanel JS — all IIFE-injected features:
-#      - Restart Proxy button (power icon) in status bar
+#   3. sidepanel JS — prepend tracked IIFE (patches/sidepanel-iife.js) onto the
+#      base bundle. The IIFE contains ALL custom UI features:
+#      - Header control buttons (reload, restart proxy, toggle tools/thinking,
+#        expand tool results) next to the theme toggle
 #      - Working directory lock (P:\)
-#      - File search, resize handle, thinking/tool-call toggles
-#      - Tool-result collapse (P-collapse-tools): caps .acp-tc blocks at
-#        max-height:300px with overflow-y:auto; maximize toggle button in
-#        floating controls expands all tool results. State persists in
-#        localStorage("acp_et").
+#      - File search, resize handle, tool-result collapse (P-collapse-tools)
+#      The IIFE is git-tracked (~10KB, readable). The base bundle is NOT tracked
+#      (13.6MB third-party minified artifact). This script strips any existing
+#      IIFE from the live file, then prepends the tracked version — idempotent.
 
 $ErrorActionPreference = "Stop"
 $patchDir = $PSScriptRoot
@@ -42,17 +43,22 @@ if (Test-Path $srcServer) {
     Write-Host "SKIP: server.patched.js not found" -ForegroundColor Yellow
 }
 
-# --- Patch 3: sidepanel JS (copy patched version) ---
-# Adds all IIFE-injected features: Restart Proxy button, working dir lock,
-# file search, resize handle, thinking/tool-call toggles, and tool-result
-# collapse (P-collapse-tools). See wiki for full patch inventory.
-$srcSide = Join-Path $patchDir "dist\sidepanel-t6n74ra3.patched.js"
-$dstSide = Join-Path $patchDir "dist\sidepanel-t6n74ra3.js"
-if (Test-Path $srcSide) {
-    Copy-Item $srcSide $dstSide -Force
-    Write-Host "OK: sidepanel patched (Restart Proxy button)" -ForegroundColor Green
+# --- Patch 3: sidepanel JS (prepend tracked IIFE via Python) ---
+# Uses a Python helper for byte-level safety — PowerShell's ReadAllText corrupts
+# non-UTF-8 byte sequences in the 13MB minified bundle. The helper strips any
+# existing IIFE (idempotent) and prepends the tracked version.
+$iifeSrc = Join-Path $patchDir "patches\sidepanel-iife.js"
+$sideDst = Join-Path $patchDir "dist\sidepanel-t6n74ra3.js"
+if (Test-Path $iifeSrc) {
+    $prependScript = Join-Path $patchDir "patches\prepend_iife.py"
+    & python $prependScript $sideDst $iifeSrc
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "OK: sidepanel patched (IIFE prepended from tracked file)" -ForegroundColor Green
+    } else {
+        Write-Host "ERROR: sidepanel IIFE prepend failed (exit $LASTEXITCODE)" -ForegroundColor Red
+    }
 } else {
-    Write-Host "SKIP: sidepanel-t6n74ra3.patched.js not found" -ForegroundColor Yellow
+    Write-Host "SKIP: patches/sidepanel-iife.js not found in $patchDir" -ForegroundColor Yellow
 }
 
 # --- Patch 4: start-proxy.bat already has the right command; no re-apply needed ---

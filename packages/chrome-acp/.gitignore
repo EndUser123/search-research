@@ -3,10 +3,10 @@ dist/index-*.js
 dist/sidepanel-t6n74ra3.js
 dist/sidepanel-t6n74ra3.patched.js
 dist/sidepanel-*.css
+dist/.pytest_cache/
 
 # Chrome-generated runtime files
 _metadata/
-dist/.pytest_cache/
 
 # Runtime logs and state
 proxy.log
