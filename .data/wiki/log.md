@@ -1,5 +1,11 @@
 # Vault Log
 
+## Corrected model-role-assignment concept: dual basis (task-fit + quota isolation)
+Source: session-20260730
+Agent: grok
+Notes: Added dual basis for model selection: task-fit (validated by operator experience, not just benchmarks) + quota isolation (mechanical). Clarified picker is availability checker not selector. Pool contracts remain source of truth. Skill wiring reverted.
+Page: P:/.data/wiki/concepts/model-role-assignment-public-vs-custom-benchmarks.md
+
 ## MCP media servers installed (Kinocut + OpenCV MCP)
 Source: session-20260730
 Agent: grok
