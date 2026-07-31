@@ -1,5 +1,11 @@
 # Vault Log
 
+## cross-invocation
+Source: session-019fb177
+Agent: grok
+Notes: Skills proactively suggest complementary skills — /recap↔/handoff first implementation, pattern captured for future integrations
+Page: P:/.data/wiki/concepts/cross-invocation-skills-proactively-suggest-complementary-skills.md
+
 ## meta-level-proactivity-skill-graph
 Source: session-019fb177
 Agent: grok
