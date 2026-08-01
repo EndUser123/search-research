@@ -160,7 +160,7 @@ Before proposing any structure (file layout, naming scheme, storage location, pr
 
 Before spawning N>5 subagents to analyze N artifacts, run a code-based breadth scan first. Reserve LLM subagents for high-density subset.
 
-**Model tiering:** Mechanical → ccr-ornith (free local); Synthesis → parent-inherited; Cross-model → /agy, /codex, /mmx. See `~/.grok/tool-fallbacks.md`.
+**Model tiering:** Mechanical → ccr-ornith (free local); Synthesis → parent-inherited; Cross-model → /agy, /codex, /mmx. See `[[tool-fallbacks]]`.
 
 ## Skill lifecycle maintenance
 
