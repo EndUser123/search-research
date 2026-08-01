@@ -1,5 +1,17 @@
 # Vault Log
 
+## Tool fallbacks as index not authority
+Source: session-20260731
+Agent: grok
+Notes: Groq exclusion gap caused 3 failed spawns; restructured tool-fallbacks as wiki-index
+Page: wiki/concepts/tool-fallbacks-as-index-not-authority.md
+
+## Chrome autoConnect for authenticated CDP sessions
+Source: session-20260731
+Agent: grok
+Notes: autoConnect decision + persistence + enterprise policy + side panel limitation
+Page: wiki/concepts/chrome-autoconnect-for-authenticated-cdp-sessions.md
+
 ## phase2-receipt-format-mismatch
 Source: session-20260731
 Agent: grok
