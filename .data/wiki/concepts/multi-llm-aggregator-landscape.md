@@ -99,9 +99,18 @@ Sends one prompt to multiple model APIs in parallel using user-provided API keys
 
 ## Future upgrade path
 
-Chrome DevTools MCP PR #991 (github.com/ChromeDevTools/chrome-devtools-mcp/issues/926) proposes `create_session` / `list_sessions` / `close_session` tools. When merged, `/model-web` can upgrade from sequential blast/collect to true parallel multi-session dispatch — closing the only gap vs. Chrome extensions.
+Chrome DevTools MCP shipped two flags for concurrent sessions (issue #926, resolved
+2026-02-23). Two PRs proposing `create_session`/`close_session` tools (#899, #1241)
+were **closed without merging**. Instead, the team shipped:
 
-Handoff: `P:/docs/handoffs/mcp-multi-session-pr-991/HANDOFF.md`
+- `--experimentalPageIdRouting`: exposes `pageId` on page-scoped tools for concurrent
+  agents sharing one server
+- `--isolated`: separate temporary Chrome profiles per server instance
+
+**Neither helps `/model-web`:** `--isolated` breaks `--autoConnect` authentication
+(launches new Chrome), and `--experimentalPageIdRouting` targets a multi-agent-per-server
+architecture we don't use. Our sequential `select_page` blast/collect protocol remains
+correct.
 
 ## Cross-references
 

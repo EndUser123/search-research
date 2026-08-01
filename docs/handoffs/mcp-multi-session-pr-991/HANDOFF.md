@@ -1,8 +1,21 @@
 # HANDOFF: Chrome DevTools MCP Multi-Session Support (PR #991)
 
-## Status: WAITING — upstream PR not yet merged
+## Status: RESOLVED — shipped differently than planned (no action needed)
 
-**Tracking:** Checked via `/maintain` Step 2h (scheduled checks). Registry entry at `P:/.data/scheduled-checks.json` → `mcp-multi-session-pr-991`. No scheduled task needed — `/maintain` surfaces resolution inline when it runs.
+**Finding (2026-08-01):** Issue #926 was closed as COMPLETED (2026-02-23). Two PRs
+(#899, #1241) proposed `create_session`/`list_sessions`/`close_session` tools with
+`BrowserContext` isolation — both were **closed without merging**. The team shipped
+a simpler approach: `--experimentalPageIdRouting` flag (route by pageId without
+`select_page`) and `--isolated` flag (separate temporary profiles per server instance).
+
+**Impact on `/model-web`:** No action needed. Our sequential blast/collect protocol
+via `select_page` + `--autoConnect` remains correct:
+- `--isolated` breaks our authentication requirement (launches new Chrome, not real session)
+- `--experimentalPageIdRouting` helps multiple agents sharing one server — we have one orchestrator
+- The `create_session`/`close_session` API the handoff planned around does not exist
+
+**Recommendation:** mark this handoff as resolved-no-action. Update the wiki concept
+`[[multi-llm-aggregator-landscape]]` to note the shipped approach.
 
 ## Objective
 When Chrome DevTools MCP merges multi-session support (create_session / list_sessions / close_session), upgrade `/model-web`'s ensemble protocol from sequential blast/collect to true parallel multi-session dispatch.
