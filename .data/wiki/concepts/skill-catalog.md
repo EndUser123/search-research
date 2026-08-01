@@ -38,9 +38,7 @@ Auto-generated on 2026-08-01 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **capture** | ✓ | — | Proactive improvement opportunity scanner. Two functions: (1) scans the session transcript for 6 categories of opportuni... | — | `~/.grok/skills/capture/SKILL.md` |
 | **close** | ✓ | — | Session close-out orchestrator. Runs close_accounting.py to scan handoffs, wiki, git commits, temp files, git status, an... | Check if session is safe to close. Scan for uncommitted work, missing handoffs, ... | `~/.grok/skills/close/SKILL.md` |
 | **codex** | ✓ | — | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | — | `~/.grok/skills/codex/SKILL.md` |
-| **crawl4ai** | ✓ | — | Ingest websites into the wiki vault as searchable markdown. Crawls with crawl4ai (local Python), dedupes by SHA256 + eta... | — | `~/.grok/skills/crawl4ai/SKILL.md` |
 | **create-skill** | ✓ | — | Interactively create a new Grok skill (SKILL.md + optional scripts/references). Use when the user wants to create a skil... | — | `~/.grok/skills/create-skill/SKILL.md` |
-| **debrief** | ✓ | — | DEPRECATED — absorbed into /aar on 2026-08-01. All 5 lenses (root causes, code quality, workflow friction, knowledge gap... | — | `~/.grok/skills/debrief/SKILL.md` |
 | **design** | ✓ | — | Run the full design-doc-writer and design-doc-reviewer loop until consensus. Produces a polished design document with an... | — | `~/.grok/skills/design/SKILL.md` |
 | **doc-check** | ✓ | — | Documentation readiness check for publishing. Scans the diff/commits being shipped against README, CHANGELOG, version fi... | — | `~/.grok/skills/doc-check/SKILL.md` |
 | **dream** | ✓ | — | Offline memory consolidation for the LLM agent fleet. Reads the last 90 days of handoffs, AAR artifacts, and the www-led... | — | `~/.grok/skills/dream/SKILL.md` |
@@ -79,11 +77,13 @@ Auto-generated on 2026-08-01 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **tasks** | ✓ | — | Read and write Claude Code's persistent task store at ~/.claude/tasks/project-main-tasks/. Use when the user asks to tra... | — | `~/.grok/skills/tasks/SKILL.md` |
 | **todo** | ✓ | — | ADHD-friendly "what should I do?" orchestrator. Scans the workspace for unfinished work, unreviewed research, and open t... | — | `~/.grok/skills/todo/SKILL.md` |
 | **tp** | ✓ | — | Critical-friend / thought-partner. Two modes: (1) critique — a fresh subagent challenges framing, assumptions, and appro... | Challenge a decision, proposal, or approach. Find flaws in reasoning. Surface wh... | `~/.grok/skills/tp/SKILL.md` |
+| **trace** | ✓ | — | Manual trace-through verification for code, skills, workflows, and documents. Catches logic errors that automated testin... | — | `~/.grok/skills/trace/SKILL.md` |
 | **wargame** | ✓ | — | Content discipline for plans where observation is expensive, ambiguity is high, or the decision is hard to reverse. Forc... | — | `~/.grok/skills/wargame/SKILL.md` |
 | **web** | ✓ | — | Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (DDG + ... | — | `~/.grok/skills/web/SKILL.md` |
 | **why** | ✓ | — | Evidence-tiered, pattern-aware root cause analysis for AI agent failures, diagnostic errors, and system observations. Qu... | — | `~/.grok/skills/why/SKILL.md` |
 | **why-old** | ✓ | — | ARCHIVED — pre-refactor snapshot of /why preserved 2026-07-25 for A/B comparison. This is the original 5-dimension Ishik... | — | `~/.grok/skills/why-old/SKILL.md` |
 | **wiki** | ✓ | — | Persistent knowledge base for durable findings AND design decisions. Default (/wiki with no args): distill the current s... | Capture durable findings and design decisions. Write wiki concepts. Query existi... | `~/.grok/skills/wiki/SKILL.md` |
+| **wiki-crawl4ai** | ✓ | — | Ingest websites into the wiki vault as searchable markdown. Crawls with crawl4ai (local Python), dedupes by SHA256 + eta... | — | `~/.grok/skills/wiki-crawl4ai/SKILL.md` |
 | **www** | ✓ | — | Wiki-Web-Wiki compound research skill. Queries the local wiki for what we already know, researches the web for what we d... | — | `~/.grok/skills/www/SKILL.md` |
 
 ## grok-bundled (21 skills)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check installed Python packages against PyPI latest versions.
 
-Shared utility for /web, /www, /crawl4ai, /wiki skills. Run before long
+Shared utility for /web, /www, /wiki-crawl4ai, /wiki skills. Run before long
 research sessions, before ingest pipelines, or as a periodic health check.
 
 Usage:
@@ -63,6 +63,10 @@ SKILL_DEPS: dict[str, list[DepSpec]] = {
         DepSpec("qmd", "qmd", "qmd"),
     ],
     "crawl4ai": [
+        DepSpec("crawl4ai", "crawl4ai", "crawl4ai", min_supported=(0, 7, 0)),
+        DepSpec("qmd", "qmd", "qmd"),
+    ],
+    "wiki-crawl4ai": [
         DepSpec("crawl4ai", "crawl4ai", "crawl4ai", min_supported=(0, 7, 0)),
         DepSpec("qmd", "qmd", "qmd"),
     ],
@@ -223,7 +227,7 @@ def format_table(results: list[dict]) -> str:
         inst = str(r["installed"] or "—")
         latest = str(r["latest"] or "—")
         if r.get("fetch_error") and r["latest"] is None:
-            latest = f"(fetch err)"
+            latest = "(fetch err)"
         line = f"{r['name']:<{name_w}} {inst:<{inst_w}} {latest:<{latest_w}} {status_label}"
         if r.get("below_min"):
             line += "  [BELOW MIN]"
