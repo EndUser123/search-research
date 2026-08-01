@@ -206,6 +206,9 @@ from proposed unsafe ones (`/www`→`/refine`). Provides a structural fix
 
 ## Auto-related
 
-- [[skill-auto-invocation-reliability]] — the quantitative evidence base (100% activation with directive descriptions, execution failures harder)
-- [[close-auto-invokes-aar]] — existing precedent for within-mode auto-composition
-- [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — the vocabulary-mismatch grep trap that makes "it's not there" claims unreliable; relevant to verifying whether a skill auto-invokes another
+- [[skill-catalog]]
+- [[skill-graph]]
+- [[agent-config-directory-taxonomy]]
+- [[claude-code-skills-and-mcp-integration]]
+- [[claude-code-cli-agent-configuration-and-workflow-patterns]]
+

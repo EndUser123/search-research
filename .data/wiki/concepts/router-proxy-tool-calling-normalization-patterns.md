@@ -393,5 +393,9 @@ DeepWiki/GitHub/DDG research.
 
 ## Auto-related
 
-- [[model-tool-calling-capability-matrix]] — extends with router/proxy solution landscape
-- [[compensating-for-weaker-models-ensemble-multi-pass]] — ensemble techniques for quality, this concept for tool-calling transport
+- [[skill-catalog]]
+- [[model-tool-calling-capability-matrix]]
+- [[I'm-going-to-create-a-hook-to-enforce-discovery-be]]
+- [[tool-binding-and-choice-control]]
+- [[agent-config-directory-taxonomy]]
+

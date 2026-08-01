@@ -114,6 +114,9 @@ Re-verify across the next 5 sessions with recommendation content. If reversal co
 
 ## Auto-related
 
-- [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — different failure class (mechanism overclaiming), same root pattern
-- [[evidence-first-default-and-needless-confirmation]] — the general principle this refines
-- [[intent-mode-gated-auto-composition]] — the intent-mode transition is structurally similar to the exploration→recommendation transition
+- [[scope-matching-verification-discipline]]
+- [[close-scanner-verification-gap-stale-read]]
+- [[premature-closure-narrative-sufficiency-external-approaches]]
+- [[skill-graph]]
+- [[sdlc-proactive-prevention-techniques-2026]]
+
