@@ -1,5 +1,29 @@
 # Vault Log
 
+## --title
+Source: Scheduled checks in /maintain
+Agent: --slug
+Notes: scheduled-checks-in-maintain
+Page: --tags
+
+## --title
+Source: Tool fallbacks (moved to wiki)
+Agent: --slug
+Notes: tool-fallbacks
+Page: --tags
+
+## --title
+Source: Multi-LLM aggregator landscape
+Agent: --slug
+Notes: multi-llm-aggregator-landscape
+Page: --tags
+
+## --title
+Source: CAPTCHA solving for non-vision LLM agents
+Agent: --slug
+Notes: captcha-solving-for-non-vision-llm-agents
+Page: --tags
+
 ## Analysis over action pattern
 Source: session-019fb937
 Agent: grok
