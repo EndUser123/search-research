@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-07-31
 cognitive_load: 3
-summary: Auto-generated index of 674 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 676 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-07-31 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 674 across 21 scopes.
+**Total skills:** 676 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-07-31 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (51 skills)
+## grok-user (53 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -74,11 +74,13 @@ Auto-generated on 2026-07-31 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **search-fleet** | ✓ | — | Capability-routed multi-backend search with RRF aggregation. Reads the tool registry at ~/.grok/search-fleet.toml, class... | — | `~/.grok/skills/search-fleet/SKILL.md` |
 | **ship** | ✓ | — | Alias for /go ship. Chains review, fix, verify, merge, and close-prep in one invocation. Use when the user says /ship, "... | — | `~/.grok/skills/ship/SKILL.md` |
 | **skill-dev** | ✓ | — | Measure and improve Grok skills from evidence. Two modes: (1) measure — evaluate marginal contribution of active skills ... | — | `~/.grok/skills/skill-dev/SKILL.md` |
+| **slc** | ✓ | — | Behavioral reset for the thought-partner standard. When invoked, re-anchors the agent to its identity, quality bar, proa... | — | `~/.grok/skills/slc/SKILL.md` |
 | **tasks** | ✓ | — | Read and write Claude Code's persistent task store at ~/.claude/tasks/project-main-tasks/. Use when the user asks to tra... | — | `~/.grok/skills/tasks/SKILL.md` |
 | **todo** | ✓ | — | ADHD-friendly "what should I do?" orchestrator. Scans the workspace for unfinished work, unreviewed research, and open t... | — | `~/.grok/skills/todo/SKILL.md` |
 | **tp** | ✓ | — | Critical-friend / thought-partner. Two modes: (1) critique — a fresh subagent challenges framing, assumptions, and appro... | Challenge a decision, proposal, or approach. Find flaws in reasoning. Surface wh... | `~/.grok/skills/tp/SKILL.md` |
 | **wargame** | ✓ | — | Content discipline for plans where observation is expensive, ambiguity is high, or the decision is hard to reverse. Forc... | — | `~/.grok/skills/wargame/SKILL.md` |
 | **web** | ✓ | — | Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (DDG + ... | — | `~/.grok/skills/web/SKILL.md` |
+| **web-model** | ✓ | — | Browser-based LLM advisory bridge. Sends prompts to web-hosted LLMs (ChatGPT, Gemini, Claude, Perplexity) through their ... | — | `~/.grok/skills/web-model/SKILL.md` |
 | **why** | ✓ | — | Evidence-tiered, pattern-aware root cause analysis for AI agent failures, diagnostic errors, and system observations. Qu... | — | `~/.grok/skills/why/SKILL.md` |
 | **why-old** | ✓ | — | ARCHIVED — pre-refactor snapshot of /why preserved 2026-07-25 for A/B comparison. This is the original 5-dimension Ishik... | — | `~/.grok/skills/why-old/SKILL.md` |
 | **wiki** | ✓ | — | Persistent knowledge base for durable findings AND design decisions. Default (/wiki with no args): distill the current s... | Capture durable findings and design decisions. Write wiki concepts. Query existi... | `~/.grok/skills/wiki/SKILL.md` |

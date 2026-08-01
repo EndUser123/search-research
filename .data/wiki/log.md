@@ -1,5 +1,23 @@
 # Vault Log
 
+## Overclaiming under exploration-to-recommendation pressure
+Source: session-2026-07-31
+Agent: grok
+Notes: 5 recommendation reversals; check disconfirming evidence before asserting
+Page: P:/.data/wiki/concepts/overclaiming-under-exploration-to-recommendation-pressure.md
+
+## Intent-mode-gated auto-composition
+Source: session-2026-07-31
+Agent: grok
+Notes: Auto-route within same intent mode; operator-gate at research->implementation boundary
+Page: P:/.data/wiki/concepts/intent-mode-gated-auto-composition.md
+
+## Router and proxy solutions for cross-harness model tool-calling
+Source: session-2026-07-31
+Agent: grok
+Notes: 5 mechanisms for tool-call emission failures; add_function_to_prompt DISCONFIRMED
+Page: P:/.data/wiki/concepts/router-proxy-tool-calling-normalization-patterns.md
+
 ## Hook timeout root cause resolved + list-before-claim rule
 Source: session-019fb937
 Agent: grok
