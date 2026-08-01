@@ -1,28 +1,21 @@
 ---
-thread_id: 019fa8f8-session-obs
+current_session_id: 019fb3a8-42b6-7e81-91c9-1fad5f4130e6
 parent_handoff_path: none
-current_session_id: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14
-current_terminal_id: grok-main
-produced_at: 2026-07-31T01:30:00-06:00
 status: open
-handoff_type: investigation
-accurate_as_of_head: d7da624
 ---
 
-# Session observations — 2026-07-30/31
+# Session Observations — 2026-07-30/31
 
 ## Observations
 
-1. **Fabricated confidence is the dominant agent failure mode.** 6+ operator corrections for explanations produced without evidence. The agent optimizes for self-convenience (inline execution, familiar tools, confident framing) and rationalizes with fabricated explanations. Structural defense: apply verification receipt rule to framing claims, not just code claims.
+1. **The meta-improvement loop works but requires operator challenges.** Each structural fix this session was triggered by an operator challenge. The framing check pattern mechanizes the most common challenge type (conflation check), but cannot replace the operator's judgment entirely. The agent cannot reliably challenge its own framing.
 
-2. **"Spawn protection, not routing" — the system name should match what it does.** Building infrastructure that blocks bad spawns and calling it "routing" over-claims. Pool contracts are guidance, not enforcement. The gate is enforcement, not selection.
+2. **"Ignore if not relevant" was a permission to dismiss.** Removing it changed the agent's behavior pattern — observations are now surfaced with confidence, not preemptively dismissed. Small wording change, large behavioral shift.
 
-3. **Pool contracts > greedy algorithms for model selection.** pick_model.py's first-available algorithm removed task-fit judgment. Pool contracts preserve it. Reverted after testing. The picker is an availability checker, not a selector.
+3. **Dual-stream routing is a generalizable pattern.** The knowledge/improvement split in /capture applies to any system that produces both durable findings and actionable items. Conflating them buries improvements in knowledge bases. This is the framing check's output-check question made concrete.
 
-4. **zen-deepseek-v4-flash-free fails on multi-file code review** (224K token context exhaustion from repeated file reads). Works fine for short critique prompts and single-file review with inline content. Documented in critic-model-pool.md.
+4. **Ship receipt automation is the next bottleneck.** The 15-field receipt template was too complex for reliable manual execution — this session produced duplicate lines, dangerous rollback commands, and N/A where "always runs" was specified. The mechanical receipt generator (ship_receipt.py) is the structural fix; it's specified but not built.
 
-5. **ddgs_search.py multi-query batch mode** eliminates the temp-script anti-pattern. The tool now handles both single and multi-query DDG searches. Stop writing temp Python scripts for search.
+5. **Pattern reorder by specificity beats highest-match.** The /tp critique correctly identified that highest-match creates a gaming surface. Specificity ordering is simpler, safer, and sufficient. The fresh-lens critique was wrong about gaming (exit-code gate handles it) but right about the approach.
 
-6. **The /close process is heavy but necessary.** The scanner, AAR validator, completion receipt, and gate resolution enforce rigor that prevents premature closure. Skipping steps produces an invalid close.
-
-7. **Research lane design deferred.** Operator mentioned wanting to consider "how best to do a research lane" after model-quota was built. Not started.
+6. **The session spanned 2 calendar days and 2 git repos.** This is a common pattern on this host. The multi-repo ship detection (Phase 0 step 5) was added because this session shipped across P:\ and ~/.grok without structural coordination.
