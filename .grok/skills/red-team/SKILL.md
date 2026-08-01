@@ -196,6 +196,22 @@ Output:
 Record a one-line summary: specialist count, findings raw/verified, clusters,
 verdict, cross-model specialist used, latency.
 
+### Step 9 — Post-verdict routing (mandatory for REVISE/BLOCK)
+
+When the verdict is `REVISE` or `BLOCK`, the minimum fix-set is actionable work
+that needs a next-session pickup artifact. Route unresolved findings:
+
+- **REVISE verdict:** invoke `/handoff <target-name>-red-team-fixes` with the
+  minimum fix-set, root-cause clusters, and verification criteria. A future
+  session picks this up to implement the fixes.
+- **BLOCK verdict:** invoke `/handoff <target-name>-red-team-blocked` with the
+  architectural flaw, alternatives considered, and what would need to change
+  for the design to become viable.
+- **PROCEED verdict:** no handoff needed — the design is sound.
+
+Findings without a handoff evaporate — the operator has to re-run the red-team
+to recover them. This mirrors `/friction`'s post-output routing.
+
 ## Save step: persist systemic attack/failure patterns to wiki (NEW 2026-07-25)
 
 After the verdict, check whether the red-team surfaced a **systemic attack or failure pattern** worth saving to the wiki. Red-team findings about structural/design-level weaknesses are exactly the kind of knowledge that compounds — future red-teams (Wiki grounding, Step 0.5) and `/wargame` sessions should find them.
