@@ -3,7 +3,7 @@
 ## Status: OPEN — design only, not started
 
 ## Objective
-Refactor `fetch_transcript_chain` in `P:/packages/yt-is/csf/transcript.py` (line 1835, ~200 lines) using the merged plan from a 4-model ensemble test (ChatGPT, Gemini, Perplexity, HuggingChat/Kimi-K3). All 4 models independently converged on the same 5 structural changes.
+Refactor `fetch_transcript_chain` in `P:/packages/yt-is/csf/transcript.py` (line 1835, ~200 lines) using the merged plan from a 6-model ensemble test (ChatGPT, Gemini, Perplexity, HuggingChat/Kimi-K3, Qwen, Grok). All 6 models independently converged on the same 5 structural changes.
 
 ## Target file
 `P:/packages/yt-is/csf/transcript.py` — 2322 lines total, the function is at line 1835.
@@ -35,8 +35,10 @@ Write tests against the current function before touching anything:
 |---|---|---|---|
 | `_classify_failure` | `classify_transcript_failure(error) -> FailureReason` | Pure function | Independently testable; removes decision table from orchestrator |
 | `_none_result` | `build_failed_transcript_result(...)` or `TranscriptResult.empty(...)` | Factory | Centralizes failure result invariants |
-| `_stage_started` + `_stage_completed` | `StageExecution` frozen dataclass + context manager `track_transcript_stage()` | Collaborator | Guarantees matching start/completion logging; timing recorded even on exceptions |
+| `_stage_started` + `_stage_completed` | `StageExecution` frozen dataclass + `StageTracker` protocol (Grok) + context manager `track_transcript_stage()` | Collaborator | Guarantees matching start/completion logging; timing recorded even on exceptions |
 | `_archive_failed_result` | `finalize_failed_transcript_fetch(...)` | Service | Makes terminal side effects visible at call site; one authoritative failure path |
+
+**Qwen's grouping insight (model #5):** the 3 side-effecting closures (`_stage_started`, `_stage_completed`, `_archive_failed_result`) share mutable state (attempts list, timing, failure accumulator). Extract them as methods on a `TranscriptOrchestrator` class rather than free functions — `__init__` injection makes the shared state explicit and kills the race condition on the global. Pure closures (`_classify_failure`, `_none_result`) go to module level as free functions.
 
 ### Step 2: Eliminate `_WHISPER_ENABLED` global
 
@@ -51,6 +53,8 @@ class CircuitBreaker:
     def record_failure(self) -> None: ...
     def record_success(self) -> None: ...
 ```
+
+**Qwen's `FetchContext` addition:** carry `cheap_attempts` and `cost_budget_remaining` in the context object (not scattered as booleans). This makes the expensive-gate logic explicit and testable — `ExpensiveStage.can_execute()` reads `ctx.cost_budget_remaining` instead of checking a mutable flag.
 
 ### Step 3: Eliminate duplicated success handling
 
@@ -91,9 +95,9 @@ class FallbackStage(Protocol):
 ```
 
 The 3 inline special cases become per-stage methods:
-- **Whisper admission** → `WhisperStage.can_execute()` checks circuit breaker + admission metadata
+- **Whisper admission** → `WhisperStage.can_execute()` checks circuit breaker + admission metadata. Grok models this as an injectable `WhisperAdmissionPolicy` object that reads config flags (never mutable globals).
 - **NLM language override** → `NotebookLMStage.normalize()` applies the "en" override
-- **Expensive fallback gating** → `ExpensiveStage.can_execute()` checks `ctx.expensive_fallbacks_allowed`
+- **Expensive fallback gating** → `ExpensiveStage.can_execute()` checks `ctx.cost_budget_remaining` (Qwen) or an injectable `FallbackGatingPolicy` (Grok)
 
 ### Step 5: Slim orchestrator
 
@@ -131,6 +135,10 @@ def fetch_transcript_chain(video_id, config, *, skip_notebooklm=False, admission
 | `FallbackStage` (Protocol) | Gemini + HuggingChat | Strategy interface: can_execute + execute + normalize |
 | `CircuitBreaker` (class) | HuggingChat | Thread-safe replacement for _WHISPER_ENABLED mutable global |
 | `StepContext` (frozen dataclass) | Perplexity | Carries request + policy + prior_failures through the loop |
+| `TranscriptOrchestrator` (class) | Qwen | Groups the 3 side-effecting closures via `__init__` injection; shared state made explicit |
+| `FetchContext` (frozen dataclass) | Qwen | Carries `cheap_attempts`/`cost_budget_remaining` — expensive-gate logic explicit |
+| `StageTracker` (protocol) | Grok | Groups `_stage_started`/`_stage_completed` timing helpers behind one interface |
+| `WhisperAdmissionPolicy` / `FallbackGatingPolicy` | Grok | Injectable policy objects that read config flags (never mutable globals) |
 
 ## Constraints
 - **Public signature stays byte-identical** — callers see zero breakage
@@ -145,7 +153,7 @@ def fetch_transcript_chain(video_id, config, *, skip_notebooklm=False, admission
 - No new public API — all new types are module-internal
 
 ## Ensemble test provenance
-This plan was validated by sending the same refactoring problem to 4 independent LLMs via the `/model-web` ensemble. All 4 converged on the same 5 structural changes. See `ensemble-results.md` for the full ranking and per-model contributions.
+This plan was validated by sending the same refactoring problem to 6 independent LLMs via the `/model-web` ensemble (ChatGPT, Gemini, Perplexity, HuggingChat/Kimi-K3, Qwen, Grok). All 6 converged on the same 5 structural changes. See `ensemble-results.md` for the full ranking and per-model contributions. Duck.ai (7th model) submitted successfully but response blocked by CAPTCHA — pending.
 
 ## Acceptance criteria
 - [ ] Characterization tests written and passing
