@@ -85,15 +85,17 @@ def kill_chrome():
 
 
 def launch_chrome():
-    """Launch Chrome with the dedicated LLM profile."""
+    """Launch Chrome as a detached process (survives parent exit)."""
     if not Path(CHROME_EXE).exists():
         print(f"ERROR: Chrome not found at {CHROME_EXE}", file=sys.stderr)
         sys.exit(1)
 
+    # Use DETACHED_PROCESS flag so Chrome survives this script exiting
     subprocess.Popen(
         [CHROME_EXE, f"--user-data-dir={PROFILE_DIR}", "--new-window"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        creationflags=subprocess.DETACHED_PROCESS,
     )
     time.sleep(4)
 
