@@ -1,5 +1,11 @@
 # Vault Log
 
+## LLM Synthesis Context Truncation Blind Spot
+Source: session-20260801
+Agent: grok
+Notes: wiki-yt synthesize_subtopics.py truncated transcripts to 1200 chars (3.8% of avg). Fixed: full text by default + map-reduce fallback at 300K char budget. Root cause: default 250x too conservative vs actual 205K-256K token context windows.
+Page: wiki/concepts/llm-synthesis-context-truncation-blind-spot.md
+
 ## LLM-Based Concept Canonicalization for Knowledge Bases
 Source: session-20260801
 Agent: grok
