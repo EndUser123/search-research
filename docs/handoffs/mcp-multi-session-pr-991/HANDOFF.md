@@ -2,6 +2,8 @@
 
 ## Status: WAITING — upstream PR not yet merged
 
+**Tracking:** Checked via `/maintain` Step 2h (scheduled checks). Registry entry at `P:/.data/scheduled-checks.json` → `mcp-multi-session-pr-991`. No scheduled task needed — `/maintain` surfaces resolution inline when it runs.
+
 ## Objective
 When Chrome DevTools MCP merges multi-session support (create_session / list_sessions / close_session), upgrade `/model-web`'s ensemble protocol from sequential blast/collect to true parallel multi-session dispatch.
 

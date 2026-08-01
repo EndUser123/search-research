@@ -1,0 +1,17 @@
+[
+  {
+    "id": "mcp-multi-session-pr-991",
+    "description": "Chrome DevTools MCP multi-session support",
+    "check_type": "github_issue",
+    "check_args": {
+      "repo": "ChromeDevTools/chrome-devtools-mcp",
+      "issue": 926,
+      "look_for": "closed"
+    },
+    "action_on_found": "Pick up handoff P:/docs/handoffs/mcp-multi-session-pr-991/HANDOFF.md to upgrade /model-web to parallel ensemble",
+    "frequency": "daily",
+    "last_checked": "2026-08-01",
+    "status": "resolved",
+    "created": "2026-08-01"
+  }
+]
