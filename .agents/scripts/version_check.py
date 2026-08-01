@@ -60,18 +60,14 @@ SKILL_DEPS: dict[str, list[DepSpec]] = {
         DepSpec("tavily", "tavily-python", "tavily"),
         DepSpec("requests", "requests", "requests"),
         DepSpec("crawl4ai", "crawl4ai", "crawl4ai", min_supported=(0, 7, 0)),
-        DepSpec("qmd", "qmd", "qmd"),
     ],
     "crawl4ai": [
         DepSpec("crawl4ai", "crawl4ai", "crawl4ai", min_supported=(0, 7, 0)),
-        DepSpec("qmd", "qmd", "qmd"),
     ],
     "wiki-crawl4ai": [
         DepSpec("crawl4ai", "crawl4ai", "crawl4ai", min_supported=(0, 7, 0)),
-        DepSpec("qmd", "qmd", "qmd"),
     ],
     "wiki": [
-        DepSpec("qmd", "qmd", "qmd"),
     ],
 }
 
