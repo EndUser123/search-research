@@ -17,7 +17,7 @@ Find a way to make the Stop hook's verification receipt check pass automatically
 
 ## 2. Status
 
-OPEN — not started.
+IMPLEMENTED — PostToolUse_auto_verify.py shipped (commit d4dbbd4, 2026-08-01). Runs ruff check + py_compile on every .py edit, writes receipts. Registered in quality-gate.json. Live verification pending (needs `hooks reload` + real edit in next session).
 
 ## 3. Producing context
 
@@ -52,11 +52,26 @@ The problem: the agent runs `ruff check` and `py_compile` during implementation,
 
 Three approaches to investigate:
 
-1. **PreStop hook that auto-runs ruff + py_compile on modified files.** When the agent says "done," a PreStop hook scans for modified .py files since last verification and runs ruff + py_compile automatically. If they pass, the receipt is updated. If they fail, the block fires with the actual error (not just "stale receipt"). This would eliminate the vast majority of blocks.
+1. **PostToolUse hook that auto-runs ruff + py_compile on modified files.** When the agent says "done," a PreStop hook scans for modified .py files since last verification and runs ruff + py_compile automatically. If they pass, the receipt is updated. If they fail, the block fires with the actual error (not just "stale receipt"). This would eliminate the vast majority of blocks.
 
 2. **PostToolUse hook on search_replace/write that auto-runs verification.** After every file edit, run ruff + py_compile on that file immediately. The receipt is always current. Cost: slight latency on every edit (~200ms per file for ruff). Benefit: never see a Stop block again for code files.
 
 3. **AGENTS.md rule with behavioral enforcement.** Tell the agent to always run `ruff check <file> && python -m py_compile <file>` after the final edit to each file. This is the current approach — it doesn't work because the agent forgets under closure pressure.
+
+### Community implementations (research 2026-08-01)
+
+This is a solved problem. Multiple practitioners have shipped PostToolUse auto-lint hooks:
+
+- **ariel-frischer/lint-format-code.sh** — Claude Code PostToolUse hook. Auto-runs ruff (import sort, lint, format) + mypy on `.py` files after Write/Edit. Multi-language (Python, JS, TS, shell, JSON, YAML, TOML, Terraform). Exit 2 on failure feeds error back to LLM. Registration: `settings.json` → `hooks.PostToolUse` → matcher `Write|Edit|MultiEdit|Update`.
+- **TMYuan/ruff-claude-hook** — purpose-built ruff hook: auto-fix → format → validate on every Python edit.
+- **karanb192/claude-code-hooks** — `auto-format` PostToolUse hook: "Run prettier/black/gofmt after edits."
+- **Wouter Gerrits** blog: "Auto-Format, Auto-Lint, Auto-Test Every Change" — composing multiple PostToolUse hooks for defense in depth.
+
+**The pattern is identical across all implementations:** PostToolUse on Write/Edit → extract file path from stdin JSON → run linter/formatter → exit 2 on failure → exit 0 on success (silent).
+
+**Grok Build confirms PostToolUse support** (docs.x.ai/build/features/hooks): PostToolUse fires after tool completion with `toolName` and `toolInput` on stdin JSON. The existing `quality-gate.json` already has a PostToolUse matcher for `search_replace|write` with `verification_receipt_writer.py` registered — so the hook infrastructure is already in place.
+
+**The only adaptation needed for our system:** the hook must also feed the verification result into `verification_receipt_writer.py` so the Stop hook sees a fresh receipt. Community implementations only lint — they don't write receipts. Our version must both lint AND write a receipt that satisfies the Stop hook's scope-binding check.
 
 ## 7. Task packets
 
