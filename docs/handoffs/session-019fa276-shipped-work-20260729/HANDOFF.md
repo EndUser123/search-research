@@ -6,7 +6,7 @@ current_terminal_id: grok-build-terminal
 produced_at: 2026-07-30T01:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 9aaff3b
+accurate_as_of_head: 532679b
 ---
 
 # Session 019fa276 — shipped work, open obligations, and continuation points
@@ -316,3 +316,30 @@ Items 3, 4, 5 (from prior revision) now have sibling-session additions (items 11
 **Status update:** all review findings resolved. Zero deferred items remain from this session's /review cycle. Session at natural stopping point.
 
 **Root cause of Revision 4 staleness:** same-author continuation — the handoff was written as a checkpoint, then the author continued working (resolved F3-05/F3-06) without updating the handoff. This is the "mid-session checkpoint" pattern; the /handoff skill documents end-of-session timing but not checkpoint timing. Mitigation: run `/handoff verify <path>` after any post-handoff commit.
+
+### Revision 6 — 2026-08-01T22:00:00Z — grok-build-terminal
+
+**Trigger:** auto-update — post-compaction invocation. HEAD moved from `9aaff3b` to `532679b`. Significant sibling activity (100+ commits) but this session's handoff file was not touched.
+
+**What changed since Revision 5 (this session's work):**
+
+| Work | Commit | Notes |
+|------|--------|-------|
+| `/handoff` SKILL.md v0.1.2: mid-session checkpoint pattern | `92ba168` (~/.grok) | New section documenting same-author continuation failure mode + mandatory verify-after-commit rule |
+| `/handoff` SKILL.md v0.1.2: `checkpoint` YAML field | `4cb8e1b` (~/.grok) | Optional field set at authoring time. Reader-facing signal: `head:DRIFT` tells whether; `checkpoint:true` tells what kind to expect |
+| `/handoff` Hard Constraint #7 update (v0.1.2 clause) | `92ba168` (~/.grok) | Distinguishes same-author drift from cross-terminal drift |
+| `/handoff` inline critic checklist addition | `92ba168` (~/.grok) | "No contradicted claims" check for same-author continuation detection |
+| Wiki concept: `handoff-mid-session-checkpoint-pattern.md` | runtime vault | Durable finding: two shapes of handoff drift (cross-terminal vs same-author), reference incident, the fix |
+
+**Harvest count corrected:** 20 OPEN items (was 12 at Revision 5 — siblings added 8 new items). Of these, 8 have handoff files; 12 do not (mostly validation gaps and behavioral patterns needing cross-session verification).
+
+**Sibling activity (not this session's work, but affects shared surfaces):**
+- 100+ commits across P:/ and ~/.grok since Revision 5
+- Major new skills shipped by siblings: `/model-web`, `/capture`, `/ship`, `/doc-check`, `/close-check`, `/friction`, `/trace`, `/slc`, `/model-quota`
+- Major refactors: `/debrief` absorbed into `/aar`, `/recap` → `/recap-grok`, `/crawl4ai` → `/wiki-crawl4ai`
+- `/close` replaced by `/close-check` workflow command
+- Ruff clean across entire ~/.grok repo (400+ errors fixed)
+
+**Status update:** this session's handoff improvement arc is complete. The v0.1.2 enhancements (checkpoint pattern, verify-after-commit, `checkpoint` field) are the structural fix for the same-author continuation failure mode that Revision 4 exhibited. The fix was derived from the incident itself — the `/tp` critique caught the problem, the wiki concept captured the durable finding, and the SKILL.md change prevents recurrence.
+
+**Note:** The `checkpoint` field is reader-facing documentation only — `list_handoffs.py` does not yet surface it alongside `head:DRIFT`. Extending the CLI to read and display `checkpoint:true` is a natural follow-up.
