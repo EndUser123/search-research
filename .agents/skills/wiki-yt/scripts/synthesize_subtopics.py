@@ -37,6 +37,14 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 # Sources: Liu et al. 2023 (arxiv 2307.03172); BestLLMFor 2026 KV-cache study.
 DEFAULT_CONTEXT_BUDGET = 300_000  # chars
 
+# When a single transcript exceeds the pre-summary chunk size, split it into
+# overlapping chunks for individual extraction. Overlap catches boundary-
+# spanning concepts (e.g., "PIV loop" at end of chunk N, "plan implement
+# validate" at start of chunk N+1). Research: Galileo 2026 (10-20% overlap
+# recommended); OPS 2025 (pairwise overlap reduces boundary loss).
+PRE_SUMMARY_CHUNK_SIZE = 200_000   # chars per chunk (stays within safe zone)
+PRE_SUMMARY_CHUNK_OVERLAP = 20_000  # 10% overlap
+
 
 # --- transcripts ---------------------------------------------------------
 
@@ -216,6 +224,27 @@ def call_dgemma(prompt: str, timeout: int) -> tuple[str, str]:
         return "", "dgemma non-JSON output"
 
 
+def split_with_overlap(text: str, chunk_size: int, overlap: int) -> list[str]:
+    """Split text into overlapping chunks. The last chunk may be shorter.
+
+    overlap is the number of chars shared with the previous chunk.
+    Example: chunk_size=10, overlap=3 on a 25-char string yields:
+      [0:10], [7:17], [14:24], [21:25]
+    """
+    if len(text) <= chunk_size:
+        return [text]
+    stride = chunk_size - overlap
+    chunks = []
+    pos = 0
+    while pos < len(text):
+        end = pos + chunk_size
+        chunks.append(text[pos:end])
+        if end >= len(text):
+            break
+        pos += stride
+    return chunks
+
+
 def pre_summarize_member(member: dict, hint: str, backend: str, model: str | None,
                          timeout: int = 180) -> tuple[str, str]:
     """Map-reduce step: read the FULL transcript and extract key points.
@@ -226,12 +255,50 @@ def pre_summarize_member(member: dict, hint: str, backend: str, model: str | Non
     document is summarized independently (map), then the synthesis prompt
     combines the summaries (reduce).
 
+    For transcripts larger than PRE_SUMMARY_CHUNK_SIZE: splits into overlapping
+    chunks, extracts from each independently, then concatenates. This is
+    recursive map-reduce (LangChain MapReduceDocumentsChain pattern). The 10%
+    overlap catches boundary-spanning concepts that non-overlapping splits miss.
+
     Returns (summary_text, error).
     """
-    prompt = PRE_SUMMARY_PROMPT.format(hint=hint, transcript=member["text"])
-    if backend == "mmx":
-        return call_mmx(prompt, model, timeout)
-    return call_dgemma(prompt, timeout)
+    text = member["text"]
+    chunks = split_with_overlap(text, PRE_SUMMARY_CHUNK_SIZE, PRE_SUMMARY_CHUNK_OVERLAP)
+
+    if len(chunks) == 1:
+        # Transcript fits in a single prompt — no chunking needed
+        prompt = PRE_SUMMARY_PROMPT.format(hint=hint, transcript=text)
+        if backend == "mmx":
+            return call_mmx(prompt, model, timeout)
+        return call_dgemma(prompt, timeout)
+
+    # Large transcript: extract from each overlapping chunk, concatenate
+    print(f"      transcript {len(text)} chars -> {len(chunks)} overlapping chunks "
+          f"(size={PRE_SUMMARY_CHUNK_SIZE}, overlap={PRE_SUMMARY_CHUNK_OVERLAP})",
+          file=sys.stderr)
+    summaries = []
+    errors = []
+    for i, chunk in enumerate(chunks, 1):
+        prompt = PRE_SUMMARY_PROMPT.format(hint=hint, transcript=chunk)
+        if backend == "mmx":
+            summary, err = call_mmx(prompt, model, timeout)
+        else:
+            summary, err = call_dgemma(prompt, timeout)
+        if err:
+            errors.append(f"chunk {i}: {err}")
+            # Fallback: use the chunk head so we don't lose the content entirely
+            summary = chunk[:4000]
+        if summary:
+            summaries.append(summary)
+
+    if not summaries:
+        return "", " | ".join(errors) if errors else "all chunks empty"
+
+    combined = "\n\n---\n\n".join(summaries)
+    if errors:
+        print(f"      {len(errors)}/{len(chunks)} chunks had errors; "
+              f"used head-fallback for those", file=sys.stderr)
+    return combined, ""
 
 
 def synth_cluster(cluster: dict, members: list[dict], backend: str, model: str | None,
