@@ -1,5 +1,11 @@
 # Vault Log
 
+## [2026-08-01] ingest | VERIFY gate enforcement gap: documentation vs. runtime invocation
+Source: session-2026-08-01
+Agent: grok
+Notes: Verified gap between documented /grok-verify invocation (/go H6 pack) and observable runtime. Operator confirmed 'we never use grok-verify'; transcript scan shows 38 prose mentions in one transcript, no structured invocations. Closes the implementation gap left open by agentic-sdlc-skill-lifecycle-architecture.md
+Page: wiki/concepts/verify-gate-enforcement-gap-document-vs-runtime.md
+
 ## TP hat selection gate: content-driven hat choice replaces default-all-on
 Source: session-019f902a-621d-7711-9436-7c6003c57793
 Agent: grok
