@@ -1,0 +1,146 @@
+---
+title: "Tool fallbacks: known-broken combinations and CLI fallbacks"
+slug: tool-fallbacks
+created: 2026-07-18
+updated: 2026-08-01
+tags: [tool-fallbacks, model-pool, spawn-subagent, cli-fallback, mcp, rate-limit, transferable-technique]
+host: grok
+summary: >
+  Fast-decision index of known-broken model×tool combinations and CLI fallbacks.
+  Records observed failures only (optimistic bias: assume working unless listed).
+  Each entry cross-references wiki authority for root cause. When this table
+  and a wiki concept disagree, the wiki concept wins — update this table.
+---
+
+# Tool fallbacks: known-broken combinations and CLI fallbacks
+
+> Multi-model environment. Different models have different tool availability.
+> This manifest records **known-broken** combinations only (optimistic bias:
+> assume a tool works unless listed here). CLI fallbacks (`mmx`, `agy`, `codex`)
+> work regardless of model — they're external processes invoked via shell.
+
+## CLI fallback table
+
+When a built-in tool fails (429, 401, "not available", silent no-op, etc.), use
+the CLI equivalent **before retrying the built-in**:
+
+| Built-in | CLI fallback | Notes |
+|---|---|---|
+| `web_search` | `mmx search query "<q>"` | MiniMax API quota — separate pool from Grok team rate limit |
+| `image_gen` | `mmx image generate "<prompt>"` | MiniMax image API |
+| `image_edit` | `mmx image ...` (check `mmx image --help`) | TBD — verify subcommand |
+| vision / image understanding | `mmx vision describe <path>` | MiniMax vision API |
+| speech / TTS | `mmx speech synthesize ...` | MiniMax TTS |
+| code execution / second opinion | `agy -p "<prompt>"` or `codex exec "<cmd>"` | External CLIs; independent of current model |
+| research / deep search | `agy -p "<prompt>"` or `mmx search query` | Both work; agy gives Gemini's lens |
+| video generation | `mmx video generate ...` | MiniMax video API |
+
+**Reflex pattern:** built-in fails → check this table → run CLI equivalent → continue. Don't retry the built-in more than once.
+
+## Known-broken combinations
+
+**Optimistic bias:** absence from this table means "assume working." Don't pre-emptively mark tools broken without evidence. Each row has: symptom (1 line), workaround (1 line), wiki authority (for full detail).
+
+### spawn_subagent exclusions (model cannot be spawned)
+
+These models are **excluded from all auto-pools and spawn_subagent dispatch**. They may work for direct API calls or CLI invocation — see the wiki authority for each.
+
+| Model(s) | Symptom (1 line) | Workaround | Wiki authority |
+|---|---|---|---|
+| **All Groq models** (`groq-gpt-oss-120b`, `groq-llama-3-1-8b-instant`, `groq-qwen3-6-27b`) | HTTP 413 TPM limit (8000 cap, ~54K system prompt). Fails instantly (0.7s, 0 tool calls). | **NOT IN ANY POOL.** Direct API only for short tasks (<6K tokens total). | [[groq-free-tier-tpm-limit-6000]], [[coding-model-pool-tier-1-tier-2]], [[model-benchmark-testing-quirks]] Quirk 5 |
+| **go-kimi-k3** + **go-kimi-k2-7-code** | Spawn-path transport/header failure (not `top_p`, not body shape — unresolved). Both fail identically. K3 also costs ~20% monthly OpenCode-Go quota per spawn test. | **NOT IN ANY POOL.** Manual/deliberate only (`--model go-kimi-k3`). Direct API works. Testing deferred until ~2026-08-07. | [[model-tool-calling-capability-matrix]] § go-kimi-k3 |
+| **nvidia-nemotron-3-ultra** (NVIDIA direct) | Serde error: `null, expected u32` on `service_tier`/`system_fingerprint`/`logprobs`. Affects tool-grounded spawn; `stream_tool_calls=false` fixes trivial prompts only. | **Never spawn.** Use opencode CLI (`opencode run -m opencode/nemotron-3-ultra-free`) or PI CLI. `stream_tool_calls=false` in all 4 config sections as defense-in-depth. | [[model-tool-calling-capability-matrix]] § Nemotron routing preference |
+| **zen-nemotron-3-ultra-free** (OpenCode Zen) | Serde error: `missing field id`. Same class as NVIDIA direct. | **Never spawn.** Same routing as above. | Same as above |
+| **or-nemotron-ultra-free** (OpenRouter) | Works but slow (19.2s). | **Explicit-only spawn** — only when opencode/PI unavailable AND operator approves OpenRouter. | Same as above |
+| `gemini-2` | HTTP 404 "model does not exist or your team does not have access." Listed in catalog but 404 on actual call. | Use `grok-4.5` for critical-friend spawns. Probe before committing. | (this table only — no wiki concept yet) |
+
+### spawn_subagent limitations (model spawns but has constraints)
+
+| Model | Symptom | Workaround | Wiki authority |
+|---|---|---|---|
+| **MiniMax-M3** | `max_tokens_truncation` on large structured output tasks (multi-file review + JSON write). | Decompose into smaller pieces (per-file specialists, two-pass findings). Small tasks fine. | `/review` SKILL.md Step 4 |
+| **MiniMax-M3** (`resume_from` after 2+ rounds) | `max_tokens_truncation` — accumulated transcript context exceeds output budget. | Launch fresh subagent instead of resuming when round_count ≥ 2. | `/design` Step 5 |
+| **nvidia-inkling** (as interactive/primary model) | Produces one-word garbage ("UBS", "Savings") via Grok Build interactive dispatch. Works fine via spawn_subagent delegation + direct API. | **Do not use as interactive/primary.** DO use as spawn delegation target (/tp pool, /check verifier). | [[model-benchmark-testing-quirks]] |
+| **nvidia-diffusiongemma-26b** | Empty content via spawn_subagent (parameter conflict with thinking mode). Works via direct API. | Use `P:/.agents/scripts/models/dgemma_read.py` for file reads. Never spawn. | [[diffusiongemma-direct-api-howto]] |
+| **or-ling-3-flash-free** (parallel dispatch) | 429 rate limit after 3+ concurrent agents (OpenRouter 20 RPM shared across all free-model calls). 4 of 7 agents failed in session 2026-08-01. | Use `pick_model.py --count N` for diverse providers, or stagger ≤2 concurrent agents on OpenRouter. Prefer `nim-openai-gpt-oss-20b` (NVIDIA, no rate limit) for mechanical/exploration tasks. | [[coding-model-pool-tier-1-tier-2]], [[agent-consolidation-in-parallel-workflows]] |
+
+### web_search rate limiting
+
+| Model | Symptom | Workaround | Wiki authority |
+|---|---|---|---|
+| **GLM-5.2** (and any model via built-in) | HTTP 429 team rate limit (2/2 RPS fleet-wide, `grok-4.20-multi-agent-0309`). | Serialize searches (~1/sec) OR use `mmx search query` CLI. | [[web-search-tool-routing]], AGENTS.md § Web-search tool selection |
+| **MiniMax-M3** (same 429 mechanism) | Same 429 under parallel load. | Same: serialize or `mmx search query`. | Same |
+| **web-search-prime** MCP | API Error 1027 `new_sensitive` — content moderation blocks query/results. | Rephrase to avoid trigger words, or use `mmx search query` (different moderation path). | [[web-search-tool-routing]] |
+
+### CLI caller errors (not model bugs)
+
+| Tool | Symptom | Resolution |
+|---|---|---|
+| mmx CLI (benchmark) | "33% success" was `caller_error` — FileNotFoundError (PATH) + missing `--message` flag. | Model is 100% reliable when called correctly. Resolved in telemetry. |
+| codex CLI (benchmark) | "50% success" was `transport_error` — FileNotFoundError (PATH). | Same — reliable when PATH is correct. |
+
+## MCP server availability
+
+MCP servers listed at session start may or may not be callable per-model. **Treat the session-start list as a catalog, not a guarantee.** Probe with a cheap no-op before relying on an MCP in a given turn.
+
+| MCP | Status | Notes |
+|---|---|---|
+| `chrome-devtools` | WORKING via `--autoConnect` (2026-07-31) | Connects to user's real Chrome session. See [[chromium-cdp-websocket-origin-restriction]] for Chrome 136+ setup details. |
+| `firecrawl` | WORKING — OAuth-gated MCP, auth resolved 2026-07-19 | 26 tools when live. **Auth flow:** TUI `/mcps` → firecrawl row → `i` → browser OAuth → `~/.grok/mcp_credentials.json`. Verify: `grok mcp doctor firecrawl`. |
+| `perplexity` | TBD — known to disconnect mid-session | Observed disconnect 2026-07-18 |
+| `minimax-search` | REMOVED 2026-07-28 | Claude compat artifact. Use `mmx search query` + `mmx vision describe` instead. |
+| `episodic-memory` | WORKING — fix applied 2026-07-19 | 2 tools. **Caveat:** plugin's `.mcp.json` ships Codex-form relative paths; patched to absolute. Future reinstall reverts patch. |
+| `web-search-prime` | DISABLED 2026-07-28 | Uses GLM coding plan quota. Re-enable: remove from `disabled_mcp_servers`, restart. |
+| `tasks` | TBD — probe on first use | 6 tools when live |
+| `context7` | Typically reliable | Uses `npx`; environment-independent |
+
+## CLI auth + bulk recipes
+
+### `nlm` (NotebookLM CLI) — auth recovery
+
+**Symptom:** `nlm notebook list` returns `✓ Authentication Error`.
+
+**Misleading probe:** `nlm login --check` returns `network_error: ClientAuthenticationError`. Do NOT treat this as expired — it's a probe failure. Verified 2026-07-25.
+
+**Recipe:** `nlm login --profile <name>` — launches Chrome silently via CDP, reuses saved Google login, writes cookies. ~10s, no prompt.
+
+**Default profile:** `codex`. See [[notebooklm-cli-operational-gotchas]] for full auth recovery protocol.
+
+### `nlm` — bulk source add
+
+`nlm source add <nb-id> --youtube u1 --youtube u2 ...` — `--youtube` and `--url` are repeatable for bulk in a single CLI invocation. One call per notebook, not per video. See [[notebooklm-cli-operational-gotchas]].
+
+## How to use this manifest
+
+1. Before spawn_subagent, check **spawn_subagent exclusions** — models listed there CANNOT be spawned.
+2. Before relying on a built-in tool, check **Known-broken** for the model you're using.
+3. If a tool fails, reflex to the CLI equivalent in the **Fallback table** before retrying.
+4. When you observe a new failure, add a row with: symptom (1 line), workaround (1 line), wiki authority (create a wiki concept if the root cause is complex).
+5. Bias toward optimism: don't pre-emptively mark tools broken without observed evidence.
+6. **Before assigning `model=` to spawn_subagent, read [[coding-model-pool-tier-1-tier-2]] for the current pool.** Do not rely on memory or this table alone — pool membership changes.
+7. **For parallel dispatch (3+ agents):** use diverse providers, not the same model for all agents. OpenRouter free tier: max 2 concurrent. See [[agent-consolidation-in-parallel-workflows]].
+8. Periodically prune entries that no longer reproduce.
+
+## Decision context
+
+Moved from `~/.grok/tool-fallbacks.md` to the wiki vault on 2026-08-01 (session 019fba58). Root cause: the file lived outside the wiki vault, so `/wiki` queries and `/www` contradiction checks couldn't surface it. The OpenRouter parallel rate-limit failure (3 agents 429'd) was documented in [[agent-consolidation-in-parallel-workflows]] but never reached tool-fallbacks because nothing connected the two knowledge stores. Moving to the wiki makes it discoverable via `/wiki <query>` and subject to wiki lifecycle tracking.
+
+The `~/.grok/tool-fallbacks.md` file is now a redirect pointer to this concept.
+
+## Cross-references
+
+- [[coding-model-pool-tier-1-tier-2]] — which models pass code-exec benchmarks
+- [[agent-consolidation-in-parallel-workflows]] — max 2-3 concurrent agents per free-tier provider
+- [[groq-free-tier-tpm-limit-6000]] — Groq exclusion root cause
+- [[model-tool-calling-capability-matrix]] — per-model tool-calling capability
+- [[web-search-tool-routing]] — search backend selection policy
+- [[notebooklm-cli-operational-gotchas]] — nlm auth recovery
+- [[tool-fallbacks-as-index-not-authority]] — design philosophy of this table
+- [[chromium-cdp-websocket-origin-restriction]] — chrome-devtools MCP setup
+
+## Falsifier
+
+This table is wrong if:
+- Entries persist after the underlying issue is fixed (stale data degrades trust)
+- New failure modes aren't added here because agents don't know to check the wiki (discoverability regression vs the old file path)
+- The wiki concept grows too large for fast scanning (the table format is the value — if it becomes prose-heavy, split into per-category concepts)
