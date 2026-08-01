@@ -1,5 +1,11 @@
 # Vault Log
 
+## LLM-Based Concept Canonicalization for Knowledge Bases
+Source: session-20260801
+Agent: grok
+Notes: LLM-based semantic concept canonicalization technique: fuzzy-matching surface label variants (PIV loop = plan implement validate = plan build verify) + appears-more-than-once threshold for concept inclusion. Source: Cole Medin YouTube (8JWhwhxWtJw)
+Page: wiki/concepts/llm-concept-canonicalization-technique.md
+
 ## behavioral-compliance-gap
 Source: session-20260801
 Agent: grok
