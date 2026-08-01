@@ -1,5 +1,11 @@
 # Vault Log
 
+## behavioral-compliance-gap
+Source: session-20260801
+Agent: grok
+Notes: Agent skipped agy lens despite parallel panel instruction — unverified narrative rationalization
+Page: P:/.data/wiki/concepts/behavioral-compliance-gap-agent-skips-instructed-steps-without-verifying.md
+
 ## Parallel CDP MCP servers OpenChrome upgrade path
 Source: session-20260801
 Agent: grok
