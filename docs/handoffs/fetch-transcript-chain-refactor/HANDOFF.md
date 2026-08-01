@@ -1,0 +1,158 @@
+# HANDOFF: Refactor fetch_transcript_chain — Multi-LLM Ensemble Plan
+
+## Status: OPEN — design only, not started
+
+## Objective
+Refactor `fetch_transcript_chain` in `P:/packages/yt-is/csf/transcript.py` (line 1835, ~200 lines) using the merged plan from a 4-model ensemble test (ChatGPT, Gemini, Perplexity, HuggingChat/Kimi-K3). All 4 models independently converged on the same 5 structural changes.
+
+## Target file
+`P:/packages/yt-is/csf/transcript.py` — 2322 lines total, the function is at line 1835.
+
+## The 5 problems
+
+1. **5 nested closures** trap pure logic (`_classify_failure`), result builders (`_none_result`), and side-effecting functions (`_archive_failed_result`, `_stage_started`, `_stage_completed`) inside the orchestrator
+2. **Mutable global `_WHISPER_ENABLED`** read/written inside the loop body — race condition risk under concurrency
+3. **Duplicated success handling** — NLM path and generic path both do: translation check → build TranscriptResult → cache → return (~20 lines duplicated)
+4. **Mixed concerns** — validation, error classification, logging, caching, rate-limiting, translation, and orchestration all in one function
+5. **3 inline special cases** in the fallback loop (Whisper admission check, NLM language override, expensive fallback gating)
+
+## The merged refactoring plan
+
+### Step 0: Characterization tests first (from HuggingChat)
+Write tests against the current function before touching anything:
+- Chain order: oEmbed → yt-dlp → yt-dlp+cookies → direct_api → NotebookLM → Selenium → Whisper
+- Short-circuit-on-success behavior
+- `skip_notebooklm=True` behavior
+- `_WHISPER_ENABLED` toggling behavior
+- Exact `TranscriptResult` shape from both NLM and generic success paths
+- These tests must pass unmodified at the end of every step
+
+### Step 1: Extract the 5 closures to module level
+
+**Extraction rule (from HuggingChat):** "Every captured variable becomes a parameter. Every mutation of a captured variable becomes a return value or a method call on an injected collaborator."
+
+| Closure | Extracted as | Kind | Why |
+|---|---|---|---|
+| `_classify_failure` | `classify_transcript_failure(error) -> FailureReason` | Pure function | Independently testable; removes decision table from orchestrator |
+| `_none_result` | `build_failed_transcript_result(...)` or `TranscriptResult.empty(...)` | Factory | Centralizes failure result invariants |
+| `_stage_started` + `_stage_completed` | `StageExecution` frozen dataclass + context manager `track_transcript_stage()` | Collaborator | Guarantees matching start/completion logging; timing recorded even on exceptions |
+| `_archive_failed_result` | `finalize_failed_transcript_fetch(...)` | Service | Makes terminal side effects visible at call site; one authoritative failure path |
+
+### Step 2: Eliminate `_WHISPER_ENABLED` global
+
+Split into two concerns (from HuggingChat + Gemini):
+- **Config read:** `config.whisper_enabled` — read once, never written (from Perplexity's `RuntimePolicy` frozen dataclass)
+- **Runtime circuit breaker:** `CircuitBreaker` class — owned, injected, thread-safe with `threading.Lock`
+
+```python
+class CircuitBreaker:
+    def __init__(self, *, failure_threshold: int = 3, clock=time.monotonic): ...
+    def is_open(self) -> bool: ...
+    def record_failure(self) -> None: ...
+    def record_success(self) -> None: ...
+```
+
+### Step 3: Eliminate duplicated success handling
+
+Introduce `TranscriptCandidate` intermediate type (from ChatGPT):
+
+```python
+@dataclass(frozen=True)
+class TranscriptCandidate:
+    text: str
+    source: TranscriptSource
+    detected_language: str | None
+    requested_language: str | None
+    metadata: Mapping[str, object]
+```
+
+Every successful stage adapter returns a `TranscriptCandidate`. Then one finalizer:
+
+```python
+def finalize_successful_transcript(
+    *, video_id: str, candidate: TranscriptCandidate,
+    config: LanguageConfig, dependencies: TranscriptFetchDependencies
+) -> TranscriptResult:
+    # Owns: language resolution, translation, result construction, cache write, success logging
+```
+
+This eliminates ~20 lines of duplication. The NLM language override moves into NLM's `normalize` hook (from HuggingChat's `SourceSpec` concept).
+
+### Step 4: Strategy pattern for special cases
+
+Replace inline `if source ==` branches with a `FallbackStage` Protocol (from Gemini + HuggingChat):
+
+```python
+class FallbackStage(Protocol):
+    name: str
+    def can_execute(self, ctx: ExecutionContext) -> bool: ...  # guard (was inline)
+    def execute(self, video_id: str, config: LanguageConfig, ctx: ExecutionContext) -> RawTranscript: ...
+    def normalize(self, raw: RawTranscript) -> TranscriptCandidate: ...  # per-source (e.g., NLM language override)
+```
+
+The 3 inline special cases become per-stage methods:
+- **Whisper admission** → `WhisperStage.can_execute()` checks circuit breaker + admission metadata
+- **NLM language override** → `NotebookLMStage.normalize()` applies the "en" override
+- **Expensive fallback gating** → `ExpensiveStage.can_execute()` checks `ctx.expensive_fallbacks_allowed`
+
+### Step 5: Slim orchestrator
+
+The final `fetch_transcript_chain` becomes ~30-40 lines:
+
+```python
+def fetch_transcript_chain(video_id, config, *, skip_notebooklm=False, admission_metadata=None) -> TranscriptResult:
+    request = build_request(video_id, config, skip_notebooklm=skip_notebooklm, admission_metadata=admission_metadata)
+    validate_request(request)
+    policy = derive_runtime_policy(request, whisper_enabled=is_whisper_enabled())
+    stages = build_fallback_plan(policy)
+    ctx = ExecutionContext(request=request, policy=policy)
+
+    for stage in stages:
+        if not stage.can_execute(ctx):
+            log_skipped(stage, ctx)
+            continue
+        execution = execute_transcript_stage(stage, ctx)
+        if execution.outcome == StageOutcome.SUCCESS:
+            return finalize_successful_transcript(video_id=video_id, candidate=execution.candidate, config=config, dependencies=ctx.dependencies)
+        record_stage_failure(stage, execution, ctx)
+
+    return finalize_failed_transcript_fetch(ctx=ctx, attempts=ctx.attempts, final_failure=ctx.last_failure)
+```
+
+## New types introduced
+
+| Type | Source model | Purpose |
+|---|---|---|
+| `FailureReason` (enum) | ChatGPT | Typed error classification |
+| `TranscriptCandidate` | ChatGPT | Intermediate success type — stages return this, one finalizer consumes it |
+| `StageExecution` (frozen dataclass) | ChatGPT | Normalized execution record with outcome, payload, error, duration |
+| `ExecutionContext` (frozen dataclass) | Gemini | Replaces mutable global; carries whisper_enabled, skip_notebooklm, admission_metadata |
+| `RuntimePolicy` (frozen dataclass) | Perplexity | Derived config: whisper_enabled, expensive_fallbacks_allowed, nlm_language_override |
+| `FallbackStage` (Protocol) | Gemini + HuggingChat | Strategy interface: can_execute + execute + normalize |
+| `CircuitBreaker` (class) | HuggingChat | Thread-safe replacement for _WHISPER_ENABLED mutable global |
+| `StepContext` (frozen dataclass) | Perplexity | Carries request + policy + prior_failures through the loop |
+
+## Constraints
+- **Public signature stays byte-identical** — callers see zero breakage
+- Every step is behavior-preserving and independently committable
+- Chain order and error semantics unchanged
+- Read `P:/packages/yt-is/CLAUDE.md` and `AGENTS.md` before starting
+
+## Verification
+- Characterization tests (Step 0) must pass unmodified at every step
+- Run `pytest` in `P:/packages/yt-is/` after each extraction
+- The function should shrink from ~200 lines to ~30-40 lines
+- No new public API — all new types are module-internal
+
+## Ensemble test provenance
+This plan was validated by sending the same refactoring problem to 4 independent LLMs via the `/model-web` ensemble. All 4 converged on the same 5 structural changes. See `ensemble-results.md` for the full ranking and per-model contributions.
+
+## Acceptance criteria
+- [ ] Characterization tests written and passing
+- [ ] All 5 closures extracted to module level
+- [ ] `_WHISPER_ENABLED` global removed, replaced with `ExecutionContext` + `CircuitBreaker`
+- [ ] Duplicated success handling eliminated (one `finalize_successful_transcript`)
+- [ ] Inline special cases replaced with `FallbackStage` Protocol
+- [ ] `fetch_transcript_chain` is ~30-40 lines
+- [ ] All existing tests pass
+- [ ] `ruff check` clean
