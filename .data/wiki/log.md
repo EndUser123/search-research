@@ -1,5 +1,11 @@
 # Vault Log
 
+## Analysis over action pattern
+Source: session-019fb937
+Agent: grok
+Notes: Workspace optimizes for knowledge capture over application — fixes die in invocation gap
+Page: .data/wiki/concepts/analysis-over-action-knowledge-capture-without-application.md
+
 ## Karpathy LLM Wiki Gist
 Source: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
 Agent: grok
