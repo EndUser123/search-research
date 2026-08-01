@@ -457,6 +457,40 @@ by path become stale. `--fix` repairs what it can (unique fuzzy match at ≥0.9)
 and flags the rest as "manual review needed." **Run `--fix` after every
 consolidation pass** (manual merge, `/dream`, or Phase 2 deletions).
 
+**Phase 3 — Research suggestions (mandatory output, not a gate):**
+
+After Phases 1+2, the lint pass MUST emit a `## Suggested research` block with
+0-N actionable items discovered during the health check. Each suggestion has:
+
+```
+## Suggested research
+
+1. **<topic>** — <one-line why this matters now> → `/<skill>` | manual
+2. **<topic>** — <one-line> → `/www <query>` | `/todo`
+```
+
+Sources of suggestions (scan for each):
+- **Contradictions found in Phase 2** → "resolve contradiction between [[A]] and [[B]]"
+- **Stale pages with time-sensitive tags** (library/tool/API docs >90d old) → "re-research [[slug]] for version drift"
+- **Orphan pages mentioning important concepts** → "does [[orphan]] still apply? merge or retire"
+- **Concepts with `[INFERENCE]` or `[UNKNOWN]` labels** → "upgrade to [FACT] via targeted research"
+- **Concepts with `EVIDENCE_GAP:` markers** → "fill evidence gap: <quoted gap>"
+- **Concepts that cite a source also cited by ≥3 other concepts** → "synthesize cross-concept: these pages share a source cluster — is there a missing hub page?"
+- **Concepts whose `## Falsifier` conditions may have triggered** → "check if falsifier has fired for [[slug]]"
+- **High-connectivity hub pages** (≥8 inbound `[[wikilinks]]`) that haven't been updated in 60d → "hub page [[slug]] is load-bearing and stale — high blast radius if wrong"
+
+**Output routing:**
+- Print the full list in the lint output (operator sees it).
+- Write to `P:/.data/wiki/_state/research-suggestions.json` so `/todo` can read
+  it mechanically (Step 3 of its scan can ingest this file).
+- Each suggestion gets a `confidence` (high/medium/low) based on signal strength
+  (contradiction = high; stale+hub = high; orphan = medium; shared-source = low).
+
+This implements Karpathy's lint principle: "the LLM is good at suggesting new
+questions to investigate and new sources to be for. This keeps the wiki healthy
+as it grows." The suggestions are the **output** of maintenance, not a gate —
+they don't block lint completion, they make it actionable.
+
 ### Update
 
 Refresh stale wiki pages by detecting topics that need updating.
