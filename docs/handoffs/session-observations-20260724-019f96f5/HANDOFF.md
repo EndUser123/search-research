@@ -1,3 +1,12 @@
+---
+current_session_id: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_by: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_at: 2026-07-26T22:02:40.921048
+parent_session: none
+produced_at: 2026-07-26T22:02:40.921048
+status: open
+handoff_type: investigation
+---
 # Session Observations — 2026-07-24
 
 **Session ID:** 019f96f5-dc4a-79d0-9e17-396f2a582186
@@ -26,3 +35,9 @@ Agent raised low-impact items (parent pointer, .bak file) alongside real issues,
 - **Scanner needs unit tests.** The format mismatch went undetected because there's no test that verifies "scanner detects writes from a real session." A corpus of session fixtures with known write counts would catch this class of bug.
 - **The `/close` → `/aar` auto-invocation path is untested end-to-end.** The scanner now correctly fires the retrospective gate, but nobody has observed the full close → AAR → findings → summary flow.
 - **dirty_age.py still has the `_WIN_PATH_RE` stripping bug** that the original `r.stdout.strip()` caused. The strip was fixed, but `_WIN_PATH_RE` may have its own edge cases with quoted paths containing spaces.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-26T22:02 | 019f8b39-95e... | backfilled session_id from transcript scan |

@@ -1,3 +1,12 @@
+---
+current_session_id: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_by: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_at: 2026-07-26T22:02:40.921048
+parent_session: none
+produced_at: 2026-07-26T22:02:40.921048
+status: open
+handoff_type: investigation
+---
 # HANDOFF: receipt-before-write workflow + pre-write hook (deferred structural fix)
 
 **Status:** DEFERRED — workflow fix adopted; structural hook deferred until trigger fires
@@ -81,3 +90,9 @@ The handoff closes when EITHER:
 
 - `qmd-viability-evaluation-20260725` handoff — separate workstream (qmd architecture), unrelated
 - `tp-adhd-prototype-20260725` handoff — separate workstream, unrelated
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-26T22:02 | 019f8b39-95e... | backfilled session_id from transcript scan |

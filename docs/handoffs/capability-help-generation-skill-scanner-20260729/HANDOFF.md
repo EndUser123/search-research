@@ -1,3 +1,12 @@
+---
+current_session_id: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_by: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_at: 2026-07-31T17:09:29.134955
+parent_session: none
+produced_at: 2026-07-31T17:09:29.134955
+status: open
+handoff_type: investigation
+---
 # Handoff: Capability help generation + skill scanner + LLM classifier (items 4-5)
 
 ## Status: COMPLETED (2026-07-29)
@@ -100,3 +109,9 @@ Two scripts, pure code + free model:
 - Added `--output` flag to classify_skills_llm.py
 - Wiki concept `persistence-location-decision-rule.md` written to capture the decision rule
 - Wiki concept `stop-hook-verification-receipt-capability-hierarchy.md` already written earlier this session
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:09 | 019fba6f-bfc... | backfilled session_id from transcript scan |

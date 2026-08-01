@@ -1,3 +1,12 @@
+---
+current_session_id: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_by: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_at: 2026-08-01T13:10:42.840875
+parent_session: none
+produced_at: 2026-08-01T13:10:42.840875
+status: open
+handoff_type: investigation
+---
 # Behavioral Infrastructure: /slc + Thought-Partner Standard + Drift Pipeline
 
 ## Goal
@@ -78,3 +87,9 @@ SHIPPED — all components live, first `/slc` invocation verified, drift log wri
 - `P:/.data/wiki/concepts/thought-partner-standard.md`
 - `P:/.data/wiki/concepts/structural-success-detection-over-lexical-praise.md`
 - `P:/.data/wiki/concepts/behavioral-reset-pattern-reflexion-and-external-critique.md`
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-01T13:10 | 019fb933-040... | backfilled session_id from transcript scan |

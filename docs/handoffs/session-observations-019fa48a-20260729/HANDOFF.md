@@ -1,3 +1,12 @@
+---
+current_session_id: 019fa276-89c7-7310-b882-096cf67652cf
+last_updated_by: 019fa276-89c7-7310-b882-096cf67652cf
+last_updated_at: 2026-08-01T11:40:10.780338
+parent_session: none
+produced_at: 2026-08-01T11:40:10.780338
+status: open
+handoff_type: investigation
+---
 # Session Observations: 019fa48a (2026-07-29, post-compaction continuation)
 
 **Status:** OPEN — observations captured. All work shipped, reviewed, and committed.
@@ -53,3 +62,9 @@
 - Behavioral check FP rate should drop dramatically (42 detections → ~5-8 expected).
 - PGM Units 2-5 are ready for implementation (see handoff).
 - The design doc is in temp at `C:\Users\brsth\AppData\Local\Temp\grok-design-d8173a98\` — will be reaped by OS.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-01T11:40 | 019fa276-89c... | backfilled session_id from transcript scan |

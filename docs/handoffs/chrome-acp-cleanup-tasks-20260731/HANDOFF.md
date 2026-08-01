@@ -1,3 +1,12 @@
+---
+current_session_id: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_by: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_at: 2026-08-01T13:10:44.070498
+parent_session: none
+produced_at: 2026-08-01T13:10:44.070498
+status: open
+handoff_type: investigation
+---
 # Chrome ACP — Remaining Cleanup Tasks
 
 ## Workstream
@@ -55,3 +64,9 @@ cd P:\; git add packages/chrome-acp/tests/; git commit -m "chrome-acp: move test
 - Re-apply script: `P:\packages\chrome-acp\re-apply-patches.ps1`
 - Tests (ephemeral): `P:\tmp\acp-verify\test_patched_files.py`, `test_re_apply_patches.py`
 - Patch registry: `P:/.data/wiki/concepts/chrome-acp-grok-build-setup-implementation.md`
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-01T13:10 | 019fb933-040... | backfilled session_id from transcript scan |

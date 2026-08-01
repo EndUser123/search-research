@@ -1,3 +1,12 @@
+---
+current_session_id: 019fba6b-fd00-7530-ac7e-8ecc7306334e
+last_updated_by: 019fba6b-fd00-7530-ac7e-8ecc7306334e
+last_updated_at: 2026-07-31T17:05:18.909639
+parent_session: none
+produced_at: 2026-07-31T17:05:18.909639
+status: open
+handoff_type: investigation
+---
 # HANDOFF: ship_receipt.py — automated receipt generation
 
 Session: 019fb3a8-42b6-7e81-91c9-1fad5f4130e6
@@ -47,3 +56,9 @@ This is a script-building task (~1-2 hours), not a template edit. Next session s
 - Create: `~/.grok/skills/go/__lib/ship_receipt.py`
 - Update: `/go` SKILL.md ship profile — replace manual receipt with script call
 - Test: `~/.grok/skills/go/__lib/test_ship_receipt.py`
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:05 | 019fba6b-fd0... | backfilled session_id from transcript scan |

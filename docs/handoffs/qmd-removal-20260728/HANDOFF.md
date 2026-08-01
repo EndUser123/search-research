@@ -1,3 +1,12 @@
+---
+current_session_id: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_by: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_at: 2026-07-31T17:09:29.134955
+parent_session: none
+produced_at: 2026-07-31T17:09:29.134955
+status: open
+handoff_type: investigation
+---
 # qmd replacement: grep fallback pattern
 
 ## What changed
@@ -37,3 +46,9 @@ For each skill, replace `qmd search --collection wiki "<query>" --limit N` with 
 2. Fall back to grep: `rg -l -i "<keywords>" P:/.data/wiki/concepts/ --max-count 1`
 
 The grep fallback is keyword-only (no semantic matching), but it's reliable and has no dependencies.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:09 | 019fba6f-bfc... | backfilled session_id from transcript scan |

@@ -1,3 +1,12 @@
+---
+current_session_id: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_by: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_at: 2026-08-01T13:10:46.831448
+parent_session: none
+produced_at: 2026-08-01T13:10:46.831448
+status: open
+handoff_type: investigation
+---
 # Workflow Friction: Session-Close Pipeline + Perplexity→Grok Handoff
 
 ## Goal
@@ -41,3 +50,9 @@ OPEN — identified via `/friction`, tracked in `/harvest`, not yet implemented.
 ## Next session checklist
 - [ ] Read `/close/SKILL.md` gate template and add `/harvest` + `/friction` + `/slc` as mandatory steps
 - [ ] Evaluate whether `web-model` skill covers the Perplexity handoff; if so, add discoverability; if not, decide on automation tier
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-01T13:10 | 019fb933-040... | backfilled session_id from transcript scan |

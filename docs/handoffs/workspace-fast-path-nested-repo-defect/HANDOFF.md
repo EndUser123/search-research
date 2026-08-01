@@ -1,3 +1,12 @@
+---
+current_session_id: 019fa23d-e74c-7ff2-ac51-980b5d999b87
+last_updated_by: 019fa23d-e74c-7ff2-ac51-980b5d999b87
+last_updated_at: 2026-07-27T16:35:04.467110
+parent_session: none
+produced_at: 2026-07-27T16:35:04.467110
+status: open
+handoff_type: investigation
+---
 # Handoff: Workspace fast-path misidentifies nested repos under P:\
 
 **Created:** 2026-07-27
@@ -70,3 +79,9 @@ The correct behavior: the workspace hint should be used as a STARTING POINT for 
 ## Priority
 
 Medium — the defect doesn't break Phase 3 for repos OUTSIDE P:\ (the workaround used in the latest acceptance). But it makes P:\-internal nested-repo testing impossible and will affect any real work that touches files in P:\ worktrees or nested repos.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-27T16:35 | 019fa23d-e74... | backfilled session_id from transcript scan |

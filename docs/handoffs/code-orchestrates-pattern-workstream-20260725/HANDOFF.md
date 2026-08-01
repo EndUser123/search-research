@@ -5,7 +5,7 @@ current_session_id: 019f9488-2a86-7bf1-ae6f-eeb341ec7095
 produced_at: 2026-07-25T21:00:00Z
 status: open
 handoff_type: implementation
-accurate_as_of_head: ddf793d
+accurate_as_of_head: fec1636ae0983b157063cc469c151903d0f2a3b5
 source_concept: P:/.data/wiki/concepts/code-orchestrates-model-judges-skill-scale.md
 ---
 
@@ -19,13 +19,118 @@ Implement the wiki concept `code-orchestrates-model-judges-skill-scale` as a coh
 
 ## Status
 
-READY_TO_START — design agreed across wiki concept + 2 handoffs + 1 AAR. No implementation started.
+PARTIAL — the first close-specific vertical slice is implemented in the
+working tree and verified; the broader obligation ledger and host-level child
+skill dispatch remain open.
+
+## Resolution: apply the existing obligation-ledger design to `/close`
+
+**Decision (2026-07-26):** Do not create a new wiki architecture and do not
+adopt LangGraph. Apply the existing
+`instruction-to-state-closure-gap-obligation-ledger` concept to `/close` using
+the current Python helper/state-machine pattern.
+
+The controller orchestrates **obligations and validated outcomes**, not direct
+slash-command execution. Grok Build does not currently expose a verified API
+that lets Python invoke and await `/aar`, `/tp session`, `/wiki`, or
+`/handoff` inside the active conversation. Therefore the implementation must
+not claim that it can force those skills to run. It can require their
+session-bound completion evidence before allowing a clean close state.
+
+### Close-specific obligation flow
+
+```text
+scan
+  -> identify obligations
+  -> request child action or bounded judgment
+  -> validate session-bound receipt
+  -> rescan
+  -> render only when obligations are terminal
+```
+
+Each obligation needs:
+
+- stable obligation ID and current session ID;
+- required action or judgment type;
+- expected postcondition;
+- verifier and receipt path/schema;
+- evidence fingerprint or identity binding;
+- lifecycle state: `OPEN`, `SATISFIED`, `BLOCKED`, `WAIVED`, or `SUPERSEDED`.
+
+### Required close receipts
+
+- **AAR:** matching session ID, `_run.json` status `completed`,
+  `aar-report.md` present, report validation passed, and evidence identity
+  recorded. `_run.json` with `status: started` is not sufficient.
+- **TP session review:** structured NOW/NEXT/LATER/FILTER judgment receipt,
+  including actionable insights, dispositions, and evidence references.
+- **Wiki/handoff capture:** the artifact explicitly references the obligation
+  or continuation candidate it satisfies; same-day existence is insufficient.
+- **Final report:** unresolved obligations produce `CLOSE INCOMPLETE`, never a
+  clean `SESSION CLOSED` claim.
+
+Operator waivers are terminal but distinct from satisfaction: they must be
+session-bound, explicit, visible in the report, and never rendered as clean
+completion.
+
+### Boundary constraints
+
+- Keep read-only scanning separate from mutation actions such as auto-commit,
+  wiki writes, and handoff creation.
+- Treat the report validator as a presentation/consistency check, not proof
+  that child work completed.
+- Do not claim live child-skill orchestration until a Grok dispatch or emission
+  control boundary is identified and tested.
+
+This resolution applies the existing wiki design; it does not add a second
+obligation-ledger concept.
+
+### Implemented slice (2026-07-26)
+
+`C:\Users\brsth\.grok\skills\close\__lib\close_accounting.py` now treats a
+retrospective as satisfied only when the scanner finds a session-matching AAR
+run with a report that passes the existing AAR report-plus-packet validator.
+An `_run.json` marker, a missing report, a missing preprocess packet, or a
+validator failure leaves the retrospective gate at `needs_attention` when
+substantive work exists. The compact renderer converts unresolved attention
+gates, open handoffs, verification gaps, and manual review into
+`CLOSE INCOMPLETE`; only a terminal scan state can emit the clean-close line.
+
+Added synthetic coverage for missing-report rejection, validated-report
+acceptance, invalid-receipt gate resolution, and incomplete final rendering.
+Verification: `python -m pytest -q` in the close skill — **293 passed**;
+`python -m py_compile __lib\\close_accounting.py` — pass; `git diff --check` —
+pass.
+
+The AAR limitation is now addressed in
+`C:\Users\brsth\.grok\skills\aar\__lib\completion_receipt.py`: after final
+report validation, it atomically writes `status: completed`, completion time,
+report path, packet path, and report SHA-256 into `_run.json`. `/close` now
+requires that terminal state and matching hash.
+
+Relevant AAR tests pass: `python -m pytest -q` — **571 passed**; close remains
+**293 passed**. The AAR reference loader now has an executable CLI boundary
+that rejects unknown trigger names, and its module contract names the actual
+loader function. The finalizer now fails closed when report hashing is
+unreadable, without mutating `_run.json`; regression coverage includes that
+failure path alongside real packet-validator, path-binding, and idempotence
+coverage. Compile and `git diff --check` also pass.
+
+The close report hardening is now extended in
+`C:\Users\brsth\.grok\skills\close\__lib\validate_close_receipt.py` and
+`close_accounting.py`: hybrid reports headed only `Session close report` or
+ending in `CLOSE INCOMPLETE` cannot bypass canonical-layout validation;
+unresolved work is labeled `Open continuation / unresolved`; and an
+unresolved retrospective makes the next safe action explicitly `Run /aar and
+rerun /close`. The validator's successful CLI output now states the report
+disposition separately from field consistency. Close verification: **294
+passed**; compile, diff check, and a canonical-report CLI smoke test pass.
 
 ## Background
 
 Session 019f9488 (2026-07-25) surfaced a recurring pathology: the model manufactured 4 rationalizations in one session to skip mandatory work. The `/aar` (run properly) traced this to a PROBLEM_CLASS pattern — closure pressure manufactures prose-level bypasses that prose rules cannot prevent. The structural fix is code enforcement at the skill-helper-script scale.
 
-The wiki concept `code-orchestrates-model-judges-skill-scale` (written this session) names the pattern. LangGraph is the canonical implementation: StateGraph + nodes + conditional edges, where conditional edges are routing functions that return the next node from state — the model cannot bypass a failed conditional edge.
+The wiki concept `code-orchestrates-model-judges-skill-scale` (written this session) names the pattern. LangGraph is the conceptual reference: StateGraph + nodes + conditional edges, where conditional edges are routing functions that return the next node from state. The chosen implementation remains a small Python controller because it already fits this bounded local workflow and LangGraph cannot manufacture a missing Grok skill-dispatch boundary.
 
 This handoff bundles everything that applies the pattern, ranked by ROI.
 
@@ -96,21 +201,30 @@ Exit codes: 0=pass (concept written OR explicit no-findings marker), 1=fail (byp
 
 **Remaining work for the implementing session:** wire the gate into each skill's `__lib/*.py` (or for prompt-only skills, document the gate invocation in the SKILL.md so the model calls it). The gate itself is built; the wiring is per-skill. Per the optimal-vs-blanket split (Tier 2a vs 2b), the 3 skills with helper scripts (close, aar, model-benchmark) get the gate wired into their scanner; the 4 prompt-only skills (debrief, tp, wargame, review, red-team) get the invocation documented in SKILL.md as a mandatory post-save step that `/check` and `/aar` can verify was called.
 
-### Tier 3: Adopt LangGraph directly? (open question, no decision needed yet)
+### Tier 3: LangGraph decision — deferred
 
-The wiki concept surfaces this as an open question. The tradeoff:
-- **Pro:** standard primitives, ecosystem, documented patterns for every shape
-- **Con:** new dependency; current scanners are custom Python that doesn't need the graph abstraction
-
-**Decision criterion:** adopt when hand-rolling the graph costs more than learning the framework. The Tier 1 + Tier 2 work generates the data to evaluate this. Defer the decision until after Tier 2 lands.
+**Resolved 2026-07-26: do not adopt LangGraph for `/close` now.** The
+workflow is bounded, sequential, local, and already represented by tested
+Python gates. LangGraph would not solve the missing host-level skill-dispatch
+or emission-control boundary. Reconsider only if multiple workflows need
+shared resumable nodes, cross-process execution, complex branching, or the
+hand-rolled controllers become harder to audit than the framework.
 
 ## Acceptance criteria
 
 1. `/close` Fix 4 implemented + tested (from existing handoff)
-2. `/check` PR 1 augmented with the 3 new signals (inline-equivalent, decision-without-wiki, LangGraph reframing)
-3. At least 2 of the 5 Tier 2 candidate skills refactored to code-enforced coverage gates
-4. Each new gate has a synthetic test case (create scenario where gate SHOULD fail; verify scanner catches it)
-5. After Tier 1 + Tier 2, evaluate LangGraph adoption (decision memo, not implementation)
+2. The close-specific obligation/receipt contract above is implemented and
+   tested; no clean close is possible with unresolved required obligations.
+3. AAR completion requires `status: completed` plus a validated report, not
+   merely an existing `_run.json`.
+4. TP session judgment has a structured, session-bound receipt or is reported
+   as unresolved.
+5. Read-only scan and mutations are separately testable and idempotent.
+6. `/check` PR 1 augmented with the 3 new signals (inline-equivalent, decision-without-wiki, LangGraph reframing)
+7. At least 2 of the 5 Tier 2 candidate skills refactored to code-enforced coverage gates
+8. Each new gate has a synthetic test case (create scenario where gate SHOULD fail; verify scanner catches it)
+9. A live Grok test demonstrates the actual emission-control boundary before
+   any claim of direct child-skill orchestration.
 
 ## Out of scope (do not implement)
 

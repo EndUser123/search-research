@@ -1,3 +1,12 @@
+---
+current_session_id: 019f7e24-0513-7773-875d-5a3e3051dc8f
+last_updated_by: 019f7e24-0513-7773-875d-5a3e3051dc8f
+last_updated_at: 2026-07-24T16:37:14.761001
+parent_session: none
+produced_at: 2026-07-24T16:37:14.761001
+status: open
+handoff_type: investigation
+---
 # Handoff: Telemetry integration into dispatch skills
 
 **Created:** 2026-07-24
@@ -112,3 +121,9 @@ python -c "import sys; sys.path.insert(0, r'C:\Users\brsth\.grok\skills\model-be
 - Firewall architecture: `P:/.data/wiki/concepts/context-firewall-architecture.md`
 - Benchmark skill: `~/.grok/skills/model-benchmark/SKILL.md`
 - Telemetry library: `~/.grok/skills/model-benchmark/scripts/telemetry.py`
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-24T16:37 | 019f7e24-051... | backfilled session_id from transcript scan |

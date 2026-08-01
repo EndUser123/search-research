@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019f76e8-eae4-7cc1-9c70-2fe3729812f1
 current_terminal_id: console_019f76e8
 produced_at: 2026-07-23T16:00:00Z
-status: open
+status: complete
 handoff_type: investigation
 accurate_as_of_head: (uncommitted — ~/.grok changes are not tracked)
 ---
@@ -18,7 +18,30 @@ where SKILL.md is the always-loaded routing core and details live in
 
 ## Status
 
-OPEN — not started. Analysis complete; extraction plan below.
+COMPLETE — the extraction plan was implemented and verified in the current
+working tree.
+
+## Resolution (2026-07-26)
+
+The AAR core was reduced to **555 lines** by extracting the detailed
+run-directory/preprocessing procedure, report format/accounting contract, and
+wiki-promotion procedure into registered reference files:
+
+- `C:\Users\brsth\.grok\skills\aar\references\run-directory-and-preprocessing.md`
+- `C:\Users\brsth\.grok\skills\aar\references\report-format.md`
+- `C:\Users\brsth\.grok\skills\aar\references\wiki-promotion.md`
+
+`__lib/reference_loader.py` now maps them to explicit triggers:
+`current_session_aar`, `report_generation_required`, and
+`headline_lesson_present`. The core retains the routing contract and concise
+invariants; deterministic lifecycle work remains in the AAR helper modules.
+
+Verification:
+
+- `python -m pytest -q` in the AAR skill: **569 passed**
+- `python -m pytest -q` in the close skill: **293 passed**
+- `python -m py_compile __lib/reference_loader.py __lib/completion_receipt.py`: pass
+- `git diff --check`: pass in both skill repositories
 
 ## Producing context
 

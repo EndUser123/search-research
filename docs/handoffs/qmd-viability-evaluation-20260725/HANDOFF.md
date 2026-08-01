@@ -1,3 +1,12 @@
+---
+current_session_id: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_by: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_at: 2026-07-26T22:02:40.921048
+parent_session: none
+produced_at: 2026-07-26T22:02:40.921048
+status: open
+handoff_type: investigation
+---
 # HANDOFF: qmd viability evaluation + stuck Python dependencies
 
 **Status:** ready-to-implement
@@ -190,3 +199,9 @@ The three `/tp` enhancements (commit c8a6875 — decomposition-first Step 0.7, p
 **How to count:** the existing `/tp` critique log at `P:/.data/tp_critique_log.py` records each invocation. The structural fix (Option C from the #2 discussion) is to add a `multi_item: bool` field and a `--falsifier-check` mode that surfaces concepts due for validation. That's a future `/tp` enhancement — until then, manual audit after ~5 invocations.
 
 **Disposition:** MONITOR. This handoff stays open until the falsifier check fires. When it does, update `P:/.data/wiki/concepts/extract-moves-not-conditions-tp-enhancements.md` with the calibration result and close this section.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-26T22:02 | 019f8b39-95e... | backfilled session_id from transcript scan |

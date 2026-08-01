@@ -1,30 +1,100 @@
 ---
-thread_id: 57d7c178-1b0c-4fc4-8dc7-5519c12eccec
-parent_handoff_path: P:\docs\handoffs\deferred-factory-work-20260726\HANDOFF.md
-current_session_id: 019f9b6f-98fc-7883-9d5f-cf570a0b3812
-current_terminal_id: console_4605b174-0262-4044-8d3c-3ca7
-produced_at: 2026-07-26T19:55:00Z
+thread_id: 019f9aff-obs-20260726
+parent_handoff_path: P:/docs/handoffs/dream-skill-requirements-20260726/HANDOFF.md
+current_session_id: 019f9aff-a619-70c2-8836-0bb6ae462827
+current_terminal_id: grok-build-primary
+produced_at: 2026-07-27T06:55:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 39ec391
+accurate_as_of_head: pending
 ---
 
-# Session observations — software-factory session 019f9b6f
+# Session observations — 2026-07-26 dream skill session
+
+## Why this handoff exists
+
+Substantive session with observations worth capturing for future sessions — not
+tasks or findings (those go in regular handoffs/wiki), but meta-patterns and
+insights about the workspace and operator collaboration style.
 
 ## Observations
 
-1. **Same-agent provenance is the dominant failure mode for adversarial review stacks.** When one agent writes the design, the research, the red-team, the /tp, and the /why, each layer inherits the prior layer's framing. The only reliable catch is mechanical verification. Cross-family critics are the unbuilt structural fix (deferred item 7).
+### 1. Cargo-cult metric rejection (operator pattern)
+The operator pushed back hard when I proposed "AGENTS.md rule-provenance
+citation rate" as a /dream success metric. Their question — "why do we want a
+metric? I'm ok with this, I just don't understand what we will do to get value
+from it" — was the right challenge. The honest answer was "no decision it would
+change" → metric was cargo cult.
 
-2. **The Stop hook scope-binding contract was undocumented for months.** Agents have been running `pytest tests/` to verify code changes without knowing the receipt system needs explicit path arguments. Layer C (AGENTS.md rule) now documents this, but the contract was invisible in code comments for the entire lifetime of the receipt system.
+**Insight:** when proposing any measurement, name the specific decision it
+would change. If you can't, the metric is theater. This is a meta-rule worth
+generalizing across all skill designs. Not yet in a wiki concept — flag for
+/wiki consideration.
 
-3. **The grill-me interview pattern (Matt Pocock) is half-wrong.** The charismatic one-question-per-turn design was rejected by Pocock's own community for being too slow. The transferable parts are facts-vs-decisions separation and agent-provides-recommended-answer. This nuance matters for anyone considering adopting grill-me style patterns.
+Source: session 019f9aff turn 6 (operator: "why do we want a metric?")
 
-4. **`/tp` structurally overreaches on complex targets.** A single critical-friend frame on a 9-file target produced 3/6 claims that needed correction. The frame-mutation fix (≥2 frames for N>3 findings) addresses this but hasn't been tested yet.
+### 2. Operator's filtering preference when given options
+When I enumerated 8 architectural clusters for /dream, operator pushed back:
+"Which ones can you answer yourself with high confidence? Show me the list
+that you have low confidence on." This is the pattern that actually works for
+them: filtered presentation with confidence tags, NOT exhaustive enumeration.
 
-5. **The receipt writer's auto-inference (Layer A) is the highest-leverage fix.** It turns the most common pytest invocation (`pytest tests/test_foo.py`) from empty-scope (blocked) into inferred-scope (passes) — without weakening the security model. Full pipeline test still needed.
+**Insight:** any future /refine improvement should default to filtered
+presentation. The grill* research confirmed this (Matt Pocock's one-at-a-time
+is too slow for this operator; batch-with-recommendations is right). Already
+captured in the /refine improvement handoff stream.
 
-6. **The close scanner's AAR detection is an undocumented contract gap.** The inline AAR wrote `aar-report.md` + `_run.json` + `completion-receipt.json` to the artifacts directory, but the close scanner's `_validate_aar_completion` expects a preprocess packet directory + report hash validation. Scanner reported "No AAR source detected" even after completion. Next session: reconcile inline-AAR format against scanner validation, or have the scanner accept a simpler inline marker.
+Source: session 019f9aff turn 4
 
-## Source
+### 3. qmd index is stale workspace-wide
+During /dream's discovery phase I found qmd has 83 docs indexed vs 221 .md
+files on disk in `P:/.data/wiki/concepts/`. This is a pre-existing condition
+(not caused by /dream) but it affects every skill that relies on `qmd search`
+(/wiki query, /www, /dream). /dream compensates with filesystem grep as
+authoritative; other skills may not.
 
-Session 019f9b6f, 2026-07-25/26. Operator + Grok.
+**Insight:** qmd index staleness is a workspace-health issue. The wiki has
+outgrown the index. Maintenance task: rebuild qmd index, then add an
+auto-rebuild trigger (post-write hook on `P:/.data/wiki/concepts/`?). Not yet
+tasked.
+
+Source: session 019f9aff, discovery phase of /go execute
+
+### 4. ~./grok IS a separately-tracked git repo
+Discovery during /go execute: `~/.grok/` has its own `.git`, distinct from
+`P:/`. User-scope skills commit to `~/.grok` main; P:/ commit handles
+project-scope artifacts (handoffs, output dirs). Two-repo commit pattern is
+the correct shape for user-scope skill authoring. Not previously documented
+explicitly; assumed in AGENTS.md but not stated.
+
+**Insight:** when authoring a user-scope skill, expect two commits per change.
+Already applied correctly this session — no action needed, just durable
+knowledge for future skill work.
+
+Source: session 019f9aff, /go execute commit phase
+
+### 5. "Self-dealing" anti-pattern for skill author → skill invoker
+When /go execute finished authoring /dream, I deliberately did NOT auto-invoke
+/dream for TP-DREAM-03 (first dry-run). Reasoning: the orchestrator that just
+authored a skill shouldn't be the one to invoke it; that's self-dealing and
+removes operator's gate. The Execution Status table explicitly marked TP-DREAM-03
+as "operator action."
+
+**Insight:** this principle ("skill author ≠ skill invoker on first run")
+generalizes. Worth capturing as a wiki concept for any skill-authoring workflow.
+Not yet captured.
+
+Source: session 019f9aff, /go execute final phase
+
+## Non-observations (deliberately excluded)
+
+- Decisions about /dream design → already in handoff + SKILL.md
+- Research findings about LLM dreaming → already in wiki concept
+- Operator's specific preferences (host scoping, etc.) → already in handoff
+
+These are task-level and live in the regular handoff, not here.
+
+## Next
+
+No tasks created from these observations. Items flagged for /wiki consideration
+(observations 1, 3, 5) can be promoted by a future /wiki default-mode pass.

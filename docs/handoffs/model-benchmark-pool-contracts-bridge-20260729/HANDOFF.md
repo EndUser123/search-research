@@ -1,3 +1,12 @@
+---
+current_session_id: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_by: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_at: 2026-07-31T17:09:29.134955
+parent_session: none
+produced_at: 2026-07-31T17:09:29.134955
+status: open
+handoff_type: investigation
+---
 # HANDOFF: Model benchmark overhaul, pool contracts, Codex OAuth bridge, skill wiring
 
 ## Status: OPEN — validation pending
@@ -98,3 +107,9 @@ The `check-codex-bridge.ps1` script is for manual verification only.
 - Bridge depends on undocumented chatgpt.com/backend-api/codex endpoint
 - Pool contracts are gitignored in capabilities/ — use git add -f
 - Bridge must be running before GPT-5.6 models work (start with codex-bridge)
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:09 | 019fba6f-bfc... | backfilled session_id from transcript scan |

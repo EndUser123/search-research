@@ -1,3 +1,12 @@
+---
+current_session_id: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_by: 019fb933-040b-7720-a257-e364f5df726f
+last_updated_at: 2026-08-01T13:10:45.389186
+parent_session: none
+produced_at: 2026-08-01T13:10:45.389186
+status: open
+handoff_type: investigation
+---
 # Claude Skill Decomposition → close-check Components
 
 ## Goal
@@ -72,3 +81,9 @@ The decomposition was identified after scanning all Claude-side skills in `cc-sk
 - close-check command: `~/.grok/commands/close-check.md`
 - Skill catalog: `P:/.data/wiki/concepts/skill-catalog.md`
 - Claude skills source: `C:/Users/brsth/.claude/plugins/cache/local/cc-skills-analysis/1.0.123/skills/`
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-01T13:10 | 019fb933-040... | backfilled session_id from transcript scan |

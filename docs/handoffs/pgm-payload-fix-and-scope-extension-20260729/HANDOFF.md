@@ -1,3 +1,12 @@
+---
+current_session_id: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_by: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_at: 2026-07-31T17:09:29.134955
+parent_session: none
+produced_at: 2026-07-31T17:09:29.134955
+status: open
+handoff_type: investigation
+---
 # Handoff: PGM Payload Fix + Scope Extension
 
 **Status:** Unit 1 SHIPPED + reviewed + all findings fixed. Units 2-5 ready for implementation.
@@ -112,3 +121,9 @@ PGM `extract_response_text()` now has 5-tier extraction: `lastAssistantMessage` 
 ## Design doc location
 
 Full design doc: `C:\Users\brsth\AppData\Local\Temp\grok-design-d8173a98\grok-design-doc-d8173a98.md` (880 lines, 3 revision rounds). Will be reaped by OS — key decisions are in this handoff.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:09 | 019fba6f-bfc... | backfilled session_id from transcript scan |

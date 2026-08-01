@@ -1,3 +1,12 @@
+---
+current_session_id: 019fa23d-e74c-7ff2-ac51-980b5d999b87
+last_updated_by: 019fa23d-e74c-7ff2-ac51-980b5d999b87
+last_updated_at: 2026-07-27T16:35:04.467110
+parent_session: none
+produced_at: 2026-07-27T16:35:04.467110
+status: open
+handoff_type: investigation
+---
 # Session observations — 019fa23d (2026-07-27)
 
 **Session ID:** 019fa23d-e74c-7ff2-ac51-980b5d999b87
@@ -14,3 +23,9 @@
 4. The matrix model (content type x time horizon) resolved a structural problem in /tp session that the operator identified intuitively ("should this go in CONTINUE or LATER?"). The two-axis design was better than either the linear or two-layer alternatives.
 
 5. Session-arc scan (T34) is the ADHD external-memory primitive at session scale. Same pattern as /why Step 0.5 (workspace scale) and AGENTS.md no-deferred-persistence (turn scale). All three: external memory + mechanical access > model recall.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-27T16:35 | 019fa23d-e74... | backfilled session_id from transcript scan |

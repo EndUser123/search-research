@@ -67,7 +67,7 @@ Three passes, one dormant:
   ├─ PASS 3: RETIREMENTS (dormant)
   │   └─ gate present (≥1 retirement per addition)
   │      but no targets yet — produces zero in v1
-  └─ OUTPUT: P:/docs/dreams/YYYY-MM-DD-dream.md
+  └─ OUTPUT: P:/docs/dreams/ (date-stamped filename at runtime)
       (candidate additions, contradictions, retirements — each with receipt)
       Operator promotes via existing /wiki write flow.
 ```
@@ -86,8 +86,8 @@ Three passes, one dormant:
 ## Affected files (creation)
 
 - `~/.grok/skills/dream/SKILL.md` — new skill definition (the deliverable)
-- `P:/docs/dreams/.gitkeep` — output directory
-- `P:/docs/dreams/YYYY-MM-DD-dream.md` — per-run output artifact (created at runtime, not now)
+- `P:/docs/dreams/.gitkeep` — output directory marker
+- Per-run output artifacts created at runtime under `P:/docs/dreams/` (date-stamped filename; not created during this handoff)
 
 ## Affected files (composition — read-only consumers)
 
@@ -122,7 +122,7 @@ Three passes, one dormant:
   1. SKILL.md loads without error (invoke `/dream --help` or bare `/dream` in fresh session)
   2. Three passes documented with clear invocation of /wiki and /preflight
   3. Retirement pass explicitly marked dormant with activation conditions
-  4. Output artifact path `P:/docs/dreams/YYYY-MM-DD-dream.md` specified with section structure
+  4. Output artifact path `P:/docs/dreams/ (date-stamped filename at runtime)` specified with section structure
   5. Receipt-preserving rule present and enforceable (every proposal has source citation)
   6. Non-goals tri-state block present verbatim from this handoff
 - **falsifier:** skill loads but produces no proposals on a real 90-day corpus (disaster = silent no-op); OR skill produces proposals without receipts (security failure); OR skill modifies procedural memory (scope violation — exit-2 block if implemented as hook)
@@ -210,7 +210,7 @@ Reversibility: **high** (≥1.0 — new skill, no modifications to existing syst
 4. `P:/.agents/skills/preflight/SKILL.md` — interface /dream composes for Pass 2
 5. `P:/.data/wiki/SCHEMA.md` §10 — write procedure for promoted additions
 6. `~/.grok/skills/refine/SKILL.md` — pattern reference (similar thin-orchestrator skill structure)
-7. Existing ADR (e.g., `P:/docs/adrs/ADR-009-*.md`) — format reference for the ADR indexing task
+7. Existing ADR (e.g., `P:/docs/adrs/ADR-009-grok-cross-model-second-opinion-skills.md` — exact filename; the `*` glob in some references expands to this file) — format reference for the ADR indexing task
 
 ## Recommended next
 
@@ -233,3 +233,32 @@ The /refine improvement surfaced during this session is tracked separately:
 - ADR location: `P:/docs/adrs/`
 
 This is a **separate handoff** to be written when the operator authorizes it. Do NOT conflate with /dream implementation.
+
+## Execution Status
+
+Updated: 2026-07-26T01:50:00Z
+Session: 019f9aff-a619-70c2-8836-0bb6ae462827
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | TP-DREAM-01: Create `/dream` SKILL.md | ✅ DONE | `C:/Users/brsth/.grok/skills/dream/SKILL.md` (335 lines / 428 insertions); YAML parses; `name=dream`, `host=grok`, `version=1.0.0`; skill registered (per SessionStart catalog). Commit `853cd0b` in `~/.grok`. |
+| 2 | TP-DREAM-02: ADR indexing mechanism (fact-gap) | ✅ DONE (deferred mechanism) | v1 mechanism: `/dream` greps `P:/docs/adrs/` directly. qmd config (`~/.config/qmd/index.yml`) only maps `P:/.data/wiki/`; adding a second collection is non-trivial and deferred. Filesystem grep is authoritative per SKILL.md §"Known limitations". Documented as v2 enhancement. |
+| 3 | TP-DREAM-03: First dry-run dream | ❌ NOT STARTED | Per /refine Hard Rule #7 and /dream's own "Manual trigger only" rule, the operator invokes `/dream` explicitly. /go execute should not auto-invoke the skill it just authored — that's self-dealing. Operator decision when to run first dream. |
+| 4 | Handoff doc + output dir in P:/ | ✅ DONE | `P:/docs/dreams/.gitkeep` + `P:/docs/handoffs/dream-skill-requirements-20260726/HANDOFF.md`. Commit `d8ebc1b` in P:/. |
+
+### Key findings during execution
+
+- **qmd index is stale: 83 docs indexed vs 221 `.md` files on disk** (pre-existing condition, not caused by /dream). /dream SKILL.md §"Known limitations" documents the compensation: filesystem grep alongside `qmd search`, with grep authoritative. Future enhancement: rebuild qmd index + add ADRs as second collection.
+- **`~/.grok/` IS a separately-tracked git repo** (not just runtime-only like `P:/.data/wiki/`). Skill commits go to `~/.grok` main; P:/ commit handles handoff + output dir. Two-repo commit pattern is correct for user-scope skills.
+- **Other agents have substantial uncommitted work in both repos** (`.agents/scripts/_b4_live_*` deletions, `close` skill modifications, `aar` modifications, etc.). Surgical staging (`git add <specific paths>`) was mandatory and worked: only the 3 dream-related files were committed across the two repos; everything else was left untouched.
+- **No procedural memory modified** — verified via `git diff HEAD~1 -- AGENTS.md .claude/rules/ .claude/CLAUDE.md` returning empty. Honors 🚫 Never (v1) non-goal #1.
+- **Skill registered immediately on next system reminder** — `/dream` visible in the catalog with correct description. No `/reload-plugins` needed for user-scope skills (that's a plugin-cache action, not a skill action).
+- **TP-DREAM-03 deliberately not run** — would be self-dealing for the orchestrator that just authored the skill to invoke it. Operator decides when to invoke `/dream` for the first dry-run; corpus window is 90 days default.
+
+### What is NOT done (out of scope for this /go execute)
+
+- **TP-DREAM-03 (first dry-run dream)** — operator action. The skill is ready to invoke.
+- **/refine improvement** (filtered clarification block + grill-with-docs disciplines) — separate work stream, tracked in handoff §"Parallel work stream". Needs operator authorization to start.
+- **qmd index rebuild** — pre-existing staleness, surfaced by /dream's discovery but not caused by it. Separate maintenance task.
+- **v2 features** (entropy-gated scheduling, M3 fan-out, episodic-memory MCP integration, ADR indexing via qmd collection) — all deferred per handoff.

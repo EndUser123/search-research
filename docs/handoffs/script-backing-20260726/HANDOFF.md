@@ -1,3 +1,12 @@
+---
+current_session_id: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_by: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_at: 2026-07-26T22:02:40.921048
+parent_session: none
+produced_at: 2026-07-26T22:02:40.921048
+status: open
+handoff_type: investigation
+---
 # Handoff: Script-backing for rules shipped 2026-07-26
 
 **Thread ID:** 019f9f4f-script-backing-20260726
@@ -85,3 +94,9 @@ After implementation:
 1. Should the signal-baseline computation live in `/aar/__lib/` or in a shared `~/.grok/__lib/signals/` so `/dream` Pass 4 and `/notice` can consume it too? **Recommendation: shared** — three consumers visible already (`/aar` produces, `/notice` consumes live, `/dream` Pass 4 consumes for drift detection).
 2. Should `/notice` observations log rotate, or grow unbounded? **Recommendation: rotate at 1000 lines** — keeps `/aar` synthesis input bounded.
 3. Should `profile_review.py` support multiple profiles (one per operator persona), or just one? **Recommendation: one for now** — YAGNI until there's evidence of multiple-operator use.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-26T22:02 | 019f8b39-95e... | backfilled session_id from transcript scan |

@@ -2,6 +2,10 @@
 title: "<update>"
 created: 2026-07-29
 source: session-2026-07-29
+parent_session: none
+current_session_id: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_by: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_at: 2026-07-31T17:09:29.134955
 ---
 
 # Handoff: /harvest skill implementation + skill improvement session
@@ -83,3 +87,9 @@ then 7 skill improvements, then scan-handoffs + collect --test + review command.
 - Build the AST scripts for /check --failure-scenarios and /review --focus docstrings
 - Test /go lens 5 and H4.5 in a real implementation run
 - Triage remaining 58 harvestable obligations from scan-handoffs
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:09 | 019fba6f-bfc... | backfilled session_id from transcript scan |

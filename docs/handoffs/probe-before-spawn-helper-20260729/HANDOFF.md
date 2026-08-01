@@ -1,3 +1,12 @@
+---
+current_session_id: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_by: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_at: 2026-07-31T17:09:29.134955
+parent_session: none
+produced_at: 2026-07-31T17:09:29.134955
+status: open
+handoff_type: investigation
+---
 # Handoff: Probe-Before-Spawn Helper
 
 **Status:** OPEN — design needed, not started. Surfaced from AAR Q10a.
@@ -41,3 +50,9 @@ The simplest viable version: a Python script that reads `tool-fallbacks.md` for 
 - tool-fallbacks.md: gemini-2 404 entry, MiniMax-M3 resume truncation entry
 - Wiki concept: `multi-subagent-orchestration-workflow-failure-patterns` (finding #3)
 - `/tp` Step 2: pool selection logic that would consume this helper
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:09 | 019fba6f-bfc... | backfilled session_id from transcript scan |

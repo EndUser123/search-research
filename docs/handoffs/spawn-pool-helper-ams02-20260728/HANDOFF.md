@@ -75,3 +75,17 @@ Read P:/docs/handoffs/spawn-pool-helper-ams02-20260728/HANDOFF.md.
 Implement POOL-01: spawn_pool.py + extend log_spawn.py with --failure-reason.
 Smoke: 2-model pool where first fails, second succeeds.
 ```
+
+---
+
+## Revision 1 — 20260729T020000Z (session 019fa94d /handoff auto)
+
+**Trigger:** /handoff auto-update at session close.
+
+**What changed:**
+- log_spawn.py now has --error-type and spawn_failures.jsonl at P:/.data/telemetry/ (committed fae5c2a).
+- test_log_spawn.py exists with 6 tests (all pass).
+- /check SKILL.md Step 6.2 surfaces /review latency + --no-auto-review.
+- spawn_pool.py itself NOT YET WRITTEN — this is the primary deliverable.
+
+**Status update:** OPEN — ready for cold-start implementation. Read-first list is current.

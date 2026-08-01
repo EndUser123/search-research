@@ -1,3 +1,12 @@
+---
+current_session_id: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_by: 019fba6f-bfc9-7900-a5e8-7cb4ea3a01da
+last_updated_at: 2026-07-31T17:09:29.134955
+parent_session: none
+produced_at: 2026-07-31T17:09:29.134955
+status: open
+handoff_type: investigation
+---
 # Handoff: Fleet Hook-Health Monitor
 
 **Status:** OPEN — design needed, not started. Surfaced from the PGM silently-dead incident.
@@ -50,3 +59,9 @@ Build a lightweight fleet hook-health monitor that detects silently dead hooks w
 - Wiki concept: `silently-dead-hooks-pgm-payload-bug-fleet-monitoring-gap`
 - Wiki concept: `stop-hook-lastassistantmessage-payload-field-2026`
 - PGM handoff: `pgm-payload-fix-and-scope-extension-20260729`
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-31T17:09 | 019fba6f-bfc... | backfilled session_id from transcript scan |

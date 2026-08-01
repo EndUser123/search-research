@@ -1,3 +1,12 @@
+---
+current_session_id: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_by: 019f8b39-95e3-7121-a8de-4e3f117e511a
+last_updated_at: 2026-07-26T22:02:40.921048
+parent_session: none
+produced_at: 2026-07-26T22:02:40.921048
+status: open
+handoff_type: investigation
+---
 # HANDOFF: /tp --adhd prototype (N-frame divergent ideation)
 
 **Status:** ready-to-implement (deferred — after qmd track stabilizes)
@@ -106,3 +115,9 @@ If any hold, keep only the trap-detection extraction.
 ## Prerequisite
 
 Land the qmd architecture decision first (see handoff `qmd-viability-evaluation-20260725`). The wiki concept recommends evaluating `/tp --adhd` after the qmd track is stable to avoid stacking experiments.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-07-26T22:02 | 019f8b39-95e... | backfilled session_id from transcript scan |

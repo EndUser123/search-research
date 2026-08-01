@@ -269,3 +269,17 @@ A cold start can (1) spawn children that survive glm-5-2 429 without user action
 
 **Status update:** OPEN — policy refined; implementation still pending.
 
+
+---
+
+## Revision 2 — 20260729T020000Z (session 019fa94d /handoff auto)
+
+**Trigger:** /handoff auto-update at session close.
+
+**What changed since Revision 1:**
+- Spawn pool helper handoff created (spawn-pool-helper-ams02-20260728) — AMS-02 is now a separate tracked workstream.
+- log_spawn.py extended with --error-type + spawn_failures.jsonl (committed fae5c2a).
+- /check Step 6.2 now surfaces /review latency upfront.
+- No implementation progress on AMS-02 (spawn_pool.py) or AMS-03 (parent auto-switch).
+
+**Status update:** OPEN — design complete; implementation deferred to fresh session.
