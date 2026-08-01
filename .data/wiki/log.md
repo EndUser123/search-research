@@ -1,5 +1,17 @@
 # Vault Log
 
+## Agent consolidation in parallel workflows
+Source: session-2026-07-31
+Agent: grok
+Notes: Group by capability need not topic; 9 agents to 3
+Page: P:/.data/wiki/concepts/agent-consolidation-in-parallel-workflows.md
+
+## Command-wrapper pattern for workflows
+Source: session-2026-07-31
+Agent: grok
+Notes: Resolve dynamic values at command layer; workflows can't access env/filesystem
+Page: P:/.data/wiki/concepts/command-wrapper-pattern-for-workflows.md
+
 ## Tool fallbacks as index not authority
 Source: session-20260731
 Agent: grok
