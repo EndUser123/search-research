@@ -98,6 +98,7 @@ class SkillEntry(NamedTuple):
     description: str
     plugin: str | None  # for plugin-sourced skills
     solves: str = ""   # problem-phrases from frontmatter `solves:` field
+    remediation_mode: str = ""  # auto-act | surface-only (for lifecycle skills)
     grok_state: str = "—"   # ✓ enabled | ✗ disabled | — n/a
     claude_state: str = "—"  # ✓ enabled | ✗ disabled | — n/a
 
@@ -173,20 +174,23 @@ _DESC_RE = re.compile(
     r"^description:\s*(.+?)(?=^\w+:|\Z)", re.MULTILINE | re.DOTALL
 )
 _SOLVES_RE = re.compile(r"^solves:\s*(.+?)(?=^\w+:|\Z)", re.MULTILINE | re.DOTALL)
+_REMEDIATION_RE = re.compile(r"^remediation_mode:\s*(.+?)\s*$", re.MULTILINE)
 
 
-def parse_frontmatter(text: str) -> tuple[str, str, str]:
-    """Extract name, description, and solves from SKILL.md frontmatter."""
+def parse_frontmatter(text: str) -> tuple[str, str, str, str]:
+    """Extract name, description, solves, and remediation_mode from SKILL.md frontmatter."""
     fm_match = _FRONTMATTER_RE.match(text)
     if not fm_match:
-        return ("", "", "")
+        return ("", "", "", "")
     fm = fm_match.group(1)
     name_match = _NAME_RE.search(fm)
     desc_match = _DESC_RE.search(fm)
     solves_match = _SOLVES_RE.search(fm)
+    remediation_match = _REMEDIATION_RE.search(fm)
     name = name_match.group(1).strip() if name_match else ""
     desc = desc_match.group(1).strip() if desc_match else ""
     solves = solves_match.group(1).strip() if solves_match else ""
+    remediation = remediation_match.group(1).strip() if remediation_match else ""
     # strip YAML multi-line indicators
     desc = desc.strip("- >\n|")
     solves = solves.strip("- >\n|")
@@ -196,7 +200,7 @@ def parse_frontmatter(text: str) -> tuple[str, str, str]:
     # cap length for the stub
     if len(desc) > 500:
         desc = desc[:497] + "..."
-    return (name, desc, solves)
+    return (name, desc, solves, remediation)
 
 
 def scan_scope(scope: str, root: Path, plugin_rel: str | None,
@@ -235,7 +239,7 @@ def scan_scope(scope: str, root: Path, plugin_rel: str | None,
             if len(parts) > 2:
                 plugin = parts[0]
         text = skill_md.read_text(encoding="utf-8", errors="replace")
-        name, desc, solves = parse_frontmatter(text)
+        name, desc, solves, remediation = parse_frontmatter(text)
         grok_st, claude_st = compute_plugin_state(scope, plugin, grok_disabled, claude_enabled)
         entries.append(
             SkillEntry(
@@ -245,6 +249,7 @@ def scan_scope(scope: str, root: Path, plugin_rel: str | None,
                 description=desc,
                 plugin=plugin,
                 solves=solves,
+                remediation_mode=remediation,
                 grok_state=grok_st,
                 claude_state=claude_st,
             )
@@ -540,6 +545,8 @@ def main() -> None:
                     help="Include full SKILL.md body (after frontmatter) in stubs for "
                          "deeper semantic search. Caps at 8000 chars per skill. "
                          "Default: frontmatter-only stubs (lighter, prevents drift).")
+    ap.add_argument("--sort-by", choices=["remediation_mode"], default=None,
+                    help="Sort catalog by a frontmatter field. Currently supports: remediation_mode.")
     args = ap.parse_args()
 
     STUBS_DIR.mkdir(parents=True, exist_ok=True)
@@ -560,6 +567,21 @@ def main() -> None:
             write_stub(e, full_body=args.full_body)
         all_entries.extend(entries)
         print(f"{scope}: {len(entries)} skills")
+
+    if args.sort_by == "remediation_mode":
+        # Sort: auto-act first, then surface-only, then empty
+        all_entries.sort(key=lambda e: (
+            0 if e.remediation_mode == "auto-act" else
+            1 if e.remediation_mode == "surface-only" else 2,
+            e.name,
+        ))
+        print("\n--- Skills by remediation_mode ---")
+        for mode in ("auto-act", "surface-only"):
+            tagged = [e for e in all_entries if e.remediation_mode == mode]
+            if tagged:
+                print(f"\n  {mode} ({len(tagged)}):")
+                for e in tagged:
+                    print(f"    {e.name} [{e.scope}]")
 
     write_catalog(all_entries)
     print(f"\nTotal: {len(all_entries)} skills")
