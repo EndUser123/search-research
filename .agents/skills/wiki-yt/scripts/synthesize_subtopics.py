@@ -31,6 +31,12 @@ from pathlib import Path
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 
+# Context budget: stay under ~80K tokens (~320K chars) where both MiniMax (205K)
+# and DiffusionGemma (256K) maintain high recall. Past 80K, the "lost in the
+# middle" U-curve degrades multi-hop retrieval by 40-80%.
+# Sources: Liu et al. 2023 (arxiv 2307.03172); BestLLMFor 2026 KV-cache study.
+DEFAULT_CONTEXT_BUDGET = 300_000  # chars
+
 
 # --- transcripts ---------------------------------------------------------
 
@@ -59,11 +65,11 @@ def gather_members(cluster: dict, transcripts_dir: Path) -> list[dict]:
 
 
 def build_context(members: list[dict], per_member_chars: int, max_members: int) -> str:
-    """Build the transcript context for the LLM, capping length.
+    """Build the transcript context for the LLM.
 
-    Caps: per_member_chars (default 1200) keeps each transcript's opening;
-    max_members (default 20) bounds total input. If a cluster exceeds
-    max_members, members are sampled evenly so the synthesis sees the spread.
+    per_member_chars=0 means FULL text (no truncation) — the default.
+    per_member_chars>0 truncates each transcript to that many chars (legacy mode).
+    max_members bounds total input; if exceeded, members are sampled evenly.
     """
     selected = members
     if len(members) > max_members:
@@ -72,7 +78,10 @@ def build_context(members: list[dict], per_member_chars: int, max_members: int) 
         selected = [members[i] for i in idxs]
     parts = []
     for i, m in enumerate(selected, 1):
-        body = m["text"][:per_member_chars]
+        if per_member_chars > 0:
+            body = m["text"][:per_member_chars]
+        else:
+            body = m["text"]
         parts.append(f"### Source {i}: {m['title']}\n[source_id: {m['source_id']}]\n\n{body}")
     return "\n\n---\n\n".join(parts)
 
@@ -114,6 +123,36 @@ TRANSCRIPTS:
 {context}
 
 Return ONLY the JSON object."""
+
+
+PRE_SUMMARY_PROMPT = """You are extracting key knowledge from a single video transcript for later cross-source synthesis.
+
+TOPIC HINT: {hint}
+
+Below is the FULL transcript of one video. Extract ALL information relevant to "{hint}" that would be needed to write a wiki concept page.
+
+EXTRACTION TARGETS (capture ALL that are present in the transcript):
+- Definitions and explanations of concepts
+- Operational details (how it works, thresholds, parameters, metrics, step-by-step processes)
+- Techniques, methods, patterns, workflows described
+- Named entities (tools, products, frameworks, standards, people)
+- Specific claims with supporting evidence or examples
+- Comparisons, trade-offs, selection criteria
+- Surprising, non-obvious, or counterintuitive findings
+- Canonicalization signals (different names for the same concept)
+
+GROUNDING RULES:
+- Use ONLY information present in the transcript. Do not invent.
+- Preserve specific numbers, thresholds, and named entities exactly as stated.
+- Keep each point self-contained (a reader should understand it without the original transcript).
+- Omit filler, small talk, sponsorship segments, and calls-to-action.
+
+OUTPUT FORMAT: plain text bullet points, one point per bullet. No JSON, no markdown fences.
+
+TRANSCRIPT:
+{transcript}
+
+Extract all key points:"""
 
 
 # --- LLM backends --------------------------------------------------------
@@ -177,15 +216,41 @@ def call_dgemma(prompt: str, timeout: int) -> tuple[str, str]:
         return "", "dgemma non-JSON output"
 
 
+def pre_summarize_member(member: dict, hint: str, backend: str, model: str | None,
+                         timeout: int = 180) -> tuple[str, str]:
+    """Map-reduce step: read the FULL transcript and extract key points.
+
+    Called when total context exceeds the budget. Returns a compressed summary
+    that preserves claims, entities, thresholds, and concepts for later
+    cross-source synthesis. This is the two-tier map-reduce pattern: each
+    document is summarized independently (map), then the synthesis prompt
+    combines the summaries (reduce).
+
+    Returns (summary_text, error).
+    """
+    prompt = PRE_SUMMARY_PROMPT.format(hint=hint, transcript=member["text"])
+    if backend == "mmx":
+        return call_mmx(prompt, model, timeout)
+    return call_dgemma(prompt, timeout)
+
+
 def synth_cluster(cluster: dict, members: list[dict], backend: str, model: str | None,
                   per_member_chars: int, max_members: int,
-                  max_retries: int = 2) -> tuple[dict | None, str]:
+                  max_retries: int = 2,
+                  context_budget: int = DEFAULT_CONTEXT_BUDGET) -> tuple[dict | None, str]:
     """Synthesize one cluster with retry + cross-backend fallback.
 
     Returns (parsed_concept_record, error). Resilience layers:
     1. Retry the primary backend on transient empty/unparseable output (max_retries).
     2. Fall through to the secondary backend (mmx↔dgemma) if primary exhausted.
     3. One final retry on the primary after the secondary fails.
+
+    Context strategy (NEW — fixes the 1200-char truncation blind spot):
+    - If total context fits within context_budget: pass FULL transcripts.
+    - If total exceeds budget: run map-reduce — pre-summarize each transcript
+      individually (full text in, compressed summary out), then synthesize
+      across the summaries. This is the two-tier map-reduce pattern recommended
+      by LangChain, Galileo (2026), and arXiv 2410.09342.
 
     Transient failure modes this catches:
     - mmx empty-response blips (rate-limit pressure, momentary backend hiccup)
@@ -201,8 +266,47 @@ def synth_cluster(cluster: dict, members: list[dict], backend: str, model: str |
 
     if not members:
         return None, "no transcript members"
-    context = build_context(members, per_member_chars, max_members)
-    prompt = SYNTH_PROMPT.format(hint=cluster.get("name", ""), n=len(members), context=context)
+
+    # --- Context strategy: full text or map-reduce ---
+    hint = cluster.get("name", "")
+
+    # Calculate raw context size (with max_members sampling applied)
+    selected = members
+    if len(members) > max_members:
+        step = len(members) / max_members
+        idxs = [int(i * step) for i in range(max_members)]
+        selected = [members[i] for i in idxs]
+
+    raw_context_size = sum(len(m["text"]) for m in selected)
+
+    if per_member_chars > 0:
+        # Legacy mode: explicit truncation requested via CLI
+        context = build_context(selected, per_member_chars, len(selected))
+        used_map_reduce = False
+    elif raw_context_size <= context_budget:
+        # Default: full text fits within budget — no truncation
+        context = build_context(selected, 0, len(selected))
+        used_map_reduce = False
+    else:
+        # Map-reduce: pre-summarize each transcript, then synthesize across summaries
+        print(f"    context {raw_context_size} chars > budget {context_budget}; "
+              f"running map-reduce pre-summary for {len(selected)} transcripts",
+              file=sys.stderr)
+        summaries = []
+        for j, m in enumerate(selected, 1):
+            summary, serr = pre_summarize_member(m, hint, backend, model)
+            if serr:
+                # Fallback: use first 8000 chars of the transcript if pre-summary fails
+                print(f"      pre-summary failed for '{m['title']}': {serr[:60]}; "
+                      f"falling back to 8000-char head", file=sys.stderr)
+                summary = m["text"][:8000]
+            summaries.append({**m, "text": summary})
+        context = build_context(summaries, 0, len(summaries))
+        used_map_reduce = True
+        print(f"    map-reduce complete: {raw_context_size} -> {len(context)} chars",
+              file=sys.stderr)
+
+    prompt = SYNTH_PROMPT.format(hint=hint, n=len(selected), context=context)
 
     def _try_parse(text: str) -> dict | None:
         """Extract JSON; return None if unparseable."""
@@ -331,7 +435,10 @@ def main() -> int:
     ap.add_argument("--notebook-title", default="")
     ap.add_argument("--backend", choices=["mmx", "dgemma"], default="mmx")
     ap.add_argument("--model", default=None, help="override model id for mmx backend")
-    ap.add_argument("--per-member-chars", type=int, default=1200)
+    ap.add_argument("--per-member-chars", type=int, default=0,
+                    help="chars per transcript (0=full text, uses map-reduce when over budget; default 0)")
+    ap.add_argument("--context-budget", type=int, default=DEFAULT_CONTEXT_BUDGET,
+                    help=f"max chars before map-reduce kicks in (default {DEFAULT_CONTEXT_BUDGET})")
     ap.add_argument("--max-members", type=int, default=20)
     ap.add_argument("--max-retries", type=int, default=2,
                     help="max attempts per backend before cross-fallback (default 2)")
@@ -354,7 +461,8 @@ def main() -> int:
         print(f"[{cid}] {name} ({len(members)} transcripts)...", file=sys.stderr)
         parsed, err = synth_cluster(c, members, args.backend, args.model,
                                     args.per_member_chars, args.max_members,
-                                    max_retries=args.max_retries)
+                                    max_retries=args.max_retries,
+                                    context_budget=args.context_budget)
         if parsed is None:
             print(f"    FAIL: {err}", file=sys.stderr)
             failed.append({"cluster_id": cid, "name": name, "error": err})
