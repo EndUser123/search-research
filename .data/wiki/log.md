@@ -1,5 +1,17 @@
 # Vault Log
 
+## Parallel CDP MCP servers OpenChrome upgrade path
+Source: session-20260801
+Agent: grok
+Notes: Landscape of parallel browser MCP servers; OpenChrome connects to real Chrome with 20 lanes
+Page: wiki/concepts/parallel-cdp-mcp-servers-openchrome.md
+
+## Browser automation failure modes for LLM chat interfaces
+Source: session-20260801
+Agent: grok
+Notes: 4 failure types + verify-after-submit principle from DEV article + live testing
+Page: wiki/concepts/browser-automation-failure-modes-llm-chat.md
+
 ## Agent consolidation in parallel workflows
 Source: session-2026-07-31
 Agent: grok
