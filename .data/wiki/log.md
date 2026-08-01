@@ -1,5 +1,23 @@
 # Vault Log
 
+## Lint as Forward-Looking Research Source
+Source: dream-2026-08-01
+Agent: grok
+Notes: Lint pass generates forward-looking research suggestions (contradictions, evidence gaps, falsifier triggers, stale hubs). Implements Karpathy lint principle. Auto-promoted from dream.
+Page: wiki/concepts/lint-as-forward-looking-research-source.md
+
+## Completeness Over Curation in Recommendations
+Source: dream-2026-08-01
+Agent: grok
+Notes: When asked for recommendations, list ALL items with positive ROI. Operator corrected: hiding recommendations is a trust violation. Auto-promoted from dream.
+Page: wiki/concepts/completeness-over-curation-recommendation-discipline.md
+
+## Pipeline Default Validation Against Actual Data Distributions
+Source: dream-2026-08-01
+Agent: grok
+Notes: Pipeline defaults guessed at authoring time are 100-1000x too conservative. wiki-yt 1200-char truncation + qmd staleness. Auto-promoted from dream.
+Page: wiki/concepts/pipeline-default-validation-against-actual-data-distributions.md
+
 ## --title
 Source: Scheduled checks in /maintain
 Agent: --slug
