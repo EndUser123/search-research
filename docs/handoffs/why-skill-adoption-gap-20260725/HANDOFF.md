@@ -6,7 +6,7 @@ current_terminal_id: console
 produced_at: 2026-07-26T00:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: unknown
+accurate_as_of_head: 8829753f7759cf731dc2266319b5fbe9d7d72e19
 ---
 
 # Handoff: /why skill adoption gap — when to invoke, consider a suggestion hook
@@ -98,3 +98,20 @@ OPEN — ready for investigation in a fresh session
 ## Last user message (verbatim)
 
 (implied from the session-close coverage question: "Did the why command close the gap about not having used the why command?")
+
+---
+
+## Revision 1 — 2026-08-01T20:30:00Z (session 019f9a89-d902-7930-ad3a-bab7e682830b)
+
+**Trigger:** auto-update — close-check workflow confirmed /why was not invoked mid-session; harvest item created for A/B test continuation.
+
+**What changed since the original:**
+- Close-check workflow (2026-08-01) confirmed the adoption gap: `/why` was not invoked during the session despite diagnostic errors. The workflow flagged this as a lifecycle-skill-coverage FAIL.
+- A/B test status: 1 of 3 falsifier validations complete (v3 dominated v1). Harvest item `01KYZJJNDMA0H6ZTQRDPVNT7H7` tracks the remaining 2 tests.
+- Harvest item `01KYZJJCAP58F1H3JWY8964TQK` tracks the enforcement gap (rules authored but not firing under generative load) — related to the adoption problem.
+- Trace of `pretooluse_spawn_model_gate.py` completed (2026-08-01): no critical logic errors. The hook correctly blocks serde-broken models and quota-exhausted providers with fail-open posture.
+
+**Status update:** unchanged — investigation still open. New evidence strengthens H1 (the model does not proactively suggest /why when it makes diagnostic errors). The close-check workflow now mechanically detects this gap, which is itself a partial structural fix — future sessions that skip /why will see it flagged at close.
+
+**New open items:**
+- The close-check workflow detects the gap but doesn't auto-invoke /why. Consider whether a mid-session trigger (not just close-time detection) is needed. See handoff `close-check-lifecycle-auto-chain-20260801`.
