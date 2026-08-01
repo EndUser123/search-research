@@ -1,5 +1,23 @@
 # Vault Log
 
+## TP hat selection gate: content-driven hat choice replaces default-all-on
+Source: session-019f902a-621d-7711-9436-7c6003c57793
+Agent: grok
+Notes: Redesigned /tp hat framework from default-all-on + horizon matrix to content-driven hat selection based on operator intent
+Page: P:/.data/wiki/concepts/tp-hat-selection-gate-content-driven-hat-choice.md
+
+## Skill catalog scope inconsistency causes cascading read failures
+Source: session-019f902a-621d-7711-9436-7c6003c57793
+Agent: grok
+Notes: Fixed 9 stale path references across 5 files; catalog listed review/refactor at workspace scope but they live at user scope
+Page: P:/.data/wiki/concepts/skill-catalog-scope-inconsistency-causes-cascading-read-failures.md
+
+## --concept
+Source: narrative-as-signal
+Agent: --action
+Notes: created
+Page: --source
+
 ## Lifecycle skill remediation modes
 Source: session-019fb937
 Agent: grok
