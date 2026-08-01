@@ -1,5 +1,11 @@
 # Vault Log
 
+## phase2-receipt-format-mismatch
+Source: session-20260731
+Agent: grok
+Notes: Stop hook _is_valid_succeeded_receipt required FILES but writer produces CLAIMED_SCOPE — entire receipt system was non-functional
+Page: P:/.data/wiki/concepts/phase2-receipt-format-mismatch-stop-hook-rejects-claimed-scope.md
+
 ## Overclaiming under exploration-to-recommendation pressure
 Source: session-2026-07-31
 Agent: grok
