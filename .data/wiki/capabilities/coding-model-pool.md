@@ -50,17 +50,31 @@
 **Parallel wave strategy:** maximize provider diversity. For N subagents,
 use ceil(N/2) different providers. Never stack all subagents on one provider.
 
-## Tier-1 (verified 2026-07-29, 5-problem HumanEval + 13-problem deep-reasoning)
+## Tier-1 (verified 2026-07-29, 5-problem HumanEval + 13-problem deep-reasoning;
+re-verified 2026-07-31 with live code review quality tests)
 or-ling-3-flash-free (5/5 code-exec, 13/13 reasoning, 2.2s, $0/M, spawn OK)
+  - Live test 2026-07-31: 7-8s latency on review tasks, 10 findings (most thorough),
+    found all critical issues across 4 test cases, zero fabricated findings.
+  - Best default for single subagent and odd-numbered parallel slots.
 nim-openai-gpt-oss-20b (4/5 code-exec, 13/13 reasoning, 7.7s, free, spawn OK)
+  - Live test 2026-07-31: 9-13s latency on review tasks, 7-9 findings,
+    found all critical issues across 4 test cases, zero fabricated findings.
+  - Best for even-numbered parallel slots (different provider from or-ling).
   - NOTE: mistral-medium-latest was tier-1 (5/5 code-exec) but is now spawn-broken
     (422 context-too-large on this host). Moved to excluded. See fleet-models.json.
 
-## Tier-2 (fallback when tier-1 exhausted)
+## Tier-2 (fallback when tier-1 exhausted; tested 2026-07-31)
+minimax-m3 (4/5 code-exec, 13/13 reasoning, 7.3s nominal, 30-60s live test)
+  - Live test: deepest analysis (9-12 findings), but 4-8× slower. Use when
+    quality matters more than speed. Subscription (4500/5h quota).
+zen-deepseek-v4-flash-free (4/5 code-exec, 13/13 reasoning, 7.4s nominal, 28-50s live test)
+  - Live test: 6-10 findings with correct root-cause analysis. Provided full
+    corrected implementations. Different provider from tier-1 (Zen). Free.
 go-deepseek-v4-flash (5/5 code-exec, 13/13 reasoning, 6.4s, OpenCode sub)
-minimax-m3 (4/5 code-exec, 13/13 reasoning, 7.3s, MiniMax sub, spawn OK)
-zen-deepseek-v4-flash-free (4/5 code-exec, 13/13 reasoning, 7.4s, Zen free)
-glm-5-2 (4/5 code-exec, 12/13 reasoning, 7.9s, GLM sub, spawn OK)
+  - Not live-tested in this session. Available as fallback.
+glm-5-2 (4/5 code-exec, 12/13 reasoning, 7.9s nominal, 8.1s live test)
+  - Live test: correct, concise. REASONING LANE ONLY — ration subscription quota.
+  - Use for plan/debug/critic roles, not general code execution.
 
 ## Excluded
 Groq models: TPM cap (6000/8000) blocks spawn_subagent entirely
