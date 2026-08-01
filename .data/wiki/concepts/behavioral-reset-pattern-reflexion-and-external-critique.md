@@ -81,9 +81,37 @@ Code review agents that extract rules from accepted/rejected PR feedback and app
 
 ## What people don't like (from practitioner signal)
 
-- **Full critique-and-revision chains are too heavy** for a reset skill (Self-Governing-LLM-Agents style). The external critique step alone is enough; the full revision loop adds latency without proportional value.
+- **Full critique-and-revision chains are too heavy** for a reset skill (Self-Governing-LLM-Agents style). The external critique step alone is enough; the full revision loop adds latency without proportional value. **NOT built.** `/tp` and `/review` use fork-join (critique → integrate), not chains (critique → revise → re-critique). Do not claim this feature as wired — it was explicitly rejected by this research.
 - **Autonomous self-modification degrades silently** (documented in `/notice` SKILL.md from the Self-Harness research). `/slc` must stay operator-invoked or T12-suggested, not auto-firing.
 - **Pure metrics can't replace LLM judgment** — correction count and turn count are triggers, not assessments. The Reflexion pattern's persistent lessons are LLM-generated, not mechanically extracted.
+
+## Practitioner sentiment items (mapped)
+
+From the Reddit/HN signal pass — these were identified but require explicit mapping:
+
+- **"Cohesion matters more than feature count"** (faros.ai review of Windsurf): honored as a meta-principle. The rejection of Feature 2 (full critique-revision chains) IS this principle in action — adding it would inflate feature count without serving cohesion.
+- **"Template system for agent personalities"** (Reddit/Orban): **partially exists, explicitly deferred.** The SKILL.md `host: grok | claude | both` frontmatter field is a proto-template. Full personality composition (runtime injection of per-workspace personas, conditional activation) is out of scope for `/slc` — that's a workspace-architecture concern, not a behavioral-reset concern.
+- **"Developers care about scaffolding, economics, and failure modes"** (Reddit AI agent mood): `/slc` IS scaffolding. The economics concern (token cost per reset) is addressed by the `--self-assess` fallback (cheaper than spawning a subagent). The failure-modes concern is the entire purpose of `/slc`.
+
+## Feature coverage audit (2026-07-31, post-/tp critique)
+
+A `/tp` critique identified that the original coverage claim was overconfident. Corrections:
+
+| Feature | Original claim | Corrected status |
+|---|---|---|
+| Persistent failure lessons (reflect) | "wiki + /why Step 0.5 already exist" | **Partial.** /why Step 0.5 is consumer-only (reads wiki patterns). Producer is the drift log (Feature 7). Do not double-count. |
+| Critique-revision chains | "/tp, /review already do this" | **Retracted.** Neither implements chains; research rejected them. /slc implements external-critique *half* only. |
+| Epistemic Gate | "AGENTS.md receipts + /go H1" | **Partial.** These are probabilistic priming + post-hoc enforcement, not a tight pre-execution gate. |
+| Workspace identity overrides | "NOT implemented" | **Already implemented** via AGENTS.md scope hierarchy (10+ scoped files with nested precedence). No additional mechanism needed. |
+| Friction evaporation | "/capture + /notice T10" | **Partial.** Strongest functional match is `/friction` (dedicated skill for friction detection + automation scoring). /capture and /notice T10 are adjacent, not equivalent. |
+| Persistent drift log | "/slc writes jsonl ✅" | **Spec-only.** File does not exist on disk — /slc has not been invoked live. Write path unverified. |
+| Drift pattern mining | "/harvest reads drift log ✅" | **Spec-only.** Downstream of unverified drift log. |
+
+**Live-verified:** Features 8 (external critique), 9 (targeted re-anchoring) — spec-correct in SKILL.md, pending live invocation.
+**Spec-only (pending live verification):** Features 7, 5 — correct in SKILL.md text, unverified at runtime.
+**Retracted:** Feature 2.
+**Already existed:** Feature 6 (via AGENTS.md scope hierarchy).
+**Partial:** Features 1, 3, 10, 4.
 
 ## What this means for our workspace
 
