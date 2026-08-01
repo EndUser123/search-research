@@ -57,6 +57,52 @@ Design a refactoring PLAN for `fetch_transcript_chain` (200+ lines, 5 nested clo
 - Gemini: architecture diagram + `FallbackStage` Protocol with `can_execute()`
 - Perplexity: `RuntimePolicy` dataclass + `build_fallback_plan()` declarative step builder
 
+### 5. Qwen (web, thinking mode) — EXCELLENT (best extraction reasoning)
+
+Nonce: Q8B4F1D3. Full response: `P:/tmp/ensemble-qwen-response.txt`
+
+- **Best closure extraction insight:** splits closures into two categories — pure functions → module-level, side-effecting closures → methods on a `TranscriptOrchestrator` class. Correctly identifies that the 3 side-effecting closures share state and should be grouped via `__init__` injection.
+- `_finalize_success` for dedup (same convergence as all others)
+- `TranscriptStage` Protocol with `is_applicable(ctx)` per stage
+- Concrete stage classes with per-stage admission table (WhisperStage, NLMStage, GenericFallbackStage, ExpensiveFallbackStage)
+- `FetchContext` frozen dataclass with `cheap_attempts`/`cost_budget_remaining` — makes expensive-gate logic explicit in the context, not scattered as booleans
+- Summary design decisions table
+- **Unique:** `TranscriptOrchestrator` class pattern for side-effecting closures (not free functions); reasoning: "Bundling them into an orchestrator class makes shared state explicit via __init__ injection, which kills the race condition on the global"
+- **Weakness:** No characterization tests; code blocks partially fragmented in browser rendering
+
+### 6. Grok (web) — VERY GOOD (best policy object design)
+
+Nonce: G2F9E5A1. Full response: `P:/tmp/ensemble-grok-response.txt`
+
+- Clean table for all 5 closure extractions with `StageTracker` protocol grouping for timing helpers
+- `_finalize_success` for dedup
+- `TranscriptStage` Protocol with `should_run`/`execute`
+- Policy objects for special cases: `WhisperAdmissionPolicy`, `FallbackGatingPolicy`
+- `PipelineContext` dataclass
+- 5-category improvement summary (separation of concerns, testability, extensibility, concurrency safety, readability)
+- **Unique:** `StageTracker` protocol for grouping timing helpers; named policy objects that read configuration flags (never mutable globals)
+- **Weakness:** Less structural depth than Qwen/ChatGPT; no characterization tests; faster response (4s) but slightly shallower reasoning
+
+### Duck.ai — BLOCKED (CAPTCHA)
+Prompt submitted successfully (nonce D7A3F2E8) but DuckDuckGo served a CAPTCHA ("Select all squares containing a duck"). Response pending CAPTCHA resolution.
+
+## Updated convergence analysis (6 models)
+
+**All 6 models agree on:**
+1. Extract all 5 closures (pure → module-level functions)
+2. Replace `_WHISPER_ENABLED` global with an immutable context/config object
+3. Unify success handling into one `_finalize_success` function
+4. Use a strategy/protocol pattern for per-source behavior (`TranscriptStage` Protocol)
+5. The orchestrator should be ~20-40 lines: validate → build context → iterate stages → finalize
+
+**Updated unique contributions (6 models):**
+- ChatGPT: `TranscriptCandidate` intermediate type (cleanest dedup mechanism)
+- HuggingChat: characterization tests first + `SourceSpec` row hooks + `CircuitBreaker`
+- Gemini: architecture diagram + `FallbackStage` Protocol with `can_execute()`
+- Perplexity: `RuntimePolicy` dataclass + `build_fallback_plan()` declarative step builder
+- Qwen: `TranscriptOrchestrator` class for side-effecting closures (shared-state reasoning)
+- Grok: `StageTracker` protocol + named policy objects (`WhisperAdmissionPolicy`, `FallbackGatingPolicy`)
+
 ## Recommendation
 
 **Implement a merged plan** combining:
@@ -64,5 +110,7 @@ Design a refactoring PLAN for `fetch_transcript_chain` (200+ lines, 5 nested clo
 - ChatGPT's `TranscriptCandidate` intermediate type + `StageExecution` dataclass
 - Gemini's `FallbackStage` Protocol with `can_execute()` + `execute()`
 - Perplexity's `RuntimePolicy` frozen dataclass
+- Qwen's `TranscriptOrchestrator` class for grouping side-effecting closures
+- Grok's `StageTracker` protocol + policy objects
 
-The convergence is strong — all 4 models independently arrived at the same 5 structural changes. This is not model echo-chamber; it's a genuine design consensus.
+The convergence is extremely strong — all 6 models independently arrived at the same 5 structural changes. This is not model echo-chamber; it's a genuine design consensus across heterogeneous architectures.
