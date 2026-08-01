@@ -62,7 +62,7 @@ These models are **excluded from all auto-pools and spawn_subagent dispatch**. T
 | **MiniMax-M3** (`resume_from` after 2+ rounds) | `max_tokens_truncation` — accumulated transcript context exceeds output budget. | Launch fresh subagent instead of resuming when round_count ≥ 2. | `/design` Step 5 |
 | **nvidia-inkling** (as interactive/primary model) | Produces one-word garbage ("UBS", "Savings") via Grok Build interactive dispatch. Works fine via spawn_subagent delegation + direct API. | **Do not use as interactive/primary.** DO use as spawn delegation target (/tp pool, /check verifier). | [[model-benchmark-testing-quirks]] |
 | **nvidia-diffusiongemma-26b** | Empty content via spawn_subagent (parameter conflict with thinking mode). Works via direct API. | Use `P:/.agents/scripts/models/dgemma_read.py` for file reads. Never spawn. | [[diffusiongemma-direct-api-howto]] |
-| **or-ling-3-flash-free** (parallel dispatch) | 429 rate limit after 3+ concurrent agents (OpenRouter 20 RPM shared across all free-model calls). 4 of 7 agents failed in session 2026-08-01. | Use `pick_model.py --count N` for diverse providers, or stagger ≤2 concurrent agents on OpenRouter. Prefer `nim-openai-gpt-oss-20b` (NVIDIA, no rate limit) for mechanical/exploration tasks. | [[coding-model-pool-tier-1-tier-2]], [[agent-consolidation-in-parallel-workflows]] |
+| **or-ling-3-flash-free** (parallel dispatch) | 429 rate limit after 3+ concurrent agents (OpenRouter 20 RPM shared across all free-model calls). 4 of 7 agents failed in session 2026-08-01. | **Use `pick_model.py --count N` for diverse providers.** Don't reuse the same free-tier model for all parallel agents. | [[coding-model-pool-tier-1-tier-2]], [[agent-consolidation-in-parallel-workflows]] |
 
 ### web_search rate limiting
 
@@ -118,7 +118,7 @@ MCP servers listed at session start may or may not be callable per-model. **Trea
 4. When you observe a new failure, add a row with: symptom (1 line), workaround (1 line), wiki authority (create a wiki concept if the root cause is complex).
 5. Bias toward optimism: don't pre-emptively mark tools broken without observed evidence.
 6. **Before assigning `model=` to spawn_subagent, read [[coding-model-pool-tier-1-tier-2]] for the current pool.** Do not rely on memory or this table alone — pool membership changes.
-7. **For parallel dispatch (3+ agents):** use diverse providers, not the same model for all agents. OpenRouter free tier: max 2 concurrent. See [[agent-consolidation-in-parallel-workflows]].
+7. **For parallel dispatch (3+ agents):** use `python pick_model.py <lane> --count N` to get N models from diverse providers. Don't reuse the same free-tier model for all agents. See [[agent-consolidation-in-parallel-workflows]].
 8. Periodically prune entries that no longer reproduce.
 
 ## Decision context
