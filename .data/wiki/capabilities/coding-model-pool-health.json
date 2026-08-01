@@ -1,0 +1,118 @@
+{
+  "updated_at": "2026-07-31T23:59:00.000000+00:00",
+  "pool_models": [
+    "or-ling-3-flash-free",
+    "nim-openai-gpt-oss-20b",
+    "minimax-m3",
+    "glm-5-2",
+    "zen-deepseek-v4-flash-free",
+    "go-deepseek-v4-flash"
+  ],
+  "rolling_window": 20,
+  "models": {
+    "or-ling-3-flash-free": {
+      "status": "healthy",
+      "reason": null,
+      "provider": "OpenRouter",
+      "provider_quota_pool": "free",
+      "rate_limit_risk": "medium",
+      "tokens_per_sec": null,
+      "tokens_per_sec_baseline": null,
+      "success_rate": 1.0,
+      "quality_avg": null,
+      "latency_p50_ms": 2200,
+      "calls_analyzed": 3,
+      "total_calls": 3,
+      "consecutive_healthy": 3,
+      "flagged_reason": null,
+      "note": "Added 2026-07-31. Spawn-verified (3.4s, 4.6s, 2.7s). Tier-1 replacement for spawn-broken mistral. Baseline latency from session tests."
+    },
+    "nim-openai-gpt-oss-20b": {
+      "status": "healthy",
+      "reason": null,
+      "provider": "NVIDIA NIM",
+      "provider_quota_pool": "free",
+      "rate_limit_risk": "low",
+      "tokens_per_sec": null,
+      "tokens_per_sec_baseline": null,
+      "success_rate": 1.0,
+      "quality_avg": null,
+      "latency_p50_ms": 4500,
+      "calls_analyzed": 3,
+      "total_calls": 3,
+      "consecutive_healthy": 3,
+      "flagged_reason": null,
+      "note": "Added 2026-07-31. Spawn-verified (4.6s, 2.7s, 4.6s). Baseline latency from session tests."
+    },
+    "minimax-m3": {
+      "status": "healthy",
+      "reason": null,
+      "provider": "MiniMax",
+      "provider_quota_pool": "subscription",
+      "rate_limit_risk": "low",
+      "tokens_per_sec": 38.8,
+      "tokens_per_sec_baseline": 36.5,
+      "success_rate": 1,
+      "quality_avg": 0.6,
+      "latency_p50_ms": 3232.0,
+      "calls_analyzed": 5,
+      "total_calls": 5,
+      "consecutive_healthy": 2,
+      "flagged_reason": null
+    },
+    "glm-5-2": {
+      "status": "healthy",
+      "reason": null,
+      "provider": "Z.ai/GLM",
+      "provider_quota_pool": "subscription",
+      "rate_limit_risk": "low",
+      "tokens_per_sec": null,
+      "tokens_per_sec_baseline": null,
+      "success_rate": 1.0,
+      "quality_avg": null,
+      "latency_p50_ms": 8100,
+      "calls_analyzed": 5,
+      "total_calls": 5,
+      "consecutive_healthy": 2,
+      "flagged_reason": null,
+      "note": "Updated 2026-07-31 with session test data (8.1s latency). Reasoning lane only — ration subscription quota."
+    },
+    "zen-deepseek-v4-flash-free": {
+      "status": "healthy",
+      "reason": null,
+      "provider": "OpenCode/Zen",
+      "provider_quota_pool": "free",
+      "rate_limit_risk": "low",
+      "tokens_per_sec": 51.5,
+      "tokens_per_sec_baseline": 34.7,
+      "success_rate": 0.8,
+      "quality_avg": 0.75,
+      "latency_p50_ms": 1587.0,
+      "calls_analyzed": 5,
+      "total_calls": 5,
+      "consecutive_healthy": 2,
+      "flagged_reason": null
+    },
+    "go-deepseek-v4-flash": {
+      "status": "unknown",
+      "reason": "insufficient data (0 calls, need 5)",
+      "provider": "OpenCode Go",
+      "provider_quota_pool": "subscription",
+      "rate_limit_risk": "low",
+      "tokens_per_sec": null,
+      "success_rate": null,
+      "quality_avg": null,
+      "latency_p50_ms": null,
+      "calls_analyzed": 0,
+      "flagged_reason": null
+    }
+  },
+  "excluded": {
+    "mistral-medium-latest": {
+      "reason": "spawn-broken (422 context-too-large)",
+      "excluded_at": "2026-07-29",
+      "former_tier": 1
+    }
+  },
+  "note": "Updated 2026-07-31: added or-ling-3-flash-free and nim-openai-gpt-oss-20b with session-verified telemetry. Removed mistral-medium-latest from pool_models (moved to excluded). Added provider and rate_limit_risk fields for all models."
+}
