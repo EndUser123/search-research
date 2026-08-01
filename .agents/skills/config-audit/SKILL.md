@@ -8,6 +8,7 @@ description: >
   Build (AGENTS.md instead of CLAUDE.md, config.toml instead of
   settings.json, no Claude-specific hooks/plugins).
 host: both
+domain: self-improvement
 ---
 
 # /config-audit — Configuration audit and optimization

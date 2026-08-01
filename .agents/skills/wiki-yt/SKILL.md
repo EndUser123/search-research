@@ -11,6 +11,7 @@ description: >
   overwriting. Composes with nlm-bulk-ingest via --from-clusters for full
   round-trip from raw URL list to wiki concepts.
 host: both
+domain: knowledge
 ---
 
 # wiki-yt

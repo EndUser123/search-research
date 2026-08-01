@@ -7,6 +7,7 @@ description: >
   consistency. Adapted from Claude-side "main" for Grok Build (no CKS, no
   Claude hooks/settings.json checks; uses index_skills.py --audit and qmd).
 host: both
+domain: monitoring
 ---
 
 # /workspace-health — Workspace health and validation

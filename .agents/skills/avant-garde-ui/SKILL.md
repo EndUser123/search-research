@@ -10,6 +10,8 @@ description: >-
   for plain implementation tasks like bug fixes, refactors, layout debugging,
   log statements, or wiring up logic where the visual design is already settled.
   The literal keyword "ULTRATHINK" always activates this skill at maximum depth.
+host: grok
+domain: design
 ---
 
 # Avant-Garde UI

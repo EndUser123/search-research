@@ -4,6 +4,7 @@ description: Show contract system health dashboard (writer + Stop stats)
 suggest:
   - /status
   - /health
+domain: monitoring
 ---
 
 # /contract-status

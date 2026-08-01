@@ -9,6 +9,7 @@ description: >
   you have more URLs than one notebook can hold and want them organized by
   theme rather than dumped in arbitrary chunks.
 host: both
+domain: knowledge
 ---
 
 # nlm-bulk-ingest

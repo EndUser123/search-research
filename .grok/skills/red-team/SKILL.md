@@ -10,6 +10,7 @@ description: >
 argument-hint: "<proposal or target to review>"
 user-invocable: true
 host: grok
+domain: review
 ---
 
 # /red-team — adversarial review with root-cause clustering

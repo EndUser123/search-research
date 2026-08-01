@@ -2,6 +2,7 @@
 name: email-skill
 description: Stateless CLI for cross-agent email access. Wraps himalaya with TTL cache, scoring, and deferral.
 host: both
+domain: communication
 ---
 
 # email-skill
