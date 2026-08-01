@@ -1,0 +1,120 @@
+---
+title: "Handoff Mid-Session Checkpoint Pattern (Same-Author Continuation)"
+created: 2026-07-30
+source: session-2026-07-30
+tags: [handoff, stale-data, drift, same-author, checkpoint, grok-build]
+summary: >
+  When a handoff is written as a mid-session checkpoint (not end-of-session),
+  subsequent commits by the same author can make the handoff's claims factually
+  wrong — not just drifted. The fix is a mandatory verify-after-commit rule:
+  run /handoff verify after any post-handoff commit that touches described work.
+agent: grok
+host: grok
+cognitive_load: 2
+verification: local-only
+relations:
+  - target: wiki/concepts/invariants-beat-environment-comfort
+    type: related
+    reciprocal: related
+---
+
+## Summary
+
+The `/handoff` skill assumes end-of-session timing: the handoff is the last
+thing written, `accurate_as_of_head` is final, and the claims are terminal. But
+sessions often write a handoff as a checkpoint, then continue working. When the
+post-handoff commits resolve items the handoff marks as "deferred" or "not
+started," the handoff's claims become **contradicted by the author's own
+commits** — a stale-data failure mode that is invisible to cross-terminal drift
+detection.
+
+## Key Findings
+
+**The failure mode has two distinct shapes:**
+
+1. **Cross-terminal drift** (detected by v0.1.1): sibling sessions move HEAD
+   after the handoff is written. `list_handoffs.py --head` surfaces this as
+   `head:DRIFT`. The handoff's file paths *may* no longer resolve.
+
+2. **Same-author continuation** (undetected until v0.1.2): the same session
+   writes the handoff, then commits more work. HEAD moves, but more critically,
+   the handoff's *content claims* are now wrong. An item listed as "deferred"
+   is resolved. A status of "not started" is now "shipped." This is not just
+   drift — it's self-contradiction.
+
+**Why same-author continuation is harder to catch:**
+
+- The author *knows* the handoff exists — it's their own file. They just don't
+  think to update it because they're in execution mode, not documentation mode.
+- Cross-terminal drift assumes "someone else moved the tree." Same-author
+  continuation is "I moved the tree and forgot my handoff pointed at the old
+  state."
+- The drift detection signal (`head:DRIFT`) fires for both, but the *severity*
+  is different: cross-terminal drift means "re-verify paths"; same-author
+  continuation means "the claims are wrong, not just the paths."
+
+**Reference incident (2026-07-30):**
+
+Session 019fa276 wrote handoff Revision 4 at commit `0c4e31b`, listing two
+review findings (F3-05, F3-06) as "deferred — KNOWN LIMITATION comments not yet
+added." Six minutes later, the same author committed `1b809b9` which added
+those exact comments. The handoff was now factually wrong: items it said were
+deferred were resolved. A `/tp` critique caught it because the operator
+explicitly asked to "review recall we are grok build and we need multi terminal
+isolation and immunity to stale data."
+
+- Assumption: the author would have caught this if they'd run `/handoff verify`
+  after the resolution commit. The verify command existed (v0.1.1) but wasn't
+  used because there was no rule requiring it.
+
+## The Fix (implemented v0.1.2)
+
+**Mandatory verify-after-commit rule** added to `/handoff` SKILL.md:
+
+After ANY commit that touches work described in an existing handoff from this
+session, run `/handoff verify <path>`. If verify finds content contradictions
+(not just HEAD drift), append a revision block with the corrected status.
+
+**Three touch points in the skill:**
+
+1. **New section: "Mid-session checkpoint pattern"** — documents the failure
+   mode, the mandatory rule, when it applies, and when it doesn't
+2. **Hard Constraint #7 update (v0.1.2 clause)** — distinguishes same-author
+   drift from cross-terminal drift
+3. **Inline critic-friend checklist addition** — "No contradicted claims" check:
+   if this session committed work after the handoff's `produced_at`, verify no
+   deferred/resolved claims are now wrong
+
+**Why add a `checkpoint: true` YAML field?** The field is a one-time flag
+set at authoring time (not per-commit maintenance). Its value is for **readers**,
+not the author: it tells a cold-start session "this handoff was written
+mid-session — post-handoff commits may contradict claims." The `head:DRIFT`
+flag tells the reader *whether* drift exists; `checkpoint: true` tells them
+*what kind* to expect (content contradiction, not just path movement). Together
+they're stronger than either alone.
+
+## Related
+
+[[invariants-beat-environment-comfort]]@related — the verify-after-commit rule
+is a mechanical enforcement (invariant) replacing a behavioral reminder ("don't
+forget to update your handoff").
+
+[[handoff]] — the skill where this pattern is documented.
+
+## Sources
+
+- Session 019fa276, Revision 4 → Revision 5 correction (2026-07-30)
+- `/tp` critique by subagent 019fb175 on handoff recall
+- `/handoff` SKILL.md commit `92ba168` (v0.1.2 enhancement)
+## Falsifier
+
+TODO (auto-generated by wiki_validator_sweep 2026-07-30): This concept predates the
+mandatory Falsifier section. State what observation or evidence would make this
+concept wrong or obsolete. If the concept is purely descriptive (not a claim),
+state that explicitly: "This is a reference document, not a claim — no falsifier applies."
+## What this means for our workspace
+
+TODO (auto-generated by wiki_validator_sweep 2026-07-30): This concept predates the
+mandatory workspace-implications section. State what should be updated, created, or
+retired in our infrastructure based on this finding. If the concept is reference-only
+with no actionable implication, state: "Reference document — no workspace action needed."

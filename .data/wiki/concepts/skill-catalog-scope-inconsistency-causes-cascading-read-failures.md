@@ -118,3 +118,12 @@ Either way, the catalog asserts a path that doesn't resolve.
 - `P:/.grok/AGENTS.md` — stale "(repo override)" reference
 - `P:/.grok/skills/review/SKILL.md` — actual location (user scope)
 - `P:/.grok/skills/refactor/SKILL.md` — actual location (user scope)
+
+## Auto-related
+
+- [[skill-graph]]
+- [[scope-matching-verification-discipline]]
+- [[skill-catalog]]
+- [[premature-synthesis-without-reading-existing-capability]]
+- [[context-firewall-architecture]]
+

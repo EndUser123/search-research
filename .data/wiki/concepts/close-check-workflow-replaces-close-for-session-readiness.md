@@ -116,3 +116,12 @@ This concept is wrong if:
 - Session transcript line 576 (operator invoked `/close-check`)
 - `P:/.data/wiki/concepts/command-wrapper-pattern-for-workflows.md`
 - `P:/.data/wiki/concepts/lifecycle-skill-remediation-modes-auto-act-vs-surface-only.md`
+
+## Auto-related
+
+- [[skill-graph]]
+- [[grok-build-workflows-rhai-orchestration]]
+- [[close-scanner-verification-gap-stale-read]]
+- [[skill-catalog]]
+- [[intg2-resolved-gate-state-set-needs-llm-check]]
+

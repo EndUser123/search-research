@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-01
 cognitive_load: 3
-summary: Auto-generated index of 676 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 657 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-01 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 676 across 21 scopes.
+**Total skills:** 657 across 21 scopes.
 
 ## How to use this catalog
 
@@ -209,33 +209,19 @@ Auto-generated on 2026-08-01 by `python P:/.data/wiki/scripts/index_skills.py`. 
 |---|---|---|---|---|---|
 | **antigravity** _[antigravity/0.13.0]_ | — | ✓ | Run the Antigravity CLI (Gemini) as a collaborating AI inside Claude Code, with intelligent model routing across the sof... | — | `~/.claude/plugins/cache/antigravity-for-claude-code/antigravity/0.13.0/skills/antigravity/SKILL.md` |
 
-## claude-cache-official (48 skills)
+## claude-cache-official (30 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
-| **skill-creator** _[skill-creator/b20ef542ee28]_ | — | ✗ | Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a sk... | — | `~/.claude/plugins/cache/claude-plugins-official/skill-creator/b20ef542ee28/skills/skill-creator/SKILL.md` |
+| **skill-creator** _[skill-creator/9d029637bea3]_ | — | ✗ | Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a sk... | — | `~/.claude/plugins/cache/claude-plugins-official/skill-creator/9d029637bea3/skills/skill-creator/SKILL.md` |
 | **skill-creator** _[skill-creator/779a5e7f15a0]_ | — | ✗ | Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a sk... | — | `~/.claude/plugins/cache/claude-plugins-official/skill-creator/779a5e7f15a0/skills/skill-creator/SKILL.md` |
-| **agent-development** _[plugin-dev/dc1743aa8efb]_ | — | ✓ | This skill should be used when the user asks to "create an agent", "add an agent", "write a subagent", "agent frontmatte... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/agent-development/SKILL.md` |
-| **command-development** _[plugin-dev/dc1743aa8efb]_ | — | ✓ | This skill should be used when the user asks to "create a slash command", "add a command", "write a custom command", "de... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/command-development/SKILL.md` |
-| **hook-development** _[plugin-dev/dc1743aa8efb]_ | — | ✓ | This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate too... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/hook-development/SKILL.md` |
-| **mcp-integration** _[plugin-dev/dc1743aa8efb]_ | — | ✓ | This skill should be used when the user asks to "add MCP server", "integrate MCP", "configure MCP in plugin", "use .mcp.... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/mcp-integration/SKILL.md` |
-| **plugin-settings** _[plugin-dev/dc1743aa8efb]_ | — | ✓ | This skill should be used when the user asks about "plugin settings", "store plugin configuration", "user-configurable p... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/plugin-settings/SKILL.md` |
-| **plugin-structure** _[plugin-dev/dc1743aa8efb]_ | — | ✓ | This skill should be used when the user asks to "create a plugin", "scaffold a plugin", "understand plugin structure", "... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/plugin-structure/SKILL.md` |
-| **skill-development** _[plugin-dev/dc1743aa8efb]_ | — | ✓ | This skill should be used when the user wants to "create a skill", "add a skill to plugin", "write a new skill", "improv... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/dc1743aa8efb/skills/skill-development/SKILL.md` |
-| **agent-development** _[plugin-dev/b20ef542ee28]_ | — | ✓ | This skill should be used when the user asks to "create an agent", "add an agent", "write a subagent", "agent frontmatte... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/agent-development/SKILL.md` |
-| **command-development** _[plugin-dev/b20ef542ee28]_ | — | ✓ | This skill should be used when the user asks to "create a slash command", "add a command", "write a custom command", "de... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/command-development/SKILL.md` |
-| **hook-development** _[plugin-dev/b20ef542ee28]_ | — | ✓ | This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate too... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/hook-development/SKILL.md` |
-| **mcp-integration** _[plugin-dev/b20ef542ee28]_ | — | ✓ | This skill should be used when the user asks to "add MCP server", "integrate MCP", "configure MCP in plugin", "use .mcp.... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/mcp-integration/SKILL.md` |
-| **plugin-settings** _[plugin-dev/b20ef542ee28]_ | — | ✓ | This skill should be used when the user asks about "plugin settings", "store plugin configuration", "user-configurable p... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/plugin-settings/SKILL.md` |
-| **plugin-structure** _[plugin-dev/b20ef542ee28]_ | — | ✓ | This skill should be used when the user asks to "create a plugin", "scaffold a plugin", "understand plugin structure", "... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/plugin-structure/SKILL.md` |
-| **skill-development** _[plugin-dev/b20ef542ee28]_ | — | ✓ | This skill should be used when the user wants to "create a skill", "add a skill to plugin", "write a new skill", "improv... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/b20ef542ee28/skills/skill-development/SKILL.md` |
-| **agent-development** _[plugin-dev/a86c2e2fa0b2]_ | — | ✓ | This skill should be used when the user asks to "create an agent", "add an agent", "write a subagent", "agent frontmatte... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/a86c2e2fa0b2/skills/agent-development/SKILL.md` |
-| **command-development** _[plugin-dev/a86c2e2fa0b2]_ | — | ✓ | This skill should be used when the user asks to "create a slash command", "add a command", "write a custom command", "de... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/a86c2e2fa0b2/skills/command-development/SKILL.md` |
-| **hook-development** _[plugin-dev/a86c2e2fa0b2]_ | — | ✓ | This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate too... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/a86c2e2fa0b2/skills/hook-development/SKILL.md` |
-| **mcp-integration** _[plugin-dev/a86c2e2fa0b2]_ | — | ✓ | This skill should be used when the user asks to "add MCP server", "integrate MCP", "configure MCP in plugin", "use .mcp.... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/a86c2e2fa0b2/skills/mcp-integration/SKILL.md` |
-| **plugin-settings** _[plugin-dev/a86c2e2fa0b2]_ | — | ✓ | This skill should be used when the user asks about "plugin settings", "store plugin configuration", "user-configurable p... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/a86c2e2fa0b2/skills/plugin-settings/SKILL.md` |
-| **plugin-structure** _[plugin-dev/a86c2e2fa0b2]_ | — | ✓ | This skill should be used when the user asks to "create a plugin", "scaffold a plugin", "understand plugin structure", "... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/a86c2e2fa0b2/skills/plugin-structure/SKILL.md` |
-| **skill-development** _[plugin-dev/a86c2e2fa0b2]_ | — | ✓ | This skill should be used when the user wants to "create a skill", "add a skill to plugin", "write a new skill", "improv... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/a86c2e2fa0b2/skills/skill-development/SKILL.md` |
+| **agent-development** _[plugin-dev/9d029637bea3]_ | — | ✓ | This skill should be used when the user asks to "create an agent", "add an agent", "write a subagent", "agent frontmatte... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/9d029637bea3/skills/agent-development/SKILL.md` |
+| **command-development** _[plugin-dev/9d029637bea3]_ | — | ✓ | This skill should be used when the user asks to "create a slash command", "add a command", "write a custom command", "de... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/9d029637bea3/skills/command-development/SKILL.md` |
+| **hook-development** _[plugin-dev/9d029637bea3]_ | — | ✓ | This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate too... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/9d029637bea3/skills/hook-development/SKILL.md` |
+| **mcp-integration** _[plugin-dev/9d029637bea3]_ | — | ✓ | This skill should be used when the user asks to "add MCP server", "integrate MCP", "configure MCP in plugin", "use .mcp.... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/9d029637bea3/skills/mcp-integration/SKILL.md` |
+| **plugin-settings** _[plugin-dev/9d029637bea3]_ | — | ✓ | This skill should be used when the user asks about "plugin settings", "store plugin configuration", "user-configurable p... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/9d029637bea3/skills/plugin-settings/SKILL.md` |
+| **plugin-structure** _[plugin-dev/9d029637bea3]_ | — | ✓ | This skill should be used when the user asks to "create a plugin", "scaffold a plugin", "understand plugin structure", "... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/9d029637bea3/skills/plugin-structure/SKILL.md` |
+| **skill-development** _[plugin-dev/9d029637bea3]_ | — | ✓ | This skill should be used when the user wants to "create a skill", "add a skill to plugin", "write a new skill", "improv... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/9d029637bea3/skills/skill-development/SKILL.md` |
 | **agent-development** _[plugin-dev/779a5e7f15a0]_ | — | ✓ | This skill should be used when the user asks to "create an agent", "add an agent", "write a subagent", "agent frontmatte... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/779a5e7f15a0/skills/agent-development/SKILL.md` |
 | **command-development** _[plugin-dev/779a5e7f15a0]_ | — | ✓ | This skill should be used when the user asks to "create a slash command", "add a command", "write a custom command", "de... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/779a5e7f15a0/skills/command-development/SKILL.md` |
 | **hook-development** _[plugin-dev/779a5e7f15a0]_ | — | ✓ | This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate too... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/779a5e7f15a0/skills/hook-development/SKILL.md` |
@@ -243,15 +229,11 @@ Auto-generated on 2026-08-01 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **plugin-settings** _[plugin-dev/779a5e7f15a0]_ | — | ✓ | This skill should be used when the user asks about "plugin settings", "store plugin configuration", "user-configurable p... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/779a5e7f15a0/skills/plugin-settings/SKILL.md` |
 | **plugin-structure** _[plugin-dev/779a5e7f15a0]_ | — | ✓ | This skill should be used when the user asks to "create a plugin", "scaffold a plugin", "understand plugin structure", "... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/779a5e7f15a0/skills/plugin-structure/SKILL.md` |
 | **skill-development** _[plugin-dev/779a5e7f15a0]_ | — | ✓ | This skill should be used when the user wants to "create a skill", "add a skill to plugin", "write a new skill", "improv... | — | `~/.claude/plugins/cache/claude-plugins-official/plugin-dev/779a5e7f15a0/skills/skill-development/SKILL.md` |
-| **playground** _[playground/dc1743aa8efb]_ | — | ✓ | Creates interactive HTML playgrounds — self-contained single-file explorers that let users configure something visually ... | — | `~/.claude/plugins/cache/claude-plugins-official/playground/dc1743aa8efb/skills/playground/SKILL.md` |
-| **playground** _[playground/b20ef542ee28]_ | — | ✓ | Creates interactive HTML playgrounds — self-contained single-file explorers that let users configure something visually ... | — | `~/.claude/plugins/cache/claude-plugins-official/playground/b20ef542ee28/skills/playground/SKILL.md` |
-| **playground** _[playground/a86c2e2fa0b2]_ | — | ✓ | Creates interactive HTML playgrounds — self-contained single-file explorers that let users configure something visually ... | — | `~/.claude/plugins/cache/claude-plugins-official/playground/a86c2e2fa0b2/skills/playground/SKILL.md` |
+| **playground** _[playground/9d029637bea3]_ | — | ✓ | Creates interactive HTML playgrounds — self-contained single-file explorers that let users configure something visually ... | — | `~/.claude/plugins/cache/claude-plugins-official/playground/9d029637bea3/skills/playground/SKILL.md` |
 | **playground** _[playground/779a5e7f15a0]_ | — | ✓ | Creates interactive HTML playgrounds — self-contained single-file explorers that let users configure something visually ... | — | `~/.claude/plugins/cache/claude-plugins-official/playground/779a5e7f15a0/skills/playground/SKILL.md` |
-| **writing-hookify-rules** _[hookify/b20ef542ee28]_ | — | ✗ | This skill should be used when the user asks to "create a hookify rule", "write a hook rule", "configure hookify", "add ... | — | `~/.claude/plugins/cache/claude-plugins-official/hookify/b20ef542ee28/skills/writing-rules/SKILL.md` |
+| **writing-hookify-rules** _[hookify/9d029637bea3]_ | — | ✗ | This skill should be used when the user asks to "create a hookify rule", "write a hook rule", "configure hookify", "add ... | — | `~/.claude/plugins/cache/claude-plugins-official/hookify/9d029637bea3/skills/writing-rules/SKILL.md` |
 | **writing-hookify-rules** _[hookify/779a5e7f15a0]_ | — | ✗ | This skill should be used when the user asks to "create a hookify rule", "write a hook rule", "configure hookify", "add ... | — | `~/.claude/plugins/cache/claude-plugins-official/hookify/779a5e7f15a0/skills/writing-rules/SKILL.md` |
-| **frontend-design** _[frontend-design/dc1743aa8efb]_ | — | ✓ | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthe... | — | `~/.claude/plugins/cache/claude-plugins-official/frontend-design/dc1743aa8efb/skills/frontend-design/SKILL.md` |
-| **frontend-design** _[frontend-design/b20ef542ee28]_ | — | ✓ | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthe... | — | `~/.claude/plugins/cache/claude-plugins-official/frontend-design/b20ef542ee28/skills/frontend-design/SKILL.md` |
-| **frontend-design** _[frontend-design/a86c2e2fa0b2]_ | — | ✓ | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthe... | — | `~/.claude/plugins/cache/claude-plugins-official/frontend-design/a86c2e2fa0b2/skills/frontend-design/SKILL.md` |
+| **frontend-design** _[frontend-design/9d029637bea3]_ | — | ✓ | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthe... | — | `~/.claude/plugins/cache/claude-plugins-official/frontend-design/9d029637bea3/skills/frontend-design/SKILL.md` |
 | **frontend-design** _[frontend-design/779a5e7f15a0]_ | — | ✓ | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthe... | — | `~/.claude/plugins/cache/claude-plugins-official/frontend-design/779a5e7f15a0/skills/frontend-design/SKILL.md` |
 | **claude-md-improver** _[claude-md-management/1.0.0]_ | — | ✓ | Audit and improve CLAUDE.md files in repositories. Use when user asks to check, audit, update, improve, or fix CLAUDE.md... | — | `~/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0/skills/claude-md-improver/SKILL.md` |
 | **claude-automation-recommender** _[claude-code-setup/1.0.0]_ | — | ✓ | Analyze a codebase and recommend Claude Code automations (hooks, subagents, skills, plugins, MCP servers). Use when user... | — | `~/.claude/plugins/cache/claude-plugins-official/claude-code-setup/1.0.0/skills/claude-automation-recommender/SKILL.md` |
@@ -268,7 +250,7 @@ Auto-generated on 2026-08-01 by `python P:/.data/wiki/scripts/index_skills.py`. 
 |---|---|---|---|---|---|
 | **karpathy-guidelines** _[andrej-karpathy-skills/1.0.0]_ | — | ✓ | Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid ov... | — | `~/.claude/plugins/cache/karpathy-skills/andrej-karpathy-skills/1.0.0/skills/karpathy-guidelines/SKILL.md` |
 
-## claude-cache-local (177 skills)
+## claude-cache-local (176 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -447,7 +429,6 @@ Auto-generated on 2026-08-01 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **perplexity-web-mcp** _[cc-skills-ai-api/1.0.22]_ | — | ✓ | Perplexity Web Mcp | — | `~/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/perplexity-web-mcp/SKILL.md` |
 | **quota** _[cc-skills-ai-api/1.0.22]_ | — | ✓ | API Provider Quota Status Checker | — | `~/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/quota/SKILL.md` |
 | **cc-model-router** _[cc-model-router]_ | — | ✓ | Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics | — | `~/.claude/plugins/cache/local/cc-model-router/0.2.24/SKILL.md` |
-| **cc-model-router** _[cc-model-router]_ | — | ✓ | Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics | — | `~/.claude/plugins/cache/local/cc-model-router/0.2.25/SKILL.md` |
 | **debt** _[cc-lazy-closure-debt/0.1.12]_ | — | ✓ | Read-only debug view of the JSONL audit log that the Stop hook records when a deferral phrase is detected. Auto-promotio... | — | `~/.claude/plugins/cache/local/cc-lazy-closure-debt/0.1.12/skills/debt/SKILL.md` |
 
 ## claude-cache-minimax (23 skills)

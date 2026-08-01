@@ -120,3 +120,12 @@ This decision is wrong if:
 - Session transcript, lines 489-493 (operator correction on
   "intelligently used" interpretation)
 - Design doc at `C:\Users\brsth\AppData\Local\Temp\grok-design-fe4bd161\grok-design-doc-fe4bd161.md` (109KB, 16 sections)
+
+## Auto-related
+
+- [[skill-graph]]
+- [[skill-catalog]]
+- [[code-orchestrates-model-judges-skill-scale]]
+- [[wiki-captures-decisions-by-default]]
+- [[video-to-wiki-pipeline-transcript-extraction-multimodal]]
+
