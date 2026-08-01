@@ -40,6 +40,14 @@ The problem: the agent runs `ruff check` and `py_compile` during implementation,
 - [FACT] The agent must run verifiers with explicit file paths (not just `ruff check .`)
 - [FACT] The hook fires on Stop — the last action before the agent would present results to the operator
 
+### Additional evidence (session 019fa8f8, 2026-08-01)
+
+- [FACT] The hook blocked 3 consecutive times on `fleet_quota.py` after the agent made iterative edits (color, alignment, zeroing, alert dedup) and said "Done" between each edit
+- [FACT] The hook required `syntax` capability but the agent's pytest run only counted as `unit_behavior` — the agent had to run `ruff check` and `py_compile` as separate explicit commands against the exact file path
+- [FACT] The hook has 80+ stale receipts from the session in its capability list — the matching may be too strict on path format (forward vs backslash, relative vs absolute)
+- [FACT] The core sequencing problem: the agent commits AFTER verifying, but the commit changes tracked state — then says "done" on stale receipts. The correct sequence is: edit → verify → commit → done, with no edits between verify and done
+- [FACT] The hook's multi-block behavior (3x on same file) is correct — the agent kept editing between blocks. The friction is the agent's edit-then-claim pattern, not the hook's blocking logic
+
 ## 6. Current state
 
 Three approaches to investigate:

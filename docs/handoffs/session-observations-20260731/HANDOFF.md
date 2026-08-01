@@ -19,3 +19,7 @@ status: open
 5. **Pattern reorder by specificity beats highest-match.** The /tp critique correctly identified that highest-match creates a gaming surface. Specificity ordering is simpler, safer, and sufficient. The fresh-lens critique was wrong about gaming (exit-code gate handles it) but right about the approach.
 
 6. **The session spanned 2 calendar days and 2 git repos.** This is a common pattern on this host. The multi-repo ship detection (Phase 0 step 5) was added because this session shipped across P:\ and ~/.grok without structural coordination.
+
+7. **Code-output passthrough: prose rules don't bind the generation pathway.** The agent was corrected 6+ times for narrating over script output. After /why + /tp analysis, three prose fixes were implemented and committed. The very next invocation narrated again. The structural fix was a PowerShell `quota` alias that bypasses the LLM entirely. See wiki concept `code-output-passthrough-narration-over-script-output.md`.
+
+8. **The `quota` terminal alias is now the primary /model-quota invocation path.** Added `function quota { python "$env:USERPROFILE/.grok/skills/model-quota/scripts/fleet_quota.py" @args }` to the PowerShell profile. The skill SKILL.md remains for documentation and LLM-invoked use, but the terminal alias is the reliable path with ANSI colors and no narration.
