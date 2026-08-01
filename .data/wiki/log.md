@@ -1,5 +1,23 @@
 # Vault Log
 
+## Karpathy LLM Wiki Gist
+Source: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
+Agent: grok
+Notes: Karpathy's canonical LLM Wiki idea file. The pattern specification for LLM-maintained wikis. Raw gist fetched directly via raw.githubusercontent.com.
+Page: sources/gist.github.com/000-karpathy-llm-wiki-gist.md
+
+## Cole Medin AI Knowledge Base
+Source: https://github.com/coleam00/cole-medin-knowledge-base
+Agent: grok
+Notes: OKF knowledge base built from Cole Medin's 200 YouTube videos. Reference implementation of the channel-to-KB pipeline described in video 8JWhwhxWtJw.
+Page: wiki/sources/github.com/000-coleam00-cole-medin-knowledge-base.md
+
+## OKF Spec (GoogleCloudPlatform)
+Source: https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf
+Agent: grok
+Notes: Google's official OKF v0.2 spec repository README. Raw README fetched directly (browser crawl captured navigation chrome).
+Page: wiki/sources/github.com/000-GoogleCloudPlatform-knowledge-catalog-okf-spec.md
+
 ## LLM Synthesis Context Truncation Blind Spot
 Source: session-20260801
 Agent: grok
@@ -8086,3 +8104,15 @@ Agent: grok
 130ee804ff3c1d91e39ed68ccb29efafcd72b9f60ba6e859c9c992cf
   - Source: crawl-ingest (ingested)
 d)
+
+## 2026-08-01
+- **coleam00/cole-medin-knowledge-base** (P:\.data\wiki\sources\github.com\000-coleam00-cole-medin-knowledge-base.md)
+  - URL: https://github.com/coleam00/cole-medin-knowledge-base
+  - SHA256: ba3617c25433c98f925f8033dd40b61546122f062b585a77d5ace5a907839f21
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-01
+- **knowledge-catalog/okf at main · GoogleCloudPlatform/knowledge-catalog · GitHub** (P:\.data\wiki\sources\github.com\000-GoogleCloudPlatform-knowledge-catalog-tree-main-ok.md)
+  - URL: https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf
+  - SHA256: 2c7bd0b0023e6c3d20590ef3b64fc9895d2ca9bb4754394addebff3ed65bd84a
+  - Source: crawl-ingest (ingested)
