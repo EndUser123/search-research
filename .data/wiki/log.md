@@ -1,5 +1,11 @@
 # Vault Log
 
+## Lifecycle skill remediation modes
+Source: session-019fb937
+Agent: grok
+Notes: auto-act vs surface-only classification for close-check Phase 3
+Page: .data/wiki/concepts/lifecycle-skill-remediation-modes-auto-act-vs-surface-only.md
+
 ## Lint as Forward-Looking Research Source
 Source: dream-2026-08-01
 Agent: grok
