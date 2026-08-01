@@ -56,7 +56,46 @@ OPEN — items below are ready for next session pickup.
 - **Red-team /design skill:** `P:/docs/handoffs/design-skill-red-team-20260730/HANDOFF.md` — OPEN, not started
 - **/www Phase 2b enforcement:** `P:/docs/handoffs/www-phase2b-enforcement-20260731/HANDOFF.md` — OPEN
 
-## 7. Hard constraints
+## 7. Additional findings (not in NEXT/LATER above)
+
+### FINDING-1: /www should route through /web, not ddgs_search.py directly
+- This session's /www research used `ddgs_search.py` directly, bypassing mmx search (MiniMax index)
+- The /web recipe (DDG + mmx + firecrawl) provides multi-backend diversity
+- Fix: either enforce /web usage in /www SKILL.md, or add a note that research calls must use the full recipe
+
+### FINDING-2: DDG search script has no --batch or --json flags
+- The script docstring is accurate — batch mode is triggered by passing multiple positional queries
+- JSON is the default output format (no flag needed)
+- The error was entirely the agent using nonexistent flags, not a script bug
+- No fix needed — but worth noting that the agent confused the script's interface
+
+### FINDING-3: /slc drift log — three drift assessments this session
+- `~/.grok/state/slc-drift-log.jsonl` now has entries from this session
+- Pattern: execute-then-read, performative self-awareness, narration over code output
+- /harvest should pick up the cross-session pattern (the same root cause fired 3 times)
+
+### FINDING-4: /model-quota SKILL.md doc-code drift pattern
+- The Dashboard format section was stale from a prior session's cc-ccr refactor
+- The script output format changed (4 iterations) but the documented format was never updated
+- Generalizable: any skill with a script that produces formatted output needs a sync check when the script changes
+
+### FINDING-5: quota PowerShell alias needs persistence strategy
+- Added `function quota { python ... @args }` to `$PROFILE.CurrentUserAllHosts`
+- Risk: profile resets, machine migrations, or OneDrive sync issues could lose it
+- Consider: also document in SKILL.md so it can be re-created from the skill
+
+### FINDING-6: Tavily remaining_text bug — audit other checkers
+- Tavily showed `{used}/{limit}` instead of `{remaining}/{limit}` — fixed
+- SerpAPI (`{left}/{total}`) and GitHub (`{remaining}/{limit}`) appear correct
+- Firecrawl (`{remaining}/{plan}`) appears correct
+- Audit complete — no other checkers have the used-vs-remaining confusion
+
+### FINDING-7: Wiki concepts written this session (3 total)
+1. `code-output-passthrough-narration-over-script-output.md` — prose rules don't bind generation pathway
+2. `posttooluse-auto-verify-eliminates-stop-hook-stale-receipt-blocks.md` — community-validated pattern
+3. Both committed to P:/.data/wiki/concepts/ and indexed via index_skills.py
+
+## 8. Hard constraints
 
 - Multi-terminal isolation: all solutions must be session-scoped and stale-data immune
 - The `quota` terminal alias is the primary invocation path for /model-quota now
