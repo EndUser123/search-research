@@ -1,5 +1,29 @@
 # Vault Log
 
+## --title
+Source: agy headless permissions.allow fix for filesystem reads
+Agent: --source
+Notes: session-019fbf02
+Page: --tags
+
+## --title
+Source: Grok Build session transcript format: tool call data in updates.jsonl
+Agent: --source
+Notes: session-019fbf02
+Page: --tags
+
+## LLM Context Windows and Map-Reduce Thresholds
+Source: www-research-20260801
+Agent: grok
+Notes: MiniMax 205K, DiffusionGemma 256K, lost-in-middle at 80K tokens, map-reduce with 10% overlap. Applied to fix wiki-yt truncation bug.
+Page: wiki/concepts/llm-context-windows-map-reduce-synthesis-thresholds.md
+
+## Ship Phase-Log Enforcement Design
+Source: session-20260801
+Agent: grok
+Notes: Phase-log enforcement for /ship Phase 1 compliance. Agent writes phase-log as it completes phases; ship_receipt.py validates all 4 present with finding counts. Falsifier: escalate to Stop hook after 3 runs if gamed.
+Page: wiki/concepts/ship-phase-log-enforcement-design.md
+
 ## serde-broken-false-positive-sweep
 Source: session-019fb933
 Agent: grok

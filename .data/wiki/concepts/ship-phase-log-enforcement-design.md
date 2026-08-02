@@ -76,7 +76,15 @@ phase_3: completed (mechanical receipt)
 
 This extends the [[mechanical-enforcement-over-behavioral-reminder]] principle to process compliance within the ship skill. Previously, the principle was applied to code quality (tests must pass, receipts must cover scope) but not to process (did you actually review the code before claiming done?). The phase-log closes that gap.
 
-The design also connects to [[verification-claim-admissibility]]: a SHIP DONE claim without a completed phase-log is now inadmissible, the same way a completion claim without receipts is inadmissible.
+The design also connects to [[verification-claim-admissibility]]: a SHIP DONE claim without a completed phase-log is now inadmissible, the same way a completion claim without receipts is inadmissible. The [[trust-over-believability]] principle applies: the agent's claim "I ran Phase 1" is not trusted without evidence, same as any other claim.
+
+## Receipts
+
+- `ship_receipt.py` `validate_phase_log()` function — lines 582-619 (validates phase entries, finding counts, skip rules)
+- `ship_receipt.py` `--phase-log` CLI argument — line 598
+- `ship_receipt.py` phase-log integration in `main()` — lines 665-672 (adds blockers if phases missing)
+- `/go/SKILL.md` ship Phase 3 section — documents the phase-log requirement and file format
+- Commit `77788d3` — the implementation
 
 ## Falsifier
 
@@ -87,3 +95,12 @@ If the phase-log approach still results in agents filling in `phase_1: completed
 - Session 019fbdfb (2026-08-01): ship Phase 1 skip incident + /tp design critique
 - `/tp` critique subagent output (inline fallback after subagent max_tokens failure)
 - Commit `77788d3`: phase-log enforcement implementation in ship_receipt.py
+
+## Auto-related
+
+- [[close-check-finalize-phase-make-blocking-unnecessary]]
+- [[skill-catalog]]
+- [[enforcing-kb-consultation-before-action-methods]]
+- [[wiki-lifecycle-state-file]]
+- [[ship-receipt-mechanical-generation-from-per-check-results]]
+
