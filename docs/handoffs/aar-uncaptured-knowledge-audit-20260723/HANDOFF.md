@@ -21,6 +21,24 @@ flagged as a task and is not preserved in any artifact.
 DONE — question 11, report section, cross-model-audit trigger, and reference
 file all implemented and verified. Not yet tested with a live /aar run.
 
+### Revision (2026-08-01, session 019fbf02)
+
+**Retrospective completed.** The deferred AAR for session 019f76e8 was run in
+session 019fbf02 using Deep mode. The Q11 uncaptured-knowledge audit worked
+as designed — it surfaced 4 tacit knowledge items that were not in any
+handoff, wiki, or commit. The cross-model audit pass failed open (agy
+headless permissions — fix applied separately). AAR report validated and
+completion receipt finalized.
+
+The "wrong question" pattern (answering "what will be lost" instead of "what
+should be captured") that motivated Q11's creation was confirmed as a
+recurring PROBLEM_CLASS in the AAR — see headline lesson L1 in the AAR report
+and the refinement to [[agent-failure-modes-2026]] (Ugly wish-granting
+sub-pattern b: technically-defensible-but-wrong-framing).
+
+This handoff's objective is fully resolved. The Q11 capability is live and
+has been exercised in a real AAR.
+
 ## Producing context
 
 - Date: 2026-07-23

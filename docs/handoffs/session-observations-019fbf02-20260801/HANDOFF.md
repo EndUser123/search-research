@@ -42,3 +42,35 @@ This session was a retrospective + skill-fix session for prior session 019f76e8 
 ## Behavioral commitment
 
 Stop using `python -c` with nested JSON for transcript parsing. Write parser scripts to `P:/tmp/` as `.py` files, then invoke. This session had 10 errors from the anti-pattern.
+
+---
+
+## Revision 1 (end-of-session update)
+
+After the initial handoff was written, the session continued with /tp do?,
+/wiki, and /handoff execution. The following work was completed post-initial-write:
+
+### /tp do? findings + execution (all 5 items completed)
+
+1. **2 WIKI markers captured** → 4 total wiki concepts written/updated:
+   - `aar-always-deep-mode-operator-directive.md` (new)
+   - `agent-failure-modes-2026.md` (updated — Ugly wish-granting refinement)
+   - `grok-build-session-transcript-tool-call-data-in-updates-jsonl.md` (new)
+   - `gemini-api-vs-agy-cli.md` (updated — permissions.allow fix)
+2. **Temp cleanup** — `aar_step0.py`, `cross_model_audit_prompt.txt` deleted
+3. **Session-observations handoff** — this document
+4. **agy permissions.allow** — added to `~/.gemini/settings.json` (read_file, list_directory, grep, python, shell read commands). Pending live verification.
+5. **AAR receipt scope** — Phase 9.75 of AAR SKILL.md updated with post-finalizer verification step (commit `cb8cb73`)
+
+### Additional commits (post-initial-write)
+
+- `~/.grok`: `cb8cb73` (AAR receipt scope note)
+- `P:`: `9a3cece` (2 wiki concepts + this handoff), `7795d82` (2 more wiki concepts + log)
+
+### Prior handoff updated
+
+- `aar-uncaptured-knowledge-audit-20260723` — revision block added noting the retrospective is complete and Q11 is live-verified
+
+### Session is now closeable
+
+All /tp action items executed. All wiki concepts validated + committed. Session-observations handoff complete. The agy permissions fix is pending live verification but the config change is on disk.
