@@ -2,8 +2,8 @@
 title: "Write wiki concept: execution receipts for executable artifacts (test before trust)"
 created: 2026-08-02
 source: session-019fc303
-status: OPEN
-yaml_status: open
+status: CLOSED
+yaml_status: closed
 assignee: unassigned
 session: 019fc303-700f-7711-b376-12da1aff578a
 tags: [wiki, knowledge-capture, verification, execution-receipts]
