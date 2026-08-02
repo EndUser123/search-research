@@ -6,7 +6,50 @@ current_terminal_id: console
 produced_at: 2026-07-27T05:20:00Z
 status: open
 handoff_type: implementation_plan
-accurate_as_of_head: ac15837 (in ~/.grok repo)
+accurate_as_of_head: ac15837 → iterations 2-4 committed by concurrent sessions; pushed to origin
+---
+
+## Revision 2026-07-27T20:00:00Z (session 019fa111, post-close-check)
+
+**Workstream B status update:** shipped through 4 iterations, not just the
+initial `ac15837`. All work committed and pushed to `origin/main` on both
+repos. The handoff's original "DONE this session" was premature (iteration
+1 only); iterations 2-4 were driven by operator-authored review packets
+that caught:
+
+1. **Iteration 2** (write-leak): `continuation_coverage.py` still used
+   globals and wrote a ledger to real `P:/.artifacts/` under `--no-mutate`.
+   Fixed by adding local `ContCovConfig` + cfg threading through all 7
+   continuation_coverage functions.
+
+2. **Iteration 3** (read-isolation): `scan_temp_files()` read receipts
+   from hardcoded `Path.home()/.grok/hooks/state/`; no `--temp-grok` CLI
+   override; test failed under default Windows CP-1252 encoding. Fixed by
+   adding `hooks_state_root` to Config + `--hooks-state-root`/`--temp-grok`
+   CLI flags + UTF-8 encoding + `PYTHONUTF8=1` env in subprocess tests.
+
+3. **Iteration 4** (hash+mtime snapshot): hermetic CLI test compared paths
+   only, would have missed overwriting `continuation-coverage-hermetic.json`.
+   Fixed by snapshotting `{path, size, sha256, mtime}` for every monitored
+   file. `_find_session_dir` bound to configured workspace (no longer
+   iterates all encoded workspaces).
+
+**Final verification:** 352 passed, 2 pre-existing failures (compact-renderer,
+unrelated). Zero-write hash+mtime proof confirmed. Cross-module AST audit
+(`P:/tmp/cross_module_audit_v2.py`) shows zero blocking escapes in the
+scanner call graph.
+
+**New artifacts since initial handoff:**
+- `P:/.data/wiki/concepts/cross-module-call-graph-audit-false-negative.md`
+- `P:/.data/wiki/concepts/local-config-dataclass-for-circular-import-boundary.md`
+- `P:/.data/wiki/concepts/single-repo-verification-false-negative-on-multi-repo-workspace.md`
+- `P:/.data/wiki/concepts/narrative-as-signal.md` (created to fix 6 dangling wikilinks)
+- `P:/tmp/cross_module_audit_v2.py` (broadened audit script — candidate for `P:/.agents/scripts/`)
+
+**Leaked test residue:** `P:/.artifacts/continuation-coverage-hermetic.json`
+(536 bytes, sha256 `6ed0485cb664...`). Not deleted per operator directive.
+Safe to `rm` before next `/close` scan.
+
 ---
 
 # Handoff: close-improvement Workstreams C and D (evidence identity + /check performance)
@@ -19,7 +62,7 @@ a 14-item `/close` improvement document. The decomposition is:
 | Workstream | Status | Owner/pointer |
 |---|---|---|
 | A — Concurrency and Git (execute ADR-008 + private-index CAS as defense-in-depth) | Operational; ADR-008 Layer 1 shipped, Layer 2 deferred | `P:/docs/adrs/ADR-008-concurrent-session-worktree-isolation.md` |
-| B — `/close` hermeticity (workspace injection, --no-mutate, session-bound temp attribution) | **DONE this session** | commit `ac15837` in `~/.grok` repo |
+| B — `/close` hermeticity (workspace injection, --no-mutate, session-bound temp attribution) | **SHIPPED** (4 iterations, 352 tests pass, zero-write proven, pushed to origin) | commits `ac15837` + concurrent iterations in `~/.grok`; wiki concepts in `P:/` (`f72565b`, `8829753`) |
 | C — Evidence identity (extend attempt receipts with supersession + HEAD + hashes) | **OPEN — this handoff** | below |
 | D — `/check` performance (phase timing, read-once, model tiering) | OPEN — existing handoff | `P:/docs/handoffs/check-speed-optimization-20260726/HANDOFF.md` |
 

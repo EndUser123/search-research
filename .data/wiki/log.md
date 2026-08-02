@@ -1,5 +1,17 @@
 # Vault Log
 
+## --title
+Source: Literal-vs-intent pattern refinement in agent-failure-modes
+Agent: --source
+Notes: session-019fbf02
+Page: --tags
+
+## --title
+Source: AAR always-Deep mode operator directive
+Agent: --source
+Notes: session-019fbf02
+Page: --tags
+
 ## Replacement before investigation pattern
 Source: session-019fb177
 Agent: grok
