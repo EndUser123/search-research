@@ -15,7 +15,10 @@ from synthesize_subtopics import (
     DEFAULT_CONTEXT_BUDGET,
     PRE_SUMMARY_CHUNK_SIZE,
     PRE_SUMMARY_CHUNK_OVERLAP,
+    pre_summarize_member,
+    synth_cluster,
 )
+import synthesize_subtopics as _ss
 
 
 # --- split_with_overlap tests ---
@@ -123,6 +126,135 @@ def test_chunk_overlap_is_10_percent():
     assert 0.08 <= ratio <= 0.12, f"Overlap ratio {ratio:.1%} not in 8-12% range"
 
 
+# --- input validation tests ---
+
+def test_split_rejects_zero_chunk_size():
+    """chunk_size <= 0 raises ValueError."""
+    try:
+        split_with_overlap("text", 0, 0)
+        assert False, "Should have raised ValueError"
+    except ValueError:
+        pass
+
+def test_split_rejects_overlap_ge_chunk_size():
+    """overlap >= chunk_size raises ValueError."""
+    try:
+        split_with_overlap("text", 100, 100)
+        assert False, "Should have raised ValueError"
+    except ValueError:
+        pass
+
+
+# --- pre_summarize_member tests (stub backend) ---
+
+def _stub_backend_returning(text_returned: str):
+    """Create a stub call function that ignores input and returns fixed text."""
+    def _stub(prompt, model=None, timeout=180):
+        return text_returned, ""
+    def _stub_dgemma(prompt, timeout=180):
+        return text_returned, ""
+    return _stub, _stub_dgemma
+
+def _error_backend():
+    """Stub that always returns an error."""
+    def _stub(prompt, model=None, timeout=180):
+        return "", "stub error"
+    def _stub_dgemma(prompt, timeout=180):
+        return "", "stub error"
+    return _stub, _stub_dgemma
+
+def test_pre_summarize_single_chunk_passes_through():
+    """Small transcript: single chunk, backend result returned verbatim."""
+    member = {"source_id": "s1", "title": "Test", "text": "x" * 5000, "url": None}
+    orig_mmx = _ss.call_mmx
+    orig_dgemma = _ss.call_dgemma
+    stub_mmx, stub_dgemma = _stub_backend_returning("- key point A\n- key point B")
+    _ss.call_mmx = stub_mmx
+    _ss.call_dgemma = stub_dgemma
+    try:
+        summary, err = pre_summarize_member(member, "test hint", "mmx", None)
+        assert err == "", f"Expected no error, got: {err}"
+        assert "key point A" in summary
+        assert "key point B" in summary
+    finally:
+        _ss.call_mmx = orig_mmx
+        _ss.call_dgemma = orig_dgemma
+
+def test_pre_summarize_multi_chunk_concatenates():
+    """Large transcript: multiple chunks, results joined with separator."""
+    member = {"source_id": "s1", "title": "Huge", "text": "Z" * (PRE_SUMMARY_CHUNK_SIZE * 2 + 100), "url": None}
+    call_count = [0]
+    def counting_stub(prompt, model=None, timeout=180):
+        call_count[0] += 1
+        return f"- summary from chunk {call_count[0]}", ""
+    orig_mmx = _ss.call_mmx
+    _ss.call_mmx = counting_stub
+    try:
+        summary, err = pre_summarize_member(member, "test", "mmx", None)
+        assert err == ""
+        assert "chunk 1" in summary
+        assert "chunk 2" in summary or "chunk 3" in summary  # at least 2 chunks
+    finally:
+        _ss.call_mmx = orig_mmx
+
+def test_pre_summarize_chunk_error_falls_back_to_head():
+    """When backend errors on a chunk, fallback to chunk head is used."""
+    member = {"source_id": "s1", "title": "Large", "text": "MARKER" + "X" * PRE_SUMMARY_CHUNK_SIZE + "MORE", "url": None}
+    orig_mmx = _ss.call_mmx
+    err_stub, _ = _error_backend()
+    _ss.call_mmx = err_stub
+    try:
+        summary, err = pre_summarize_member(member, "test", "mmx", None)
+        # All chunks error → all use head fallback → summary should contain content
+        assert "MARKER" in summary or "X" in summary  # head content present
+    finally:
+        _ss.call_mmx = orig_mmx
+
+def test_pre_summarize_all_empty_returns_error():
+    """When all chunks return empty, error is returned."""
+    member = {"source_id": "s1", "title": "Test", "text": "x" * 1000, "url": None}
+    orig_mmx = _ss.call_mmx
+    def _empty_stub(prompt, model=None, timeout=180):
+        return "", "empty"
+    _ss.call_mmx = _empty_stub
+    try:
+        summary, err = pre_summarize_member(member, "test", "mmx", None)
+        assert summary == "", "Should return empty summary"
+        assert "empty" in err, f"Error should mention the backend failure: {err}"
+    finally:
+        _ss.call_mmx = orig_mmx
+
+
+# --- synth_cluster budget gate test ---
+
+def test_synth_cluster_full_text_when_under_budget():
+    """When total context fits budget, full text path is used (no map-reduce)."""
+    members = [
+        {"source_id": "a", "title": "Small A", "text": "concept A " * 100, "url": None},
+        {"source_id": "b", "title": "Small B", "text": "concept B " * 100, "url": None},
+    ]
+    cluster = {"cluster_id": 1, "name": "test", "member_source_ids": ["a", "b"]}
+    # Stub the backend to return valid JSON
+    import json
+    canned = json.dumps({
+        "title": "Test Concept",
+        "definition": "A test concept.",
+        "details": ["detail 1"],
+        "values": [],
+        "related": [],
+        "citations": [],
+    })
+    orig_mmx = _ss.call_mmx
+    _ss.call_mmx = lambda p, model=None, timeout=180: (canned, "")
+    try:
+        parsed, err = synth_cluster(cluster, members, "mmx", None, 0, 20, context_budget=300_000)
+        assert err == "", f"Expected no error, got: {err}"
+        assert parsed is not None
+        assert parsed["title"] == "Test Concept"
+    finally:
+        _ss.call_mmx = orig_mmx
+
+
 if __name__ == "__main__":
     # Allow running without pytest
     tests = [
@@ -132,6 +264,12 @@ if __name__ == "__main__":
         test_build_context_full_text_default, test_build_context_legacy_truncation,
         test_build_context_member_sampling, test_context_budget_is_300k,
         test_chunk_overlap_is_10_percent,
+        test_split_rejects_zero_chunk_size, test_split_rejects_overlap_ge_chunk_size,
+        test_pre_summarize_single_chunk_passes_through,
+        test_pre_summarize_multi_chunk_concatenates,
+        test_pre_summarize_chunk_error_falls_back_to_head,
+        test_pre_summarize_all_empty_returns_error,
+        test_synth_cluster_full_text_when_under_budget,
     ]
     passed = 0
     failed = 0

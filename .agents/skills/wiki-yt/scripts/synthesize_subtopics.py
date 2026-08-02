@@ -231,6 +231,12 @@ def split_with_overlap(text: str, chunk_size: int, overlap: int) -> list[str]:
     Example: chunk_size=10, overlap=3 on a 25-char string yields:
       [0:10], [7:17], [14:24], [21:25]
     """
+    if chunk_size <= 0:
+        raise ValueError(f"chunk_size must be positive, got {chunk_size}")
+    if overlap < 0:
+        raise ValueError(f"overlap must be non-negative, got {overlap}")
+    if overlap >= chunk_size:
+        raise ValueError(f"overlap ({overlap}) must be less than chunk_size ({chunk_size})")
     if len(text) <= chunk_size:
         return [text]
     stride = chunk_size - overlap
@@ -286,7 +292,8 @@ def pre_summarize_member(member: dict, hint: str, backend: str, model: str | Non
             summary, err = call_dgemma(prompt, timeout)
         if err:
             errors.append(f"chunk {i}: {err}")
-            # Fallback: use the chunk head so we don't lose the content entirely
+            # Fallback: use chunk head (4000 chars — smaller than cluster-level
+            # 8000 because chunks are already bounded to PRE_SUMMARY_CHUNK_SIZE)
             summary = chunk[:4000]
         if summary:
             summaries.append(summary)
@@ -364,6 +371,8 @@ def synth_cluster(cluster: dict, members: list[dict], backend: str, model: str |
                 # Fallback: use first 8000 chars of the transcript if pre-summary fails
                 print(f"      pre-summary failed for '{m['title']}': {serr[:60]}; "
                       f"falling back to 8000-char head", file=sys.stderr)
+                # Fallback: use transcript head (8000 chars — larger than
+                # chunk-level 4000 because this is a full transcript, not a chunk)
                 summary = m["text"][:8000]
             summaries.append({**m, "text": summary})
         context = build_context(summaries, 0, len(summaries))

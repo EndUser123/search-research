@@ -36,7 +36,7 @@ with slight variations. The capability node defines the procedure once.
 
 ## Consumers (24)
 
-aar, close, crawl4ai, create-skill, debrief, design, dream, go,
+aar, close, wiki-crawl4ai, create-skill, debrief, design, dream, go,
 grok-safe-git, handoff, maintain, model-benchmark, notice, plan-writer,
 prompt-patterns, refactor, refine, review, skill-dev, todo, tp, wargame,
 why, www

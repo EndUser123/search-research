@@ -37,7 +37,7 @@ procedure repeated 18 times with drift. The capability node defines it once.
 
 ## Consumers (18)
 
-aar, close, crawl4ai, debrief, design, dream, go, handoff, maintain,
+aar, close, wiki-crawl4ai, debrief, design, dream, go, handoff, maintain,
 model-benchmark, notice, refine, review, skill-dev, tp, wargame, why, www
 
 ## Glue (how each skill customizes the write)
