@@ -1,5 +1,23 @@
 # Vault Log
 
+## prose-rules-vs-structural-enforcement-research-2026
+Source: session-2026-08-02-www-reddit-batch
+Agent: grok
+Notes: Created from Reddit MCP practitioner signal + web research (3 subagents). Multi-source-verified.
+Page: P:/.data/wiki/concepts/prose-rules-vs-structural-enforcement-research-2026.md
+
+## llm-sycophancy-calibration-failure-research-2026
+Source: session-2026-08-02-www-reddit-batch
+Agent: grok
+Notes: Created from Reddit MCP practitioner signal + web research (3 subagents). Multi-source-verified.
+Page: P:/.data/wiki/concepts/llm-sycophancy-calibration-failure-research-2026.md
+
+## multi-agent-coordination-failure-modes-practitioner-and-research-2026
+Source: session-2026-08-02-www-reddit-batch
+Agent: grok
+Notes: Created from Reddit MCP practitioner signal + web research (3 subagents). Multi-source-verified.
+Page: P:/.data/wiki/concepts/multi-agent-coordination-failure-modes-practitioner-and-research-2026.md
+
 ## Subagent output token exhaustion
 Source: session-019fb177
 Agent: grok
