@@ -116,3 +116,19 @@ If none of these fire, the pattern is durable: receipts will continue to fail op
 - `~/.grok/hooks/scripts/mutation_receipt.py:405-408` — the else branch that runs per-file loop when capture_reliable=False (the multiplies-cost behavior)
 - `wiki/concepts/hook-evidence-collection-cost-vs-timeout-tradeoff.md` — the upstream cause of receipt loss
 - `wiki/concepts/chronic-workspace-health-debt-inventory-2026-08-01.md` § "E. Note: NOT chronic, but session-attributed" — confirms git-state accumulation is per-session, not chronic
+## Related
+
+- [[hook-evidence-collection-cost-vs-timeout-tradeoff]] -- upstream cause of receipt loss (the cost/timeout tradeoff)
+- [[concurrent-session-commit-collision]] -- multi-session collision pattern this attribution gap compounds
+- [[close-report-design-user-centric-progressive-disclosure]] -- design principle: per-session attribution matters
+- [[chronic-workspace-health-debt-inventory-2026-08-01]] -- the 2026-08-01 baseline this finding extends
+- [[accumulation-problem-resolution-rate-binding-constraint]] -- the throughput principle this attribution gap contributes to
+
+## Auto-related
+
+- [[skill-graph]]
+- [[skill-catalog]]
+- [[verification-receipt-systems-design-landscape]]
+- [[conversation-distillation-review-packet-export]]
+- [[hook-fleet-io-failure-modes-cascade-amplification]]
+

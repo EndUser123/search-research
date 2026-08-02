@@ -104,3 +104,19 @@ If none of these fire, the pattern is durable: parent sessions will continue to 
 - `~/.grok/workflows/close-check.rhai` Phase 3 (Remediate) — the structural source of sibling coverage
 - `wiki/concepts/lifecycle-skill-remediation-modes-auto-act-vs-surface-only.md` — the lifecycle skill classification that defines which skills are auto-act vs surface-only
 - `wiki/concepts/close-check-invokes-capture.md` — the related (but distinct) finding about /close-check needing to invoke /capture (RESOLVED 2026-08-01)
+## Related
+
+- [[lifecycle-skill-remediation-modes-auto-act-vs-surface-only]] -- the skill classification this pattern extends
+- [[close-check-workflow-replaces-close-for-session-readiness]] -- the orchestrator workflow that provides the sibling coverage
+- [[close-check-invokes-capture]] -- a related (resolved) finding about /close-check needing to invoke /capture
+- [[accumulation-problem-resolution-rate-binding-constraint]] -- the throughput principle this pattern contributes to
+- [[hook-evidence-collection-cost-vs-timeout-tradeoff]] -- adjacent pattern about silent coverage gaps
+
+## Auto-related
+
+- [[skill-graph]]
+- [[skill-catalog]]
+- [[agent-reliability-patterns-and-production-validation]]
+- [[ship-receipt-mechanical-generation-from-per-check-results]]
+- [[skill-techniques-index]]
+

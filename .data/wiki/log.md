@@ -1,5 +1,23 @@
 # Vault Log
 
+## Close-check workflow attributes artifacts to the analyzed session, not the active session
+Source: session-019fbf26-08f9-7f12-ace1-15ce7541c140
+Agent: grok
+Notes: Cross-session attribution pattern: close-check attributes artifacts to the analyzed session in metadata, not the active session that produced them.
+Page: P:/.data/wiki/concepts/close-check-attribution-references-analyzed-session-not-active.md
+
+## [2026-08-01] ingest | Session write-path attribution gap when no mutation receipts exist
+Source: session-2026-08-01
+Agent: grok
+Notes: Session write-path attribution gap: 27+ dirty files, no mutation receipts, scanner cannot distinguish this session from concurrent sessions.
+Page: wiki/concepts/session-write-path-attribution-gap-no-receipts.md
+
+## [2026-08-01] ingest | Lifecycle skill invocation gap pattern — parent-sibling mechanical sweep coverage
+Source: session-2026-08-01
+Agent: grok
+Notes: Lifecycle skill invocation gap pattern: parent fails to invoke /harvest, /friction, /trace, mechanical sweep sibling covers.
+Page: wiki/concepts/lifecycle-skill-invocation-gap-parent-sibling-coverage.md
+
 ## [2026-08-01] ingest | Hook fleet I/O failure modes — cascade amplification in verification gates
 Source: session-2026-08-01
 Agent: grok
