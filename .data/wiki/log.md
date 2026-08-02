@@ -1,5 +1,11 @@
 # Vault Log
 
+## examples-over-rules-escape-hatch
+Source: session-2026-08-02-www
+Agent: grok
+Notes: Re-verified via /www. Refuted 10-30 corpus (saturation 2-8). Refined domain split. Added few-shot collapse/rot. verification upgraded.
+Page: P:/.data/wiki/concepts/examples-over-rules-escape-hatch.md
+
 ## Run all lifecycle skills unconditionally
 Source: session-019fb937
 Agent: grok
