@@ -103,11 +103,13 @@ This is what Datadog, Grafana, and OpenTelemetry do — they don't probe service
 
 **Applied to our fleet:** a tool that fails re-test 3 sessions in a row should not be re-tested every session. After 3 failures, promote to investigation (handoff). After investigation, either fix, mark STRUCTURAL, or demote back to TRANSIENT.
 
-## Reddit API degradation (root cause of our MCP failures)
+## Reddit API degradation (root cause of our MCP failures) — RESOLVED 2026-08-02
 
-**Research finding:** Reddit deprecated unauthenticated .json endpoint access in May 2026 (scrapebadger.com). API key acquisition is "nearly impossible" in 2026 (LinkedIn practitioner report). The Reddit Data API is "heavily throttled, has no SLA, no documented rate-limit headers" (redditapis.com).
+**Research finding:** Reddit deprecated unauthenticated .json endpoint access in May 2026 (scrapebadger.com). API key acquisition was reported as "nearly impossible" in 2026 (LinkedIn practitioner report). The Reddit Data API is "heavily throttled, has no SLA, no documented rate-limit headers" (redditapis.com).
 
-**Implication:** our Reddit MCP failures (`search_reddit` returning "Access forbidden") are likely symptoms of Reddit-side API tightening, not bugs in our MCP server. The `old.reddit.com` web_fetch workaround is reliable because it bypasses the API entirely.
+**Resolution (2026-08-02):** the Reddit OAuth app **was** registered (Arindam200-mcp, personal use script, by /u/Different-Broccoli50). Credentials (`REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USER_AGENT`) are wired in `~/.grok/config.toml` `[mcp_servers.reddit.env]` and persisted as User-scope env vars. Authenticated API access confirmed working: `data_source: "api"` with full scores, comment counts, and upvote ratios. Rate limit: 60 QPM (up from 10 QPM unauthenticated).
+
+**Updated implication:** our Reddit MCP failures (`search_reddit` returning "Access forbidden") were caused by **missing credentials**, not by Reddit-side API closure as initially assessed. The STRUCTURAL classification in `tool-fallbacks.md` was wrong — the fix was configuration, not infrastructure. DDG site-search remains the fallback only if the MCP returns 429 or fails.
 
 **Alternatives exist:** 7+ Reddit MCP server implementations on GitHub (jordanburke, eliasbiondo, adhikasp, Maheidem, sumitroyyy, zicochaos, Arindam200) plus reddit-mcp-buddy. None have published reliability comparisons.
 
@@ -130,7 +132,7 @@ This is what Datadog, Grafana, and OpenTelemetry do — they don't probe service
 
 2. **Session-start probes are the novel contribution.** No agent framework does this. It's cheap, high-value, and eliminates the friction that reinforces avoid-research behavior.
 
-3. **Reddit MCP failures are Reddit-side.** The API is degrading in 2026. Our workaround (old.reddit.com web_fetch) is the right approach. A handoff should evaluate whether a different Reddit MCP server would perform better, or whether the old.reddit.com workaround should become the permanent approach.
+3. **Reddit MCP failures are now resolved.** The root cause was missing OAuth credentials, not Reddit-side API closure. Credentials wired 2026-08-02. DDG site-search remains the fallback only on MCP failure.
 
 4. **The STRUCTURAL/TRANSIENT classification with TTL-as-condition is standard practice.** Feature flag systems (Datadog, GrowthBook, FeatBit) use the same dual-tier approach with automatic stale detection and per-entry opt-out.
 
