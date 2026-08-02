@@ -6,7 +6,7 @@ current_terminal_id: unknown
 produced_at: 2026-08-02T00:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: efac5a42fb93d25224ca4bf0c9237c8afc23607
+accurate_as_of_head: f17b724e94333b998470cd4ab888c63ac2e370b9
 ---
 
 # Handoff: Session observations — session 019fa8f8
@@ -120,6 +120,16 @@ Harvest events are all from 2026-07-29 18:04 — no harvest activity for 3+ days
 
 > "Run the /handoff skill."
 
+## Revision 1 — 20260802T213000Z (session 019fa8f8)
+
+**Trigger:** auto-update — sweep evidence expanded. Session now has 12 session-attributed findings (5 FAIL, 4 WARN, 2 Pass, 1 session-fail). FMEA findings now include close-gates FAIL items. Chronic findings documented.
+
+**What changed since the original:**
+- Finding count updated: 8 → 12 session-attributed findings
+- Close-gates FAIL items documented: evidence ledger not generated, close gates not assessed, static/runtime verification not performed, persistence boundary not assessed
+- Chronic findings added: 7d design doc, 8d mpc-favorites script, 10d ornith-server log, 13d cc-skills plugins, 9 dirty files in ~/.grok
+- Harvest obligations: 27 RECOVER items > 5 OPEN threshold; 109 harvestable handoffs flagged
+
 ## Epistemic labels per claim
 
 - "29 uncommitted files in P:/" — [FACT] (source: sweep evidence, git-state FAIL)
@@ -137,4 +147,11 @@ Harvest events are all from 2026-07-29 18:04 — no harvest activity for 3+ days
 
 | Date | Session | Action |
 |------|---------|--------|
+| 2026-08-02T21:27 | 019fa8f8... | claimed by grok |
 | 2026-08-02 | 019fa8f8 | created |
+assigned_to: grok
+---
+assigned_at: 2026-08-02T21:27
+---
+assigned_by: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14
+---

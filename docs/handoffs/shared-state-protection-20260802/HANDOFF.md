@@ -6,7 +6,7 @@ current_terminal_id: grok-main
 produced_at: 2026-08-02T09:00:00-06:00
 status: open
 handoff_type: investigation
-accurate_as_of_head: 9a6656e
+accurate_as_of_head: f17b724e94333b998470cd4ab888c63ac2e370b9
 ---
 
 # Handoff: Concurrent-session write protection for fleet-models.json
@@ -49,3 +49,15 @@ A concurrent session cleared the `serde_broken` list in `fleet-models.json` base
 - Don't make the registry write path heavier (hooks read it on every spawn)
 - The audit log should be append-only (no locking needed)
 - Multi-terminal safe: audit log uses atomic append (open with O_APPEND)
+assigned_to: grok
+---
+assigned_at: 2026-08-02T21:27
+---
+assigned_by: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14
+---
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-02T21:27 | 019fa8f8... | claimed by grok |

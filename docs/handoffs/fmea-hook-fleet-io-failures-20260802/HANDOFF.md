@@ -6,7 +6,7 @@ current_terminal_id: unknown
 produced_at: 2026-08-02T00:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: efac5a42fb93d25224ca4bf0c9237c8afc23607
+accurate_as_of_head: f17b724e94333b998470cd4ab888c63ac2e370b9
 ---
 
 # Handoff: FMEA findings — hook fleet I/O failure modes
@@ -207,6 +207,16 @@ OPEN — 12 FMEA findings identified, no fixes applied yet.
 
 > "Run the /handoff skill."
 
+## Revision 1 — 20260802T213000Z (session 019fa8f8)
+
+**Trigger:** auto-update — sweep evidence expanded from 8 to 12 session-attributed findings. FMEA findings now include close-gates FAIL items (evidence ledger not generated, close gates not assessed, static/runtime verification not performed, persistence boundary not assessed).
+
+**What changed since the original:**
+- Close-gates FAIL items added to sweep findings (5 new FAIL items)
+- Chronic findings documented: 7d design doc, 8d mpc-favorites script, 10d ornith-server log, 13d cc-skills plugins, 9 dirty files in ~/.grok
+- Harvest obligations updated: 27 RECOVER items > 5 OPEN threshold; 109 harvestable handoffs flagged
+- Git state updated: P:/ now 27 uncommitted (was 29), C:/Users/brsth/.grok now 9 uncommitted (was 7)
+
 ## Epistemic labels per claim
 
 - "FMEA scan identified 12 findings" — [FACT] (source: sweep evidence, FMEA raw evidence)
@@ -219,4 +229,11 @@ OPEN — 12 FMEA findings identified, no fixes applied yet.
 
 | Date | Session | Action |
 |------|---------|--------|
+| 2026-08-02T21:27 | 019fa8f8... | claimed by grok |
 | 2026-08-02 | 019fa8f8 | created |
+assigned_to: grok
+---
+assigned_at: 2026-08-02T21:27
+---
+assigned_by: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14
+---

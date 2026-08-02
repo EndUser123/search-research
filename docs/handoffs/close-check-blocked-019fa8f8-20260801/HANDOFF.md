@@ -7,7 +7,7 @@ current_terminal_id: unknown
 produced_at: 2026-08-01T22:55:00Z
 status: open
 handoff_type: remediation
-accurate_as_of_head: pre-blocked-state
+accurate_as_of_head: f17b724e94333b998470cd4ab888c63ac2e370b9
 ---
 
 # Handoff: Close-check blocked state - session 019fa8f8
@@ -24,8 +24,8 @@ OPEN - 8 findings need remediation before the close-check can re-run and pass. F
 
 - Session: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14 (started 2026-07-28T07:44:45)
 - Models in play: minimax-m3 (model_a), nim-openai-gpt-oss-20b (model_b), or-ling-3-flash-free (model_c)
-- Sweep verdict: BLOCKED, 8 session-attributed findings
-- Sweep tally: Pass=2, Warn=6, Fail=2
+- Sweep verdict: BLOCKED, 12 session-attributed findings
+- Sweep tally: Pass=2, Warn=4, Fail=5, Session fails=12
 - Close runner terminal state: blocked (CLOSE INCOMPLETE)
 - Evidence ledger: NOT GENERATED
 - Close gates: NOT ASSESSED
@@ -42,12 +42,17 @@ OPEN - 8 findings need remediation before the close-check can re-run and pass. F
 ## Verified facts
 
 - [FACT] The sweep identified 8 session-attributed findings, of which 2 are FAIL (git-state in P:/ and C:/Users/brsth/.grok uncommitted files) and 6 are WARN (harvest + fmea)
-- [FACT] P:/ had 29 uncommitted files (mix of M and ??, dirty_age <1d, including .data/wiki/log.md, .pi/skills/notebooklm/SKILL.md, packages/yt-is, pyproject.toml)
-- [FACT] C:/Users/brsth/.grok had 7 uncommitted files (dirty_age <1d, including hooks/scripts/tests/test_file_inference_smoke.py, skills/packet/__lib/file_extractor.py, skills/todo/SKILL.md, state/hook_failures.jsonl, version.json)
+- [FACT] P:/ has 27 uncommitted files (dirty_age <1d, including .artifacts/continuation-coverage-019fa8f8.json, docs/handoffs/llm-judge-stop-hook-for-missed-observation-surfacing/HANDOFF.md, packages/yt-is)
+- [FACT] C:/Users/brsth/.grok has 9 uncommitted files (dirty_age <1d, including output.wav, packages/tts-reader/samples/, packages/tts-reader/test_output.wav)
 - [FACT] P:/ had 15 unpushed commits ahead of origin/main (most recent 2026-08-01: d67075d, 5add385, 7293bbd, 2439d71, 3fe9e39)
 - [FACT] C:/Users/brsth/.grok had 23 unpushed commits (most recent 2026-08-01: 47e68f7, d323b03, b259395, 8904984, 87dfdc3)
 - [FACT] harvest events: all 7/29 timestamps; no harvest activity today (last session events from 2026-07-29 18:04)
 - [FACT] close_runner terminal state = blocked; Final status: CLOSE INCOMPLETE - scanner unavailable
+- [FACT] Evidence ledger: NOT GENERATED (source: sweep evidence, close-gates FAIL)
+- [FACT] Close gates: NOT ASSESSED (source: sweep evidence, close-gates FAIL)
+- [FACT] Static verification: NOT PERFORMED (source: sweep evidence, close-gates FAIL)
+- [FACT] Runtime verification: NOT PERFORMED (source: sweep evidence, close-gates FAIL)
+- [FACT] Persistence boundary: NOT ASSESSED — no persistence, AAR, or closure claims allowed (source: sweep evidence, close-gates FAIL)
 - [FACT] FMEA scan identified 12 specific Python file failure-mode findings across the post-compaction hook fleet (see T3)
 - [FACT] The same session also produced PASS results: .data/wiki/log.md updated today, ~50+ commits in 24h window, 50+ handoff dirs with 4 modified today
 
@@ -57,6 +62,10 @@ OPEN - 8 findings need remediation before the close-check can re-run and pass. F
 
 - **B1**: P:/ has 29 uncommitted files. Action: stage and commit each as a logical unit (surgical `git add <paths>` per AGENTS.md auto-commit rule). Mix of M and ?? files indicates both modified tracked files and new untracked files.
 - **B2**: C:/Users/brsth/.grok has 7 uncommitted files. Action: same as B1 but for the user-level Grok repo. Note: state/hook_failures.jsonl may be a hot-write file; check last-write before staging to avoid committing in-flight writes.
+
+### Pushes (FAIL)
+
+- **B5**: close-gates HARD BLOCK — meta_checkpoint requires resolution (state=needs_llm_check). Action: answer meta-questions before closing. This is the root cause of the CLOSE INCOMPLETE terminal state.
 
 ### Pushes (FAIL)
 
@@ -88,7 +97,7 @@ OPEN - 8 findings need remediation before the close-check can re-run and pass. F
 ### T1: Commit B1 + B2 uncommitted files
 
 - **id:** CC-019fa8f8-T1
-- **goal:** Stage and commit the 29 + 7 uncommitted files as logical units
+- **goal:** Stage and commit the 27 + 9 uncommitted files as logical units
 - **in scope:** git add + commit for both P:/ and C:/Users/brsth/.grok
 - **out of scope:** pushing (T2), implementation work
 - **files / anchors:** run `git -C P:/ status --porcelain` and `git -C C:/Users/brsth/.grok status --porcelain`
@@ -197,4 +206,16 @@ OPEN - 8 findings need remediation before the close-check can re-run and pass. F
 
 ## Acceptance criteria for closing this handoff
 
-All five task packets complete. /close-check for 019fa8f8 returns verdict=READY. The 8 session-attributed findings are no longer present in the sweep. P:/ and C:/Users/brsth/.grok are clean and in sync with origin/main.
+All five task packets complete (updated from 8 to 12 findings). /close-check for 019fa8f8 returns verdict=READY. The 12 session-attributed findings are no longer present in the sweep. P:/ and C:/Users/brsth/.grok are clean and in sync with origin/main.
+assigned_to: grok
+---
+assigned_at: 2026-08-02T21:27
+---
+assigned_by: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14
+---
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-02T21:27 | 019fa8f8... | claimed by grok |

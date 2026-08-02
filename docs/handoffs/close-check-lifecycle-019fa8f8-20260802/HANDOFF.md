@@ -6,7 +6,7 @@ current_terminal_id: unknown
 produced_at: 2026-08-02T00:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: efac5a42fb93d25224ca4bf0c9237c8afc23607
+accurate_as_of_head: f17b724e94333b998470cd4ab888c63ac2e370b9
 ---
 
 # Handoff: Close-check lifecycle — session 019fa8f8
@@ -23,11 +23,13 @@ OPEN — close-check was invoked but returned CLOSE INCOMPLETE (scanner unavaila
 
 - Session: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14 (started 2026-07-28T07:44:45)
 - Models in play: minimax-m3 (model_a), nim-openai-gpt-oss-20b (model_b), or-ling-3-flash-free (model_c)
-- Sweep verdict: BLOCKED, 8 session-attributed findings (Pass: 2, Warn: 6, Fail: 2)
+- Sweep verdict: BLOCKED, 12 session-attributed findings (Pass: 2, Warn: 4, Fail: 5, Session fails: 12)
 - Close runner terminal state: blocked (CLOSE INCOMPLETE)
 - Evidence ledger: NOT GENERATED
 - Close gates: NOT ASSESSED
-- Verification: Static=NOT PERFORMED, Runtime=NOT PERFORMED
+- Static verification: NOT PERFORMED
+- Runtime verification: NOT PERFORMED
+- Persistence boundary: NOT ASSESSED
 
 ## Read-first list
 
@@ -43,17 +45,20 @@ OPEN — close-check was invoked but returned CLOSE INCOMPLETE (scanner unavaila
 - [FACT] The close-check workflow was invoked at the end of session 019fa8f8 (source: sweep evidence, close-gates findings)
 - [FACT] The close-check workflow returned CLOSE INCOMPLETE — scanner unavailable (source: sweep evidence, close-gates findings)
 - [FACT] The close-runner Windows-path JSON-stringification bug is the root cause of the scanner crash (source: close-runner-windows-path-bug-fix handoff)
-- [FACT] The close-check workflow detects lifecycle-skill gaps (skills that should have run but didn't) (source: close-check-lifecycle-auto-chain handoff)
-- [FACT] Session 019fa8f8 produced 8 session-attributed findings (2 FAIL, 6 WARN) (source: sweep evidence)
+- [FACT] The close-check workflow detects lifecycle-skill gaps (skills that should have run but did not) (source: close-check-lifecycle-auto-chain handoff)
+- [FACT] Session 019fa8f8 produced 12 session-attributed findings (5 FAIL, 4 WARN, 2 Pass) (source: sweep evidence, updated from 8)
 - [FACT] The close-check workflow's classification matrix identifies /harvest and /friction as safe to auto-invoke (source: close-check-lifecycle-auto-chain handoff)
 
 ## Current state
 
 - close-check was invoked but could not complete due to close_runner.py crash
-- The close-runner bug (WinError 123 on JSON-dict --session) must be fixed before close-check can produce gate evaluations
-- 8 session-attributed findings need remediation (see close-check-blocked handoff)
+- The close-runner bug (WinError 123 on JSON-dict --session) must be fixed before close-check can run on Windows
+- 12 session-attributed findings need remediation (see close-check-blocked handoff)
 - Evidence ledger was not generated
 - Close gates were not assessed
+- Static verification was not performed
+- Runtime verification was not performed
+- Persistence boundary was not assessed — no persistence, AAR, or closure claims allowed
 
 ## Task packets
 
@@ -81,10 +86,10 @@ OPEN — close-check was invoked but returned CLOSE INCOMPLETE (scanner unavaila
 - **verification level required:** LIVE_BEHAVIOR
 - **estimate:** 5 minutes
 
-### T3: Remediate 8 session-attributed findings
+### T3: Remediate 12 session-attributed findings
 
 - **id:** CCL-03
-- **goal:** Fix the 8 findings (2 FAIL git-state, 6 WARN harvest+fmea) documented in close-check-blocked handoff
+- **goal:** Fix the 12 findings (5 FAIL git-state + close-gates, 4 WARN harvest+fmea) documented in close-check-blocked handoff
 - **in scope:** git commits, pushes, harvest triage, FMEA fixes
 - **out of scope:** close-runner bug fix (T1)
 - **files / anchors:** see close-check-blocked-019fa8f8 handoff T1-T5
@@ -107,7 +112,7 @@ OPEN — close-check was invoked but returned CLOSE INCOMPLETE (scanner unavaila
 
 ## Cross-reference couplings
 
-- `P:/docs/handoffs/close-check-blocked-019fa8f8-20260801/HANDOFF.md` — the 8 findings handoff (this session)
+- `P:/docs/handoffs/close-check-blocked-019fa8f8-20260801/HANDOFF.md` — the 12 findings handoff (this session)
 - `P:/docs/handoffs/close-runner-windows-path-bug-fix-20260802/HANDOFF.md` — close-runner bug blocking close-check
 - `P:/docs/handoffs/close-check-lifecycle-auto-chain-20260801/HANDOFF.md` — auto-chain design
 - `P:/docs/handoffs/claude-skill-decomposition-close-check-20260801/HANDOFF.md` — decomposition table
@@ -118,7 +123,7 @@ OPEN — close-check was invoked but returned CLOSE INCOMPLETE (scanner unavaila
 
 1. Fix close_runner.py Windows-path bug (T1) — prerequisite for all close-check work
 2. Re-run close-check (T2) — now that the scanner works
-3. Remediate the 8 findings (T3) — git state, harvest, FMEA
+3. Remediate the 12 findings (T3) — git state, harvest, FMEA
 
 ## Suggested next invocation
 
@@ -134,11 +139,19 @@ OPEN — close-check was invoked but returned CLOSE INCOMPLETE (scanner unavaila
 
 - "close-check returned CLOSE INCOMPLETE" — [FACT] (source: sweep evidence, close-gates findings)
 - "close_runner.py crash is the root cause" — [INFERENCE] (the close-runner bug is the known cause of scanner crashes on Windows with JSON-dict --session; the sweep found scanner unavailable)
-- "8 session-attributed findings need remediation" — [FACT] (source: sweep evidence)
+- "12 session-attributed findings need remediation" — [FACT] (source: sweep evidence, updated from 8)
 - "Option A (fix close-runner first) is leading" — [INFERENCE] (close-runner is a prerequisite for Phase 3 to function)
 
 ## Changelog
 
 | Date | Session | Action |
 |------|---------|--------|
+| 2026-08-02T21:30 | 019fa8f8... | auto-update with expanded sweep evidence (12 findings, FMEA capture, chronic findings) |
+| 2026-08-02T21:27 | 019fa8f8... | claimed by grok |
 | 2026-08-02 | 019fa8f8 | created |
+assigned_to: grok
+---
+assigned_at: 2026-08-02T21:27
+---
+assigned_by: 019fa8f8-7e86-77f0-8e81-a7609f3c8b14
+---
