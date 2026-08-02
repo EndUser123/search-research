@@ -88,4 +88,29 @@ The debt scanner flagged examples-over-rules (0.72) and analyst-exhibits-pattern
 
 - Epistemic knowledge system Phases 2-4 (telemetry store, adversarial personas, graph infrastructure, synthesis engine) — in `epistemic-knowledge-system-phases-2-4` handoff
 - Reddit MCP both servers blocked by 429 — DDG site-search is the only reliable path in 2026
-- 3 more debt items remain in research-suggestions.json (writing-discipline-not-enforced at 0.56, user-modeling at 0.55, grok-build-compat-layer at 0.54)
+
+---
+
+## Revision 4 — Reddit MCP fix + practitioner research batch (2026-08-02)
+
+**Trigger:** operator pointed out the Reddit OAuth app was already registered. Credentials wired, MCP authenticated (60 QPM). Then operator requested `/www` runs targeting Reddit data for wiki domain gaps.
+
+### Completed in this revision
+
+| Item | What was done | Commit |
+|---|---|---|
+| Reddit OAuth credentials wired | Env vars + config.toml `[mcp_servers.reddit.env]` | config.toml (untracked) |
+| Reddit MCP-first routing | 5 files updated (tool-fallbacks, www SKILL, web SKILL, tool-failure-lifecycle) | bff6f56, 120a355 |
+| 3 practitioner-grounded wiki concepts | Multi-agent coordination failures (MAST taxonomy + Reddit), LLM sycophancy research (Stanford/MASK/AbstentionBench), Prose-vs-enforcement (2026 production evidence) | 716127c |
+| 3 refines relations | Added frontmatter relations to the 3 new concepts | (this commit) |
+| 2 domain overviews | Multi-agent/fleet (55 concepts indexed), Enforcement/hooks (78 concepts indexed) | (this commit) |
+| Wiki lint | Health check: 0 broken, 0 thin, 0 stale | N/A (clean) |
+| reddit-rss MCP server | Identified as redundant (strict subset of authenticated reddit server). Recommended removal. | Pending operator decision |
+
+### Key finding from research
+
+The external research strongly validates the workspace's architectural choices:
+- "If it must never happen, make it a hook" — community consensus
+- Multi-turn coherence: 90%→10-15% degradation — validates compaction recovery investment
+- Tool description quality: 33%→100% accuracy jump — highest-ROI improvement opportunity
+- Model scale correlates negatively with honesty (Spearman: -59.9%) — structural fixes become MORE necessary as models improve

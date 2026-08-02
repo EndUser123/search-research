@@ -1,5 +1,17 @@
 # Vault Log
 
+## enforcement-and-hooks-domain-overview
+Source: session-2026-08-02-wiki
+Agent: grok
+Notes: Domain overview created from tag scan.
+Page: P:/.data/wiki/concepts/enforcement-and-hooks-domain-overview.md
+
+## multi-agent-fleet-domain-overview
+Source: session-2026-08-02-wiki
+Agent: grok
+Notes: Domain overview created from tag scan.
+Page: P:/.data/wiki/concepts/multi-agent-fleet-domain-overview.md
+
 ## execution-receipts-for-executable-artifacts
 Source: session-019fc303
 Agent: grok

@@ -15,6 +15,11 @@ agent: grok
 host: grok
 cognitive_load: 3
 verification: multi-source-verified
+relations:
+  - target: wiki/concepts/multi-agent-system-failure-modes.md
+    type: refines
+  - target: wiki/concepts/solo-director-ai-fleet-coordination-isolation-best-practices.md
+    type: complements
 ---
 
 # Multi-agent coordination failure modes

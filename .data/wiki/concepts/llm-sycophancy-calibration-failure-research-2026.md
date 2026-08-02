@@ -15,6 +15,11 @@ agent: grok
 host: grok
 cognitive_load: 3
 verification: multi-source-verified
+relations:
+  - target: wiki/concepts/theatrical-contrition-and-over-apologetic-response-patterns.md
+    type: refines
+  - target: wiki/concepts/plausible-narratives-substitute-for-verification.md
+    type: complements
 ---
 
 # LLM sycophancy and calibration failure

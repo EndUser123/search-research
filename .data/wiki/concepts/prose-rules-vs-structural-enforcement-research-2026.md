@@ -15,6 +15,11 @@ agent: grok
 host: grok
 cognitive_load: 3
 verification: multi-source-verified
+relations:
+  - target: wiki/concepts/mandatory-step-enforcement-code-over-prose.md
+    type: refines
+  - target: wiki/concepts/verify-before-write-hook-design.md
+    type: complements
 ---
 
 # Prose rules vs structural enforcement
