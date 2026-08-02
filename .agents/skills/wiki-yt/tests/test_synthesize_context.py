@@ -104,12 +104,8 @@ def test_build_context_member_sampling():
     ]
     ctx = build_context(members, 0, 10)
     # Should only include ~10 sources (sampled)
-    for i in range(30):
-        marker = f"content{i}"
-        if i < 10:
-            # First few should likely be included
-            pass
     # The key assertion: context shouldn't contain all 30 sources
+    # Only ~10 should be sampled
     source_count = ctx.count("### Source")
     assert source_count <= 10, f"Expected <=10 sampled sources, got {source_count}"
 
