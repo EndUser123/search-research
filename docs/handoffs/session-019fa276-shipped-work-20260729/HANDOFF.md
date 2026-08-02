@@ -343,3 +343,21 @@ Items 3, 4, 5 (from prior revision) now have sibling-session additions (items 11
 **Status update:** this session's handoff improvement arc is complete. The v0.1.2 enhancements (checkpoint pattern, verify-after-commit, `checkpoint` field) are the structural fix for the same-author continuation failure mode that Revision 4 exhibited. The fix was derived from the incident itself — the `/tp` critique caught the problem, the wiki concept captured the durable finding, and the SKILL.md change prevents recurrence.
 
 **Note:** The `checkpoint` field is reader-facing documentation only — `list_handoffs.py` does not yet surface it alongside `head:DRIFT`. Extending the CLI to read and display `checkpoint:true` is a natural follow-up.
+
+### Revision 7 — 2026-08-02T05:00:00Z — grok-build-terminal
+
+**Trigger:** auto-update — executed 4 action items from /tp do? recommendations.
+
+**What changed since Revision 6:**
+
+| Work | Commit | Notes |
+|------|--------|-------|
+| Quality-gate timeout 10s→30s | `bb9d532` (~/.grok, sibling) + `9a15d97` (~/.grok, this session) | PreToolUse `mutation_pre.py` timeout increased. Closes harvest item `01KYR4PMGM64JAXP9WWDX33KBH` |
+| `list_handoffs.py` checkpoint field display | `9a15d97` (~/.grok) | CLI now parses `checkpoint` YAML field, displays `ckpt` flag, adds count to summary. 171/171 tests pass |
+| PostToolUse auto-verify live test | n/a (verification only) | Edited `list_handoffs.py` via search_replace → hook created `auto-verify-ast.parse` + `auto-verify-ruff-check` receipts. Hook works under real load. Closes harvest item `01KYZJ75BY2MXBNVT3AE3S0XD6` |
+| Modified ~/.grok files investigation | n/a (investigation only) | Only `version.json` has a real diff (auto-updated timestamp by sibling). Other 3 files are git stat noise |
+
+**Harvest items closed this revision:** 2 (quality-gate timeout, PostToolUse auto-verify verification)
+**Harvest items remaining:** 27 (was 29)
+
+**Status update:** the "Note" from Revision 6 about extending `list_handoffs.py` is now resolved — the CLI reads and displays the `checkpoint` field.
