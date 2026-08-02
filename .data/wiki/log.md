@@ -1,5 +1,17 @@
 # Vault Log
 
+## [2026-08-02] ingest | Test-design falsification of production components — when a flawed test flags a working fleet model as broken
+Source: session-2026-08-02
+Agent: grok
+Notes: Test-design falsification of production components — verdict-integrity failure mode distinct from verifier-false-confidence
+Page: wiki/concepts/test-design-falsification-of-production-components.md
+
+## [2026-08-02] ingest | DONE-trigger fires on artifact creation, not integration — chronic 4-recurrence harvest pattern
+Source: session-2026-08-02
+Agent: grok
+Notes: DONE-trigger fires on artifact creation, not integration — chronic 4-recurrence pattern
+Page: wiki/concepts/done-trigger-fires-on-artifact-creation-not-integration.md
+
 ## analyst-exhibits-pattern-being-analyzed
 Source: session-2026-08-02-debt-verify
 Agent: grok
