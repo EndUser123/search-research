@@ -15,6 +15,7 @@ Usage:
     python P:/.agents/scripts/launch_llm_chrome.py --kill    # force restart
 """
 
+import os
 import socket
 import subprocess
 import sys
