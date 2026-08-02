@@ -75,14 +75,20 @@ INPUT                     AUTH + SNAPSHOT
                           for each sub-topic cluster:
                             LLM (MiniMax via mmx CLI) synthesizes a concept
                             page from the contributing transcripts
+                            CONTEXT STRATEGY (auto-selected):
+                              total < 300K chars → FULL transcripts
+                              total > 300K chars → map-reduce:
+                                pre-summarize each transcript, then synthesize
+                              single transcript > 200K chars → overlapping chunks
+                                (200K chunks, 20K = 10% overlap)
                             each claim cites source_id + title + excerpt
                                           │
                                           ▼
                           RECONCILE (Stage D)
                           ────────────────
                           for each candidate concept:
-                            qmd search vault for similar concepts
-                            if similarity ≥ threshold:
+                            grep vault for similar concepts (keyword match)
+                            if title/tags overlap ≥ threshold:
                               mark as `refines <existing>`
                             else:
                               mark as new
@@ -190,6 +196,9 @@ intervention).
 | Sub-topic cluster count | 10 (`--max-subtopics`) | 5-15 range; raise for broader themes, lower for granular concepts |
 | HDBSCAN min_cluster_size | 5 (transcript-tuned) | Higher (8-15) for notebooks with many sources; see `cluster_transcripts.py --min-cluster-size` |
 | Synthesis LLM backend | mmx (MiniMax-M2.7) | `--synth-backend dgemma` for the free fallback; switch if pages are thin |
+| Context per transcript | 0 = full text (default since 2026-08-01) | `--per-member-chars 1200` for legacy truncation; 0 uses map-reduce when over budget |
+| Context budget | 300,000 chars | `--context-budget N` to adjust the map-reduce trigger threshold |
+| Overlap for large transcripts | 200K chunk + 20K overlap (10%) | Automatic — fires for single transcripts > 200K chars |
 | Vision enrichment | Off (opt-in `--enrich-vision`) | Enable for notebooks with visual content (tutorials, demos); talking-head videos auto-skip |
 | Scene-change threshold | 10 keyframes | `enrich_vision.py --threshold`; lower to enrich more videos |
 | Similarity threshold for `refines` | 0.75 (cosine on embeddings) | `--threshold 0.85` for stricter matching |

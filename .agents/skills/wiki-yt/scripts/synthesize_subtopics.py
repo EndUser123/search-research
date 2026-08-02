@@ -133,13 +133,13 @@ TRANSCRIPTS:
 Return ONLY the JSON object."""
 
 
-PRE_SUMMARY_PROMPT = """You are extracting key knowledge from a single video transcript for later cross-source synthesis.
+PRE_SUMMARY_PROMPT = """You are synthesizing transferable knowledge from a single video transcript for later cross-source wiki concept writing.
 
 TOPIC HINT: {hint}
 
-Below is the FULL transcript of one video. Extract ALL information relevant to "{hint}" that would be needed to write a wiki concept page.
+Below is the FULL transcript of one video. Synthesize the transferable principles, techniques, and findings relevant to "{hint}". Focus on what a future reader would need to know, not what was literally said.
 
-EXTRACTION TARGETS (capture ALL that are present in the transcript):
+SYNTHESIS TARGETS (capture ALL that are present in the transcript):
 - Definitions and explanations of concepts
 - Operational details (how it works, thresholds, parameters, metrics, step-by-step processes)
 - Techniques, methods, patterns, workflows described
@@ -349,11 +349,9 @@ def synth_cluster(cluster: dict, members: list[dict], backend: str, model: str |
     if per_member_chars > 0:
         # Legacy mode: explicit truncation requested via CLI
         context = build_context(selected, per_member_chars, len(selected))
-        used_map_reduce = False
     elif raw_context_size <= context_budget:
         # Default: full text fits within budget — no truncation
         context = build_context(selected, 0, len(selected))
-        used_map_reduce = False
     else:
         # Map-reduce: pre-summarize each transcript, then synthesize across summaries
         print(f"    context {raw_context_size} chars > budget {context_budget}; "
@@ -369,7 +367,6 @@ def synth_cluster(cluster: dict, members: list[dict], backend: str, model: str |
                 summary = m["text"][:8000]
             summaries.append({**m, "text": summary})
         context = build_context(summaries, 0, len(summaries))
-        used_map_reduce = True
         print(f"    map-reduce complete: {raw_context_size} -> {len(context)} chars",
               file=sys.stderr)
 

@@ -61,7 +61,7 @@ SKILL_DEPS: dict[str, list[DepSpec]] = {
         DepSpec("requests", "requests", "requests"),
         DepSpec("crawl4ai", "crawl4ai", "crawl4ai", min_supported=(0, 7, 0)),
     ],
-    "crawl4ai": [
+    "crawl4ai": [  # back-compat alias — skill renamed to wiki-crawl4ai
         DepSpec("crawl4ai", "crawl4ai", "crawl4ai", min_supported=(0, 7, 0)),
     ],
     "wiki-crawl4ai": [
