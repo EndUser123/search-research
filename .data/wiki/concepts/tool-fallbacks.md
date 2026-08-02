@@ -66,6 +66,16 @@ These models are **excluded from all auto-pools and spawn_subagent dispatch**. T
 | **nvidia-inkling** (as interactive/primary model) | Produces one-word garbage ("UBS", "Savings") via Grok Build interactive dispatch. Works fine via spawn_subagent delegation + direct API. | **Do not use as interactive/primary.** DO use as spawn delegation target (/tp pool, /check verifier). | [[model-benchmark-testing-quirks]] |
 | **nvidia-diffusiongemma-26b** | Empty content via spawn_subagent (parameter conflict with thinking mode). Works via direct API. | Use `P:/.agents/scripts/models/dgemma_read.py` for file reads. Never spawn. | [[diffusiongemma-direct-api-howto]] |
 | **or-ling-3-flash-free** (parallel dispatch) | 429 rate limit after 3+ concurrent agents (OpenRouter 20 RPM shared across all free-model calls). 4 of 7 agents failed in session 2026-08-01. | **Use `pick_model.py --count N` for diverse providers.** Don't reuse the same free-tier model for all parallel agents. | [[coding-model-pool-tier-1-tier-2]], [[agent-consolidation-in-parallel-workflows]] |
+| **or-ling-3-flash-free** (single-agent, non-completion) | Ran 375s / 53 tool calls without completing in session 019fb933 /tp critique. Same model also failed twice as `fmea` (115s, 207K tokens) and `friction` (39s, 626K tokens) in close-check Phase 2/3 of session 019fb933 -- `state: failed`, no successful output. | **Do not dispatch or-ling-3-flash-free as a single critical-path agent.** Use it only as a low-stakes parallel filler or after confirming a healthy recent run. | [[pick-model-stale-spawn-notes-failure-pattern]], [[agent-consolidation-in-parallel-workflows]] |
+
+### Session-attested new failures (2026-08-01 close-check sweep)
+
+Provisional entries -- each must be re-tested before promoting to "Known-broken" tier.
+
+| Model(s) | Symptom | Workaround | Wiki authority |
+|---|---|---|---|
+| **nim-deepseek-ai-deepseek-v4-flash** | Serde failure on Grok Build (slug has `ai-` prefix, distinct from `nim-deepseek-v4-flash` which PASSED 4s in the [[serde-broken-false-positive-sweep-20260801]]). Same provider, different slug -- likely a routing-table mismatch between NIM aliases. | **Do not dispatch until slug aliasing is investigated.** Use `nim-deepseek-v4-flash` (without `ai-` prefix) if a NIM deepseek variant is needed. | [[serde-broken-false-positive-sweep-20260801]], [[pick-model-stale-spawn-notes-failure-pattern]] |
+| **nim-openai-gpt-oss-20b** (pick_model.py returned stale "spawn OK") | Direct spawn PASSED (41s) in [[serde-broken-false-positive-sweep-20260801]], but pick_model.py returned it as spawn-OK during the same session when prior session evidence suggests intermittent failure. Discrepancy suggests pick_model.py spawn_notes may be stale. | **Probe before dispatch.** Run a 1-token no-tool spawn test to verify, OR use a different OpenAI-OSS option. | [[pick-model-stale-spawn-notes-failure-pattern]] |
 
 ### web_search rate limiting
 

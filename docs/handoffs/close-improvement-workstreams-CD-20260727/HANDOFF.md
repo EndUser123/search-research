@@ -6,7 +6,7 @@ current_terminal_id: console
 produced_at: 2026-07-27T05:20:00Z
 status: open
 handoff_type: implementation_plan
-accurate_as_of_head: ac15837 → iterations 2-4 committed by concurrent sessions; pushed to origin
+accurate_as_of_head: e4cd4ed1ff84dc18a0957ef04be53162765ac4ce
 ---
 
 ## Revision 2026-07-27T20:00:00Z (session 019fa111, post-close-check)
@@ -49,6 +49,56 @@ scanner call graph.
 **Leaked test residue:** `P:/.artifacts/continuation-coverage-hermetic.json`
 (536 bytes, sha256 `6ed0485cb664...`). Not deleted per operator directive.
 Safe to `rm` before next `/close` scan.
+
+---
+
+## Revision 2026-08-02T05:00:00Z (session 019fa111, post-sweep)
+
+**Trigger:** auto-update — session 019fa111 sweep completed 2026-08-02.
+
+**What changed since the previous revision:**
+- Git HEAD advanced from `ac15837` to `e4cd4ed` (5 unpushed commits, 25 uncommitted files)
+- Workstream C (evidence identity) remains OPEN — no implementation started
+- Workstream D (`/check` performance) remains OPEN — existing handoff `check-speed-optimization-20260726`
+- New session-attributed findings from the sweep (see below) need handoffs
+- Session has 29 uncommitted files including `docs/handoffs/improvement-opportunities-019fbdfb-20260801.md` and `docs/handoffs/close-runner-windows-path-bug-fix-20260802/`
+
+**Updated evidence:**
+- HEAD: `e4cd4ed1ff84dc18a0957ef04be53162765ac4ce`
+- 5 unpushed commits: close-check-blocked, post-tool-use auto-verify, dream session observations, serde sweep, AGENTS.md rule additions, hook-timeout remediation handoffs
+- 25 uncommitted files (15 in P:/, 4 in ~/.grok, 6 in other dirs)
+- 15 unpushed commits ahead of origin/main
+
+**Status update:**
+- Workstream A (ADR-008 + private-index CAS): unchanged — operational, Layer 1 shipped
+- Workstream B (close hermeticity): unchanged — SHIPPED (4 iterations, 352 tests pass)
+- Workstream C (evidence identity): unchanged — OPEN, no implementation started
+- Workstream D (check performance): unchanged — OPEN, existing handoff
+
+**New open items from this session's sweep:**
+1. **close-runner Windows-path JSON-stringification bug** — pre-existing defect, WinError 123 when `--session` is a JSON dict. New handoff: `close-runner-windows-path-bug-fix-20260802`. Wiki concept: `close-runner-windows-path-json-stringification-bug.md`.
+2. **harvest burn-down** — 29 OPEN obligations, 85 handoffs flagged harvestable. New handoff: `harvest-burn-down-20260801`.
+3. **session transcript scan infrastructure broken** — session path encoding `P%3A%5C` vs `P%3A%2F` mismatch causes scanner failures. Documented in `improvement-opportunities-019fbdfb-20260801.md`.
+4. **close-check lifecycle gaps** — `/harvest` and `/friction` not invoked by parent, covered by sibling sub-agents. `/trace` covered by wiki-fmea sub-agent.
+5. **workspace-health chronic issues** — 10 files with invalid syntax, 197 dangling path references, 572 stale state files, 201 duplicate skill names, 237 disabled in Grok.
+6. **meta-checkpoint unanswered questions** — 4 meta questions (Generalized/Audited/Anticipated/Mapped), marker `cad4bc1` has 3 unresolved friction items.
+
+**New open items (continued):**
+7. **git-state drift** — 25 uncommitted files, 15 unpushed commits. No session write-path receipts found for 27 uncommitted files.
+8. **harvest evidence unverified** — several harvest items marked 'unverified' need verification pass before close.
+
+**Status update:**
+- Workstream C (evidence identity): OPEN — no implementation started
+- Workstream D (check performance): OPEN — existing handoff
+- **New streams needing handoffs:** close-runner Windows-path bug, harvest burn-down, session transcript scan infrastructure, workspace-health chronic issues, close-check lifecycle gaps
+
+**New open items:**
+- See new handoffs created: `close-runner-windows-path-bug-fix-20260802`, `harvest-burn-down-20260801`
+
+**Status update:**
+- Workstream C (evidence identity): OPEN — no implementation started
+- Workstream D (check performance): OPEN — existing handoff `check-speed-optimization-20260726`
+- **New streams needing handoffs:** close-runner Windows-path bug, harvest burn-down, session transcript scan infrastructure, workspace-health chronic issues, close-check lifecycle gaps
 
 ---
 
@@ -201,6 +251,15 @@ attempt files on disk.
   close_accounting.py).
 - Blocks: nothing.
 - Non-blocking to: Workstream D (different file, different concern).
+
+## Other outstanding streams from session 019fa111
+
+- **close-runner Windows-path JSON-stringification bug** — pre-existing WinError 123 when \--session\ is a JSON dict. Handoff: \P:/docs/handoffs/close-runner-windows-path-bug-fix-20260802/HANDOFF.md\. Wiki concept: \close-runner-windows-path-json-stringification-bug.md\.
+- **harvest burn-down** — 29 OPEN obligations, 85 handoffs flagged harvestable. Handoff: \P:/docs/handoffs/harvest-burn-down-20260801/HANDOFF.md\.
+- **session transcript scan infrastructure broken** — session path encoding \P%3A%5C\ vs \P%3A%2F\ mismatch causes scanner failures. Documented in \P:/docs/handoffs/improvement-opportunities-019fbdfb-20260801.md\.
+- **close-check lifecycle gaps** — /harvest and /friction not invoked by parent, covered by sibling sub-agents. /trace covered by wiki-fmea sub-agent.
+- **workspace-health chronic issues** — 10 files with invalid syntax, 197 dangling path references, 572 stale state files.
+- **meta-checkpoint unanswered questions** — 4 meta questions (Generalized/Audited/Anticipated/Mapped).
 
 ## Status
 
