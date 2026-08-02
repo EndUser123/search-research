@@ -17,7 +17,3 @@ ignore = ["S603"]  # We'll handle S603 per-file instead
 
 # You can also enable other security rules as needed
 # "tests/**/*.py" = ["S101", "S103"]  # Example: assert usage, permissions check
-
-[tool.ruff.lint.per-file-include]
-# Only apply S603 to test files
-"tests/**/*.py" = ["S603"]

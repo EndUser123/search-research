@@ -1,6 +1,8 @@
 ---
 name: preflight
 description: Build an evidence-backed inventory of existing implementations, callers, registrations, state/default consumers, caches, tests, worktrees, and competing plans before proposing or implementing non-trivial changes.
+provides: [evidence-backed-inventory]
+domain: discovery
 ---
 
 # Preflight

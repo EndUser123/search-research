@@ -1,10 +1,13 @@
-# cc-ccr.ps1 - Claude Code → CCR proxy launcher
+﻿# cc-ccr.ps1 - Claude Code → CCR proxy launcher
 #
 # Usage:
-#   . .\cc-ccr.ps1                    # start CCR, wire this shell to CCR
+#   . .\cc-ccr.ps1                    # start CCR, wire this shell to CCR (no local model)
+#   . .\cc-ccr.ps1 -LocalModel        # also start the local llama.cpp model (ornith)
 #   . .\cc-ccr.ps1 -Log               # start with CCR logs visible
 #   . .\cc-ccr.ps1 -Stop              # kill CCR process
+#   . .\cc-ccr.ps1 -StopAll           # kill CCR + local model + all fleet components
 #   . .\cc-ccr.ps1 -Config            # launch TUI to configure model routes
+#   . .\cc-ccr.ps1 -h or --help       # show this help
 #
 # Routing source of truth: C:\Users\brsth\.claude-code-router\config.json
 # (Providers, Router, fallback, CUSTOM_ROUTER_PATH). This script does NOT
@@ -27,8 +30,44 @@ param(
     [switch]$Tui,
     [switch]$Test,
     [switch]$Usage,
-    [switch]$Restart
+    [switch]$Restart,
+    [switch]$LocalModel,
+    [Alias('h')][switch]$Help
 )
+
+# --- Help ---
+if ($Help) {
+    Write-Host @"
+cc-ccr.ps1 - Claude Code CCR proxy launcher
+
+Usage:
+  . \.\\cc-ccr.ps1                 Start CCR proxy + admission proxy, wire this shell.
+                                 Does NOT start the local llama.cpp model.
+  . \.\\cc-ccr.ps1 -LocalModel     Also start the local llama.cpp model (ornith-1.0-9b).
+  . \.\\cc-ccr.ps1 -Log            Start CCR with logs visible in a window.
+  . \.\\cc-ccr.ps1 -Stop           Stop CCR + admission proxy (leaves local model running).
+  . \.\\cc-ccr.ps1 -StopAll        Stop CCR + local model + supervisor + watcher.
+  . \.\\cc-ccr.ps1 -Config         Launch the TUI to configure model routes.
+  . \.\\cc-ccr.ps1 -Test           Run a routing smoke test against all configured providers.
+  . \.\\cc-ccr.ps1 -Usage          Show fleet status, quota gauges, and route tree.
+  . \.\\cc-ccr.ps1 -Restart        Restart CCR before running -Test (only meaningful with -Test).
+  . \.\\cc-ccr.ps1 -h              Show this help.
+
+Parameters:
+  -LocalModel    Start the local llama.cpp model alongside CCR. Off by default.
+  -Stop          Kill CCR and admission proxy. The local model is left running.
+  -StopAll       Kill all fleet components including the local model.
+  -Config        Launch the configuration TUI.
+  -Test          Probe each configured provider route with a minimal request.
+  -Usage         Display infrastructure status, quota gauges, route tree.
+  -Log           Show CCR process output in a visible window.
+
+Notes:
+  - The local model is NOT started by default. Use -LocalModel when you want
+    the local llama.cpp model available for routing.
+"@ -ForegroundColor White
+    return
+}
 
 $ccrConfigPath = "$env:USERPROFILE\.claude-code-router\config.json"
 $ccrPort = 3456  # explicit fallback when config.json is absent or invalid
@@ -899,8 +938,10 @@ function Ensure-AdmissionProxy {
 # times out, and reports HUNG while llama.cpp is alive and making progress.
 # Liveness (LOADED/READY via rungs 1-4) is sufficient for routing readiness;
 # real inference validation stays reserved for the explicit -Test path.
-$lm = Invoke-LocalModelProbe
+$lm = $null
 $localModelHealth = $false
+
+if ($LocalModel) {
 
 if (-not $lm -or $lm.state -eq "DEAD") {
     Write-Host "[CCR] local model not ready (starting or probe transient) - starting..." -ForegroundColor Cyan
@@ -1071,6 +1112,11 @@ if ($lm -and ($lm.state -eq "READY" -or $lm.state -eq "LOADED")) {
     )
 }
 $script:localModelState = $lm
+} # end if ($LocalModel)
+else {
+    Write-Host "[CCR] Local model not started (use -LocalModel to enable)." -ForegroundColor DarkGray
+    $script:localModelState = $null
+}
 
 # --- Log routing mode ---
 $routingModeInfo = Resolve-RoutingMode -RoutingMode $null
@@ -1150,9 +1196,12 @@ foreach ($var in @(
 }
 
 # 4th model slot - local Ornith via llama.cpp (run-ornith-server.ps1, port 8010)
-$env:ANTHROPIC_CUSTOM_MODEL_OPTION             = "claude-local-ornith"
-$env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME        = "Ornith 1.0 9B (Local)"
-$env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_k_m"
+# Only set if -LocalModel was passed
+if ($LocalModel) {
+    $env:ANTHROPIC_CUSTOM_MODEL_OPTION             = "claude-local-ornith"
+    $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME        = "Ornith 1.0 9B (Local)"
+    $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_k_m"
+}
 
 # --- Post-start smoke probe (FRESH START ONLY) ---
 # ccr-custom-router.js is require()-cached at CCR startup and is NOT hot-reloaded
@@ -1163,7 +1212,7 @@ $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_
 # entity that depends on the require()-cached file AND has no fallback chain. Free
 # (hits local llama.cpp, no provider quota) and ~1s. External routes (opus/sonnet/
 # haiku) have fallback chains and are audited via `cc-ccr -Test`.
-if ($ccrFreshlyStarted -and $localModelHealth) {
+if ($ccrFreshlyStarted -and $localModelHealth -and $LocalModel) {
     try {
         $probeHeaders = @{ "Authorization" = "Bearer $env:ANTHROPIC_AUTH_TOKEN"; "anthropic-version" = "2023-06-01"; "Content-Type" = "application/json" }
         $probeBody = @{ model = "claude-local-ornith"; max_tokens = 8; messages = @(@{ role = "user"; content = "hi" }) } | ConvertTo-Json -Depth 5 -Compress

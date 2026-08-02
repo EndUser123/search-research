@@ -37,7 +37,7 @@ def main():
     if args.success == "false" or args.error_type:
         import json as _json
         from datetime import datetime as _dt
-        _fail_path = Path("P:/.data/spawn_failures.jsonl")
+        _fail_path = Path("P:/.data/telemetry/spawn_failures.jsonl")
         try:
             _fail_path.parent.mkdir(parents=True, exist_ok=True)
             with open(_fail_path, "a", encoding="utf-8") as _f:

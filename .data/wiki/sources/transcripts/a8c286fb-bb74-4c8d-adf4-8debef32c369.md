@@ -4,9 +4,10 @@ title: "What Senior Engineers do Differently (Vercel VP)"
 notebook_id: 32b2f92f-b402-44f9-8069-6faca3dd20c9
 url: null
 type: youtube
-exported: 2026-07-28
+exported: 2026-07-31
 ---
 
+# What Senior Engineers do Differently (Vercel VP)
 # What Senior Engineers do Differently (Vercel VP)
 It doesn't actually matter what your level
 is, you could impact the business

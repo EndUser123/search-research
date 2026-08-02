@@ -47,7 +47,7 @@ SKILL_REF_PATTERN = re.compile(
     r'|grok-discovery|grok-route|check|close|review|plan-writer'
     r'|refine|red-team|notice|create-skill|packet|mmx|agy|codex'
     r'|debrief|maintain|wargame|skill-dev|skill-prune|model-benchmark'
-    r'|recover|preflight|todo|tasks|imagine|help)'
+    r'|recover|preflight|todo|tasks|imagine|help|fmea)'
     r'\b',
     re.IGNORECASE,
 )
@@ -61,7 +61,7 @@ SLASH_SKILL_PATTERN = re.compile(
     r'|grok-discovery|grok-route|check|close|review|plan-writer'
     r'|refine|red-team|notice|create-skill|packet|mmx|agy|codex'
     r'|debrief|maintain|wargame|skill-dev|skill-prune|model-benchmark'
-    r'|recover|preflight|todo|tasks|imagine|help)'
+    r'|recover|preflight|todo|tasks|imagine|help|fmea)'
     r'\b',
     re.IGNORECASE,
 )
@@ -91,7 +91,7 @@ KNOWN_SKILLS = {
     'create-skill', 'packet', 'mmx', 'agy', 'codex', 'debrief',
     'maintain', 'wargame', 'skill-dev', 'skill-prune',
     'model-benchmark', 'recover', 'preflight', 'todo', 'tasks',
-    'imagine', 'help',
+    'imagine', 'help', 'fmea',
 }
 
 # Known providers for filtering
