@@ -96,3 +96,18 @@ This pattern is wrong if:
 - **Hook script:** `~/.grok/hooks/PostToolUse_auto_verify.py`
 - **Registration:** `~/.grok/hooks/quality-gate.json` → PostToolUse → matcher `search_replace|write` → timeout 15s
 - **Receipt format:** compatible with existing `verification_receipt_writer.py` schema
+
+## Live verification (2026-08-02)
+
+**Verified under real load:** editing `list_handoffs.py` via `search_replace`
+triggered the hook, which created two receipts:
+- `auto-verify-ast.parse-019fa276-...-list_handoffs.py` (syntax check)
+- `auto-verify-ruff-check-019fa276-...-list_handoffs.py` (lint check)
+
+Both receipts were written to `~/.grok/hooks/` and visible to the Stop hook
+quality gate. The falsifier condition ("Stop hook still blocks despite
+auto-verify running") was NOT triggered — the hook works end-to-end.
+
+**What this confirms:** the receipt format is compatible with the existing
+quality gate scanner, the hook fires within the 15s timeout for single-file
+edits, and the session-scoped receipt naming prevents cross-terminal collisions.
