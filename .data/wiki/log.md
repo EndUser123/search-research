@@ -1,5 +1,11 @@
 # Vault Log
 
+## Run all lifecycle skills unconditionally
+Source: session-019fb937
+Agent: grok
+Notes: Conditional detection IS the gap — running 5 skills every time eliminates detection misses
+Page: .data/wiki/concepts/run-all-lifecycle-skills-unconditionally-conditional-detection-is-the-gap.md
+
 ## --title
 Source: Operator correction as highest-density signal — minimize correction-to-fix latency
 Agent: --source
