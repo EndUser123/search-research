@@ -77,3 +77,65 @@ Complete browser-based LLM advisory bridge with:
 - 6 sites (Copilot, Poe, Le Chat, HuggingChat, MiniMax, Multio) have `[NEEDS TESTING]` for input methods
 - AAR not yet run for this session
 - The refactoring deviation from the ensemble plan is documented but could be revisited if polymorphic dispatch is needed
+
+---
+
+## Revision 1 — 2026-08-02T16:50Z (session 019fba58)
+
+**Trigger:** Auto-update — session continued after original handoff with significant new work.
+
+**Session arc (second half, post-compaction):**
+
+The session evolved from production engineering (model-web, Chrome infra, fetch_transcript_chain refactor) into a thought-partner improvement session. The operator's questions shifted from "build X" to "how do we make you a better thought partner?" — and the work followed.
+
+**What changed since the original handoff:**
+
+### Code fixes (production bugs)
+- Close-runner scanner false "CLOSE INCOMPLETE" — root caused (naive string scan matched handoff status text in scanner JSON), fixed, verified. `~/.grok` commit `5ee3006`
+- Ship_receipt baseline comparison — was count-only (could pass regressions), fixed to compare test names via set intersection. `~/.grok` commit `71a3281`
+- Launch_llm_chrome schtasks return-code check — was discarding all return codes, fixed with proper error handling. `P:/` commit `f4c9f30`
+- Quota cache concurrent-write race — per-PID tmp suffix (write side) + retry-once (read side). `~/.grok` commit `691e5c5`
+- Close_accounting missing "resolved" status — `_classify_handoff` only recognized closed/done/complete/completed, not resolved. Fixed. `~/.grok` commit `d3b5da1`
+- Ship_receipt `python -m ruff` fallback removed — was the root cause of agents learning the broken pattern. `~/.grok` commit `e569487`
+
+### Thought-partner improvements
+- Anti-template voice in `/tp` protocol.md — resist RLHF formulaic patterns
+- Paul–Elder reasoning elements labeled on `/tp` Steps A-D + intellectual standards rubric
+- TRIZ contradiction reframing directive 10 in `/tp explore`
+- De Bono lateral thinking directive 11 in `/tp explore`
+- "What am I assuming?" pre-claim check in AGENTS.md (replaces generic "could I be wrong?")
+- `Maybe:` uncertain-signal surfacing pattern in AGENTS.md
+- Explicit session-review trigger phrases in `/tp` semantic intent table
+
+### Handoff lifecycle
+- `/handoff claim` command shipped (`claim_handoff.py`) — claim/release with conflict detection
+- AGENTS.md rule: claim handoffs when working from them, update on progress
+- Design handoff for remaining questions (progress tracking, claim TTL, changelog enforcement)
+
+### Research conducted (3 parallel subagent rounds)
+- AI thought-partner research (sycophancy, honesty, Socratic, systems thinking, anti-checklist) — 3 subagents
+- Problem-solving frameworks (32 topics: MECE, TRIZ, Paul–Elder, OODA, Occam, 5-Whys, double-loop, Cynefin, etc.)
+- LLM-in-hooks research (Claude Code hooks, judge models, latency, injection patterns)
+
+### Wiki concepts written
+- `functional-decomposition-when-test-mocks-constrain-structure.md`
+- `chrome-job-object-escape-via-task-scheduler.md`
+- `python-m-ruff-swallows-stdout-in-powershell.md`
+- `ai-thought-partner-research-synthesis-2026.md`
+- `solution-first-before-root-cause-overengineering-failure.md`
+- `problem-solving-frameworks-evidence-assessment-2026.md`
+
+### Design handoffs created
+- `llm-judge-stop-hook-for-missed-observation-surfacing` — Stop hook + LLM judge + additionalContext injection
+- `handoff-lifecycle-visibility-design` — progress tracking, claim TTL, changelog enforcement
+
+**Updated open items (supersedes original list):**
+- ChatGPT + Multio model picker selectors still `[NEEDS VERIFICATION]` (unchanged)
+- 6 sites still `[NEEDS TESTING]` for input methods (unchanged)
+- AAR not yet run (unchanged — session is ~15 hours long, AAR would be substantial)
+- LLM-judge Stop hook design needs `/design` — highest leverage remaining item
+- Handoff lifecycle visibility needs `/design` — progress tracking, TTL, enforcement
+- close_accounting st_ctime + Claude Code format bugs need fixing (delegated to sibling session)
+- update_provider_in_cache TOCTOU race needs fixing (delegated to sibling session)
+
+**Status update:** The session-observations handoff is now a comprehensive record of both session halves. The session produced 5 code fixes, 7 thought-partner improvements, 6 wiki concepts, 2 design handoffs, and 3 research rounds.
