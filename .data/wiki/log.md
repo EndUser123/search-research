@@ -1,5 +1,11 @@
 # Vault Log
 
+## Wiki Improvement Backlog 2026-08-01
+Source: session-20260801
+Agent: grok
+Notes: 30 wiki improvement ideas (20 original + 10 from /tp critique) with verdicts. 4 DONE, 3 REJECTED, 22 REMAINING. Discoverable via grep — replaces orphan docs/plans/ file.
+Page: wiki/concepts/wiki-improvement-backlog-20260801.md
+
 ## Session Transcript Path Resolution for Workflow Subagents
 Source: session-20260802
 Agent: grok
