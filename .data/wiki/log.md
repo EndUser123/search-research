@@ -1,5 +1,17 @@
 # Vault Log
 
+## Trace skill execution gap on critical code
+Source: session-019fa8f8
+Agent: grok
+Notes: Durable finding: /trace is referenced and listed in close-check Phase 3 but does not reliably fire on critical code. Two consecutive sessions (wf_019fbf03, 019fa8f8) shipped critical files with no trace artifact. Pattern is structural (no visible-output contract), not behavioral. Fix: canonical artifact path + receipt in close-check output + coverage gate for critical files.
+Page: P:/.data/wiki/concepts/trace-skill-execution-gap-critical-code-uncaught.md
+
+## [2026-08-01] ingest | close-runner verdicts go stale when later phases run additional checks
+Source: session-2026-08-01
+Agent: grok
+Notes: Phase-3-managed verdicts become stale after close-check Phase 3 runs additional checks; pre-compaction 'no /trace report' verdicts invalidated by post-compaction sweep
+Page: wiki/concepts/close-runner-verdict-staleness-across-phases.md
+
 ## [2026-08-01] ingest | harvest CLI not on PATH — chronic obligation-tracking friction
 Source: session-019fbf02-d3dd-7f72-9ad2-4538790c0a82 (close-check Phase 3 /harvest subagent)
 Agent: grok
