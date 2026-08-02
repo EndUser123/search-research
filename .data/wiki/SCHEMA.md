@@ -61,6 +61,7 @@ summary: >
   <2-3 sentence summary of the big idea — the single most important takeaway>
 
 # Recommended (advisory, not lint-enforced)
+type: concept                       # concept | decision | entity | reference | directive
 agent: grok | claude-code           # cross-agent provenance
 host: grok | claude | both          # which host wrote/tested this (2026-07-18 convention)
 cognitive_load: <1-5>               # mental effort to apply (see §3 below)
@@ -71,6 +72,7 @@ tier: warm                          # retrieval tier: hot | warm | cold (see §1
 confidence: 1.0                     # 0.0-1.0, starts at 1.0, decays by half_life
 last_verified: <YYYY-MM-DD>         # date the concept was last verified against current state
 half_life_days: 180                 # days for confidence to halve (default 180; use 90 for fast-moving topics, 365+ for stable)
+stale_after: <YYYY-MM-DD>          # explicit expiry date for time-sensitive concepts (library docs, tool comparisons)
 
 # Optional (context-dependent)
 evidence_gaps:                      # list of what evidence is missing
@@ -431,6 +433,32 @@ python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/main/scrip
 ```
 Emits: broken wikilinks, orphan pages, duplicate slugs, missing frontmatter, stale page count (mtime > 90d).
 
+**Additional deterministic checks (run alongside Phase 1):**
+
+```bash
+# Frontmatter drift: flag concepts missing recommended fields
+grep -L "^type:" P:/.data/wiki/concepts/*.md | head -20
+# → concepts without type: field (should be tagged with type on next edit)
+
+# Thin-concept detection: pages <300 chars or zero outbound [[wikilinks]]
+python -c "
+from pathlib import Path
+for p in Path('P:/.data/wiki/concepts').glob('*.md'):
+    text = p.read_text(encoding='utf-8')
+    if len(text) < 300:
+        print(f'THIN: {p.name} ({len(text)} chars)')
+    elif '[[' not in text:
+        print(f'ORPHAN-LINK: {p.name} (zero outbound wikilinks)')
+"
+```
+
+**Phase 1b — Frontmatter drift summary (added 2026-08-02):**
+After Phase 1, emit a summary of frontmatter field coverage:
+- How many concepts have `type:` / how many are missing
+- How many have `stale_after:` / how many should have one (tagged with time-sensitive tags)
+- How many thin concepts (<300 chars) exist
+These are informational — the operator decides whether to batch-fix.
+
 **Phase 2 — Judgment (LLM, on top of Phase 1):**
 For each issue the script could NOT safely auto-fix:
 - **Broken red-links**: keep if intentional seed, fix only if clear fuzzy-match target exists at ≥0.9 confidence.
@@ -506,7 +534,10 @@ Refresh stale wiki pages by detecting topics that need updating.
 
 ### Index
 
-Rebuild `index.md` catalog from current wiki state.
+Rebuild `index.md` catalog from current wiki state. Organized by topic cluster
+(grouped by filename prefix or frontmatter `tags[]` intersection) rather than
+a flat alphabetical list. Cluster prefixes: `agent-*`, `claude-*`, `hook-*`,
+`model-*`, `wiki-*`, `skill-*`, `stop-*`, `context-*`, `verification-*`, etc.
 
 ### Init
 
