@@ -1,8 +1,24 @@
-# Problem-solving frameworks: evidence-based assessment
+---
+title: "Problem-solving frameworks: evidence-based assessment"
+created: 2026-08-02
+source: session-019fba58
+tags: [problem-solving, frameworks, evidence, Paul-Elder, TRIZ, OODA, MECE, consulting, thinking]
+summary: >
+  Evidence-based assessment of 10+ problem-solving frameworks from 32 search topics
+  across 3 parallel subagents. Identifies which have experimental support (Paul-Elder,
+  TRIZ), which are craft disciplines (MECE, 5-Whys, first principles), and which are
+  folklore (OODA, Occam's Razor contested). Convergence is the universal failure mode.
+agent: grok
+host: grok
+cognitive_load: 3
+verification: multi-source-verified
+sources:
+  - https://www.criticalthinking.org/files/Concepts_Tools.pdf (Paul-Elder, Foundation for Critical Thinking)
+  - https://www.cambridge.org/core/journals/proceedings-of-the-design-society/article/evaluating-triz-with-and-without-llm-support (Cambridge 2026, TRIZ+LLM RCT)
+  - https://www.scientificamerican.com/article/contrary-to-occams-razor-the-simplest-explanation-is-often-not-the-best-one/ (Oreskes, Scientific American)
+---
 
-**Host:** grok
-**Created:** 2026-08-02
-**Session:** 019fba58
+# Problem-solving frameworks: evidence-based assessment
 
 ## What
 
@@ -47,6 +63,14 @@ This matches the workspace pattern documented in `[[convergence-gap-rca-symptom-
 3. TRIZ contradiction reframing added as `/tp explore` directive 10
 4. De Bono lateral thinking added as `/tp explore` directive 11
 5. Paul–Elder "what am I assuming?" check replacing generic "could I be wrong?" in AGENTS.md per-turn protocol
+
+## What this means for our workspace
+
+The evidence assessment validates the workspace's existing approach: the frameworks already incorporated (first principles, systems thinking, pre-mortem, critical friend) are the ones with the best evidence. Paul–Elder and TRIZ are new additions with strong evidence. The frameworks to avoid (OODA, 5-Whys single-chain, MECE as process) are correctly absent. The convergence failure mode is already documented in `[[convergence-gap-rca-symptom-restatement-toulmin-enforcement]]`.
+
+## Falsifier
+
+This assessment is wrong if future controlled studies show OODA, Occam's Razor, or design thinking have stronger evidence than Paul–Elder or TRIZ for improving agent reasoning. If a different framework not assessed here proves more effective for AI agents specifically, the operationalization choices should be revisited.
 
 ## What was NOT incorporated (and why)
 

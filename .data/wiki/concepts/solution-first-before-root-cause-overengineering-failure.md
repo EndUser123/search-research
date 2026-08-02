@@ -1,8 +1,20 @@
-# Solution-first before root cause — the over-engineering failure mode
+---
+title: "Solution-first before root cause — the over-engineering failure mode"
+created: 2026-08-02
+source: session-019fba58
+tags: [over-engineering, root-cause, solution-first, problem-first, agent-behavior, failure-mode]
+summary: >
+  When encountering "X doesn't happen," agents jump to "how do we build a system
+  for X" before asking "is X already instructed but not followed?" The simplest
+  explanation — a missing instruction — is systematically skipped in favor of
+  designing enforcement infrastructure.
+agent: grok
+host: grok
+cognitive_load: 2
+verification: observed
+---
 
-**Host:** grok
-**Created:** 2026-08-02
-**Session:** 019fba58
+# Solution-first before root cause — the over-engineering failure mode
 
 ## The failure mode
 
@@ -38,6 +50,15 @@ The operator's correction catches it in-session. For cross-session reliability, 
 - [[minimal-fix-and-root-cause]] — the "optimal long-term" principle that should prevent over-engineering but doesn't always fire
 - [[mechanical-enforcement-over-behavioral-reminder]] — why rules alone don't work
 - [[replacement-before-investigation-pattern]] — same class: jumping to replacement before checking if the current thing works
+
+## What this means for our workspace
+
+Before designing any enforcement system, check whether the behavior is already instructed. Three-step investigation order: (1) Is it instructed? Check AGENTS.md, SKILL.md. (2) Is it mechanically possible? (3) Is it mechanically enforced? If step 1 is "no," the missing instruction is the root cause — not a missing mechanism.
+
+## Receipts
+
+- Session 019fba58 handoff lifecycle work: designed claim commands, hooks, TTL, validators before checking if agents were ever told to update handoffs (they weren't — the instruction was missing). Receipt: `~/.grok/AGENTS.md` "Cross-agent coordination" section — rule was added after the root cause was identified.
+- Session 019fba58 ruff on .md files: the `/go` SKILL.md already said "never lint non-Python files" (line 897: "ruff on changed `.py` files only — never lint non-Python files"). Receipt: `~/.grok/skills/go/SKILL.md` line 897.
 
 ## Falsifier
 

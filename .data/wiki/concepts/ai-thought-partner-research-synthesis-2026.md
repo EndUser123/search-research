@@ -1,8 +1,30 @@
+---
+title: "AI thought-partner research synthesis 2026"
+created: 2026-08-02
+source: session-019fba58
+tags: [thought-partner, critical-friend, sycophancy, honesty, Socratic, systems-thinking, anti-checklist, research-synthesis]
+summary: >
+  Synthesis of 3 parallel research subagent results covering sycophancy reduction,
+  LLM honesty techniques, Socratic/maieutic prompting, systems thinking frameworks,
+  anti-checklist thinking, Costa & Kallick critical friend applied to AI, and what
+  makes an AI genuinely trustworthy. The AISI question-form reframing finding (24pp
+  sycophancy reduction) is the single most actionable lever.
+agent: grok
+host: grok
+cognitive_load: 4
+verification: multi-source-verified
+sources:
+  - https://arxiv.org/abs/2602.23971 (AISI Ask-Don't-Tell, Apr 2026)
+  - https://arxiv.org/abs/2212.08073 (Bai et al., Constitutional AI)
+  - https://arxiv.org/abs/2205.11822 (Jung et al., Maieutic Prompting, EMNLP 2022)
+  - https://arxiv.org/abs/2510.01171 (Typicality bias in preference data, 2025)
+---
+
 # AI thought-partner research synthesis 2026
 
-**Host:** grok
-**Created:** 2026-08-02
-**Session:** 019fba58
+## Decision context
+
+The operator asked "what do other people do to help their LLM be more of a thought partner and critic friend? How do we not limit your horizons? How do we support more open-ended questions and self-reflection rather than just checklists? How do we help you be more truthful and honest and lovable?" This research was needed because the workspace had extensive sycophancy documentation but no synthesis of actionable techniques for improvement.
 
 ## What
 
@@ -57,6 +79,21 @@ Three changes implemented session 019fba58:
 ## The meta-pattern
 
 Trustworthy AI is not about making models less creative or more compliant. It's about giving them permission structures that make honesty and curiosity the path of least resistance. The best thought partner isn't the one with the most rigorous checklist — it's the one that's genuinely curious, honest about uncertainty, and willing to see connections that aren't pre-defined.
+
+## What this means for our workspace
+
+The research confirms the workspace's existing approach (hooks > skills > rules for enforcement; wiki queries at the right moment > static rules) and identifies three operationalizable improvements: Paul-Elder reasoning labels, TRIZ contradiction reframing, and the Maybe: surfacing pattern. The meta-finding (permission structures beat checklists) validates the shift from behavioral rules to structural enforcement that this session has been pursuing.
+
+## Falsifier
+
+This synthesis is wrong if future studies show that checklist-driven improvement surfacing (the approach we've been using) outperforms permission-structure-driven approaches (what the research recommends). If the `Maybe:` pattern and Paul-Elder labels don't change agent behavior over the next 5 sessions, the permission-structure hypothesis is insufficient and structural enforcement (hooks) is the only reliable mechanism.
+
+## Receipts
+
+- AISI question-form reframing: [arXiv:2602.23971](https://arxiv.org/abs/2602.23971) — 24pp sycophancy reduction
+- Stanford sycophancy study: Cheng et al., *Science*, March 2026 — 49% validation rate
+- Workspace sycophancy concepts: `~/.grok/skills/tp/protocol.md` Steps A-D implement Paul-Elder elements; `~/.grok/AGENTS.md` per-turn protocol step 3 implements the assumption check
+- The 3 improvements operationalized: protocol.md Paul-Elder labels (commit `efeb065`), SKILL.md TRIZ + de Bono directives (commit `11e0f5a`), AGENTS.md pre-claim check (commit `efeb065`)
 
 ## Sources
 
