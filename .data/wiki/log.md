@@ -1,5 +1,11 @@
 # Vault Log
 
+## Close-runner scanner-unavailable: write a session-observations handoff as the fallback evidence ledger
+Source: session-019fba58-20260801
+Agent: grok
+Notes: Disposition rule for close-check terminal state 'scanner unavailable, all gates NOT ASSESSED': write session-observations handoff with status=closed as the manual evidence ledger; do NOT derive persistence/AAR/closure claims from session memory. Distinct from existing close-bug concepts (verdict staleness, JSON-path crash) which all assume scanner produced output.
+Page: P:/.data/wiki/concepts/close-scanner-unavailable-fallback-session-observations-handoff.md
+
 ## Trace skill execution gap on critical code
 Source: session-019fa8f8
 Agent: grok

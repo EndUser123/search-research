@@ -167,6 +167,34 @@ OPEN - 8 findings need remediation before the close-check can re-run and pass. F
 - FMEA fixes must not regress hook behavior - if a fix breaks a hook, revert.
 - T2 (push) requires explicit operator authorization per the destructive-git-gating rule.
 
+---
+
+## Revision 1 — 20260802T000000Z (session 019fa8f8)
+
+**Trigger:** auto-update — new handoffs created for uncovered work streams from this session.
+
+**What changed since the original:**
+- Created \mea-hook-fleet-io-failures-019fa8f8\ handoff capturing all 12 FMEA findings as a durable remediation target
+- Created \close-check-lifecycle-019fa8f8\ handoff documenting the close-check lifecycle for this session (scanner was unavailable due to close-runner bug)
+- Created \close-check-remediation-performance-019fa8f8\ handoff documenting the remediation performance optimization design
+- Created \session-observations-019fa8f8\ handoff capturing durable patterns and findings
+
+**Updated evidence:**
+- close_runner.py Windows-path JSON-stringification bug confirmed as root cause of CLOSE INCOMPLETE (source: close-runner-windows-path-bug-fix handoff)
+- Evidence ledger: NOT GENERATED (confirmed — scanner crashed before evaluation)
+- Close gates: NOT ASSESSED (confirmed — scanner unavailable)
+
+**Status update:**
+- B1/B2 (uncommitted files): still open — operator must commit
+- B3/B4 (unpushed commits): still open — operator must push after review
+- B5/B6 (harvest state): still open — harvest triage needed
+- F1-F12 (FMEA findings): now captured in dedicated handoff, ready for triage
+
+**New open items:**
+- close_runner.py Windows-path bug must be fixed before close-check can produce gate evaluations
+- Evidence ledger must be re-generated after close-runner fix
+- Close gates must be re-assessed after close-runner fix
+
 ## Acceptance criteria for closing this handoff
 
 All five task packets complete. /close-check for 019fa8f8 returns verdict=READY. The 8 session-attributed findings are no longer present in the sweep. P:/ and C:/Users/brsth/.grok are clean and in sync with origin/main.

@@ -9,7 +9,7 @@ last_updated_by: 019fb937-b03e-7f80-a4b0-68afdb7da38d
 last_updated_at: 2026-08-02T05:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 448e0b38806f4bbcdc568696a45d638fdd3eb616
+accurate_as_of_head: 963c0aff7cb1f5a5ecd83a76e1844b1890049218
 ---
 
 # Handoff: Hook timeout root cause — deferred work
@@ -181,6 +181,23 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 - [FACT] 448e0b3 committed after this handoff was written — updated tp-parallel-panel handoff and premature-recommendation wiki concept (source: `git log ef36a71..448e0b3`)
 - [INFERENCE] The analysis-over-action pattern is systemic (not session-specific) — based on 5-session recurrence, but no quantitative measurement of fix-application rate across the workspace
 - [UNKNOWN] yt-is ingestion effort estimate — depends on pipeline capabilities not investigated this session
+
+---
+
+## Revision 2 — 20260802T051500Z (session 019fb937-b03e-7f80-a4b0-68afdb7da38d)
+
+**Trigger:** auto-update — HEAD drifted from 448e0b3 to 963c0af (3 new commits since last revision).
+
+**What changed since the original:**
+- 3 new commits landed (see above)
+- accurate_as_of_head bumped to 963c0af
+
+**Updated evidence:**
+- git rev-parse HEAD → 963c0aff7cb1f5a5ecd83a76e1844b1890049218
+
+**Status update:** unchanged — additional evidence only
+
+**New open items:** none
 
 ## Changelog
 

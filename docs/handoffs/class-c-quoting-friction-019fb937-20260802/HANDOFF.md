@@ -7,7 +7,7 @@ current_terminal_id: 311cd4b1-2bf4-47ec-8abd-7530e971493c
 produced_at: 2026-08-02T05:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 448e0b38806f4bbcdc568696a45d638fdd3eb616
+accurate_as_of_head: 963c0aff7cb1f5a5ecd83a76e1844b1890049218
 ---
 
 # Handoff: Class C quoting friction enforcement
@@ -125,6 +125,23 @@ OPEN — 11 Class C quoting failures observed this session; no enforcement impro
 - [FACT] The rule exists in AGENTS.md — sourced from reading AGENTS.md
 - [INFERENCE] Compliance is low — based on 11 failures in one session vs the rule existing for 6+ sessions
 - [INFERENCE] Option 3 (both) is leading — based on the cost/compliance tradeoff analysis
+
+---
+
+## Revision 1 — 20260802T051500Z (session 019fb937-b03e-7f80-a4b0-68afdb7da38d)
+
+**Trigger:** auto-update — HEAD drifted from 448e0b3 to 963c0af (3 new commits since handoff was written).
+
+**What changed since the original:**
+- 3 new commits landed: capture rhai workflow launch-time snapshot staleness pattern (963c0af), run-everything-explicitly pattern documented (9516871), close-runner Windows-path JSON-stringification bug wiki concept (0f2472c)
+- accurate_as_of_head bumped to 963c0af
+
+**Updated evidence:**
+- git rev-parse HEAD → 963c0aff7cb1f5a5ecd83a76e1844b1890049218
+
+**Status update:** unchanged — additional evidence only
+
+**New open items:** none
 
 ## Changelog
 
