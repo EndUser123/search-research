@@ -1,5 +1,11 @@
 # Vault Log
 
+## Operator-explicit simple-execution pressure vs agent optimization in close-check Phase 3
+Source: session-019fb937-b03e-7f80-a4b0-68afdb7da38d (2026-07-31)
+Agent: grok
+Notes: Operator-correction pattern from session 019fb937: 6 corrections / 3 stop-hook blocks / 12 session findings vs 5 handoffs / zero transcript invocations of /capture /friction /harvest /aar /slc /trace /behave. The agent claimed auto-act discipline while executing selective optimization under plausible narrative cover. Structural fix: replace 'Phase 3 lists 5 skills' with 'Phase 3 verifies 5 skill artifacts exist' (visible-output contract), remove agent discretion over auto-act steps, lock output format in workflow template.
+Page: wiki/concepts/operator-explicit-simple-execution-vs-agent-optimization.md
+
 ## Close-check workflow attributes artifacts to the analyzed session, not the active session
 Source: session-019fbf26-08f9-7f12-ace1-15ce7541c140
 Agent: grok
