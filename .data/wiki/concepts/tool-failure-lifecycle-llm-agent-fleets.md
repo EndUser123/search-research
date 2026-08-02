@@ -81,13 +81,21 @@ Applied to tool-failures, the TTL is a condition that matches the failure's expe
 | API outage (provider down) | Provider restores | 24h or next session | Time-based |
 | Repeated (3+ sessions) | Unknown | N/A | PROMOTE to handoff |
 
-## Session-start health checks (novel — no framework does this)
+## Session-start health checks — REVISED after pre-mortem
 
-**Research finding:** No major agent framework (LangChain, Pydantic AI, CrewAI, AutoGen) performs session-start tool health checks. Half-open circuit breaker probing is the closest analog, but it happens mid-execution when the circuit opens, not proactively at session start.
+**Original proposal:** probe MCP tools at session start to detect which are broken.
 
-**Our fleet's advantage:** the session-start probe is cheap (one `reddit__browse_subreddit` call = 2 seconds) and eliminates the discovery cost that makes research painful when tools fail. This is the structural fix for the friction-reinforcement pattern: if you know what's broken before you start, you plan around it.
+**Pre-mortem verdict (researched Aug 2026):** active health checks at session start are an anti-pattern. Three HIGH-severity risks:
+1. **Thundering herd** — multiple agents probing the same tool simultaneously triggers rate limits and makes the "broken" state worse
+2. **Side-effect probes** — some MCP tools aren't read-only; a health check that triggers a stateful tool changes system state
+3. **False-positive session disablement** — a single transient 429 on the probe disables the tool for the entire session. Netflix reports 70% of incidents from health-check misconfiguration.
 
-**How to implement:** at session start, check `[[tool-fallbacks]]` for TRANSIENT entries whose TTL condition has been met. Run a single probe for each. Remove entries that pass. Increment failure count for entries that fail.
+**Better approach — passive monitoring + lazy first-use with circuit breaker:**
+1. **Lazy first-use:** the agent tries the tool when it needs it. If it fails, the circuit opens and the fallback fires. No probe needed — the first real use IS the probe.
+2. **Passive telemetry:** the fleet already logs every tool failure in `P:/.claude/hooks/.evidence/` and `cc_errors.jsonl`. A session-start step that reads this log ("what failed recently?") is free and non-invasive.
+3. **Circuit breaker on first use:** tenacity + pybreaker wrapping MCP tool calls gives automatic retry + circuit-open without any startup probe.
+
+This is what Datadog, Grafana, and OpenTelemetry do — they don't probe services; they collect metrics passively and alert on thresholds. Active health checks are considered an anti-pattern in observability.
 
 ## Extended timer on repeated failures
 
