@@ -89,6 +89,12 @@ Spawn each specialist as a **read-only** subagent. Each specialist:
 > quality signal. Prefer fewer high-confidence findings over many speculative ones.
 > If you are <70% confident a finding is real, either drop it or label it
 > `[speculative]`.
+>
+> For each finding, the `fix` field must state what design or implementation
+> would make this class of failure impossible — not just "patch this instance."
+> The adversarial posture finds what's wrong; the constructive alternative
+> makes the fix structurally sound. A finding without a resilient alternative
+> is incomplete.
 
 **Cross-model specialist (one per run):** one specialist uses a cross-model model
 for decorrelated blind-spot detection. Pool (try order):
@@ -254,7 +260,7 @@ If any fails: the finding stays in the red-team output only.
       "detail": "<what's wrong, why it matters>",
       "evidence": "<quoted code/citation — required for BLOCK/REVISE>",
       "confidence": "high|medium|low",
-      "fix": "<concrete correction>"
+      "fix": "<resilient alternative: what design makes this class of failure impossible, not just a patch for this instance>"
     }
   ]
 }
