@@ -1,5 +1,11 @@
 # Vault Log
 
+## Pre-packed evidence pattern for workflow subagents
+Source: session-019fb937
+Agent: grok
+Notes: Eliminate redundant transcript re-scans by pre-packing Phase 1/2 evidence into Phase 3 prompts
+Page: .data/wiki/concepts/pre-packed-evidence-pattern-for-workflow-subagents.md
+
 ## implement-now-vs-handoff-standing-question
 Source: dream-2026-08-01
 Agent: grok

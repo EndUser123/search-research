@@ -42,8 +42,11 @@ The close-check scanner at the end of session 019f902a-621d-7711-9436-7c6003c577
 
 If `/close-check` already invokes `/capture` or an equivalent scan, this gap is closed. If `/close-check` is used but `/capture` is not invoked, the gap persists.
 
+**RESOLVED (2026-08-01):** close-check Phase 3 (Remediate) now invokes `/capture` unconditionally alongside `/friction`, `/handoff`, `/trace`, and `/wiki`. Commits: `6d460e1` (Phase 3 added), `e1bd1cf` (auto-act vs surface-only split), `acc3587` (multi-terminal safety), `4d86204` (pre-packed evidence), `c2b9b0c` (rich raw evidence). This gap is closed.
+
 ## Receipts
 
 - `~/.grok/skills/capture/SKILL.md` — capture is invoked by `/close`, not `/close-check`
 - `P:/.data/wiki/concepts/close-check-workflow-replaces-close-for-session-readiness.md` — close-check replaces close
 - Session transcript lines 209-232 — close sequence without `/capture` invocation
+- **Resolution:** `~/.grok/workflows/close-check.rhai` Phase 3 Remediate — `/capture` runs as an auto-act serialized subagent with pre-packed evidence from Phase 1/2
