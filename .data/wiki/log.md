@@ -1,5 +1,11 @@
 # Vault Log
 
+## design-docs-reaped-from-temp-pattern
+Source: session-2026-08-01
+Agent: grok
+Notes: Created via /go 0 — design docs in temp reaped by OS, second confirmed loss (/tp Hat Selection Gate 109KB lost). /design should auto-persist to P:/docs/design/.
+Page: P:/.data/wiki/concepts/design-docs-reaped-from-temp-pattern.md
+
 ## Pre-packed evidence pattern for workflow subagents
 Source: session-019fb937
 Agent: grok
