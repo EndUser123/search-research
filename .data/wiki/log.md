@@ -1,5 +1,11 @@
 # Vault Log
 
+## solution-first-before-root-cause-overengineering-failure
+Source: session 019fba58
+Agent: grok
+Notes: Named failure mode: jumping to architecture before checking if instruction exists
+Page: P:/.data/wiki/concepts/solution-first-before-root-cause-overengineering-failure.md
+
 ## skill-lean-code-context-efficiency
 Source: session-019fc303
 Agent: grok
