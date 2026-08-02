@@ -35,11 +35,11 @@ OPEN — items below are ready for next session pickup.
 - **verification level required:** LIVE_BEHAVIOR
 - **falsifier:** if blocks continue at the same rate, the receipt format may not match what quality_gate.py expects
 
-### NEXT-2: Stop hook capability path normalization investigation
-- **goal:** determine if the 80+ stale receipts in the capability list indicate path normalization issues
-- **context:** the Stop hook matches receipts by file path, but forward vs backslash and relative vs absolute may cause mismatches
+### NEXT-2: Sync wiki pool contracts (coding-model-pool.md, reasoning-model-pool.md, etc.)
+- **goal:** update the wiki pool contract docs to match the fleet-models.json changes made this session
+- **context:** fleet-models.json (machine-readable registry) was synced — mistral removed from coding tier1, glm-5-2 removed from reasoning/critic tier1. But the wiki docs still reference old assignments.
 - **verification level required:** STATIC_INSPECTION
-- **falsifier:** if auto-verify eliminates all blocks, this is moot
+- **falsifier:** if pick_model.py and the spawn gate read fleet-models.json (not the wiki), the wiki drift doesn't affect runtime — but humans reading the wiki get wrong info
 
 ## 5. LATER items
 
