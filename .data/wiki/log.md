@@ -1,5 +1,23 @@
 # Vault Log
 
+## python-m-ruff-swallows-stdout-in-powershell
+Source: session 019fba58
+Agent: grok
+Notes: Use ruff binary not python -m ruff
+Page: P:/.data/wiki/concepts/python-m-ruff-swallows-stdout-in-powershell.md
+
+## chrome-job-object-escape-via-task-scheduler
+Source: session 019fba58
+Agent: grok
+Notes: schtasks workaround for Job Object
+Page: P:/.data/wiki/concepts/chrome-job-object-escape-via-task-scheduler.md
+
+## functional-decomposition-when-test-mocks-constrain-structure
+Source: session 019fba58
+Agent: grok
+Notes: Refactoring deviation pattern
+Page: P:/.data/wiki/concepts/functional-decomposition-when-test-mocks-constrain-structure.md
+
 ## --title
 Source: agy headless permissions.allow fix for filesystem reads
 Agent: --source
