@@ -92,7 +92,18 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 - **falsifier:** >3 inline `python -c` multi-statement failures in a future session
 - **verification level required:** STATIC_INSPECTION (hook exists) or LIVE_BEHAVIOR (friction count drops)
 
-### TP-03: Chronic workspace-health cleanup
+### TP-04: close-check remediation performance optimization
+
+- **id:** TP-04
+- **goal:** Reduce close-check Phase 3 from 12+ minutes to <3 minutes
+- **in scope:** `~/.grok/workflows/close-check.rhai` Phase 3 Remediate
+- **out of scope:** Phase 1 Sweep (parallel agents are fine), Phase 4 Finalize (single agent, fast)
+- **files / anchors:** `C:/Users/brsth/.grok/workflows/close-check.rhai` (Phase 3, ~line 370-430)
+- **acceptance:** close-check completes in <3 minutes with all 5 lifecycle skills executing
+- **falsifier:** close-check still takes >5 minutes after optimization
+- **verification level required:** LIVE_BEHAVIOR (time the workflow end-to-end)
+- **root cause:** Each remediation skill runs as a full subagent spawn (read SKILL.md → scan transcript → check existing → write → commit). 5 subagent lifecycles = 12+ minutes. The orchestrator can do most of this work directly without spawning subagents.
+- **proposed approach:** Move mechanical scanning (grep transcript for correction signals, count friction patterns) inline to the workflow script. Only spawn subagents for the write-capable skills that need LLM judgment to decide what to write. Better yet: have Phase 1 sweep agents ALSO collect the remediation data (they already scan the transcript), then Phase 3 just writes the artifacts based on data already gathered.
 
 - **id:** TP-03
 - **goal:** Resolve chronic workspace-health findings from close-check report
