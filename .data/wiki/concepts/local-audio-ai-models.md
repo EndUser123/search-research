@@ -71,7 +71,7 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 - [[multimodal-local-ai-models]] — Multimodal Local AI Models
 - [[model-quantization-techniques]] — Model Quantization Techniques
-- [[text-to-speech-synthesis]] — Text-to-Speech Synthesis
+- [[private-uncensored-text-to-speech]] — Private Uncensored Text-to-Speech (comprehensive TTS research, resolves the dangling TTS wikilink target)
 - [[privacy-preserving-ai]] — Privacy-Preserving AI
 
 ## Citations (from contributing transcripts)
