@@ -1,5 +1,11 @@
 # Vault Log
 
+## Replacement before investigation pattern
+Source: session-019fb177
+Agent: grok
+Notes: Recurring behavioral pattern: agent recommends replacing tools before trying workarounds. 13+ handoffs.
+Page: wiki/concepts/replacement-before-investigation-pattern.md
+
 ## [2026-08-01] ingest | close-check Phase 4 Finalize: make blocking unnecessary
 Source: session-019fb933 (close-check Phase 4 build)
 Agent: grok
