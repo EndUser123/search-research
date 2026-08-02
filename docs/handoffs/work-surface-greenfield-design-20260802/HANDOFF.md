@@ -21,7 +21,7 @@ accurate_as_of_head: b920822
 
 ## Objective
 
-Replace 8 overlapping work-discovery skills (`/todo`, `/tp session`, `/recap-grok`, `/harvest`, `/capture`, `/friction`, `/close`, `/tasks`) with one unified `/work` skill using the ENTRYPOINT+CMD pattern (one entry, mode flags override). The organic system grew skill-by-skill as problems surfaced; the result is 15+ skills touching work discovery with overlapping outputs, no impact scoring, no commitment gating, no unified entry, and 176 open handoffs that nobody triages because the triage tool is one of the 15.
+Consolidate overlapping work-discovery skills into a unified operator experience. Original proposal was 8→1 (`/work` replacing everything); red-team review (3 specialists, REVISE verdict) corrected this to **3→1** with a delegation-first approach: fix why `/tp session` doesn't call `/todo`, then fold `/capture` + `/friction` into `/tp session`'s evaluation layer. Keep `/harvest`, `/tasks`, `/close`, `/todo`, `/recap-grok`, `/notice` as separate skills with distinct contracts.
 
 ## Scope bounds
 
@@ -48,76 +48,88 @@ Work scope: the work-discovery surface (finding, prioritizing, evaluating, recon
 
 ## Current state
 
-### What's designed
-- `/work` unified skill with 4 modes: default (action list), discover, recap, evaluate
-- Scan engine: 6 mechanical steps (coverage_scan + harvest + git + FINDINGS + WIKI markers + wiki grep)
-- Impact/effort fields added to handoff frontmatter schema
-- NOW/NEXT/LATER mechanical assignment: H/S + H/M = NOW, H/L + M/S = NEXT, rest = LATER
-- 5-phase incremental migration path (~5h total)
+### What's designed (revised after red-team)
+- **Delegation-first approach:** fix /tp session → /todo delegation before building anything new
+- **3→1 scope reduction:** absorb only /capture + /friction into /tp session; keep /harvest, /tasks, /close, /todo, /recap-grok separate
+- Impact/effort fields in handoff frontmatter (with rubric — not "mechanical" until rubric is defined)
+- NOW/NEXT/LATER tier assignment: judgment-based (LLM reads impact/effort + session context), not formula-based
 
 ### What's not started
-- All 5 implementation phases
+- Phase 0: delegation diagnosis
+- All implementation phases
+
+### Red-team findings integrated (REVISE verdict, 2026-08-02)
+- RC-1: 8→1 was false headline — actual coverage was 3→1. Corrected.
+- RC-2: /tp session → /todo delegation failure predicts /work failure. Addressed: delegation-first approach.
+- RC-3: /harvest is event-sourced infrastructure, not a scan step. Corrected: /harvest stays separate.
+- RC-4: Impact scoring subjective without rubric. Accepted: need rubric definition.
+- WF-02: FINDINGS.md scan is terminal-scoped. Accepted: skip or build workspace index.
+- WF-05: <5s scan unbenchmarked. Accepted: measure before claiming.
 
 ## Task packets
 
-### Task 1: Add impact/effort fields to handoff frontmatter
-- id: WS-FRONTMATTER
-- goal: Add `impact`, `effort`, `cost_of_inaction` to handoff YAML frontmatter schema
-- files: `C:/Users/brsth/.grok/skills/handoff/references/core-fields.md`, `P:/docs/handoffs/` (update frontmatter parser)
-- acceptance: coverage_scan.py reads and displays impact/effort; NOW/NEXT/LATER assignment is mechanical
+### Task 0: Diagnose and fix /tp session → /todo delegation
+- id: WS-DELEGATION
+- goal: Make /tp session actually call /todo's scan engine internally instead of requiring the operator to run both
+- files: `C:/Users/brsth/.grok/skills/tp/SKILL.md` (session review protocol section), `C:/Users/brsth/.grok/skills/tp/reference/session-review-protocol.md`
+- root cause to investigate: the delegation is documented in SKILL.md but doesn't fire in practice. Why? Is it a skill instruction gap, a tool availability gap, or a behavioral compliance gap?
+- acceptance: running `/tp session` produces the same action list that `/todo` would produce, without the operator running `/todo` separately
+- verification: run `/tp session` cold and verify the output includes coverage_scan results
+- estimate: S (30 min — may be a one-line instruction fix or may need a structural hook)
+
+### Task 1: Define impact/effort rubric + add to frontmatter
+- id: WS-RUBRIC
+- goal: Define what H/M/L impact and S/M/L effort mean concretely, then add fields to handoff frontmatter
+- files: `C:/Users/brsth/.grok/skills/handoff/references/core-fields.md`, rubric doc (wiki concept or AGENTS.md section)
+- rubric draft: Impact H = blocks other work or unblocks a high-value capability; M = improves a working capability; L = nice-to-have. Effort S = <30 min; M = 30-120 min; L = >2h or multi-session
+- acceptance: coverage_scan.py reads and displays impact/effort; rubric is documented and referenced
 - verification: `python ~/.grok/skills/close/__lib/coverage_scan.py` shows impact column
-- estimate: S (30 min)
-
-### Task 2: Build `/work` scan engine
-- id: WS-SCAN
-- goal: Create `/work` skill with 6-step mechanical scanner producing NOW/NEXT/LATER output
-- files: `C:/Users/brsth/.grok/skills/work/SKILL.md` (new), `C:/Users/brsth/.grok/skills/work/__lib/scan.py` (new)
-- acceptance: `python ~/.grok/skills/work/__lib/scan.py` produces NOW/NEXT/LATER list in <5s
-- verification: compare output to `/todo` coverage_scan — same handoffs surfaced, plus impact tier
-- estimate: M (2h)
-
-### Task 3: Fold `/capture` and `/friction` into `/work evaluate`
-- id: WS-FOLD
-- goal: Merge transcript scanning from `/capture` and `/friction` into `/work evaluate` mode
-- files: mark `/capture` and `/friction` as deprecated; fold scan logic into `/work evaluate`
-- acceptance: `/work evaluate` produces FRICTION + IMPROVEMENT findings that `/capture` and `/friction` would have produced
-- verification: compare finding output to a `/capture` run on the same session
 - estimate: M (1h)
 
-### Task 4: Wire `/tp session` to delegate to `/work`
-- id: WS-WIRE
-- goal: `/tp session` calls `/work` for the action list, adds evaluation layer on top
-- files: `C:/Users/brsth/.grok/skills/tp/SKILL.md` (session review protocol section)
-- acceptance: `/tp session` produces unified view without operator manually running `/todo` first
-- verification: run `/tp session` and verify the output includes `/work` scan results
-- estimate: S (30 min)
+### Task 2: Fold /capture + /friction into /tp session evaluation
+- id: WS-FOLD
+- goal: Merge transcript scanning from /capture (7 categories) and /friction (2 modes) into /tp session's existing transcript scan
+- files: `C:/Users/brsth/.grok/skills/tp/SKILL.md`, `C:/Users/brsth/.grok/skills/tp/reference/session-review-protocol.md`; mark /capture and /friction as deprecated
+- in scope: /capture's 7-category routing (wiki/handoff/harvest), /friction's 2 modes (interaction problems + automation gaps)
+- out of scope: /harvest (stays separate), /tasks (stays separate), /close (deprecated by /close-check)
+- acceptance: `/tp session` produces FRICTION + IMPROVEMENT findings that /capture and /friction would have produced
+- verification: compare finding output to a /capture run on the same session
+- estimate: M (1h)
+- risk: god-function if all categories are scanned in one LLM pass — decompose into sub-scans if output exceeds limits
 
-### Task 5: `/recap-grok` becomes `/work recap`
-- id: WS-RECAP
-- goal: `/work recap` mode replaces `/recap-grok` as the reconstruction entry point
-- files: mark `/recap-grok` as deprecated alias; add recap mode to `/work`
-- acceptance: `/work recap` produces the same reconstruction output as `/recap-grok`
-- verification: compare output structure to `/recap-grok` template
-- estimate: S (30 min)
+### Task 3: Benchmark scan time
+- id: WS-BENCHMARK
+- goal: Measure actual scan time of coverage_scan + 6 steps on 176 handoffs; set realistic target
+- files: `P:/tmp/benchmark_scan.py` (new, temporary)
+- acceptance: measured wall-clock time documented; performance target is evidence-based, not aspirational
+- verification: script runs and produces timing output
+- estimate: S (15 min)
 
 ## Open decisions
 
-### Decision 1: Should `/work` be a new skill or an evolution of `/todo`?
-- Option A: New skill at `~/.grok/skills/work/` — `/todo` becomes alias
-- Option B: Rename `/todo` to `/work` — fewer new paths, less migration
-- Recommendation: A — new skill, `/todo` stays as alias for muscle memory. The skill content is substantially different (4 modes, scan engine, evaluation layer) — renaming `/todo` would bury its current single-purpose design under mode routing.
+### Decision 1: Is /work needed at all? (RESOLVED by red-team)
+- Original proposal: build /work as new skill
+- Red-team finding (ARCH-3): /tp session → /todo delegation already failed; /work is the same pattern
+- **Revised approach:** fix the delegation first (Task 0). If /tp session successfully calls /todo, the unified view works without /work. Only build /work if the delegation fix is insufficient.
+- Status: delegation-first
 
-### Decision 2: Should `/notice` stay separate?
-- Option A: Keep `/notice` separate — it fires mid-conversation at a different cadence than `/work` (which fires on invocation)
-- Option B: Fold `/notice` into `/work` — one fewer skill
-- Recommendation: A — `/notice` is ambient (fires automatically); `/work` is operator-invoked. Different trigger mechanisms mean different skills. The ADHD research confirms ambient retrieval is the load-bearing layer; merging it with operator-invoked `/work` would break the ambient property.
+### Decision 2: Should /notice stay separate? (RESOLVED)
+- **Answer: yes.** /notice is ambient (fires automatically); /tp session is operator-invoked. Different trigger mechanisms. Red-team confirmed.
+
+### Decision 3: Impact rubric definition (NEW — from red-team RC-4)
+- Draft rubric: H = blocks other work or unblocks high-value capability; M = improves working capability; L = nice-to-have
+- Needs operator approval before implementation
+- Status: pending operator input
 
 ## Hard constraints
 
-- Do NOT create a JSON work store — grep on .md handoffs works; frontmatter fields are sufficient (operator corrected this design during session)
+- Do NOT create a JSON work store — grep on .md handoffs works; frontmatter fields are sufficient (operator + red-team confirmed)
+- Do NOT absorb /harvest — it is event-sourced infrastructure with 81 tests, not a scan step (red-team RC-3)
+- Do NOT absorb /tasks — it is a cross-tool contract serving Claude Code, Codex, and Agy (red-team F4.1)
+- Do NOT claim "mechanical" NOW/NEXT/LATER without a rubric — impact scoring is subjective until defined (red-team RC-4)
+- Do NOT claim <5s scan time without benchmarking — measure first (red-team WF-05)
 - Do NOT remove skills without marking them deprecated first — compatibility aliases for muscle memory
-- Each migration phase must be independently shippable — no big-bang cutover
-- `/work` scan must complete in <5s — if it's slower than manual `/todo` invocation, adoption fails
+- Fix the /tp session → /todo delegation BEFORE building any new skill — the delegation failure predicts the new skill's failure (red-team ARCH-3)
 
 ## Cross-reference couplings
 
@@ -127,38 +139,16 @@ Work scope: the work-discovery surface (finding, prioritizing, evaluating, recon
 
 ## Explicit non-goals
 
+- Do NOT build `/work` as a new skill unless Task 0 (delegation fix) is insufficient
 - Do NOT merge skills that produce artifacts (`/handoff`, `/wiki`) — different output type
 - Do NOT merge skills that produce research (`/www`) — different output type
 - Do NOT merge quality gates (`/review`, `/check`) — different lifecycle stage
-- Do NOT build a discovery router for code/knowledge/patterns — separate enhancement, track separately
+- Do NOT absorb `/harvest` (event-sourced state machine) or `/tasks` (cross-tool contract)
 - Do NOT add ambient session-start hooks in this handoff — separate enhancement
-
-## Resumption protocol
-
-1. Read `P:/.data/wiki/concepts/skill-graph.md` for the delegation map
-2. Read this handoff's Task 1-5 packets
-3. Start with Task 1 (frontmatter fields) — it's the foundation everything else reads
-4. Validate each phase independently before proceeding
-
-## Suggested next invocation
-
-```
-/go execute the work-surface-greenfield-design handoff at P:/docs/handoffs/work-surface-greenfield-design-20260802/HANDOFF.md
-```
-
-## Last user message (verbatim)
-
-> greenfield isn't a fantasy.  we have an organic system that developed in pieces and doens't align with best practices.
-
-## Epistemic labels per claim
-
-- [FACT] skill counts, handoff counts, overlap assessments — verified by grep/coverage_scan this session
-- [FACT] research findings — sourced from 3 parallel DDG research subagents + HN Algolia + Reddit
-- [INFERENCE] the ENTRYPOINT+CMD pattern is the right model — supported by research but not yet validated on our workspace
-- [INFERENCE] 8 skills can be consolidated to 1 — based on overlap analysis; actual consolidation may reveal orthogonal scope that should stay separate
 
 ## Changelog
 
 | Date | Session | Action |
 |------|---------|--------|
-| 2026-08-02T16:30 | 019fb177... | created |
+| 2026-08-02T16:30 | 019fb177... | created — original 8→1 /work proposal |
+| 2026-08-02T17:50 | 019fb177... | revised — red-team REVISE verdict integrated; 8→1 corrected to delegation-first 3→1; /harvest and /tasks kept separate; impact rubric required; /work deferred pending Task 0 |
