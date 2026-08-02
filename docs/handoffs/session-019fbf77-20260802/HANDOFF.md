@@ -62,3 +62,30 @@ OPEN — Phase 1 work complete, Phases 2-4 are infrastructure for fresh sessions
 ## Falsifier
 
 This handoff is obsolete when all referenced handoffs are closed and the wiki concepts are superseded by newer research. The epistemic knowledge system design is the load-bearing artifact — it should outlive all other session work.
+
+---
+
+## Revision 3 — Epistemic debt re-verification loop (2026-08-02, second RNS execution)
+
+**Trigger:** operator said "0" to execute all recommended next steps from /wiki RNS. This revision covers the debt-reverification work arc that demonstrated the self-improving knowledge system closing its first full loop.
+
+### Completed in this revision
+
+| Item | What was done | Commit |
+|---|---|---|
+| Verify-before-write hook | Confirmed already built + active (19 tests pass, in active-surface snapshot) | N/A (no action needed) |
+| Commit untracked wiki concepts | 4 concepts committed; item 8 added to /wiki RNS table | 3176cbc, 7b15aa4 |
+| /www examples-over-rules | Full /www run: 3 subagents + HN/DDG. Refuted "10-30 examples" (saturation at 2-8). Refined domain split to format-matching vs reasoning. Upgraded verification: inferred-only → multi-source-verified. Debt 0.72 → resolved. | 7b7a73f |
+| Reddit-rss MCP test | Transport works (3 tools connected). Reddit returns persistent 429 on both MCP servers. DDG site-search remains the working Reddit path. | N/A (finding only) |
+| /dream appendix | Pattern 4: "self-improving knowledge system closes its first loop." Dream proposals 1+2 resolved. | 15a11f0 |
+| analyst-exhibits-pattern | Upgraded from inferred → multi-source-verified. Filled Falsifier + workspace-implications. 3 receipted instances. Debt 0.60 → resolved. | 15a11f0 |
+
+### Key finding: the epistemic debt loop works end-to-end
+
+The debt scanner flagged examples-over-rules (0.72) and analyst-exhibits-pattern (0.60) as the top 2 highest-debt concepts. Both were re-verified in-session: one via /www (3 subagents, 11 sources), one via receipt-backed upgrade (3 instances already documented). Both dropped out of the top debt items. This is the first time the full loop ran: **write → accrue debt → re-research → upgrade verification → debt drops → next concept surfaces**.
+
+### Remaining work (unchanged from prior revisions)
+
+- Epistemic knowledge system Phases 2-4 (telemetry store, adversarial personas, graph infrastructure, synthesis engine) — in `epistemic-knowledge-system-phases-2-4` handoff
+- Reddit MCP both servers blocked by 429 — DDG site-search is the only reliable path in 2026
+- 3 more debt items remain in research-suggestions.json (writing-discipline-not-enforced at 0.56, user-modeling at 0.55, grok-build-compat-layer at 0.54)
