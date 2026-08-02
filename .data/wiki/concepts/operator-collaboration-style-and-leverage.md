@@ -101,6 +101,10 @@ The operator's collaboration style, as evidenced across 12 sampled transcripts a
 
 10. **Thoroughness over brevity.** Direct quotes: "I don't want a short sweep, do that, but also look for repos that have good ideas. don't be lazy." (`:100`), "I'd rather err on the side of doing more, to ensure quality outcomes. We shouldn't artificially limit the lenses we use." (`:186`). This matches AGENTS.md Environment: "lean slightly more thorough rather than less."
 
+11. **Recommendation completeness expectation** (added 2026-08-01 via /dream Pass 4). The operator wants the FULL list of items with positive ROI, each tagged with confidence (H/M/L). Does NOT want pre-curated "top N" subsets. Scans and prioritizes himself. Direct quote: "I don't like it when you hide recommendations from me. I don't want only two, I want all of them that have value." Evidence: sessions 019fbdfb (2026-08-01) and 019f9aff AAR E2/E5 (2026-07-26). Now enforced via AGENTS.md § Recommendations "Completeness over curation."
+
+12. **Correction frequency baseline** (added 2026-08-01 via /dream Pass 4). ~1-3 corrections per session is the norm. Corrections cluster around: (1) completeness vs curation of recommendations, (2) premature closure under time pressure, (3) asserting behavior from memory rather than testing. Evidence: AAR 019f9aff recorded 3 corrections; session 019fbdfb recorded 2 (hiding recommendations, skipping Phase 1 review). Pattern visible across ≥3 sessions per wiki concepts `overclaiming-under-exploration-to-recommendation-pressure.md` and `reactive-pattern-matching-and-closure-pressure.md`.
+
 ### 1.3 Alignment with external best practices
 
 Per Lane 4, the operator's documented practices converge with the field on 11 of 12 high-confidence practices identified (verification gates, spec-before-code, just-in-time context, subagent architectures, tiered model routing, etc.). The operator is **ahead of external literature** on:

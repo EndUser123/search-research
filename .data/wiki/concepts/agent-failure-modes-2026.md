@@ -26,7 +26,7 @@ Saplin's taxonomy of 22 distinct failure modes agentic LLMs exhibit when working
 
 - **One-shotting** — Agent tries to build the entire app in one bite, runs out of context, leaves half-built mess. Source: Anthropic long-running-agents.
 - **Plan drag** — Plans and task trees prevent early stopping until reality changes; the structure itself resists adaptation. Source: Random Labs Slate.
-- **Ugly wish-granting** — Vague request gets literal interpretation; agent grants the wish exactly and uglier than if you hadn't asked. Source: Saplin observation.
+- **Ugly wish-granting** — Vague request gets literal interpretation; agent grants the wish exactly and uglier than if you hadn't asked. Source: Saplin observation. **Refinement (2026-08-01, session 019f76e8 AAR):** this mode has two sub-patterns: (a) vague-request literalism (the original Saplin form) and (b) **technically-defensible-but-wrong-framing** — the agent answers the question as literally posed rather than inferring the intent behind it. Example: operator asked "what will be lost?" (completeness audit); the value-judgment question was "what should be captured?" The agent's literal answer was valid but useless. Both sub-patterns share the root cause: optimizing for the technically-defensible interpretation over the operator's actual need. Structural fix: the AAR Q11 addition partially mitigates for AAR specifically; the general pattern needs cross-skill monitoring.
 - **Spec-deliverable confusion** — Plan/design doc treated as part of the actual deliverable; agent bundles scaffolding with what it was supposed to build. Source: Saplin observation.
 
 ### Execution failures
