@@ -164,3 +164,22 @@ This handoff is wrong if:
 - Wiki concepts: `router-proxy-tool-calling-normalization-patterns.md`,
   `intent-mode-gated-auto-composition.md`,
   `overclaiming-under-exploration-to-recommendation-pressure.md`
+
+---
+
+## Revision 1 — 2026-08-01 (session 019fb177)
+
+**Context:** Post-compaction continuation session built tp_dispatch.py, parallel lens panel, and --detail flag — all of which touch the fleet dispatch surface this handoff covers.
+
+**What shipped that supersedes parts of this handoff:**
+
+| Item | Status | Note |
+|------|--------|------|
+| /codex SKILL.md baseline stale (gpt-5.6-luna vs gpt-5.6-sol) | **Superseded** — Luna price drop (80%) and parallel panel work updated the cascade. The model reference in tp_dispatch.py defaults to `gpt-5.6-luna`. Operator confirmed Luna is correct. |
+| Q5 graduated quota floor | **Still deferred** — not touched this session |
+| Q6 PreCompact hook | **Still deferred** — not touched this session |
+| Parallel panel replaces cascade | **Shipped** (commit `62fb4c7`) — the cascade this handoff's "model cascade" section describes has been replaced with parallel dispatch. The fleet-dispatch improvements (Q5, Q6) are still relevant for the spawn pool lane but the overall architecture is now parallel-first. |
+
+**New handoffs that cover post-compaction fleet work:**
+- `tp-parallel-panel-dispatch-20260801` — tp_dispatch.py, parallel panel, --detail flag, agy wrapper
+- `premature-recommendation-pattern-20260801` — behavioral pattern related to agy dispatch
