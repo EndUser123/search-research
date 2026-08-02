@@ -109,6 +109,18 @@ def extract_user_messages(chat_file: Path) -> list[str]:
                         break
     except (OSError, UnicodeDecodeError):
         pass
+
+    # Warn if the file is non-empty but no user messages were extracted.
+    # This catches format drift (F3-05 style) silently dropping sessions.
+    if not messages:
+        try:
+            size = chat_file.stat().st_size
+            if size > 100:
+                print(f"  WARNING: {chat_file.name} ({size}B) had 0 user messages "
+                      f"— possible format drift", file=sys.stderr)
+        except OSError:
+            pass
+
     return messages
 
 
