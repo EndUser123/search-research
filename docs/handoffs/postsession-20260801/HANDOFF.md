@@ -69,6 +69,11 @@ Final session state:
 - This session's /www run skipped mmx search because I called ddgs_search.py directly instead of going through /web's recipe (DDG + mmx + firecrawl).
 - Fix: either enforce /web usage in /www SKILL.md, or add a note that research calls must use the full recipe.
 
+### LATER-3: serde_broken re-probe mechanism
+- The serde_broken list has grown to 11 models with no TTL or periodic re-probe. Models fixed by providers stay blocked forever. The available spawn pool shrinks over time.
+- Fix: a periodic re-probe script that tests each serde_broken model with a trivial spawn and removes it from the list if it succeeds.
+- Priority: LOW — 11 broken models still leaves ~20+ available across all lanes.
+
 ## 6. Open handoffs from prior sessions
 
 - **Red-team /design skill:** `P:/docs/handoffs/design-skill-red-team-20260730/HANDOFF.md` — OPEN, not started
