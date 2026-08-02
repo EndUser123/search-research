@@ -172,11 +172,9 @@ This finding is wrong if:
 
 ## Auto-related
 
-- [[lifecycle-skill-remediation-modes-auto-act-vs-surface-only]]
-- [[trace-skill-execution-gap-critical-code-uncaught]]
-- [[behavioral-compliance-gap-agent-skips-instructed-steps-without-verifying]]
-- [[close-check-finalize-phase-make-blocking-unnecessary]]
-- [[close-check-attribution-references-analyzed-session-not-active]]
-- [[visible-output-contracts-for-behavioral-skill-steps]]
-- [[posttooluse-auto-verify-eliminates-stop-hook-stale-receipt-blocks]]
-- [[narrative-as-signal-anti-dismissal-rule]]
+- [[user-modeling-for-agentic-clis]]
+- [[operator-collaboration-style-and-leverage]]
+- [[scope-matching-verification-discipline]]
+- [[recurring-thinking-errors]]
+- [[research-quality-principle-efficiency-not-censorship]]
+
