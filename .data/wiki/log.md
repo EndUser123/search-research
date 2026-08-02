@@ -1,5 +1,11 @@
 # Vault Log
 
+## Preemptive edge-case consideration for AI coding agents
+Source: www-research-20260802
+Agent: grok
+Notes: Research on pre-mortem, EGDP, structural enforcement for edge-case consideration
+Page: P:/.data/wiki/concepts/preemptive-edge-case-consideration-for-ai-coding-agents.md
+
 ## [2026-08-02] ingest | Test-design falsification of production components — when a flawed test flags a working fleet model as broken
 Source: session-2026-08-02
 Agent: grok
