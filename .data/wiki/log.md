@@ -1,5 +1,17 @@
 # Vault Log
 
+## [2026-08-01] ingest | harvest CLI not on PATH — chronic obligation-tracking friction
+Source: session-019fbf02-d3dd-7f72-9ad2-4538790c0a82 (close-check Phase 3 /harvest subagent)
+Agent: grok
+Notes: harvest show/scan-handoffs fail with 'term not recognized'. Obligation store intact (P:/.data/harvest/) but CLI driver unreachable. Cross-session pending items accumulating (1d old tp-session-019fb926.json). Workaround: python -m harvest.cli <subcmd>. Same PowerShell-wrapper failure class as python-m-ruff-swallows-stdout-in-powershell.
+Page: wiki/concepts/harvest-cli-not-on-path.md
+
+## [2026-08-01] ingest | close_runner.py receives full session JSON literal as session_dir arg (WinError 123)
+Source: session-019fbf02-d3dd-7f72-9ad2-4538790c0a82 (close-check Phase 1 / capture)
+Agent: grok
+Notes: Boundary type confusion: caller passed structured session record (dict/JSON literal) where runner expects string path. Path with {}: , triggers Windows OSError [WinError 123]. Plausible-narrative trap: 'runner is broken' vs actual upstream arg-shape bug. Same class as serde-broken-false-positive-sweep.
+Page: wiki/concepts/close-runner-json-arg-parsing-bug.md
+
 ## design-docs-reaped-from-temp-pattern
 Source: session-2026-08-01
 Agent: grok
