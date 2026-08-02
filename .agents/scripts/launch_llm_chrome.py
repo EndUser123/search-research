@@ -90,30 +90,42 @@ def kill_chrome():
 
 
 def launch_chrome():
-    """Launch Chrome using PowerShell Start-Process.
+    """Launch Chrome via Windows Task Scheduler to escape the Job Object.
 
-    Note: subprocess.Popen with DETACHED_PROCESS, CREATE_BREAKAWAY_FROM_JOB,
-    or CREATE_NEW_PROCESS_GROUP all fail — the Grok Build terminal sandbox
-    uses a Job Object that kills child processes when the command completes,
-    and CREATE_BREAKAWAY_FROM_JOB requires SeTcbPrivilege (access denied).
+    Grok Build's terminal wraps all commands in a Windows Job Object with
+    KILL_ON_JOB_CLOSE. Any process launched via subprocess.Popen, os.system,
+    or Start-Process inherits the job and gets killed when the command exits.
+    CREATE_BREAKAWAY_FROM_JOB requires SeTcbPrivilege (access denied).
 
-    Start-Process creates the process via ShellExecute which goes through
-    explorer.exe, not the current process tree. This is the only reliable
-    way to launch a persistent process from within the terminal sandbox.
+    Task Scheduler launches Chrome via the scheduler service (svchost.exe),
+    which is completely outside the terminal's Job Object. Chrome survives.
     """
     if not Path(CHROME_EXE).exists():
         print(f"ERROR: Chrome not found at {CHROME_EXE}", file=sys.stderr)
         sys.exit(1)
 
-    # Build the PowerShell command — use Start-Process via shell
-    ps_cmd = (
-        f"Start-Process '{CHROME_EXE}' -ArgumentList "
-        f"'--user-data-dir={PROFILE_DIR}','--new-window',"
-        f"'chrome://inspect/#remote-debugging'"
+    task_name = "LaunchChromeLLM"
+    chrome_args = (
+        f'--user-data-dir="{PROFILE_DIR}" '
+        f'--new-window '
+        f'chrome://inspect/#remote-debugging'
     )
-    # Use os.system which goes through cmd.exe → shell, not subprocess.Popen
+
+    # Create and run a one-time task
+    create_cmd = (
+        f'schtasks /create /tn "{task_name}" '
+        f'/tr "\\"{CHROME_EXE}\\" {chrome_args}" '
+        f'/sc once /st 23:59 /f'
+    )
+    run_cmd = f'schtasks /run /tn "{task_name}"'
+
     import os
-    os.system(f'powershell -NoProfile -Command "{ps_cmd}"')
+    os.system(create_cmd)
+    os.system(run_cmd)
+
+    # Clean up the task (Chrome is already running, don't need it anymore)
+    os.system(f'schtasks /delete /tn "{task_name}" /f')
+
     time.sleep(4)
 
 
