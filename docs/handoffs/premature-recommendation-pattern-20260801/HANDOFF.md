@@ -54,7 +54,7 @@ Related wiki concepts:
 ### Task 2: Document the behavioral pattern as a wiki concept
 **File:** `P:/.data/wiki/concepts/replacement-before-investigation-pattern.md`  
 **Content:** The pattern, evidence (this session + 13 related handoffs), falsifier, and the standing rule. Cross-reference to `[[fabricated-causal-chain-receipt-required]]` and `[[behavioral-compliance-gap-agent-skips-instructed-steps-without-verifying]]`.  
-**Status:** Not started
+**Status:** DONE — wiki concept written, validated, auto-linked, committed (`847adfd` on P:/)
 
 ### Task 3: Add standing rule to AGENTS.md or /tp SKILL.md
 **Content:** "Before recommending that a tool, service, or skill be replaced with an alternative, enumerate: (1) what was tried with the current tool, (2) what workarounds exist that haven't been tested, (3) whether the failure was verified on our actual workload vs a different context. If any of these is unanswered, the recommendation is premature."  
@@ -69,3 +69,10 @@ Related wiki concepts:
 - Do NOT recommend replacing agy with direct API. Use agy properly first.
 - The stream-json approach is the primary fix. Direct API is a fallback, not a replacement.
 - The behavioral pattern is the meta-issue; the agy wrapper is one instance of it.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-01 | 019fb177... | created |
+| 2026-08-02T04:10 | 019fb177... | updated — Task 2 (wiki concept) DONE. Concept written, validated, committed `847adfd`. Tasks 1, 3, 4 still open. |
