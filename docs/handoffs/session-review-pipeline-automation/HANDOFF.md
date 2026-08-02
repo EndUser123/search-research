@@ -81,8 +81,48 @@ automatic is the structural fix for the manual-composition pattern.
 - [ ] Phase 4.5 output is appended to the same `pre-close-report.md` (single artifact)
 - [ ] Total runtime stays under 30 min for typical sessions
 
+## Recursion risk — surfaced by /capture (2026-08-01)
+
+`/capture` sweep (session 019f9a89, Phase 3 close-check → /capture) flagged
+a structural concern with the proposed Phase 4.5 chain:
+
+**The risk:** if any subagent in Phase 4.5 — most plausibly `/tp do?` —
+responds with "re-run /close-check" or otherwise triggers close-check as
+a follow-up action (operator-mediated or skill-mediated), the chain
+re-enters close-check. Close-check Phase 3 already invokes `/capture` (the
+sweep that produced this concern), so the second invocation re-runs
+capture, which re-emits findings, which can recommend another close-check
+run, etc. **Operator-mediated loop is plausible** because close-check is
+the natural follow-up to a `/tp` recommendation about session readiness.
+
+**Mitigation options** (for the designer to evaluate):
+1. **`--depth` guard in close-check** — track invocation depth via
+   `GROK_SESSION_DEPTH` env var; refuse Phase 4.5 if depth > 1.
+2. **Phase 4.5 as a separate workflow** (`/session-review`) rather than a
+   close-check phase. Two commands, no nested invocation.
+3. **Disable Phase 4.5 by default** — only available via explicit
+   `/close-check --full` flag. Operator must opt in each time, so
+   accidental recursion requires two intentional commands.
+4. **Skip-if-already-ran guard** — Phase 4.5 checks if `/recap-grok`,
+   `/todo`, `/tp` ran in the current session and skips if so. Lightweight
+   but can produce silent no-ops on operator's first review of the
+   session.
+
+**Recommendation:** Option 3 (`--full` flag, opt-in) is the safest
+default. Option 1 (depth guard) is the most defensive but adds
+infrastructure for a problem that may not manifest in practice. The
+recursion risk is real but the cost of false-flag avoidance is low
+(operator must re-run a command).
+
+**Reference:** [[verifier-false-confidence-receipt-claims-success-when-tool-absent]]
+is a sibling near-miss failure pattern — different domain, same class
+(structural failure that is invisible until something downstream
+trusts it).
+
 ## Cross-references
 
 - [[inter-skill-output-bridges-and-temporal-surfacing-layers]] — the composition pattern
 - [[command-wrapper-pattern-for-workflows]] — close-check already uses this pattern
+- [[verifier-false-confidence-receipt-claims-success-when-tool-absent]] — sibling near-miss pattern: invisible failure until downstream trust
 - Session `019fbf26` — the session where this pipeline was manually demonstrated
+- Session `019f9a89` — /capture sweep that surfaced the recursion risk
