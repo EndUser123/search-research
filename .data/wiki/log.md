@@ -1,5 +1,17 @@
 # Vault Log
 
+## Operator Pre-Emptive Review
+Source: session-019fbdfb
+Agent: grok
+Notes: Operator technique: reading between the lines to catch invisible skips. 3 instances. Partially mechanized by completeness counter, phase-log, dead-zone guard.
+Page: wiki/concepts/operator-pre-emptive-review-catching-invisible-skips.md
+
+## Right-But-Insufficient: Hidden Output Quality Failure
+Source: session-019fbdfb
+Agent: grok
+Notes: Meta-pattern: agent produces technically correct output that misses something. 4 manifestations this session. Fixed by completeness counter, phase-log, dead-zone guard.
+Page: wiki/concepts/right-but-insufficient-hidden-output-quality-failure.md
+
 ## problem-solving-frameworks-evidence-assessment-2026
 Source: session 019fba58
 Agent: grok
