@@ -440,6 +440,15 @@ Emits: broken wikilinks, orphan pages, duplicate slugs, missing frontmatter, sta
 grep -L "^type:" P:/.data/wiki/concepts/*.md | head -20
 # → concepts without type: field (should be tagged with type on next edit)
 
+# Citation accuracy: verify synthesized pages cite their sources
+python -c "
+from pathlib import Path
+for p in Path('P:/.data/wiki/concepts').glob('*.md'):
+    text = p.read_text(encoding='utf-8')
+    if '## Sources' not in text and 'source:' in text[:500]:
+        print(f'CITATION_GAP: {p.name} has source: in frontmatter but no ## Sources section')
+"
+
 # Thin-concept detection: pages <300 chars or zero outbound [[wikilinks]]
 python -c "
 from pathlib import Path
