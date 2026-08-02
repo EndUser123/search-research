@@ -28,6 +28,7 @@ from pathlib import Path
 
 WIKI_CONCEPTS = Path("P:/.data/wiki/concepts")
 SUGGESTIONS_FILE = Path("P:/.data/wiki/_state/research-suggestions.json")
+CACHE_FILE = Path("P:/.data/wiki/_state/epistemic-debt-cache.json")
 
 # Verification tier → base debt
 VERIFICATION_DEBT = {
@@ -204,12 +205,43 @@ def compute_debt(fm, today=None):
     }
 
 
+def build_reverse_link_index():
+    """Single-pass scan: read all files once, build {slug: [concepts linking to it]}."""
+    link_map = {}  # slug → count of incoming links
+    all_slugs = set()
+    
+    # First pass: collect all slugs
+    for md_file in WIKI_CONCEPTS.glob("*.md"):
+        all_slugs.add(md_file.stem)
+        link_map.setdefault(md_file.stem, 0)
+    
+    # Second pass: for each file, find all [[slug]] references and increment targets
+    for md_file in WIKI_CONCEPTS.glob("*.md"):
+        try:
+            content = md_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        # Find all [[slug]] or [[slug|alias]] references
+        for match in re.finditer(r"\[\[([a-z0-9-]+)(?:\|[^\]]+)?\]\]", content):
+            target_slug = match.group(1)
+            if target_slug in all_slugs and target_slug != md_file.stem:
+                link_map[target_slug] = link_map.get(target_slug, 0) + 1
+    
+    return link_map
+
+
 def scan_concepts():
-    """Scan all wiki concepts, return list of (path, frontmatter, debt_info)."""
+    """Scan all wiki concepts, return list of (path, frontmatter, debt_info).
+    
+    Uses a pre-built reverse-link index (single pass) instead of O(n²) per-file scanning.
+    """
     results = []
     
     if not WIKI_CONCEPTS.exists():
         return results
+    
+    # Build reverse-link index ONCE (was O(n²), now O(n))
+    link_map = build_reverse_link_index()
     
     for md_file in sorted(WIKI_CONCEPTS.glob("*.md")):
         try:
@@ -223,18 +255,9 @@ def scan_concepts():
         
         debt_info = compute_debt(fm)
         
-        # Count incoming wikilinks (how many other concepts reference this one)
+        # Look up incoming links from the pre-built index (O(1) lookup)
         slug = md_file.stem
-        incoming = 0
-        for other_file in WIKI_CONCEPTS.glob("*.md"):
-            if other_file == md_file:
-                continue
-            try:
-                other_content = other_file.read_text(encoding="utf-8")
-                if f"[[{slug}]]" in other_content or f"[[{slug}|" in other_content:
-                    incoming += 1
-            except Exception:
-                pass
+        incoming = link_map.get(slug, 0)
         
         debt_info["incoming_links"] = incoming
         # Boost debt by incoming links (more referenced = higher stakes)
@@ -330,11 +353,27 @@ def main():
     parser.add_argument("--threshold", type=float, default=0.0, help="Minimum debt score to include")
     parser.add_argument("--json", action="store_true", help="JSON output only")
     parser.add_argument("--dry-run", action="store_true", help="Print only, don't write suggestions file")
+    parser.add_argument("--cache", action="store_true", help="Write full results to cache file for fast /www Phase 1 reads")
+    parser.add_argument("--from-cache", action="store_true", help="Read from cache instead of re-scanning (fast)")
     args = parser.parse_args()
     
-    print("Scanning wiki concepts...", file=sys.stderr)
-    results = scan_concepts()
-    print(f"Scanned {len(results)} concepts.", file=sys.stderr)
+    if args.from_cache:
+        if not CACHE_FILE.exists():
+            print("No cache file found. Run with --cache first.", file=sys.stderr)
+            sys.exit(1)
+        results = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        print(f"Loaded {len(results)} concepts from cache ({CACHE_FILE.stat().st_size // 1024}KB).", file=sys.stderr)
+    else:
+        print("Scanning wiki concepts...", file=sys.stderr)
+        results = scan_concepts()
+        print(f"Scanned {len(results)} concepts.", file=sys.stderr)
+        
+        if args.cache:
+            CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            tmp = CACHE_FILE.with_suffix(".tmp")
+            tmp.write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
+            tmp.replace(CACHE_FILE)
+            print(f"Wrote cache to {CACHE_FILE}", file=sys.stderr)
     
     if args.json:
         filtered = [r for r in results if r["debt"] >= args.threshold]
