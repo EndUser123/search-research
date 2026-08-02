@@ -3,6 +3,13 @@ title: "Hook fleet I/O failure modes — cascade amplification in verification g
 created: 2026-08-02
 source: session-019fa8f8-7e86-77f0-8e81-a7609f3c8b14
 tags: [fmea, hook-i/o, cascade-amplification, fail-open, verification-receipt, hook-fleet, capture]
+summary: >
+  Hook script I/O failures have a cascade-amplification property that workspace
+  scripts lack: silent drops break the verification chain downstream, producing
+  opaque "blocked" loops far from the actual cause. The 2026-08-02 FMEA sweep
+  surfaced 8 findings across the hook fleet. The fix is a 5-rule I/O contract
+  (warn-on-fail writes, file-locked shared state, warn-on-missing reads,
+  explicit arg arrays, finally-guarded temp cleanup), not 8 individual patches.
 agent: grok
 host: grok
 cognitive_load: 3
@@ -187,6 +194,63 @@ FMEA sweep output (session 019fa8f8, 2026-08-01, sweep pass). Files modified in 
 I/O patterns identified via file content analysis: bare `except Exception: pass`, `except OSError: pass`, `subprocess.run(shell=True)`, `os.replace()` without retry, `tempfile.NamedTemporaryFile(delete=False)`.
 
 **Reference failure (predicted):** if a future session sees `NO_COVERING_RECEIPT` blocks that don't respond to fixes, OR quota cache corruption that doesn't have a diagnostic, OR repeated `schtasks` hangs, that is the cascade-amplification failure this concept exists to prevent. The fix handoff is `docs/handoffs/fmea-fix-batch-20260802/HANDOFF.md`.
+
+## What this means for our workspace
+
+The hook fleet is the verification gate of last resort. Every silent drop in
+the hook fleet translates to a downstream gate failure. The 8 FMEA findings
+are not 8 separate bugs - they are 8 instances of a single architectural gap:
+the hook fleet does not have I/O contracts that match the cascade-amplification
+property of the verification system.
+
+**Concrete actions for our workspace:**
+
+1. **Add the 5-rule I/O contract to ~/.claude/rules/hook-development.md** as a
+   mandatory pre-commit checklist (parallel to the existing tests/anti-mock
+   rules). The rules are stated in the "Structural fix" section above.
+2. **Add a Stop-hook check** that scans the hook fleet for the 5 anti-patterns
+   (silent except, shell=True, os.replace without retry, NamedTemporaryFile
+   delete=False without finally-guarded unlink, concurrent writes without
+   locking). Print a warning with file:line; require fix before merge.
+3. **Refactor the 8 hooks identified in the FMEA sweep** to comply with the
+   contract. Each fix is a separate commit (matching AGENTS.md auto-commit
+   rule). The handoff at docs/handoffs/fmea-fix-batch-20260802/HANDOFF.md has
+   task packets T1 (HIGH), T2 (MEDIUM), T3 (LOW).
+4. **Wire the existing PostToolUse_auto_verify.py failure path to the
+   evidence log** so silent OSError swallows produce a structured warning.
+   This addresses F2 (the highest-impact finding) at the lowest cost.
+5. **Replace python -m ruff fallback in ship_receipt.py with a hard
+   failure** - the primary ruff binary is sufficient. The fallback
+   produces silent PASS on actual lint failure, which is the worst case
+   (truthful failure masked as success).
+
+**What this concept does NOT change**: the existing workspace-script FMEA
+concept remains the canonical reference for P:/.agents/scripts/ patterns.
+This concept is the hook-fleet complement.
+
+## Receipts
+
+- **F1 (ship_receipt.py python -m ruff fallback):** read_file confirmed the
+  fallback path at the ship_receipt.py line ~290 in the FMEA sweep; the
+  breakage is documented in [[python-m-ruff-swallows-stdout-in-powershell.md]]
+  (verified by AGENTS.md Class C quoting section).
+- **F2 (PostToolUse_auto_verify.py _write_receipt):** the silent except is
+  in function _write_receipt() - FMEA sweep identified the pattern.
+- **F3 (PostToolUseFailure_spawn_quota.py):** learn_serde_broken(),
+  update_cache(), track_escalation() per FMEA sweep raw evidence.
+- **F4 (PreToolUse_spawn_model_gate.py):** read_quota_cache(),
+  get_serde_broken() per FMEA sweep raw evidence.
+- **F5 (UserPromptSubmit_quota_availability.py):** save_state() per FMEA
+  sweep raw evidence.
+- **F6 (close_accounting.py):** write_evidence_ledger() per FMEA sweep
+  raw evidence.
+- **F7 (fleet_quota.py):** subprocess calls per FMEA sweep raw evidence.
+- **F8 (synthesize_subtopics.py):** temp file handling per FMEA sweep
+  raw evidence.
+- **Source provenance:** session 019fa8f8-7e86-77f0-8e81-a7609f3c8b14,
+  2026-08-01 sweep pass, FMEA raw evidence section.
+- **Implementation handoff:** P:/docs/handoffs/fmea-hook-fleet-io-failures-20260802/HANDOFF.md
+  has task packets T1 (HIGH-priority fixes), T2 (MEDIUM), T3 (LOW).
 
 ## Falsifier
 
