@@ -1,5 +1,11 @@
 # Vault Log
 
+## implement-now-vs-handoff-standing-question
+Source: dream-2026-08-01
+Agent: grok
+Notes: Mandatory disposition for every finding — DO_NOW vs NEW_HANDOFF standing question
+Page: P:/.data/wiki/concepts/implement-now-vs-handoff-standing-question.md
+
 ## python-m-ruff-swallows-stdout-in-powershell
 Source: session 019fba58
 Agent: grok
