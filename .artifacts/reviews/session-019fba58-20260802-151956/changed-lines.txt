@@ -1,0 +1,708 @@
+=== hooks/PreToolUse_skill_staleness.py ===
+--- /dev/null
++++ b/hooks/PreToolUse_skill_staleness.py
++#!/usr/bin/env python3
++"""PreToolUse skill staleness check.
++
++Fires on read_file calls. When the target path is a SKILL.md file,
++checks if the file's mtime is newer than the last-seen mtime stored
++in a per-session state file. If stale, emits a system reminder.
++
++Multi-terminal safe: per-session state files keyed by GROK_SESSION_ID.
++"""
++import json
++import os
++import sys
++from pathlib import Path
++
++def main():
++    try:
++        raw = sys.stdin.read()
++        data = json.loads(raw) if raw.strip() else {}
++    except Exception:
++        sys.exit(0)
++
++    tool_name = data.get("tool_name", "")
++    if tool_name != "read_file":
++        sys.exit(0)
++
++    # Check if target is a SKILL.md file
++    tool_input = data.get("tool_input", {})
++    target_file = tool_input.get("target_file", tool_input.get("file_path", ""))
++    if not target_file or "SKILL.md" not in str(target_file):
++        sys.exit(0)
++
++    target_path = Path(target_file)
++    if not target_path.exists():
++        sys.exit(0)
++
++    current_mtime = target_path.stat().st_mtime
++
++    # Per-session state file
++    session_id = os.environ.get("GROK_SESSION_ID", "unknown")
++    state_dir = Path.home() / ".grok" / "state" / session_id
++    state_dir.mkdir(parents=True, exist_ok=True)
++    state_file = state_dir / "skill-mtimes.json"
++
++    # Load stored mtimes
++    try:
++        stored = json.loads(state_file.read_text(encoding="utf-8"))
++    except Exception:
++        stored = {}
++
++    stored_key = str(target_path.resolve())
++    last_mtime = stored.get(stored_key, 0)
++
++    # Compare
++    if last_mtime > 0 and current_mtime > last_mtime:
++        # File changed since last read by this session
++        age = current_mtime - last_mtime
++        print(json.dumps({
++            "decision": "allow",
++            "hookSpecificOutput": {
++                "hookEvent": "PreToolUse",
++                "additionalContext": (
++                    f"⚠️ Skill file changed since your last read "
++                    f"({age:.0f}s ago): {target_path.name}. "
++                    f"Another session may have edited it. "
++                    f"The version you're about to read is newer than "
++                    f"what you may have cached. Read it carefully."
++                )
++            }
++        }))
++    elif last_mtime == 0:
++        # First read — just store
++        pass
++
++    # Update stored mtime
++    stored[stored_key] = current_mtime
++    try:
++        tmp = state_file.with_suffix(f".{os.getpid()}.tmp")
++        tmp.write_text(json.dumps(stored, indent=2), encoding="utf-8")
++        tmp.replace(state_file)
++    except Exception:
++        pass
++
++    sys.exit(0)
++
++if __name__ == "__main__":
++    main()
+
+=== skills/handoff/__lib/claim_handoff.py ===
+--- /dev/null
++++ b/skills/handoff/__lib/claim_handoff.py
++#!/usr/bin/env python3
++"""claim_handoff.py — Claim a handoff for fleet coordination.
++
++Sets the assigned_to/assigned_at/assigned_by fields in the YAML frontmatter
++and appends a changelog row. If already claimed by a different active session,
++warns and exits non-zero.
++
++Usage:
++    python claim_handoff.py <path> [--session <id>] [--host <host>] [--release]
++
++    --session   Session ID (defaults to $GROK_SESSION_ID or 'unknown')
++    --host      Host identifier (defaults to 'grok')
++    --release   Release the claim instead of claiming
++"""
++
++from __future__ import annotations
++
++import argparse
++import os
++import re
++import sys
++from datetime import datetime, timezone
++from pathlib import Path
++
++
++def _utc_now() -> str:
++    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M")
++
++
++def _parse_frontmatter(text: str) -> tuple[str, str, str]:
++    """Split into pre-fm, fm, post-fm. Returns (before, fm_block, after)."""
++    if not text.startswith("---"):
++        return "", "", text
++    end = text.find("\n---", 3)
++    if end == -1:
++        return "", "", text
++    fm = text[:end + 4]
++    after = text[end + 4:]
++    return "", fm, after
++
++
++def _get_field(fm: str, field: str) -> str:
++    """Extract a YAML field value from frontmatter text."""
++    m = re.search(rf"^#?\s*{field}:\s*(.+)$", fm, re.MULTILINE)
++    if m:
++        val = m.group(1).strip()
++        # Strip inline comments
++        if "#" in val:
++            val = val.split("#")[0].strip()
++        # Strip quotes
++        val = val.strip('"').strip("'")
++        return val
++    return ""
++
++
++def _set_field(fm: str, field: str, value: str) -> str:
++    """Set or replace a YAML field in frontmatter text."""
++    # Try to replace existing (commented or uncommented) line
++    pattern = rf"^(#?\s*){re.escape(field)}:\s*.+$"
++    replacement = f"{field}: {value}"
++    if re.search(pattern, fm, re.MULTILINE):
++        return re.sub(pattern, replacement, fm, flags=re.MULTILINE)
++    # Field doesn't exist — add before closing ---
++    return fm.rstrip() + f"\n{field}: {value}\n---\n"
++
++
++def _remove_field(fm: str, field: str) -> str:
++    """Remove a YAML field (commented or uncommented) from frontmatter."""
++    pattern = rf"^#?\s*{re.escape(field)}:\s*.+\n?"
++    return re.sub(pattern, "", fm, flags=re.MULTILINE)
++
++
++def _append_changelog(text: str, session: str, action: str) -> str:
++    """Append a row to the changelog table, or create the table if missing."""
++    now = _utc_now()
++    row = f"| {now} | {session[:8]}... | {action} |"
++
++    # Check if changelog table exists
++    cl_match = re.search(r"## Changelog\s*\n\s*\|.*\n\|[-:| ]+\n", text, re.IGNORECASE)
++    if cl_match:
++        # Append row after the header separator line
++        end_of_header = cl_match.end()
++        return text[:end_of_header] + row + "\n" + text[end_of_header:]
++    else:
++        # Create changelog at end of file
++        return text.rstrip() + f"\n\n## Changelog\n\n| Date | Session | Action |\n|------|---------|--------|\n{row}\n"
++
++
++def claim(path: Path, session: str, host: str) -> int:
++    """Claim a handoff file."""
++    if not path.exists():
++        print(f"ERROR: handoff not found: {path}", file=sys.stderr)
++        return 1
++
++    text = path.read_text(encoding="utf-8")
++
++    # Check if already claimed
++    existing = _get_field(text, "assigned_to")
++    existing_by = _get_field(text, "assigned_by")
++    if existing and existing_by and existing_by != session:
++        existing_short = existing_by[:8] if len(existing_by) >= 8 else existing_by
++        print(f"WARNING: already claimed by '{existing}' (session {existing_short}...)", file=sys.stderr)
++        print("If that session is stale, use --release first.", file=sys.stderr)
++        return 2
++
++    now = _utc_now()
++
++    # Set assignment fields
++    text = _set_field(text, "assigned_to", host)
++    text = _set_field(text, "assigned_at", now)
++    text = _set_field(text, "assigned_by", session)
++
++    # Append changelog
++    text = _append_changelog(text, session, f"claimed by {host}")
++
++    path.write_text(text, encoding="utf-8")
++    print(f"Claimed: {path.name} → assigned_to={host}, assigned_by={session[:8]}...")
++    return 0
++
++
++def release(path: Path, session: str) -> int:
++    """Release a claim on a handoff file."""
++    if not path.exists():
++        print(f"ERROR: handoff not found: {path}", file=sys.stderr)
++        return 1
++
++    text = path.read_text(encoding="utf-8")
++
++    existing = _get_field(text, "assigned_to")
++    if not existing:
++        print("Not claimed — nothing to release.", file=sys.stderr)
++        return 0
++
++    # Remove assignment fields
++    text = _remove_field(text, "assigned_to")
++    text = _remove_field(text, "assigned_at")
++    text = _remove_field(text, "assigned_by")
++
++    # Append changelog
++    text = _append_changelog(text, session, "claim released")
++
++    path.write_text(text, encoding="utf-8")
++    print(f"Released claim on: {path.name}")
++    return 0
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser(description="Claim or release a handoff")
++    parser.add_argument("path", help="Path to HANDOFF.md")
++    parser.add_argument("--session", default=os.environ.get("GROK_SESSION_ID", "unknown"),
++                        help="Session ID claiming the handoff")
++    parser.add_argument("--host", default="grok",
++                        help="Host identifier (default: grok)")
++    parser.add_argument("--release", action="store_true",
++                        help="Release the claim instead of claiming")
++    args = parser.parse_args()
++
++    path = Path(args.path).resolve()
++    if args.release:
++        return release(path, args.session)
++    else:
++        return claim(path, args.session, args.host)
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+
+=== hooks/PreToolUse_spawn_model_gate.py ===
+--- a/hooks/PreToolUse_spawn_model_gate.py
++++ b/hooks/PreToolUse_spawn_model_gate.py
++    except (json.JSONDecodeError, ValueError) as e:
++        # Concurrent write race — file was being written when we read it.
++        # Fail-safe: if the file exists but is unreadable, assume it contains
++        # a recently-learned entry and check ALL known serde_broken entries.
++        print(f"spawn-model-gate: learned-broken read failed (likely concurrent write): {e}", file=sys.stderr)
++        if learned_path.exists():
++            hardcoded.update(registry.get("serde_broken", []))
+-    """Read the quota cache file. Returns dict or empty dict on error."""
+-    try:
++    """Read the quota cache file. Returns dict or None on error (None = unreadable).
++
++    Retries once after 50ms on decode failure (handles concurrent write race).
++    """
++    def _read():
++
++    try:
++        return _read()
++    except FileNotFoundError:
++        return {}  # no cache yet — normal
++    except (json.JSONDecodeError, ValueError):
++        # Concurrent write race — retry once after brief sleep
++        import time as _time
++        _time.sleep(0.05)
++        try:
++            return _read()
++        except (json.JSONDecodeError, ValueError) as e:
++            print(f"spawn-model-gate: quota cache unreadable after retry: {e}", file=sys.stderr)
++            return None  # signal: cache was present but unreadable after retry
++# F2 fix: check per-model free flag from registry before provider-level quota check
++def is_model_free(model_slug, registry):
++    """Check if a specific model is free (bypasses provider-level quota check)."""
++    if get_provider_for_model(model_slug) in FREE_PROVIDERS:
++        return True
++    # Check registry lanes for per-model free flag
++    lanes = registry.get("lanes", {})
++    if isinstance(lanes, dict):
++        for lane_data in lanes.values():
++            if not isinstance(lane_data, dict):
++                continue
++            for tier_key in ["tier1", "tier2"]:
++                for entry in lane_data.get(tier_key, []):
++                    if isinstance(entry, dict) and entry.get("slug") == model_slug:
++                        return entry.get("free", False)
++    return False
++
+-    cache = read_quota_cache()
+-    info = cache.get(provider)
++    # F2 fix: skip quota check if the model itself is free
++    if not is_model_free(model, registry):
++        cache = read_quota_cache()
+-    if info:
+-        pct = info.get("pct")
+-        if not isinstance(pct, (int, float)):
+-            pct = 100  # treat non-numeric as healthy (INT-003 fix)
+-        source = info.get("source", "")
+-        updated = info.get("updated", 0)
++        # F1 fix: if cache is None (unreadable due to concurrent write),
++        # fail-safe: block the spawn rather than allowing through without quota check
++        if cache is None:
++            log_block("cache-unreadable", model, f"quota cache unreadable for provider {provider}")
++            print(json.dumps({
++                "decision": "deny",
++                "reason": (
++                    f"BLOCKED: Quota cache is temporarily unreadable (concurrent write race). "
++                    f"Cannot verify provider '{provider}' quota.\n\n"
++                    f"DO: Retry in 1-2 seconds, or run /model-quota to refresh.\n"
++                    f"DON'T: Assume the provider has quota."
++                )
++            }))
++            sys.exit(2)
+-        # Cache expiry: ignore error-hook marks older than 1 hour
+-        if not (source == "error-hook" and (time.time() - updated) > ERROR_HOOK_EXPIRY_SEC):
+-            if pct < QUOTA_THRESHOLD:
+-                log_block("quota-exhausted", model, f"{provider} at {pct:.0f}%")
+-                fallback = get_fallback_for_lane(model, registry, cache)
+-                fallback_line = f"\nFALLBACK: {fallback}" if fallback else "\nRun: python ~/.grok/skills/model-quota/scripts/pick_model.py --list"
+-                print(json.dumps({
+-                    "decision": "deny",
+-                    "reason": (
+-                        f"BLOCKED: Provider '{provider}' at {pct:.0f}% quota.{fallback_line}\n\n"
+-                        f"{escalation_note}"
+-                        f"DON'T: Retry '{model}' — it will 429.\n"
+-                        f"DON'T: Wait — switch to a free-tier provider.\n"
+-                        f"Note: Run /model-quota to refresh."
+-                    )
+-                }))
+-                sys.exit(2)
++        info = cache.get(provider)
++
++        if info:
++            pct = info.get("pct")
++            if not isinstance(pct, (int, float)):
++                pct = 100  # treat non-numeric as healthy (INT-003 fix)
++            source = info.get("source", "")
++            updated = info.get("updated", 0)
++
++            # Cache expiry: ignore error-hook marks older than 1 hour
++            if not (source == "error-hook" and (time.time() - updated) > ERROR_HOOK_EXPIRY_SEC):
++                if pct < QUOTA_THRESHOLD:
++                    log_block("quota-exhausted", model, f"{provider} at {pct:.0f}%")
++                    fallback = get_fallback_for_lane(model, registry, cache)
++                    fallback_line = f"\nFALLBACK: {fallback}" if fallback else "\nRun: python ~/.grok/skills/model-quota/scripts/pick_model.py --list"
++                    print(json.dumps({
++                        "decision": "deny",
++                        "reason": (
++                            f"BLOCKED: Provider '{provider}' at {pct:.0f}% quota.{fallback_line}\n\n"
++                            f"{escalation_note}"
++                            f"DON'T: Retry '{model}' — it will 429.\n"
++                            f"DON'T: Wait — switch to a free-tier provider.\n"
++                            f"Note: Run /model-quota to refresh."
++                        )
++                    }))
++                    sys.exit(2)
++
++# Allow — reset escalation counter for this model (F9 fix)
++try:
++    esc_path = Path.home() / ".cache" / "opencode" / "spawn-escalations.json"
++    if esc_path.exists():
++        esc_data = json.loads(esc_path.read_text(encoding="utf-8"))
++        if model in esc_data:
++            del esc_data[model]
++            import os as _os
++            tmp = esc_path.parent / f".{esc_path.stem}.{_os.getpid()}.tmp"
++            tmp.write_text(json.dumps(esc_data, indent=2), encoding="utf-8")
++            _os.replace(str(tmp), str(esc_path))
++except Exception:
++    pass  # escalation reset is advisory
+-# Allow
+
+=== skills/model-quota/scripts/fleet_quota.py ===
+--- a/skills/model-quota/scripts/fleet_quota.py
++++ b/skills/model-quota/scripts/fleet_quota.py
++from contextlib import contextmanager
+-    """Perplexity quota via pwm CLI (Pro Search weekly, Deep Research monthly)."""
++    """Perplexity quota via pwm CLI.
++
++    Verified Aug 2026 from official help-center comparison table + practitioner
++    API captures + wellstsai.com annual-plan user report:
++      - Pro Search: 200 rolling drip-refill (was 600/day before May 2026 reduction)
++      - Deep Research: 20/month
++      - Create Files & Apps: 25/month
++      - Browser Agent: available on Pro ("monthly limits, average use") — exact
++        pool size not published. Enterprise Pro = 80/month for reference.
++        pwm shows remaining only, not pool, so percentage is unknown.
++    Reset: monthly for all except Pro Search (rolling/drip).
++    """
++    # Pool sizes and reset schedules per Pro plan
++    POOLS = {
++        # verified: pwm usage --refresh, 2026-08-02 (200 remaining on fresh cycle)
++        # + wellstsai.com 2026 update ("200 Pro searches per week")
++        # + sifuyik.substack.com ("rolling drip-refill, 1 per ~7 min")
++        "Pro Search":     {"pool": 200, "reset": "rolling"},
++        # verified: pwm usage --refresh, 2026-08-02 (20 remaining) + wellstsai.com ("20/month")
++        # + Feb 2026 practitioner API capture (u/Azek_Tge, reddit 1r02if1)
++        "Deep Research":  {"pool": 20,  "reset": "monthly"},
++        # verified: pwm usage --refresh, 2026-08-02 (25 remaining)
++        # + Feb 2026 practitioner API capture (u/Azek_Tge, reddit 1r02if1)
++        "Create Files":   {"pool": 25,  "reset": "monthly"},
++        # ESTIMATED — Pro pool size undisclosed. Official help-center table says
++        # "Monthly limits (average use)". Enterprise Pro = 80/month for reference.
++        # Verify via: observe pwm usage when Browser Agent resets to non-zero.
++        "Browser Agent":  {"pool": 0,   "reset": "monthly"},
++    }
++
+-            rest = rest.strip()
+-            # Extract the number
+-            # Determine pool size and reset window
+-            if "Pro Search" in label:
+-                pool = 300  # typical Pro weekly pool
+-                window = "Pro Search weekly"
+-                reset = "weekly"
+-            elif "Deep Research" in label:
+-                pool = 25  # typical monthly pool
+-                window = "Deep Research monthly"
+-                reset = "monthly"
+-            elif "Browser Agent" in label:
+-                pool = 25
+-                window = "Browser Agent"
+-                reset = "daily"
+-            elif "Create Files" in label or "Create" in label:
+-                pool = 25
+-                window = "Create Files"
+-                reset = "daily"
+-            else:
+-                pool = remaining if remaining > 0 else 1
+-                window = label
+-                reset = "—"
++            # Match to pool config
++            pool_info = None
++            window = label
++            for key, cfg in POOLS.items():
++                if key.lower() in label.lower():
++                    pool_info = cfg
++                    window = key
++                    break
++
++            if pool_info is None:
++                pool_info = {"pool": remaining if remaining > 0 else 1, "reset": "unknown"}
++
++            pool = pool_info["pool"]
++            reset = pool_info["reset"]
++
++            # Compute percentage only if pool > 0
++            if pool > 0:
++                pct = round(remaining / pool * 100, 1)
++            else:
++                pct = None  # pool unknown — no bar, no fake percentage
++
++            # Only Pro Search and Deep Research are fleet-relevant for alerts.
++            is_fleet_relevant = window in ("Pro Search", "Deep Research")
+-            pct = (remaining / pool * 100) if pool > 0 else 0
+-                "pct": round(pct, 1),
+-                "remaining_text": f"{remaining}/{pool} queries",
++                "pct": pct,
++                "remaining_text": f"{remaining}/{pool}" if pool > 0 else f"{remaining} remaining (pool unknown)",
++                "_suppress_alert": not is_fleet_relevant,
+-    # Return the worst window as the representative entry;
+-    # all entries are added individually via the family grouping
+-    worst = min(entries, key=lambda x: x["pct"])
++    worst = entries[0]
++@contextmanager
++def _cache_file_lock():
++    """Acquire an advisory file lock to serialize cache read-modify-write.
++
++    Two concurrent callers (e.g., two error hooks calling
++    update_provider_in_cache simultaneously) can each read the cache, each
++    add their key, and each write back — one update silently lost (TOCTOU
++    race). This lock serializes the read-modify-write section.
++
++    The lock is held on a separate .lock file (not the cache file itself)
++    because the cache is written via atomic replace (tmp.replace), which
++    changes the inode and would break an flock on the cache file.
++
++    Platform: msvcrt.locking on Windows, fcntl.flock on POSIX. Both are
++    advisory and auto-released on process exit (no deadlock on crash).
++    """
++    lock_path = QUOTA_CACHE_PATH.with_suffix(".lock")
++    lock_path.parent.mkdir(parents=True, exist_ok=True)
++    fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR)
++
++    try:
++        if os.name == "nt":
++            import msvcrt
++            # LK_LOCK: blocking lock with retry (10/sec, 10ms intervals)
++            msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
++        else:
++            import fcntl
++            fcntl.flock(fd, fcntl.LOCK_EX)
++        yield
++    finally:
++        if os.name == "nt":
++            import msvcrt
++            try:
++                # Seek back to 0 before unlocking (msvcrt requires it)
++                os.lseek(fd, 0, os.SEEK_SET)
++                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
++            except OSError:
++                pass
++        else:
++            import fcntl
++            fcntl.flock(fd, fcntl.LOCK_UN)
++        os.close(fd)
++
++
+-    QUOTA_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+-    tmp = QUOTA_CACHE_PATH.with_suffix(".tmp")
+-    tmp.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+-    tmp.replace(QUOTA_CACHE_PATH)
++    with _cache_file_lock():
++        QUOTA_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
++        tmp = QUOTA_CACHE_PATH.with_suffix(f".{os.getpid()}.tmp")
++        tmp.write_text(json.dumps(cache, indent=2), encoding="utf-8")
++        tmp.replace(QUOTA_CACHE_PATH)
+-    """Update a single provider's quota in the cache (for error-based updates)."""
+-    try:
+-        cache = json.loads(QUOTA_CACHE_PATH.read_text(encoding="utf-8"))
+-    except Exception:
+-        cache = {}
++    """Update a single provider's quota in the cache (for error-based updates).
+-    cache[provider_id] = {
+-        "pct": pct,
+-        "updated": time.time(),
+-        "source": source,
+-    }
++    Uses a file lock to serialize the read-modify-write section, preventing
++    the TOCTOU race where two concurrent callers each read the cache, each
++    add their key, and each write back (losing one update silently).
++    """
++    with _cache_file_lock():
++        try:
++            cache = json.loads(QUOTA_CACHE_PATH.read_text(encoding="utf-8"))
++        except Exception:
++            cache = {}
+-    QUOTA_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+-    tmp = QUOTA_CACHE_PATH.with_suffix(".tmp")
+-    tmp.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+-    tmp.replace(QUOTA_CACHE_PATH)
++        cache[provider_id] = {
++            "pct": pct,
++            "updated": time.time(),
++            "source": source,
++        }
++
++        QUOTA_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
++        tmp = QUOTA_CACHE_PATH.with_suffix(f".{os.getpid()}.tmp")
++        tmp.write_text(json.dumps(cache, indent=2), encoding="utf-8")
++        tmp.replace(QUOTA_CACHE_PATH)
+-    alerts = [e for e in entries if e["pct"] is not None and e["pct"] < 25]
++    alerts = [e for e in entries
++              if e["pct"] is not None and e["pct"] < 25
++              and not e.get("_suppress_alert", False)]
+
+=== skills/go/__lib/ship_receipt.py ===
+--- a/skills/go/__lib/ship_receipt.py
++++ b/skills/go/__lib/ship_receipt.py
+-    # Baseline comparison
++    # Extract failing test names for baseline comparison
++    fail_names = set()
++    for line in combined.splitlines():
++        line = line.strip()
++        if line.startswith("FAILED "):
++            # pytest format: "FAILED tests/test_foo.py::test_bar - AssertionError"
++            fail_names.add(line.split(" - ")[0].replace("FAILED ", ""))
++        elif line.startswith("ERROR "):
++            fail_names.add(line.split(" - ")[0].replace("ERROR ", ""))
++
++    # Baseline comparison — compares test NAMES, not just counts
+-            baseline_failed = baseline.get("failed", 0)
+-            result["inherited"] = min(baseline_failed, result["failed"])
+-            if result["failed"] <= baseline_failed:
++            baseline_names = set(baseline.get("fail_names", []))
++            result["inherited"] = len(fail_names & baseline_names)
++            new_failures = fail_names - baseline_names
++            if not new_failures:
+-        rc, out, err = _run([sys.executable, "-m", "ruff", "check", *abs_py], cwd=repo, timeout=60)
+-    if rc == 127:
+-        result["detail"] = "ruff not installed"
++        result["detail"] = "ruff not installed (run: pip install ruff)"
+
+=== skills/close/__lib/close_runner.py ===
+--- a/skills/close/__lib/close_runner.py
++++ b/skills/close/__lib/close_runner.py
++    "agents_md_anchors", "meta_checkpoint",
++    cleanup_method: str | None = None,
++        "cleanup_method": cleanup_method,
+-                pass  # corrupt → overwrite
++                # Corrupt receipt — preserve for diagnosis before overwriting.
++                # A corrupt receipt may indicate a prior partial write (e.g.,
++                # sibling session crash). Preserve the evidence.
++                try:
++                    corrupt_path = latest_path.with_suffix(
++                        f".corrupt-{_utc_now().replace(':', '').replace('-', '')}.json"
++                    )
++                    latest_path.rename(corrupt_path)
++                except OSError:
++                    pass  # rename failed (permissions, locked) — best effort
++                # Distinguish "end of list" (ERROR_NO_MORE_FILES) from real errors.
++                # Without this, a mid-iteration failure (e.g., access denied on a
++                # system process) silently produces an incomplete parent_map.
++                ERROR_NO_MORE_FILES = 18
++                err = k32.GetLastError()
++                if err != ERROR_NO_MORE_FILES and err != 0:
++                    # Real error — log it but continue with what we have.
++                    # An incomplete map is still better than failing entirely.
++                    import warnings
++                    warnings.warn(
++                        f"Process32NextW failed (GetLastError={err}); "
++                        f"process tree may be incomplete (tracked {len(parent_map)} processes)",
++                        stacklevel=2,
++                    )
+-    if "CLOSE INCOMPLETE" in raw_output.upper():
+-        return False, "__CLOSE_INCOMPLETE__", None  # distinct from malformed — gates unresolved, not bad output
+-
++    # Distinguish "scanner crashed/unavailable" from "scanner ran but gates unresolved"
++    if error_detail and "gates not clean" in error_detail:
++        scanner_status = "Scanner ran successfully but gates are not all clean — see gate details below."
++        change_summary = "Gates evaluated but unresolved. Resolve the gates listed below before closing."
++    else:
++        scanner_status = "Scanner unavailable — the close scanner could not produce a valid result."
++        change_summary = "Scanner unavailable — no changes assessed."
+-Scanner unavailable — no changes assessed. The close scanner could not produce
+-a valid result for this session. No persistence, AAR, or closure claims should
++{change_summary} No persistence, AAR, or closure claims should
+-- **Static:** NOT PERFORMED — scanner unavailable.
+-- **Runtime:** NOT PERFORMED — scanner unavailable.
++- **Static:** NOT PERFORMED — {scanner_status}
++- **Runtime:** NOT PERFORMED — {scanner_status}
+-NOT ASSESSED — scanner unavailable. Do not claim persistence, AAR completion,
++NOT ASSESSED — {scanner_status} Do not claim persistence, AAR completion,
+-- ⚠️ No scanner validation — persistence, retrospective, and coverage claims are unverified.
++- ⚠️ {scanner_status}
+-> **CLOSE INCOMPLETE — scanner unavailable. Required follow-up: re-run scanner before any close claim.**
++> **CLOSE INCOMPLETE — {scanner_status} Required follow-up: re-run scanner before any close claim.**
++    cleanup_method = "none"
++        cleanup_method = "full_tree"
++            cleanup_method = "fallback_pid_only"
++            cleanup_method=cleanup_method,
+-            state = "timed_out" if cleanup_ok else "cleanup_failed"
++            # Preserve both signals: timeout is the root cause, cleanup status
++            # is secondary. Conflating them into "cleanup_failed" masks the
++            # real problem (scanner performance).
++            if cleanup_ok:
++                state = "timed_out"
++            else:
++                state = "timed_out_cleanup_failed"
+-                return _finish("blocked", "scanner returned CLOSE INCOMPLETE — gates unresolved",
++                # F15 fix: log which gates were unresolved before relaying
++                # (root cause is close_accounting.py, not close_runner.py)
++                unresolved = []
++                if isinstance(parsed, dict):
++                    for gate_name, gate_data in (parsed.get("gates") or {}).items():
++                        if isinstance(gate_data, dict):
++                            state = gate_data.get("state", "")
++                            if "attention" in state or "incomplete" in state:
++                                unresolved.append(gate_name)
++                unresolved_detail = f" (unresolved gates: {', '.join(unresolved)})" if unresolved else ""
++                return _finish("blocked", f"scanner returned CLOSE INCOMPLETE — gates unresolved{unresolved_detail}",
++            cleanup_method=cleanup_method,
++                cleanup_method=cleanup_method,
+-            # Rendering failed — receipt already says "succeeded_pending_render"
+-            # so validate_close_claim will NOT return True for this session.
++            # Rendering failed — update receipt from sentinel to honest state
++            # so validate_close_claim will NOT return True AND the receipt and
++            # operator-facing output agree (prevents F1 inconsistency).
++            rp_failed = _write_attempt_receipt(
++                session_id, attempt_id, "succeeded_render_failed", cmd, exit_code,
++                started_at, _utc_now(), elapsed, pid,
++                stdout_tail=stdout_d, stderr_tail=stderr_d,
++                ledger_path=str(canonical) if canonical.exists() else None,
++                ledger_sha256=ledger_sha,
++                cleanup_ok=cleanup_ok and is_full,
++                surviving_pids=survivors,
++                cleanup_method=cleanup_method,
++                scanner_result_digest=scanner_digest,
++                scanner_variant=variant,
++                scanner_session_id=session_id,
++                scanner_gates_normalized=scanner_norm,
++            )
+-                attempt_id, session_id, "malformed",
++                attempt_id, session_id, "succeeded_render_failed",
+-            return out, {"attempt_id": attempt_id, "terminal_state": "malformed",
+-                         "receipt_path": str(rp)}
++            return out, {"attempt_id": attempt_id,
++                         "terminal_state": "succeeded_render_failed",
++                         "receipt_path": str(rp_failed)}
