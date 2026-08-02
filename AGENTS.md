@@ -144,6 +144,18 @@ When you construct a plausible narrative for why something "can't be done" or "d
 
 **Separate findings from fixes:** a wrong fix does not invalidate a correct finding. Evaluate them independently.
 
+## Replacement-before-investigation (anti-premature-recommendation rule)
+
+Before recommending that a tool, service, or skill be **replaced** with an alternative, enumerate:
+
+1. **What was tried** with the current tool — specific flags, parameters, invocations (not "it didn't work")
+2. **What workarounds exist** that haven't been tested — check docs, GitHub issues, `[[tool-fallbacks]]`, prior sessions
+3. **Whether the failure was verified** on our actual workload vs a different context (a timeout on a 90K-token prompt ≠ "the tool is broken")
+
+If any of these is unanswered, the recommendation is premature. Label it `[PREMATURE]` and state what investigation would upgrade it to actionable.
+
+**Anti-pattern recognition:** if you find yourself writing "X doesn't work because..." or "we should replace X with Y..." — STOP. Have you tried X's documented workarounds? Have you verified the failure is about X and not about your specific invocation? This is the [[replacement-before-investigation-pattern]]. Reference: 13+ handoffs exhibit this pattern across 6 days (2026-07-26 through 2026-08-01).
+
 ## Workspace Routing
 
 Before acting on a package, read its local instruction files. For `yt-is`: read `P:\packages\yt-is\CLAUDE.md`, `AGENTS.md`, `HANDOFF.md`. Do not rely on parent-workspace prompt when package-local docs exist.
