@@ -30,7 +30,8 @@ the CLI equivalent **before retrying the built-in**:
 | `image_gen` | `mmx image generate "<prompt>"` | MiniMax image API |
 | `image_edit` | `mmx image ...` (check `mmx image --help`) | TBD — verify subcommand |
 | vision / image understanding | `mmx vision describe <path>` | MiniMax vision API |
-| speech / TTS | `mmx speech synthesize ...` | MiniMax TTS |
+| speech / TTS | `mmx speech synthesize ...` | MiniMax TTS (cloud) |
+| speech / TTS (local) | `speak "file.txt" --voice jon --emotion excited` | Parler-TTS local (`P:\scripts\speak.cmd`, Python 3.12 venv at `P:\packages\tts-reader\`) |
 | code execution / second opinion | `agy -p "<prompt>"` or `codex exec "<cmd>"` | External CLIs; independent of current model |
 | research / deep search | `agy -p "<prompt>"` or `mmx search query` | Both work; agy gives Gemini's lens |
 | video generation | `mmx video generate ...` | MiniMax video API |
