@@ -1,5 +1,11 @@
 # Vault Log
 
+## Session Transcript Path Resolution for Workflow Subagents
+Source: session-20260802
+Agent: grok
+Notes: Close-check subagents couldn't resolve tilde-relative URL-encoded paths. Fix: pass absolute Windows paths. Commit d61d899.
+Page: wiki/concepts/session-transcript-path-resolution-for-workflow-subagents.md
+
 ## [2026-08-01] ingest | close-check pre-close-readiness depends on /trace, but /trace itself can fail silently inside the rhai workflow engine — circular-dependency single-point-of-failure
 Source: session-2026-08-01
 Agent: grok
