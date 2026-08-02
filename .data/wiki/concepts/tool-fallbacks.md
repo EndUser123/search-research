@@ -45,14 +45,17 @@ the CLI equivalent **before retrying the built-in**:
 
 These models are **excluded from all auto-pools and spawn_subagent dispatch**. They may work for direct API calls or CLI invocation — see the wiki authority for each.
 
+**IMPORTANT:** Each entry below must cite a specific error receipt. The former `serde_broken` list in fleet-models.json was cleared 2026-08-01 after testing proved all 10 entries were false positives (missing prerequisite services, quota exhaustion misclassified as serde, slug format mismatch). New entries require: (1) the actual error text, (2) the access path tested, (3) whether it's transient or permanent.
+
 | Model(s) | Symptom (1 line) | Workaround | Wiki authority |
 |---|---|---|---|
 | **All Groq models** (`groq-gpt-oss-120b`, `groq-llama-3-1-8b-instant`, `groq-qwen3-6-27b`) | HTTP 413 TPM limit (8000 cap, ~54K system prompt). Fails instantly (0.7s, 0 tool calls). | **NOT IN ANY POOL.** Direct API only for short tasks (<6K tokens total). | [[groq-free-tier-tpm-limit-6000]], [[coding-model-pool-tier-1-tier-2]], [[model-benchmark-testing-quirks]] Quirk 5 |
 | **go-kimi-k3** + **go-kimi-k2-7-code** | Spawn-path transport/header failure (not `top_p`, not body shape — unresolved). Both fail identically. K3 also costs ~20% monthly OpenCode-Go quota per spawn test. | **NOT IN ANY POOL.** Manual/deliberate only (`--model go-kimi-k3`). Direct API works. Testing deferred until ~2026-08-07. | [[model-tool-calling-capability-matrix]] § go-kimi-k3 |
-| **nvidia-nemotron-3-ultra** (NVIDIA direct) | Serde error: `null, expected u32` on `service_tier`/`system_fingerprint`/`logprobs`. Affects tool-grounded spawn; `stream_tool_calls=false` fixes trivial prompts only. | **Never spawn.** Use opencode CLI (`opencode run -m opencode/nemotron-3-ultra-free`) or PI CLI. `stream_tool_calls=false` in all 4 config sections as defense-in-depth. | [[model-tool-calling-capability-matrix]] § Nemotron routing preference |
+| **nvidia-nemotron-3-ultra** (NVIDIA direct) | Serde error: `null, expected u32` on `service_tier`/`system_fingerprint`/`logprobs`. Affects **tool-grounded spawn only**; trivial no-tool prompts pass. Verified 2026-07-26 via dual cross-transport test (Grok Build FAIL, OpenCode PASS, PI PASS — same model, same prompt). | **Never spawn for tool-grounded work.** Use opencode CLI (`opencode run -m opencode/nemotron-3-ultra-free`) or PI CLI. `stream_tool_calls=false` in all 4 config sections as defense-in-depth. | [[model-tool-calling-capability-matrix]] § Nemotron routing preference |
 | **zen-nemotron-3-ultra-free** (OpenCode Zen) | Serde error: `missing field id`. Same class as NVIDIA direct. | **Never spawn.** Same routing as above. | Same as above |
 | **or-nemotron-ultra-free** (OpenRouter) | Works but slow (19.2s). | **Explicit-only spawn** — only when opencode/PI unavailable AND operator approves OpenRouter. | Same as above |
 | `gemini-2` | HTTP 404 "model does not exist or your team does not have access." Listed in catalog but 404 on actual call. | Use `grok-4.5` for critical-friend spawns. Probe before committing. | (this table only — no wiki concept yet) |
+| **mistral-medium-latest** | HTTP 422 context-too-large on spawn_subagent. | **NOT IN ANY POOL.** Direct API only. | (fleet-models.json spawn_broken) |
 
 ### spawn_subagent limitations (model spawns but has constraints)
 
@@ -120,10 +123,14 @@ MCP servers listed at session start may or may not be callable per-model. **Trea
 6. **Before assigning `model=` to spawn_subagent, read [[coding-model-pool-tier-1-tier-2]] for the current pool.** Do not rely on memory or this table alone — pool membership changes.
 7. **For parallel dispatch (3+ agents):** use `python pick_model.py <lane> --count N` to get N models from diverse providers. Don't reuse the same free-tier model for all agents. See [[agent-consolidation-in-parallel-workflows]].
 8. Periodically prune entries that no longer reproduce.
+9. **Provenance requirement (mandatory — added 2026-08-01):** every new exclusion entry must include the actual error text observed, not just the symptom category. The `PostToolUseFailure_spawn_quota.py` hook now captures error receipts in `learned-serde-broken.json`. If adding an entry manually, cite: (a) the error message, (b) the access path tested (spawn/codex/pi/opencode), (c) whether it's transient or permanent. Entries without receipts are subject to removal during verification sweeps.
+10. **Serde vs rate-limit mutual exclusivity (mandatory — added 2026-08-01):** the PostToolUseFailure hook now treats serde and rate-limit as mutually exclusive. A rate-limit error (429, quota, throttle) will NEVER trigger serde-broken learning, even if the error text happens to contain a serde-like substring. This prevents the false-positive class that populated the former serde_broken list.
 
 ## Decision context
 
 Moved from `~/.grok/tool-fallbacks.md` to the wiki vault on 2026-08-01 (session 019fba58). Root cause: the file lived outside the wiki vault, so `/wiki` queries and `/www` contradiction checks couldn't surface it. The OpenRouter parallel rate-limit failure (3 agents 429'd) was documented in [[agent-consolidation-in-parallel-workflows]] but never reached tool-fallbacks because nothing connected the two knowledge stores. Moving to the wiki makes it discoverable via `/wiki <query>` and subject to wiki lifecycle tracking.
+
+**serde_broken false-positive sweep (2026-08-01, session 019fb933):** all 10 entries in the former `serde_broken` list in fleet-models.json were tested and found to be false positives. Root causes: (1) missing prerequisite services (codex-bridge not running for GPT models), (2) quota exhaustion misclassified as serde by the PostToolUseFailure hook's overly broad `"Error from provider"` pattern, (3) slug format mismatch (`gpt-5-6-*` dashes vs `gpt-5.6-*` dots expected by codex), (4) inherited labels from unknown prior sessions with no error receipts. The list was cleared. The hook was fixed: `"Error from provider"` removed from SERDE_BROKEN_PATTERNS, serde/rate-limit made mutually exclusive, error receipts now captured in learn_serde_broken().
 
 The `~/.grok/tool-fallbacks.md` file is now a redirect pointer to this concept.
 
