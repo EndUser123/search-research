@@ -19,6 +19,16 @@ Continuation items from session 019fa8f8 that need a fresh session or operator d
 
 OPEN — items below are ready for next session pickup.
 
+### Session complete (165 commits: 92 ~/.grok + 73 P:, 3 compaction segments)
+
+Final session state:
+- All NOW items shipped (dashboard sync, terminal alias docs, auto-verify wiki concept)
+- 6 lifecycle skills run (/harvest, /capture, /friction, /slc, /behave, /trace)
+- 2 close-check runs (READY verdict)
+- /recap-grok produced (full retrospective with causation chains)
+- 2 harvest items captured (passthrough propagation, auto-verify live test)
+- Wiki marker check: 812 concepts, 22/28 markers built, no actionable gaps
+
 ## 3. Session summary (43 commits across P: and ~/.grok)
 
 - **PostToolUse auto-verify hook** — eliminates Stop hook stale-receipt blocks. Shipped + tested. Needs live multi-terminal verification.
@@ -27,6 +37,14 @@ OPEN — items below are ready for next session pickup.
 - **AGENTS.md multi-terminal isolation** expanded to cover filesystem state (py_compile race, session-scoped receipts).
 
 ## 4. NEXT items
+
+### NEXT-0: Pool contract sync with serde_broken list (HIGHEST PRIORITY)
+- **goal:** stop LLMs from picking serde-broken models for spawn (saves 8-38s per blocked attempt)
+- **context:** pool contracts (coding-model-pool.md, mechanical-model-pool.md, etc.) list models like `nim-openai-gpt-oss-20b` as tier-1. These models are in `fleet-models.json` `serde_broken` list. The spawn gate catches them but the LLM still picks them first.
+- **acceptance:** pool contract .md files mark serde_broken/spawn_broken models with `⚠️ spawn_broken` so the LLM reads the contract and avoids them
+- **files:** `P:/.data/wiki/capabilities/coding-model-pool.md`, `mechanical-model-pool.md`, `reasoning-model-pool.md`, `critic-model-pool.md`
+- **verification level required:** STATIC_INSPECTION
+- **falsifier:** if LLMs still pick blocked models after the marker, the marker isn't visible enough — consider mandatory `pick_model.py` pre-spawn step
 
 ### NEXT-1: Live verification of PostToolUse auto-verify under multi-terminal load
 - **goal:** confirm the hook eliminates Stop hook blocks in real usage
