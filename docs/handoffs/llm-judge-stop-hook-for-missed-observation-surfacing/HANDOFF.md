@@ -1,6 +1,30 @@
 # Design: LLM-Judge Stop Hook for Proactive Observation Surfacing
 
-## Objective
+**Status:** Design complete (2026-08-02). Phase 0 implemented and live. Phase 1+ gated on measurement.
+
+**Design doc:** `C:\Users\brsth\AppData\Local\Temp\grok-design-2088aada\grok-design-doc-2088aada.md` (~2000 lines, 67 review findings addressed, critical friend PROCEED)
+**Wiki concept:** [[measure-first-pattern-for-proactive-mechanism-design]]
+**Phase 0 code (live):**
+- `~/.grok/hooks/scripts/PostToolUse_tool_log.py` — logs tool calls per session
+- `~/.grok/hooks/scripts/Stop_text_log.py` — captures lastAssistantMessage per turn
+- `~/.grok/hooks/posttooluse-tool-log.json` + `stop-text-log.json` — registrations
+- `P:/.agents/scripts/analysis/phase0_missed_rate.py` — missed-observation rate analyzer
+
+**Kill switch:** `OBSERVATION_TOOL_LOG_DISABLED=1` env var disables both hooks.
+
+---
+
+## Design revision (2026-08-02, post-critical-friend)
+
+The critical friend reframed the approach from "build judge immediately" to "measure first." Phase 0 is now **passive log only** (no judge, no API cost, no additionalContext). The judge (Phase 1) is built ONLY if Phase 0 shows ≥0.5 missed observations per session over 30 days / 50 sessions. See [[measure-first-pattern-for-proactive-mechanism-design]] for the transferable pattern.
+
+**Open questions** (in design doc §16):
+- §16.13: Is 0.5 missed obs/session the right Phase 0→1 threshold? Review after 7 days of data.
+- §16.12: Does the judge's reduced context limit detection? Falsifier: 20 turns, judge run twice (reduced vs full context).
+
+---
+
+## Objective (original)
 
 Build a Stop hook that uses a two-stage filter (deterministic code → LLM judge) to detect when the agent encountered information worth surfacing but didn't express it, then injects `Maybe:` observations back into the conversation via `additionalContext`.
 
@@ -103,3 +127,13 @@ Maybe: <observation>. Confidence: <level>. Ignore if not relevant.
 - [ ] Performance budget met: ≤5s per fire, fires on ≤30% of turns
 - [ ] False-positive rate measured: target ≤20% of surfaced observations are noise
 - [ ] Relationship to `/notice` skill documented (replace, complement, or merge)
+---
+---
+---
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-02T16:34 | 019fba58... | claim released |
+| 2026-08-02T16:33 | 019fba58... | claimed by grok |
