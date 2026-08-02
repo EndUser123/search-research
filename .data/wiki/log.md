@@ -1,5 +1,23 @@
 # Vault Log
 
+## [2026-08-01] ingest | Hook fleet I/O failure modes — cascade amplification in verification gates
+Source: session-2026-08-01
+Agent: grok
+Notes: Hook fleet I/O failure modes from session 019fa8f8 FMEA sweep — cascade amplification in verification gates
+Page: wiki/concepts/hook-fleet-io-failure-modes-cascade-amplification.md
+
+## [2026-08-01] ingest | Chronic Workspace-Health Debt Inventory (2026-08-01 snapshot)
+Source: session-2026-08-01
+Agent: grok
+Notes: 2026-08-01 chronic workspace-health debt inventory from close-check sweep
+Page: wiki/concepts/chronic-workspace-health-debt-inventory-2026-08-01.md
+
+## [2026-08-01] ingest | Tool-failure cascading error modes on retry — when re-running hides the real bug
+Source: session-2026-08-01
+Agent: grok
+Notes: Tool-failure cascading error modes on retry (output_validator three-pass pattern)
+Page: wiki/concepts/tool-failure-cascading-error-modes-on-retry.md
+
 ## Close-runner scanner-unavailable: write a session-observations handoff as the fallback evidence ledger
 Source: session-019fba58-20260801
 Agent: grok

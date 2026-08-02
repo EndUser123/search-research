@@ -131,3 +131,12 @@ The inventory is **observed** for 2026-08-01 only; re-running `hooks_audit.py` a
 - `packages/.claude-marketplace/plugins/cc-skills-{ai-api,sdlc,utils}` — 12+ days dirty
 - `packages/installers/ornith-server.log.err` — 10 days dirty
 - `test_verification_engine.py:550`, `write_fix.py:166` — pre-existing `\s` SyntaxWarnings
+
+## Auto-related
+
+- [[skill-catalog]]
+- [[skill-graph]]
+- [[coupling-inventory-as-mandatory-design-section]]
+- [[fleet-maintenance-skill-design]]
+- [[blind-spot-detection-methods]]
+
