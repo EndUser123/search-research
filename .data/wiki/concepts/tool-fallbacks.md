@@ -93,6 +93,15 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 | mmx CLI (benchmark) | "33% success" was `caller_error` — FileNotFoundError (PATH) + missing `--message` flag. | Model is 100% reliable when called correctly. Resolved in telemetry. |
 | codex CLI (benchmark) | "50% success" was `transport_error` — FileNotFoundError (PATH). | Same — reliable when PATH is correct. |
 
+### MCP tool failures (parent-agent tools)
+
+| Tool | Symptom (1 line) | Workaround | Date observed |
+|---|---|---|---|
+| `reddit__search_reddit` | "Search failed for all subreddits" / "Access forbidden" — search API completely broken | Use `reddit__browse_subreddit` (RSS fallback, no scores) or DDG `site:reddit.com` searches. For full thread content: `web_fetch` on `old.reddit.com/r/.../comments/...` URL. | 2026-08-02 |
+| `reddit__get_post_details` | "Cannot access r/perplexity_ai — may be private, quarantined, or doesn't exist" — post detail API blocked for some subreddits | Use `web_fetch` on `old.reddit.com` URL (bypasses MCP access restriction). Works reliably for reading posts + comments. | 2026-08-02 |
+| `firecrawl_scrape` | "Insufficient credits to perform this request" — firecrawl free tier exhausted | Use `web_fetch` (built-in) for page content, or DDG for search. Firecrawl at -3/1000 credits on quota dashboard. Re-enable when credits refresh. | 2026-08-02 |
+| `web_fetch` (Cloudflare-protected sites) | "Just a moment..." — Cloudflare blocks automated fetches on perplexity.ai, pcmag.com, and other CDN-protected sites | Use DDG to find blog aggregators or mirrors of the same content. Or use `firecrawl_scrape` (when credits available — it handles JS-rendered pages). For Reddit specifically: `old.reddit.com` bypasses Cloudflare. | 2026-08-02 |
+
 ## MCP server availability
 
 MCP servers listed at session start may or may not be callable per-model. **Treat the session-start list as a catalog, not a guarantee.** Probe with a cheap no-op before relying on an MCP in a given turn.
