@@ -38,6 +38,19 @@ the CLI equivalent **before retrying the built-in**:
 
 **Reflex pattern:** built-in fails → check this table → run CLI equivalent → continue. Don't retry the built-in more than once.
 
+**Entry classification (mandatory on every entry):**
+
+Every entry must classify the failure type and specify when to re-test:
+
+| Type | Definition | Examples | Re-test rule |
+|---|---|---|---|
+| **STRUCTURAL** | Won't self-heal. Architecture/format incompatibility, hardware cap, API design change. | Nemotron serde format incompatibility, Groq TPM limit, slug routing mismatch | Re-test only after the underlying system changes (serde update, config change, provider API revision). State the trigger: "Re-test after: <event>." |
+| **TRANSIENT** | Will self-heal. Rate-limit window, credit exhaustion, intermittent outage, CDN block. | Reddit API rate-limit, firecrawl credits, Cloudflare intermittent, 429 under parallel load | **Re-test every session.** Try once before skipping. State: "Re-test: try once each session before falling back." If it works, remove the entry. |
+
+**The staleness rule:** a TRANSIENT entry that hasn't been updated in 7+ days should be re-tested before being trusted. If the re-test passes, remove the entry. STRUCTURAL entries stay until their stated re-test trigger fires.
+
+**Why this matters:** without classification, transient failures (Reddit rate-limit) get treated identically to structural failures (Nemotron serde). Future sessions skip working tools based on stale entries — worse than the original problem.
+
 ## Known-broken combinations
 
 **Optimistic bias:** absence from this table means "assume working." Don't pre-emptively mark tools broken without evidence. Each row has: symptom (1 line), workaround (1 line), wiki authority (for full detail).
@@ -95,12 +108,12 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 
 ### MCP tool failures (parent-agent tools)
 
-| Tool | Symptom (1 line) | Workaround | Date observed |
-|---|---|---|---|
-| `reddit__search_reddit` | "Search failed for all subreddits" / "Access forbidden" — search API completely broken | Use `reddit__browse_subreddit` (RSS fallback, no scores) or DDG `site:reddit.com` searches. For full thread content: `web_fetch` on `old.reddit.com/r/.../comments/...` URL. | 2026-08-02 |
-| `reddit__get_post_details` | "Cannot access r/perplexity_ai — may be private, quarantined, or doesn't exist" — post detail API blocked for some subreddits | Use `web_fetch` on `old.reddit.com` URL (bypasses MCP access restriction). Works reliably for reading posts + comments. | 2026-08-02 |
-| `firecrawl_scrape` | "Insufficient credits to perform this request" — firecrawl free tier exhausted | Use `web_fetch` (built-in) for page content, or DDG for search. Firecrawl at -3/1000 credits on quota dashboard. Re-enable when credits refresh. | 2026-08-02 |
-| `web_fetch` (Cloudflare-protected sites) | "Just a moment..." — Cloudflare blocks automated fetches on perplexity.ai, pcmag.com, and other CDN-protected sites | Use DDG to find blog aggregators or mirrors of the same content. Or use `firecrawl_scrape` (when credits available — it handles JS-rendered pages). For Reddit specifically: `old.reddit.com` bypasses Cloudflare. | 2026-08-02 |
+| Tool | Symptom (1 line) | Type | Workaround | Re-test |
+|---|---|---|---|---|
+| `reddit__search_reddit` | "Search failed for all subreddits" / "Access forbidden" | TRANSIENT (API outage or rate-limit) | Use `reddit__browse_subreddit` (RSS fallback, no scores) or DDG `site:reddit.com`. For full thread content: `web_fetch` on `old.reddit.com/r/.../comments/...` URL. | Try once each session before falling back |
+| `reddit__get_post_details` | "Cannot access r/\<sub\>" for some subreddits | TRANSIENT (per-subreddit access policy) | Use `web_fetch` on `old.reddit.com` URL (bypasses MCP access restriction). Works reliably for reading posts + comments. | Try once each session before falling back |
+| `firecrawl_scrape` | "Insufficient credits to perform this request" | TRANSIENT (monthly credit refresh) | Use `web_fetch` (built-in) for page content, or DDG for search. Check quota dashboard for current credit count. | Try when quota dashboard shows credits >0 |
+| `web_fetch` (Cloudflare-protected sites) | "Just a moment..." on perplexity.ai, pcmag.com, etc. | TRANSIENT (intermittent CDN block) | Use DDG to find blog aggregators or mirrors. Or `firecrawl_scrape` (when credits available). For Reddit: `old.reddit.com` bypasses Cloudflare. | Try once each session — Cloudflare blocks are intermittent |
 
 ## MCP server availability
 
