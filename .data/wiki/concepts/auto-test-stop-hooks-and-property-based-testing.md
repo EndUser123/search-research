@@ -135,6 +135,18 @@ This concept is wrong if:
 - PBT doesn't catch more bugs than unit tests on our specific codebase (our code may not have the edge-case failure mode the research targets)
 - The 8-continuation cap is too low for complex test failures (agent needs >8 iterations to fix)
 
+## Design implication: additionalContext forces turn continuations
+
+**Finding (2026-08-02, design session 2088aada):** `additionalContext` via Stop hook is NOT a passive injection — it **forces a turn continuation** by surfacing as hook feedback, causing the agent to run another round in the same turn. This consumes the 8-continuation budget shared across all 6+ Stop hooks on this host.
+
+**Implication for advisory/non-blocking use cases:** any design that wants to use `additionalContext` for advisory observation surfacing (e.g., "Maybe: you missed X") must account for:
+1. The continuation cost (agent runs another full round processing the observation)
+2. The shared 8-continuation budget (competing with quality_gate, behavioral_check, close_enforcement, dbr_language, minimal_bias_gate, wiki_persistence_check)
+3. The `stopHookActive` flag (must check to avoid re-firing on continuations the hook itself caused)
+4. Alternative: write observations to a passive log file read at next turn start (no continuation cost)
+
+**Source:** `~/.grok/docs/user-guide/10-hooks.md` lines 256-261 — "keeps the agent working, but is surfaced as hook feedback rather than a hook error." Design doc: `C:\Users\brsth\AppData\Local\Temp\grok-design-2088aada\grok-design-doc-2088aada.md` §3.4.
+
 ## Receipts
 
 - **"additionalContext JSON mechanism documented":** receipt — `~/.grok/docs/user-guide/10-hooks.md` lines 251-262, read this session.
