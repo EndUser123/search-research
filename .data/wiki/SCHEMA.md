@@ -67,6 +67,11 @@ cognitive_load: <1-5>               # mental effort to apply (see §3 below)
 verification: local-only | inferred-only | multi-source-verified
 tier: warm                          # retrieval tier: hot | warm | cold (see §16 below)
 
+# Epistemic decay (added 2026-08-02 — confidence decays over time)
+confidence: 1.0                     # 0.0-1.0, starts at 1.0, decays by half_life
+last_verified: <YYYY-MM-DD>         # date the concept was last verified against current state
+half_life_days: 180                 # days for confidence to halve (default 180; use 90 for fast-moving topics, 365+ for stable)
+
 # Optional (context-dependent)
 evidence_gaps:                      # list of what evidence is missing
   - "<description of gap>"
