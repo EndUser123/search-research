@@ -1,5 +1,17 @@
 # Vault Log
 
+## problem-solving-frameworks-evidence-assessment-2026
+Source: session 019fba58
+Agent: grok
+Notes: 32-topic evidence assessment of problem-solving frameworks for agent reasoning
+Page: P:/.data/wiki/concepts/problem-solving-frameworks-evidence-assessment-2026.md
+
+## model-quota-contention-coordination-fleet-rate-limiting
+Source: /www session-20260802
+Agent: grok
+Notes: CREATED - proactive rate-limit avoidance for agent fleets, 5 tiers, file-based shared quota ledger recommended
+Page: wiki/concepts/model-quota-contention-coordination-fleet-rate-limiting.md
+
 ## solution-first-before-root-cause-overengineering-failure
 Source: session 019fba58
 Agent: grok
