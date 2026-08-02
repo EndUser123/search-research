@@ -1,5 +1,17 @@
 # Vault Log
 
+## [2026-08-01] ingest | close-check Phase 4 Finalize: make blocking unnecessary
+Source: session-019fb933 (close-check Phase 4 build)
+Agent: grok
+Notes: Decision: auto-remediate + auto-finalize preferred over mechanical enforcement layers (close_authority.py + Stop hooks). Selection criterion: minimize operator cognitive load at session close. Phase 4 commits artifacts, cleans temp, refreshes index, surfaces only operator-only items.
+Page: wiki/concepts/close-check-finalize-phase-make-blocking-unnecessary.md
+
+## [2026-08-01] ingest | Rhai workflow smoke checks validate parse, not function-call validity
+Source: session-019fb933 (close-check Phase 4 build, /tp critique)
+Agent: grok
+Notes: Two Rhai bugs survived smoke checks in close-check: substr() method doesn't exist, inline #[...] array fails inside parallel(). Both parse cleanly, fail at runtime. Lesson: smoke check pass = structural validity only, not behavioral correctness.
+Page: wiki/concepts/rhai-workflow-smoke-check-misses-function-call-bugs.md
+
 ## [2026-08-01] ingest | VERIFY gate enforcement gap: documentation vs. runtime invocation
 Source: session-2026-08-01
 Agent: grok
@@ -8194,3 +8206,4 @@ d)
   - URL: https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf
   - SHA256: 2c7bd0b0023e6c3d20590ef3b64fc9895d2ca9bb4754394addebff3ed65bd84a
   - Source: crawl-ingest (ingested)
+(ingested)
