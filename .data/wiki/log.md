@@ -1,5 +1,11 @@
 # Vault Log
 
+## skill-lean-code-context-efficiency
+Source: session-019fc303
+Agent: grok
+Notes: Skill leanness principle: every SKILL.md line costs context budget. 4 bloat categories. Added as /skill-dev Step 1.5 Check 6.
+Page: P:/.data/wiki/concepts/skill-lean-code-context-efficiency.md
+
 ## ai-thought-partner-research-synthesis-2026
 Source: session 019fba58
 Agent: grok
