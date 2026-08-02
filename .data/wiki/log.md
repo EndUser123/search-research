@@ -1,5 +1,11 @@
 # Vault Log
 
+## [2026-08-01] ingest | close-check pre-close-readiness depends on /trace, but /trace itself can fail silently inside the rhai workflow engine — circular-dependency single-point-of-failure
+Source: session-2026-08-01
+Agent: grok
+Notes: close-check readiness gate depends on /trace; /trace can silently abort inside rhai workflow engine with state=failed reason=unknown error; circular-dependency SPOF
+Page: wiki/concepts/close-check-trace-subagent-silent-failure-circular-dependency.md
+
 ## Operator-explicit simple-execution pressure vs agent optimization in close-check Phase 3
 Source: session-019fb937-b03e-7f80-a4b0-68afdb7da38d (2026-07-31)
 Agent: grok
