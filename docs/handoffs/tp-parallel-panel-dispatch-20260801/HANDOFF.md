@@ -44,6 +44,12 @@ Assessed during /wiki run. The --detail flag is already documented in code comme
 ### 6. MEDIUM review findings (9 items, M1-M9)
 Not yet addressed. Most impactful: M1 (dead Try branch code — now fixed as part of H1), M8 (no tests for --detail flag). See FINDINGS.md for the full list.
 
+### 7. NEW review findings F1-F5 (FIXED — commit `0baf908`)
+Second /review run (2026-08-02) found 5 additional bugs:
+- F1+F2: single-line constructs (if/class/for/while/with) silently dropped from structure output
+- F3+F4+F5: redaction contract gaps (select_with_context/is_relevant unredacted, redact() only catches ImportError)
+- All 5 fixed with structural approach: unconditional `keep.add(node.lineno-1)` for all node types + outer try/except in `pack_context`
+
 ## Acceptance criteria
 
 1. agy_lens.py wrapper built and tested with a real /tp critique
