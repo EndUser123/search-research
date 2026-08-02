@@ -1,5 +1,11 @@
 # Vault Log
 
+## serde-broken-false-positive-sweep
+Source: session-019fb933
+Agent: grok
+Notes: All 10 serde_broken entries tested and cleared — multi-path model access, mutual exclusivity fix, escalating cooldowns
+Page: P:/.data/wiki/concepts/serde-broken-false-positive-sweep-20260801.md
+
 ## --title
 Source: Literal-vs-intent pattern refinement in agent-failure-modes
 Agent: --source
