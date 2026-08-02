@@ -1,5 +1,11 @@
 # Vault Log
 
+## execution-receipts-for-executable-artifacts
+Source: session-019fc303
+Agent: grok
+Notes: Test-before-trust principle: two-layer gate (static checks + runtime test-fire) for all executable artifacts. AGENTS.md rule with per-type receipt table. /maintain lock no-op as canonical example.
+Page: P:/.data/wiki/concepts/execution-receipts-for-executable-artifacts.md
+
 ## prose-rules-vs-structural-enforcement-research-2026
 Source: session-2026-08-02-www-reddit-batch
 Agent: grok
