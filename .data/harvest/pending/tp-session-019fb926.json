@@ -1,0 +1,17 @@
+[
+  {
+    "title": "NEXT_ACTION_PACKET prototype in /www",
+    "obligation": "Replace prose Skill suggestion with structured packet so operator-gated skill routing costs one keystroke not re-derivation",
+    "operation": "GENERALIZE"
+  },
+  {
+    "title": "tool_choice=required injection in /codex skill for Luna/mini-class",
+    "obligation": "Lighter GPT-5 tiers intermittently emit text-only instead of tool calls; conductor should inject tool_choice=required when available",
+    "operation": "GENERALIZE"
+  },
+  {
+    "title": "Luna no-auto-pool update not applied",
+    "obligation": "Wiki concept recommends adding Luna to no-auto-pool list in model-tool-calling-capability-matrix.md but the matrix was not updated",
+    "operation": "COMPLETE"
+  }
+]

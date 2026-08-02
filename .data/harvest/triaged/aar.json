@@ -1,0 +1,27 @@
+{
+  "triaged_at": "2026-08-02",
+  "triaged_by": "019fb177",
+  "source": "pending/aar.json",
+  "items": [
+    {
+      "title": "MEASURE layer: no measurement of whether improvements actually help",
+      "status": "DEFERRED",
+      "resolution": "Valid meta-observation. Not actionable as a single task — needs a measurement strategy (instrument AGENTS.md rule violations, track improvement vs regression). Suitable for a /tp explore session, not immediate implementation."
+    },
+    {
+      "title": "Harvest arm-verify-collect chain is unused",
+      "status": "DEFERRED",
+      "resolution": "Specific to harvest implementation. The arm-verify-collect chain exists but close is used more than collect. This is a workflow adoption issue, not a code bug. Monitor."
+    },
+    {
+      "title": "Pause-on-N-errors: quality-gate should nudge after consecutive tool failures",
+      "status": "NEW_HANDOFF",
+      "resolution": "Actionable. Add detect_consecutive_errors to quality_gate.py PreToolUse hook. Count errors per session, emit nudge at threshold N=2. Suitable for /go implementation next session. Create handoff."
+    },
+    {
+      "title": "Literal-vs-intent interpretation: track as recurring failure mode",
+      "status": "MONITOR",
+      "resolution": "Already partially covered by agent-failure-modes-2026.md. Pattern is known. Track frequency; if it increases, propose AGENTS.md rule."
+    }
+  ]
+}
