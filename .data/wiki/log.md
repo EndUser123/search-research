@@ -1,5 +1,11 @@
 # Vault Log
 
+## Subagent output token exhaustion
+Source: session-019fb177
+Agent: grok
+Notes: max_tokens ceiling is about output volume, not prompt size. Decompose tasks, don't tighten prompts.
+Page: wiki/concepts/subagent-output-token-exhaustion-decomposition-not-prompt-tightening.md
+
 ## Preemptive edge-case consideration for AI coding agents
 Source: www-research-20260802
 Agent: grok
