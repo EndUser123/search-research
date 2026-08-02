@@ -170,12 +170,27 @@ This extends the [[llm-wiki-knowledge-pattern]] and [[open-knowledge-format-okf]
 
 | Category | Count |
 |---|---|
-| DONE (implemented this session) | 4 (#9, #12, #13, #30 partial) |
+| DONE (implemented) | 12 (#9, #12, #13, #30 partial, +8 from meta-improvement analysis) |
 | REJECTED | 3 (#5, #16, #17) |
 | VERIFY (already exists, check if running) | 1 (#3) |
-| REMAINING (positive ROI, not yet implemented) | 22 |
+| BLOCKED (needs Claude Code or operator decision) | 2 (#10 hooks, #3 scanner) |
+| REMAINING (positive ROI, not yet implemented) | 18 |
 
-**Highest leverage remaining:** #10 (backlinks), #21 (wiki↔handoffs), #22 (frontmatter lint), #23 (wiki snapshot), #25 (backup).
+**Meta-improvement items implemented this session (from /tp improve analysis):**
+- /tp improve mode added (new posture in 4D routing matrix)
+- Completeness counter in /tp session output
+- Rejected alternatives rule in AGENTS.md
+- Chronicity classification in AGENTS.md handoff convention
+- "Not captured" section in /capture output
+- /tp improve recommendation in /tp session dynamic skill pass
+- /tp self-scope question before CROSS-DOMAIN NOTICES
+- core.fsmonitor=false on both repos
+- 2 wiki concepts: right-but-insufficient pattern + operator pre-emptive review
+- Dead-zone guard hook (docs/plans/, docs/designs/, P:\ root)
+- Ship phase-log enforcement (ship_receipt.py --phase-log)
+- Session transcript path fix in close-check.rhai
+
+**Highest leverage remaining:** #10 (backlinks), #21 (wiki↔handoffs), #22 (frontmatter lint), #23 (wiki snapshot), #25 (backup), session_path() utility, close-check auto-chain, handoff-coalesce skill.
 
 ## What this means for our workspace
 
