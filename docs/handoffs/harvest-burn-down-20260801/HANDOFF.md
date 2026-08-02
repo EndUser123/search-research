@@ -8,14 +8,14 @@ last_updated_by: 019f9a89-d902-7930-ad3a-bab7e682830b
 last_updated_at: 2026-08-01T21:20:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 9a3cecec70e4cf659442282a3b7dad72d5f55c16
+accurate_as_of_head: 18eace1f530464f868dfa5a5946e8b34851c334b
 ---
 
-# Handoff: Harvest burn-down — close the 29 OPEN obligations
+# Handoff: Harvest burn-down — close the 27 OPEN obligations
 
 ## Objective
 
-Cluster the 29 OPEN harvest items by root cause, identify the top 5-10 that share a fix, and close them. Invert the fleet's accumulation trajectory (currently producing obligations 10x faster than closing them).
+Cluster the 27 OPEN harvest items by root cause, identify the top 5-10 that share a fix, and close them. Invert the fleet's accumulation trajectory (currently producing obligations 10x faster than closing them).
 
 ## Status
 
@@ -114,7 +114,7 @@ The harvest system is healthy mechanically (0 conflicts, fast fold time). The pr
 ## Resumption protocol
 
 1. `$env:HARVEST_HOME="P:/.data/harvest"; python ~/.grok/skills/harvest/scripts/harvest.py show`
-2. Cluster the 29 items by reading titles + obligations
+2. Cluster the 27 items by reading titles + obligations
 3. Identify the largest cluster with a shared root cause
 4. Fix the root cause
 5. Arm + collect each item in the cluster
@@ -123,7 +123,7 @@ The harvest system is healthy mechanically (0 conflicts, fast fold time). The pr
 
 ```
 Pick up the harvest burn-down handoff at P:/docs/handoffs/harvest-burn-down-20260801/HANDOFF.md.
-Start by running harvest.py show, then cluster the 29 OPEN items by root cause.
+Start by running harvest.py show, then cluster the 27 OPEN items by root cause.
 Goal: close ≥5 items in one session.
 ```
 
@@ -133,7 +133,7 @@ Goal: close ≥5 items in one session.
 
 ## Epistemic labels
 
-- [FACT] 29 OPEN / 34 total harvest items (harvest.py doctor output)
+- [FACT] 27 OPEN / 34 total harvest items (harvest.py doctor output, updated 2026-08-02 after 2 collections)
 - [FACT] 213 open handoffs (coverage_scan.py output)
 - [INFERENCE] The fleet produces obligations 10x faster than it closes them (derived from open:closed ratio)
 - [INFERENCE] Clustering will reveal shared root causes (based on the 9 GENERALIZE pattern candidates already identified by doctor)
@@ -144,3 +144,19 @@ Goal: close ≥5 items in one session.
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-01T21:20 | 019f9a89... | created |
+| 2026-08-02T15:00 | 019f9a89... | updated — Rev 1: 2 items collected (29→27 OPEN), updated counts |
+
+---
+
+## Revision 1 — 2026-08-02T15:00:00Z (session 019f9a89-d902-7930-ad3a-bab7e682830b)
+
+**Trigger:** auto-update — /go do now collected 2 harvest items.
+
+**What changed since the original:**
+- `01KYR4PMGM64JAXP9WWDX33KBH` (quality-gate timeout, leverage 40): COLLECTED. Root cause was dirty-tree inflation (not timeout value), fixed by session 019fb937. Timeout bump no longer needed. Evidence: handoff `hook-timeout-root-cause-and-deferred-work-20260801` line 40.
+- `01KYQ3WN3DH7303ZPJD8DNY5YG` (narrative sufficiency, leverage 35): COLLECTED. Rule already present in AGENTS.md line 544 with comprehensive worked examples. Enforcement gap tracked separately by `agentic-rules-not-firing` investigation.
+- Harvest state: 27 OPEN / 34 total (was 29 OPEN). 5 COLLECTED total (was 3).
+- /tp do + /tp improve analysis surfaced 12 findings across 4 dimensions (efficiency, effectiveness, insightfulness, thought-partnership). All findings routed to existing handoffs or the DO_NOW list (3 items, all executed via /go).
+- Top 3 ranked harvest items remaining: yt-is/nlm integration (45), verdict-integrity (35), nlm queue workers (35).
+
+**Status update:** OPEN — scope reduced from 29→27 items. The highest-leverage remaining items are now yt-is integration (leverage 45) and nlm queue workers (leverage 35).
