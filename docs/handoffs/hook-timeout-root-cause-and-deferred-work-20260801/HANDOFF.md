@@ -199,9 +199,59 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 
 **New open items:** none
 
+---
+
+## Revision 3 — 20260802T080000Z (session 019fb937-b03e-7f80-a4b0-68afdb7da38d)
+
+**Trigger:** auto-update — extensive close-check improvement work since Revision 2.
+
+**What changed since Revision 2:**
+- close-check workflow upgraded to 4 phases (Sweep → Synthesize → Remediate → Finalize)
+- Phase 3 Remediate runs all 5 lifecycle skills unconditionally (/capture, /friction, /handoff, /trace, /wiki)
+- Multi-terminal safety: read-only skills parallel, write-capable skills serialized with safe-git
+- Pre-packed evidence pattern: Phase 1/2 data passed to Phase 3 subagents (eliminates transcript re-scans)
+- `raw_evidence` field added to sweep schema (actual correction texts, error patterns, work-stream summaries)
+- `remediation_mode` tag added to 5 lifecycle skills (auto-act vs surface-only)
+- `index_skills.py` updated with `--sort-by remediation_mode` support
+- Windows compat: memory.py fcntl→msvcrt, test_file_inference_smoke.py sys.exit guard
+- 3 close-check live runs completed (3min, 38min, 29min)
+
+**Updated task packets:**
+
+### TP-04: close-check performance (updated)
+
+- **Status:** pre-packed evidence optimization shipped (commits `4d86204`, `c2b9b0c`) but NOT fully tested end-to-end. The `raw_evidence` field needs a live run to validate that the judgment agent populates it correctly.
+- **New finding:** lifecycle-skill-coverage check produces false positives — it greps the transcript for `/capture` etc., but Phase 3 runs them as workflow subagents (not slash commands in transcript). Quick fix: update the detection to check for workflow remediation results.
+- **Target:** <5 min (currently 29 min with partial optimization)
+
+### TP-05: lifecycle-skill-coverage false positive (NEW)
+
+- **id:** TP-05
+- **goal:** Fix the false positive where Phase 1 reports lifecycle skills as "didn't run" when they actually ran as Phase 3 workflow subagents
+- **in scope:** `~/.grok/workflows/close-check.rhai` Phase 1 judgment agent prompt (CHECK 3: lifecycle-skill-coverage)
+- **acceptance:** close-check reports 0 false-positive lifecycle-skill gaps when skills ran via Phase 3
+- **falsifier:** any lifecycle-skill gap reported when the skill actually ran in Phase 3
+- **verification level required:** LIVE_BEHAVIOR
+
+### TP-06: memory.py Windows CLI tests (NEW)
+
+- **id:** TP-06
+- **goal:** Fix 11 subprocess test failures in bundled/skills/implement/tests/test_memory.py (pre-existing behavior bugs, not lock-related)
+- **in scope:** `~/.grok/bundled/skills/implement/scripts/memory.py` (read subcommand behavior, chmod on Windows)
+- **acceptance:** all 56 tests in test_memory.py pass
+- **falsifier:** any CLI subprocess test fails
+- **note:** `bundled/` is gitignored — fix is local-only, won't propagate via git
+
+**Updated evidence:**
+- git rev-parse HEAD → 238432aa6cf7f3be035f036437d55700266b47c8
+
+**Status update:** TP-04 updated with new findings. TP-05 and TP-06 added.
+
 ## Changelog
 
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-01T16:30 | 019fb937... | created |
 | 2026-08-02T05:00 | 019fb937... | revision 1 — updated accurate_as_of_head to 448e0b3; added TP-03 task packet; added post-handoff commit note |
+| 2026-08-02T05:15 | 019fb937... | revision 2 — HEAD drift to 963c0af |
+| 2026-08-02T08:00 | 019fb937... | revision 3 — close-check 4-phase upgrade, TP-04 update, TP-05 + TP-06 added |
