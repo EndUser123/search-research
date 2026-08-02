@@ -80,6 +80,8 @@ This concept is wrong if:
 
 3. **The `/wiki lint` coupling itself isn't wrong** — lint IS the right place for comprehensive maintenance. The problem is that lint is manual and infrequent. Features that need real-time data should couple to writes, not to maintenance passes.
 
+4. **Refinement (forgetting ≠ rejecting):** for maintenance tasks the operator WANTS to do but forgets (like lint), a periodic reminder IS the right trigger — not automatic coupling, not silence. See [[forgetting-not-rejecting-distinguish-non-use-from-disapproval]]. The distinction: real-time data couples to writes (automatic); forgotten maintenance couples to periodic reminders (advisory).
+
 ## Receipts
 
 - **Operator never uses /wiki lint:** [FACT] Operator stated directly in session 2026-08-02: "I don't think I've ever used it." Session transcript 019fbf77, user_query prompt_58.
