@@ -126,3 +126,16 @@ OPEN — ready for investigation in a fresh session
 ## Operator intent (explicit)
 
 The operator wants **enforcement**, not more documentation. The wiki concept was shipped but the operator correctly identified it as insufficient. The handoff must target the enforcement layer (hooks, mechanical detection) — not additional prose. If the investigation concludes that enforcement is not feasible on this host, that is an acceptable finding (label it honestly); but "ship another wiki concept" is not an acceptable recommendation.
+
+---
+
+## Revision 1 — 2026-08-01T21:15:00Z (session 019f9a89-d902-7930-ad3a-bab7e682830b)
+
+**Trigger:** auto-update — /tp critique challenged the priority of this investigation.
+
+**What changed since the original:**
+- The enforcement research from this session (5 mechanisms ranked, wiki concept committed) partially answers the investigation's question. The research identified PreToolUse regex gate as the top shippable mechanism.
+- /tp critique (subagent 019fc0a9) recommended **deferring** this investigation until the harvest backlog drops below 10 OPEN items. Rationale: the investigation already produced the knowledge; what's missing is a decision about which mechanism to ship, not more investigation. Another session would produce a 6th wiki concept, not a fix.
+- The investigation's own "operator intent" section says "ship another wiki concept is not an acceptable recommendation." The /tp critique agrees — the investigation should become an implementation task, not another research session.
+
+**Status update:** DEFERRED — not closed, but deprioritized. The next session should implement one mechanism from the existing research rather than investigating further. When the harvest burn-down surfaces whether rule-firing is the shared root cause of ≥5 harvest items, this investigation may be promoted back to priority 1.
