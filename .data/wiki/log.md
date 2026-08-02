@@ -1,5 +1,11 @@
 # Vault Log
 
+## --title
+Source: Operator correction as highest-density signal — minimize correction-to-fix latency
+Agent: --source
+Notes: session-019fbf02
+Page: --tags
+
 ## Operator Pre-Emptive Review
 Source: session-019fbdfb
 Agent: grok
