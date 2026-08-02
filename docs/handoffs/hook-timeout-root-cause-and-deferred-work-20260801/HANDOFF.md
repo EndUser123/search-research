@@ -6,11 +6,13 @@ parent_session: none
 current_terminal_id: 311cd4b1-2bf4-47ec-8abd-7530e971493c
 produced_at: 2026-08-01T16:30:00Z
 last_updated_by: 019fb937-b03e-7f80-a4b0-68afdb7da38d
-last_updated_at: 2026-08-01T16:30:00Z
+last_updated_at: 2026-08-02T05:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: ef36a71a9b79ddc1e8e8d57ac07b8747d4f1d29c
+accurate_as_of_head: 448e0b38806f4bbcdc568696a45d638fdd3eb616
 ---
+
+# Handoff: Hook timeout root cause — deferred work
 
 ## Objective
 
@@ -49,6 +51,7 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 - [FACT] "Best fix with no negative second-order effects" principle added to `/go` SKILL.md line 35 (commit `d92ecbf`)
 - [FACT] `/tp` session-review-protocol.md section order fixed: skills before actionable recommendations (commit `71d2ff1`)
 - [FACT] `close-check.md` argument bug fixed: `--lane mechanical` → `mechanical` positional (commit `c9f03c6`)
+- [FACT] 448e0b3 committed after this handoff was written — updated tp-parallel-panel handoff and premature-recommendation wiki concept (source: `git log ef36a71..448e0b3`)
 
 ## Current state
 
@@ -105,6 +108,8 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 - **root cause:** Each remediation skill runs as a full subagent spawn (read SKILL.md → scan transcript → check existing → write → commit). 5 subagent lifecycles = 12+ minutes. The orchestrator can do most of this work directly without spawning subagents.
 - **proposed approach:** Move mechanical scanning (grep transcript for correction signals, count friction patterns) inline to the workflow script. Only spawn subagents for the write-capable skills that need LLM judgment to decide what to write. Better yet: have Phase 1 sweep agents ALSO collect the remediation data (they already scan the transcript), then Phase 3 just writes the artifacts based on data already gathered.
 
+### TP-03: chronic workspace-health cleanup
+
 - **id:** TP-03
 - **goal:** Resolve chronic workspace-health findings from close-check report
 - **in scope:** 10 hook syntax errors, 197 dangling path references, 562 stale state files (>30 days), 201 duplicate skill names
@@ -137,7 +142,7 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 - `P:/.data/wiki/concepts/list-before-claim-for-destructive-proposal-actions.md` → cites the gitignore incident. The rule is in AGENTS.md line 329.
 - `P:/.data/wiki/concepts/analysis-over-action-knowledge-capture-without-application.md` → describes the systemic pattern. Structural fix (bridge /why → /go) not yet implemented.
 - `~/.grok/AGENTS.md` → contains list-before-claim rule, short-command interpretation rule, Class C quoting rule. All concurrent-session-sensitive.
-- This handoff's `accurate_as_of_head` → `ef36a71`. If HEAD moves, re-verify cited paths.
+- This handoff's `accurate_as_of_head` → `448e0b3`. If HEAD moves, re-verify cited paths.
 
 ## Other outstanding streams
 
@@ -173,6 +178,7 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 
 - [FACT] All measurements (dirty tree, git diff timing, transcript counts, sqlite row counts) — cited with receipt commands above
 - [FACT] All commits — cited with SHA hashes
+- [FACT] 448e0b3 committed after this handoff was written — updated tp-parallel-panel handoff and premature-recommendation wiki concept (source: `git log ef36a71..448e0b3`)
 - [INFERENCE] The analysis-over-action pattern is systemic (not session-specific) — based on 5-session recurrence, but no quantitative measurement of fix-application rate across the workspace
 - [UNKNOWN] yt-is ingestion effort estimate — depends on pipeline capabilities not investigated this session
 
@@ -181,3 +187,4 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-01T16:30 | 019fb937... | created |
+| 2026-08-02T05:00 | 019fb937... | revision 1 — updated accurate_as_of_head to 448e0b3; added TP-03 task packet; added post-handoff commit note |
