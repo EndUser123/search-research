@@ -17,7 +17,7 @@ Make the agent proactive at the meta-level: generalize lessons, self-audit, anti
 
 ## Status
 
-OPEN — three structural fixes built and committed. Four priority integrations identified but not yet built.
+OPEN — three structural fixes built. PROACT-01 (/close integration) BUILT (commit 01366cc). Meta-checkpoint AGENTS.md rule accidentally deleted in full-file rewrite (e7da24f, 2026-08-01) — RESTORED session 019fc318 (2026-08-02) with Q1 reworded from capture to escalation framing. See [[symptom-to-abstraction-escalation]]. Three priority integrations remain.
 
 ## Read-first list
 
@@ -39,12 +39,13 @@ OPEN — three structural fixes built and committed. Four priority integrations 
 ## Current state
 
 **Done (committed):**
-- AGENTS.md: meta-checkpoint (4 questions), cold-read audit gate
+- AGENTS.md: meta-checkpoint (4 questions, Q1 reworded to escalation framing), cold-read audit gate, symptom-to-abstraction retrieval gate
 - wiki_marker_scan.py: mechanical pattern detection
 - /skill-dev Step 7: graph-projection technique
+- /close meta_checkpoint gate (PROACT-01): built commit 01366cc — blocks CLOSE COMPLETE until 4 questions answered
 
 **NOT done (priority integrations — identified in wiki concept):**
-1. `/close` meta-checkpoint integration — add 4 questions to close summary template (highest leverage)
+1. ~~`/close` meta-checkpoint integration~~ — ✅ DONE (commit 01366cc)
 2. `/create-skill` cold-read audit — add as final step before declaring ready
 3. `/handoff` cold-read audit — post-write check on cold-consumed artifacts
 4. `/harvest` marker scanner integration — add as unrealized-value detection layer

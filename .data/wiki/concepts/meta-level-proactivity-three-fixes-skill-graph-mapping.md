@@ -46,7 +46,7 @@ Three questions before any completion claim:
 2. Did I audit my own output? (cold-read if skill edited)
 3. Did I suggest the next obvious thing? (anticipate operator need)
 
-**Status:** added to `~/.grok/AGENTS.md` § "Meta-checkpoint before claiming DONE".
+**Status:** added to `~/.grok/AGENTS.md` § "Meta-checkpoint before claiming DONE" (commit a446b72, 2026-07-31). Accidentally deleted by full-file AGENTS.md rewrite (commit e7da24f, 2026-08-01). **Restored** this session (2026-08-02, session 019fc318) with Q1 reworded from "generalize the lesson" (capture framing) to "escalate the symptom" (implementation framing). See [[symptom-to-abstraction-escalation]].
 
 ### Fix 2: Cold-read audit of skills
 
@@ -123,9 +123,9 @@ These integrations are wrong if:
 
 ## What this means for our workspace
 
-The three fixes are implemented in AGENTS.md + the marker scanner script. The skill graph integrations are **identified but not yet built**. Priority order:
+The three fixes are implemented in AGENTS.md + the marker scanner script. The `/close` integration **was built** (commit 01366cc, 2026-07-31 — meta_checkpoint gate in close_accounting.py). The other skill graph integrations remain identified but not yet built. Priority order:
 
-1. **`/close` meta-checkpoint integration** — add the 3 questions to the close summary template. Highest leverage: fires once per session, covers all skills.
+1. **`/close` meta-checkpoint integration** — ✅ **BUILT** (commit 01366cc). The gate blocks CLOSE COMPLETE until all 4 questions are answered. Q1 was reworded in session 019fc318 from capture ("did I generalize the lesson?") to escalation ("did I escalate the symptom?").
 2. **`/create-skill` cold-read audit** — add as the final step before declaring a skill ready. Natural home.
 3. **`/handoff` cold-read audit** — add as a post-write check. Highest-traffic cold-consumed artifact.
 4. **`/harvest` marker scanner integration** — add the scanner as a harvest detection layer. Aligned mission.
