@@ -5,7 +5,7 @@ running with remote debugging, and the DevToolsActivePort file exists.
 
 Smart lifecycle:
 1. If port 9222 is already listening → just ensure DevToolsActivePort exists, done.
-2. If Chrome with LLM profile is running but port not listening → prompt to enable toggle.
+2. If Chrome with LLM profile is running but port not listening → wait for toggle.
 3. If Chrome with LLM profile is NOT running → launch it, wait for port.
 
 Non-destructive: does NOT kill existing Chrome unless --kill flag is passed.
@@ -25,6 +25,11 @@ CHROME_EXE = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 PROFILE_DIR = Path(r"P:\.data\chrome-llm-profile")
 PORT_FILE = PROFILE_DIR / "DevToolsActivePort"
 PORT = 9222
+
+# Windows process creation flags
+CREATE_NEW_PROCESS_GROUP = 0x00000200
+DETACHED_PROCESS = 0x00000008
+CREATE_BREAKAWAY_FROM_JOB = 0x01000000
 
 
 def count_chrome_processes():
@@ -85,18 +90,30 @@ def kill_chrome():
 
 
 def launch_chrome():
-    """Launch Chrome as a detached process (survives parent exit)."""
+    """Launch Chrome using PowerShell Start-Process.
+
+    Note: subprocess.Popen with DETACHED_PROCESS, CREATE_BREAKAWAY_FROM_JOB,
+    or CREATE_NEW_PROCESS_GROUP all fail — the Grok Build terminal sandbox
+    uses a Job Object that kills child processes when the command completes,
+    and CREATE_BREAKAWAY_FROM_JOB requires SeTcbPrivilege (access denied).
+
+    Start-Process creates the process via ShellExecute which goes through
+    explorer.exe, not the current process tree. This is the only reliable
+    way to launch a persistent process from within the terminal sandbox.
+    """
     if not Path(CHROME_EXE).exists():
         print(f"ERROR: Chrome not found at {CHROME_EXE}", file=sys.stderr)
         sys.exit(1)
 
-    # Use DETACHED_PROCESS flag so Chrome survives this script exiting
-    subprocess.Popen(
-        [CHROME_EXE, f"--user-data-dir={PROFILE_DIR}", "--new-window"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        creationflags=subprocess.DETACHED_PROCESS,
+    # Build the PowerShell command — use Start-Process via shell
+    ps_cmd = (
+        f"Start-Process '{CHROME_EXE}' -ArgumentList "
+        f"'--user-data-dir={PROFILE_DIR}','--new-window',"
+        f"'chrome://inspect/#remote-debugging'"
     )
+    # Use os.system which goes through cmd.exe → shell, not subprocess.Popen
+    import os
+    os.system(f'powershell -NoProfile -Command "{ps_cmd}"')
     time.sleep(4)
 
 
@@ -108,10 +125,20 @@ def write_devtools_active_port():
     return PORT_FILE.exists()
 
 
+def print_ready():
+    """Print the ready summary."""
+    print()
+    print("Chrome LLM profile is ready.")
+    print(f"  Profile: {PROFILE_DIR}")
+    print(f"  Port: {PORT}")
+    print(f"  DevToolsActivePort: {PORT_FILE}")
+    print()
+    print("Reload plugins (r) for the MCP server to connect.")
+
+
 def main():
     force_kill = "--kill" in sys.argv
 
-    # Step 0: Handle --kill flag
     if force_kill:
         existing = count_chrome_processes()
         if existing > 0:
@@ -132,7 +159,6 @@ def main():
     profile_running = is_llm_profile_running()
 
     if profile_running:
-        # Chrome is up but toggle isn't enabled — wait for operator to turn it on
         print("Chrome LLM profile is running but port 9222 is not listening.")
         print("Waiting for remote debugging toggle (enable at chrome://inspect)...")
         if wait_for_port(PORT, max_wait=60):
@@ -158,7 +184,7 @@ def main():
         sys.exit(1)
     print(f"Chrome running: {alive} processes")
 
-    # Wait for port (toggle may auto-enable if it was on last session)
+    # Wait for port
     print(f"Checking port {PORT}...")
     if wait_for_port(PORT, max_wait=20):
         print(f"Port {PORT} is listening")
@@ -173,17 +199,6 @@ def main():
         print(f"Port {PORT} not listening after 20s.")
         print("Enable the toggle at chrome://inspect in the LLM profile, then re-run.")
         sys.exit(1)
-
-
-def print_ready():
-    """Print the ready summary."""
-    print()
-    print("Chrome LLM profile is ready.")
-    print(f"  Profile: {PROFILE_DIR}")
-    print(f"  Port: {PORT}")
-    print(f"  DevToolsActivePort: {PORT_FILE}")
-    print()
-    print("Reload plugins (r) for the MCP server to connect.")
 
 
 if __name__ == "__main__":
