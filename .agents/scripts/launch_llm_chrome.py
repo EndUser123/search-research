@@ -118,13 +118,24 @@ def launch_chrome():
         f'/sc once /st 23:59 /f'
     )
     run_cmd = f'schtasks /run /tn "{task_name}"'
+    delete_cmd = f'schtasks /delete /tn "{task_name}" /f'
 
-    import os
-    os.system(create_cmd)
-    os.system(run_cmd)
+    rc_create = os.system(create_cmd)
+    if rc_create != 0:
+        print(f"ERROR: schtasks /create failed (exit {rc_create}) — Chrome may not launch", file=sys.stderr)
+        # Still try to run in case the task already exists from a prior run
+
+    rc_run = os.system(run_cmd)
+    if rc_run != 0:
+        print(f"ERROR: schtasks /run failed (exit {rc_run}) — Chrome was not launched", file=sys.stderr)
+        # Clean up the task if create succeeded but run failed
+        os.system(delete_cmd)
+        sys.exit(1)
 
     # Clean up the task (Chrome is already running, don't need it anymore)
-    os.system(f'schtasks /delete /tn "{task_name}" /f')
+    rc_delete = os.system(delete_cmd)
+    if rc_delete != 0:
+        print(f"WARNING: schtasks /delete failed (exit {rc_delete}) — stale task may remain", file=sys.stderr)
 
     time.sleep(4)
 
