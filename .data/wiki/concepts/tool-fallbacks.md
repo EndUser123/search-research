@@ -110,10 +110,10 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 
 | Tool | Symptom (1 line) | Type | Workaround | Re-test |
 |---|---|---|---|---|
-| `reddit__search_reddit` | "Search failed for all subreddits" / "Access forbidden" | TRANSIENT (API outage or rate-limit) | Use `reddit__browse_subreddit` (RSS fallback, no scores) or DDG `site:reddit.com`. For full thread content: `web_fetch` on `old.reddit.com/r/.../comments/...` URL. | Try once each session before falling back |
-| `reddit__get_post_details` | "Cannot access r/\<sub\>" for some subreddits | TRANSIENT (per-subreddit access policy) | Use `web_fetch` on `old.reddit.com` URL (bypasses MCP access restriction). Works reliably for reading posts + comments. | Try once each session before falling back |
+| `reddit__search_reddit` | "Search failed for all subreddits" / "Access forbidden" | STRUCTURAL (Reddit API closed to self-service Nov 2025; unauthenticated .json deprecated May 2026) | Use DDG `site:reddit.com` searches. For full thread content: `web_fetch` on `old.reddit.com/r/.../comments/...` URL (NOTE: old.reddit.com login required soon — switch to `ninjackster/reddit-rss-mcp`). | Re-test after: Reddit API policy change |
+| `reddit__get_post_details` | "Cannot access r/\<sub\>" for some subreddits | STRUCTURAL (per-subreddit access policy + API closure) | Use `web_fetch` on `old.reddit.com` URL (dying) or `ninjackster/reddit-rss-mcp` get_post_comments. | Re-test after: Reddit API policy change |
 | `firecrawl_scrape` | "Insufficient credits to perform this request" | TRANSIENT (monthly credit refresh) | Use `web_fetch` (built-in) for page content, or DDG for search. Check quota dashboard for current credit count. | Try when quota dashboard shows credits >0 |
-| `web_fetch` (Cloudflare-protected sites) | "Just a moment..." on perplexity.ai, pcmag.com, etc. | TRANSIENT (intermittent CDN block) | Use DDG to find blog aggregators or mirrors. Or `firecrawl_scrape` (when credits available). For Reddit: `old.reddit.com` bypasses Cloudflare. | Try once each session — Cloudflare blocks are intermittent |
+| `web_fetch` (Cloudflare-protected sites) | "Just a moment..." on perplexity.ai, pcmag.com, etc. | TRANSIENT (intermittent CDN block) | Use DDG to find blog aggregators or mirrors. Or `firecrawl_scrape` (when credits available). For Reddit: `old.reddit.com` (dying) → switch to RSS MCP. | Try once each session — Cloudflare blocks are intermittent |
 
 ## MCP server availability
 
