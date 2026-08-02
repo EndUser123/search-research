@@ -91,18 +91,17 @@ def extract_user_messages(chat_file: Path) -> list[str]:
     """Extract user messages from a chat_history.jsonl file."""
     messages = []
     try:
-        # KNOWN LIMITATION (F3-05): Substring match on '"type":"user"' instead of
-        # JSON parsing. Cheaper and sufficient for signal detection, but may match
-        # lines where the string appears in tool output rather than the actual user
-        # turn. A JSON-parse approach would be more precise but ~10x slower on large
-        # transcript files. Acceptable trade-off for a scanner, not for a parser.
+        # Regex match tolerant of whitespace variations: '"type":"user"' or
+        # '"type" : "user"' or '"type": "user"'. This replaces the brittle
+        # substring match (F3-05) that failed on format drift.
+        _USER_TYPE_RE = re.compile(r'"type"\s*:\s*"user"')
         for line in chat_file.read_text(encoding="utf-8").splitlines():
-            if '"type":"user"' in line:
-                # Try multiple extraction patterns
+            if _USER_TYPE_RE.search(line):
+                # Try multiple extraction patterns (whitespace-tolerant)
                 for pattern in [
                     r'user_query[^>]*>(.{0,500})',
-                    r'"text":"([^"]{1,300})"',
-                    r'"content":\[.*?"text":"([^"]{1,300})"',
+                    r'"text"\s*:\s*"([^"]{1,300})"',
+                    r'"content"\s*:\s*\[.*?"text"\s*:\s*"([^"]{1,300})"',
                 ]:
                     m = re.search(pattern, line)
                     if m:
