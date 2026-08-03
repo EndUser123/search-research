@@ -5,17 +5,19 @@
 **Source session:** 019fb177-e5d5-7520-92f5-0158f87639c9  
 **Operator directive:** 2026-08-01, "So we need a recap skill and we need a to-do skill. TP can call to-do or recap as needed."
 
-## Architecture (operator-decided)
+## Architecture (operator-decided + corrected 2026-08-02)
 
 Three skills with clean boundaries. No skill produces another's output.
 
 | Skill | Question | Direction | Scope |
 |-------|----------|-----------|-------|
+| **/todo** | "What should I do?" | Forward (action) | Fleet-wide open work — **THE ONE COMMAND for seeing what's open** |
 | **/recap-grok** | "What happened?" | Backward (reconstruction) | Session transcript chain |
-| **/todo** | "What's next?" | Forward (action) | Fleet-wide open work |
 | **/tp** | "Is this good?" | Evaluative (judgment) | Whatever the operator asks about |
 
-**/tp is the orchestrator that can call /recap or /todo when it needs their output.** Not the other way around. /recap doesn't call /tp. /todo doesn't call /recap.
+**Correction (2026-08-02):** the original design said `/tp session` is the unified entry point that calls `/todo`. This was wrong — `/tp session` is a retrospective (backward-looking), which makes it the wrong front door for "what should I do?" (forward-looking). The correct architecture: **`/todo` is the one command** for seeing what's open. `/tp session` is for looking backward at what happened. They serve different domains and should not be chained.
+
+**`/todo` is the discovery front door. `/tp session` is the retrospective. The operator decides what to do from `/todo`'s list — no commitment gating or planning skill is needed.**
 
 ## Current overlap (what needs to be eliminated)
 
@@ -90,8 +92,16 @@ The insight: the unit should be work, not conversation. Our three skills are con
 1. /recap-grok produces reconstruction only — no action items, no cross-invocation suggestions
 2. /todo produces action items only — no reconstruction, no evaluation
 3. /tp session consumes /recap output instead of re-reading transcripts
-4. /tp session calls /todo for action items instead of producing its own
-5. The operator can run /recap → /todo (or just /tp session which calls both) and get one coherent view
+4. /tp session does NOT need to call /todo — they serve different domains (retrospective vs discovery). The operator runs /todo for "what's open" and /tp session for "what happened."
+5. The operator runs /todo (one command) to see what's open
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-01 | 019fb177... | created — 3-skill boundary decision |
+| 2026-08-02 | 019fb177... | boundary changes implemented (/recap stripped, /todo reframed, /tp delegation note) |
+| 2026-08-02 | 019fb177... | corrected — /todo is the discovery front door, not /tp session. Retrospective ≠ planning. |
 
 ## Constraints
 

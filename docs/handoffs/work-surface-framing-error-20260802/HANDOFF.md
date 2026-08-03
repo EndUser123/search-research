@@ -20,7 +20,55 @@ accurate_as_of_head: b08d1a8
 
 ## Objective
 
-Diagnose why three rounds of design + review (greenfield proposal → red-team → tp review) all failed to produce a correct work-surface architecture, and identify the correct best-practice domains to ground the redesign in.
+Diagnose why three rounds of design + review (greenfield proposal → red-team → tp review) all failed to produce a correct work-surface architecture, identify the correct best-practice domains, and document the simplified solution that emerged.
+
+## Resolution (2026-08-02 — this update)
+
+After the framing error was diagnosed, the operator challenged the "missing domains" assumption. On inspection:
+
+1. **Triage/clarification is NOT needed** — handoffs are pre-structured (16 fields, acceptance criteria). Intake is controlled, not a firehose.
+2. **Prioritization/planning is NOT needed** — the operator decides what to do from the list. They've never said "I can't decide." They've said "the information is scattered across 5 commands."
+3. **The actual gap is discovery breadth in `/todo`** — it scans handoffs + harvest + git, but misses FINDINGS.md, WIKI markers, and deferred wiki patterns.
+
+The pain is "I have to run too many commands to see what's open." The fix is extending `/todo`'s scan sources + folding 2 overlapping skills, not adding new domains or building new skills.
+
+## The simplified solution (3 fixes)
+
+### Fix 1: Extend `/todo` scan to pull from all sources
+Add 3 scan steps to `/todo`:
+- FINDINGS.md scan (open review bugs from `.artifacts/`)
+- WIKI: marker scan (uncaptured knowledge from transcript)
+- Deferred wiki patterns (grep for blocked/deferred/setup-needed)
+
+`/todo` becomes the one command that shows everything open. The operator decides what to do from the list.
+
+### Fix 2: Fold `/capture` + `/friction` into `/tp session`
+Both are transcript scans with different output routing. `/tp session` already has a transcript scan. Add `/capture`'s 7 categories and `/friction`'s 2 modes as additional scan passes. Mark both deprecated.
+
+### Fix 3: Delete `/close` (already deprecated by `/close-check`)
+Remove the deprecated skill. `/close-check` is the lifecycle gate.
+
+### What we are NOT doing
+- No new skill (`/work` is not needed)
+- No JSON work store (grep on .md works)
+- No impact/effort scoring (operator decides, not the system)
+- No commitment gating (not a missing domain — operator makes commitments)
+- No architecture redesign (the fix is scan breadth + 2 skill folds)
+
+## The 10 domains (all served, none missing)
+
+| Domain | Served by | Status |
+|--------|-----------|--------|
+| Intake / capture | `/handoff`, `/harvest` | ✅ exists |
+| Organization / backlog | handoffs (flat list) | ✅ exists |
+| Status / tracking | `/todo` (needs scan breadth) | ✅ exists, needs Fix 1 |
+| Execution | `/go`, `/refactor` | ✅ exists |
+| Delivery / completion | `/check`, `/close-check` | ✅ exists |
+| Retrospective | `/tp session`, `/aar`, `/recap-grok` | ✅ exists |
+| Improvement discovery | `/tp improve`, `/skill-dev` | ✅ exists |
+| Knowledge capture | `/wiki`, `/handoff` | ✅ exists |
+| Obligation tracking | `/harvest` | ✅ exists |
+| Quality verification | `/check`, `/review`, `/trace` | ✅ exists |
 
 ## The framing error (what went wrong)
 
@@ -118,3 +166,4 @@ The design has been wrong three times because the framing was wrong. Before rede
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-02T18:30 | 019fb177... | created — framing error diagnosis + domain research request |
+| 2026-08-02T19:15 | 019fb177... | resolved — operator challenged missing-domains assumption; simplified to 3 fixes (scan breadth + 2 skill folds). No new skill, no architecture redesign. All 10 domains served. |
