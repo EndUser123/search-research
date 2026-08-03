@@ -43,7 +43,7 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 
 - [FACT] Dirty tree reduced from 1388 to 399 files by untracking 983 regenerable stubs + 4 ghosts (commit `adef081`, measured `git diff --name-only HEAD` before/after)
 - [FACT] `git diff --name-only HEAD` dropped from 1921ms to 929ms after the fix (measured this session)
-- [FACT] yt-is `transcript_cache` table has 369 rows; wiki/sources/transcripts/ has 5,070 YouTube-type transcripts (sqlite query + transcript frontmatter scan)
+- [FACT] yt-is package-local `transcript_cache` (`P:/packages/yt-is/.data/yt-is/transcripts.sqlite`) has 369 rows — this is a **stale dev DB**. The primary DB (`P:/.data/yt-is/transcripts.sqlite`) has 10,072 rows, of which 3,918 are nlm-to-wiki imports. The coverage gap described in TP-01 was against the stale DB; the integration handoff (`yt-is-nlm-to-wiki-integration-20260730`) covers the same problem at the primary DB and should be treated as authoritative. (sqlite queries, 2026-08-03)
 - [FACT] 11 Class C quoting failures (10 Traceback + 1 SyntaxError) occurred this session from inline `python -c` probes (transcript scan)
 - [FACT] Hook timeouts were the 4th documented recurrence of the pattern in `hook-evidence-collection-cost-vs-timeout-tradeoff.md`
 - [FACT] qmd.exe was stale (`--version` returned "Unknown command"); deleted + references removed from `index_skills.py` (commits `669bbed`, `9e24d7c`)
@@ -71,18 +71,13 @@ OPEN — primary fix shipped (dirty tree 1388→399), three deferred items remai
 
 ## Task packets
 
-### TP-01: yt-is transcript coverage expansion
+### TP-01: yt-is transcript coverage expansion (SUPERSEDED — see note)
 
 - **id:** TP-01
 - **goal:** Expand yt-is to cover all 5,070 YouTube transcripts currently only in wiki/sources/transcripts/
-- **in scope:** yt-is package transcript ingestion pipeline
-- **out of scope:** web_page transcripts (2,034), generated_text (356), pdf (59) — these have no yt-is equivalent
-- **files / anchors:** `P:/packages/yt-is/.data/yt-is/transcripts.sqlite` (369 rows currently), `P:/.data/wiki/sources/transcripts/` (5,070 youtube-type files)
-- **acceptance:** yt-is transcript_cache has ≥5,000 rows matching wiki YouTube transcripts; wiki transcripts can be safely deduped
-- **falsifier:** success rate <90% (fewer than 4,563 of 5,070 match)
-- **verification level required:** LIVE_BEHAVIOR (sqlite query)
-- **estimate:** [UNKNOWN] — depends on yt-is ingestion rate and whether video IDs are extractable from wiki transcript frontmatter
-- **auth-expiry mitigation:** yt-dlp auth may be needed; chunk by 500-video batches
+- **status:** **SUPERSEDED** — the integration handoff `yt-is-nlm-to-wiki-integration-20260730` covers the same goal against the correct (primary) DB. As of 2026-08-03, 3,918 of 5,070 transcripts are already imported; 467 remain unmatched (249 API-resolved pending import, 218 need re-search with fresh quota). Treat that handoff as authoritative for this work.
+- **original scope:** yt-is package transcript ingestion pipeline
+- **stale DB note:** TP-01 was written against `P:/packages/yt-is/.data/yt-is/transcripts.sqlite` (369 rows, a stale dev DB). The primary DB is `P:/.data/yt-is/transcripts.sqlite` (10,072 rows). The gap was an artifact of reading the wrong database.
 
 ### TP-02: Class C quoting friction enforcement
 
