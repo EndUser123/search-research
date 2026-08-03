@@ -6,10 +6,13 @@ current_terminal_id: grok-main
 produced_at: 2026-08-02T14:57:00-06:00
 status: open
 handoff_type: implementation
-accurate_as_of_head: 203b033
+accurate_as_of_head: f7f8706
 ---
 
 # Handoff: /tp output-template emitter — deferred follow-on work
+
+## Revision history
+- 2026-08-03: updated — emitter tested (7 tests pass), code block removed from recommendations, accurate_as_of_head bumped. NEXT-1 (test-fire) still deferred. NEXT-2 (wiki concept) still deferred.
 
 ## 1. Objective
 
