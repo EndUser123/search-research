@@ -1,5 +1,11 @@
 # Vault Log
 
+## persona-injection-across-dispatch-paths
+Source: session-2026-08-03
+Agent: grok
+Notes: Persona injection across dispatch paths: format constraints eliminate performative reasoning; validated via PI A/B test (43% latency reduction)
+Page: wiki/concepts/persona-injection-across-dispatch-paths.md
+
 ## cohere-api-integration-rate-limit-tracking
 Source: session-2026-08-03
 Agent: grok
