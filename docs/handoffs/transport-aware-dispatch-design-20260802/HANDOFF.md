@@ -84,13 +84,13 @@ fix (commit `40bce90`) resolves the root cause. Skip this unit.
 
 ## 7. Source files
 
-- Design doc: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-doc-17eea2bf.md` (TEMP — will be reaped)
-- Evidence brief: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\evidence-brief.md` (TEMP)
-- Review: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-review-17eea2bf.md` (TEMP)
-- Critique: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-critique-17eea2bf.md` (TEMP)
+- Design doc: `P:/docs/designs/transport-aware-dispatch-20260802.md` (DURABLE — copied from temp)
+- Evidence brief: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\evidence-brief.md` (TEMP — may be reaped)
+- Review: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-review-17eea2bf.md` (TEMP — may be reaped)
+- Critique: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-critique-17eea2bf.md` (TEMP — may be reaped)
 
 ## Suggested next invocation
 
 ```
-/go Copy the transport-aware dispatch design doc from C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-doc-17eea2bf.md to P:/docs/designs/transport-aware-dispatch-20260802.md before OS reaps it. Then implement Unit 1 (schema migration): convert fleet-models.json from v2 to v3 with per-model transports blocks. Include false-positive reconciliation for 4 models with stale serde_broken entries. Verify: python fleet-models.json loads cleanly with new schema and all 9 active models have transports blocks.
+/go Read the transport-aware dispatch design doc at P:/docs/designs/transport-aware-dispatch-20260802.md and implement Unit 1 (schema migration): convert fleet-models.json from v2 to v3 with per-model transports blocks. Include false-positive reconciliation for 4 models with stale serde_broken entries. Verify: fleet-models.json loads cleanly with new schema and all 9 active models have transports blocks.
 ```
