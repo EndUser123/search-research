@@ -78,12 +78,29 @@ model's output ceiling, decompose before spawning.
 - Parent Grok (GLM-5.2): higher but variable
 - DeepSeek V4 Flash: similar to M3
 
+## Silent zero-output resume (distinct from truncation)
+
+**Finding (2026-08-02, session 019fc30c):** A resumed writer subagent (MiniMax-M3, `/design` Step 4 revision round 2) produced **exit 0 with 103 tool calls in 6.15 seconds, but zero effective edits** — all 14 review findings remained `Status: open` in the review file. This is NOT `max_tokens_truncation` (no error was raised). The resumed agent's accumulated transcript from prior rounds (draft + round 1 revision + consistency sweep) was so large that the agent exhausted its reasoning budget just processing the context, leaving nothing for actual editing.
+
+**Why this is more dangerous than truncation:**
+- Truncation produces an explicit error (`max_tokens_truncation`) — the orchestrator knows it failed
+- Silent zero-output produces exit 0 — the orchestrator thinks the revision succeeded
+- Detection requires comparing the review file's Status fields before and after the resume
+- If undetected, the design loop spins: re-review finds the same issues, re-revision produces no edits, indefinitely
+
+**Detection heuristic:** after any `resume_from` revision, check whether the number of `Status: open` findings actually decreased. If it stayed the same or increased despite the agent claiming completion, the resume was a silent no-op. Fall back to a fresh agent with a focused prompt.
+
+**Root cause is the same as truncation:** accumulated transcript context. The difference is whether the model fails loudly (truncation) or silently (processes context but produces no actionable output). Both share the same fix: fresh agent instead of resume when context is large.
+
+**Related:** [[multi-subagent-orchestration-workflow-failure-patterns]] § "Generalization: Any skill using resume_from across ≥2 rounds is at risk" — this finding extends that generalization from "may truncate" to "may also silently no-op."
+
 ## Falsifier
 
 This concept is wrong if, within 6 months:
 - Prompt tightening is found to reliably prevent max_tokens_truncation (it doesn't)
 - A model appears with effectively unlimited output (eliminating the need for decomposition)
 - Task decomposition produces lower-quality findings than a single large specialist
+- The silent zero-output variant is found to be model-specific (only MiniMax-M3) rather than a general property of context-saturated resumes
 
 ## Receipts
 
@@ -91,6 +108,7 @@ This concept is wrong if, within 6 months:
 - Retry with "under 2000 words" also failed
 - Fix: per-file decomposition (3 specialists × ~8K output each) — all succeeded
 - /review SKILL.md rule 23 + output-size estimation heuristic (commit `f494cf4`)
+- Session 019fc30c (2026-08-02): resumed writer `/design` round 2, 6.15s, 103 tool calls, 0 effective edits — all 14 findings remained Status: open. Receipt: `get_command_or_subagent_output` showed exit 0; review file grep confirmed 0 findings changed to Status: addressed. Fix: fresh writer with focused prompt produced all 14 addressed in 457s.
 
 ## Auto-related
 
