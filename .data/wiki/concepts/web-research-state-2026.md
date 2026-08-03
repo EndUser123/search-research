@@ -35,7 +35,7 @@ Reference for what web/social research tools are usable under a "no new spend, n
 ### X.com — most constrained
 
 - **Free API**: post-only. Recent Search on Free tier = **1 request per 15 minutes** (essentially useless). Basic tier = $200/month for ~10,000 reads/month. Pro = $5,000/month (closed to new signups as of mid-2026).
-- **Free libraries**: `snscrape`, `twint` — abandoned. `Altimis/Scweet` — last update March 2026, declining reliability. `vladkens/twscrape` — uses cookies, low maintenance.
+- **Free libraries**: `snscrape`, `twint` — abandoned. `Altimis/Scweet` — last update March 2026, declining reliability. `vladkens/twscrape` — **active in 2026, community-standard X.com scraper**. Uses GraphQL endpoints with account pool rotation. CLI pattern matches ddgs_search.py. See [[social-media-data-extraction-landscape-2026]] for full assessment.
 - **Free working path**:
   - Google site: search via `web-search-prime` (`site:x.com` / `site:twitter.com`) for indexed tweets
   - oEmbed at `https://publish.twitter.com/oembed?url=<tweet_url>` for individual tweet text
