@@ -9,6 +9,9 @@ handoff_type: investigation
 accurate_as_of_head:
   P: dfdb965
   grok: edc6280
+assigned_to: grok
+assigned_at: 2026-08-03T23:30:00Z
+assigned_by: 019fc95d-8132-7181-a6f4-9ab6d1624cd5
 ---
 
 # Handoff: Cohere integration + model-benchmark dispatch-path enhancement
@@ -152,4 +155,18 @@ All findings from the session cluster into two dependency chains. Implement in t
 
 ## Status
 
-OPEN — plan approved, implementation not started. Steps 1-4 are the high-value core.
+IN PROGRESS — Steps 1-4 implemented and verified. Steps 5-8 remain.
+
+---
+
+## Revision 1 — 20260804T003000Z (session 019fc95d)
+
+**Trigger:** implementation of steps 1-4.
+
+**What changed:**
+- Step 1: Added Cohere to `_PROVIDER_DISPATCH_MAP` (both `api.cohere.com` and `api.cohere.ai` fragments) and `_DISPATCH_LABELS` in benchmark.py
+- Step 2: Added `DISPATCH_TASKS` constant (5 tasks) to benchmark_tiers.py, imported into benchmark.py
+- Step 3: Rewrote `run_methods_benchmark()` to run full 5-task battery × all methods. Added `_benchmark_via_http()` for HTTP dispatch testing. Method names normalized (`pi`→`PI`, `opencode`→`OC`, `http`/`direct`→`HTTP`). Returns structured data for write-back. Prints task × method latency matrix with averages.
+- Step 4: Added `_write_dispatch_latency_to_registry()` — atomic write-back to fleet-models.json with merge semantics (preserves existing path data, updates only tested paths). Caller in `main()` updated to pass results through.
+- All changes: syntax-checked, ruff-clean, write-back merge logic verified against both v3 and v4 fleet-models.json schemas.
+- Note: fleet-models.json was concurrently migrated to v4 schema by another session (commit c94ea4c). The v4 schema preserves the backward-compatible `lanes` hierarchy, so the write-back function works without modification.
