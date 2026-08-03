@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019f9b00-75fc-7290-9a2d-080c3d3c529b
 current_terminal_id: noterm
 produced_at: 2026-07-25T22:05:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 2922011652eb472ed6379542cfba67454cc97722   # corrected 2026-07-25T22:15Z (was 35a0613, stale; see work-stream handoff revision 1 for root cause)
 ---

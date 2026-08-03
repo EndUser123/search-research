@@ -2,7 +2,7 @@
 title: Session observations 019fa39d (2026-07-27)
 current_session_id: 019fa39d-ff7a-7372-96c8-d8b980ec2e88
 parent_handoff_path: none
-status: observations
+status: CLOSED
 created: 2026-07-27
 ---
 

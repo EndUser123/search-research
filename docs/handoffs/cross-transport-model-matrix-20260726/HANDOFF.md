@@ -4,7 +4,7 @@ parent_handoff_path: P:/docs/handoffs/nemotron-spawn-failure-investigation-20260
 current_session_id: 019f9bfe-1b89-7602-9384-0212224ff30b
 current_terminal_id: P%3A%5C
 produced_at: 2026-07-26T21:15:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 137e338b288ac097b57588e9f6c7634611bc539b
 ---

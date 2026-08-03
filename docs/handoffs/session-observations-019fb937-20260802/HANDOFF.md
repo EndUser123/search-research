@@ -5,7 +5,7 @@ current_session_id: 019fb937-b03e-7f80-a4b0-68afdb7da38d
 parent_session: none
 current_terminal_id: 311cd4b1-2bf4-47ec-8abd-7530e971493c
 produced_at: 2026-08-02T05:00:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 963c0aff7cb1f5a5ecd83a76e1844b1890049218
 ---

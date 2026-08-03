@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019f819a-7619-7cb3-a6a4-480ff1c916ce
 current_terminal_id: console_019f819a
 produced_at: 2026-07-22T03:30:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 126891056635ff42155ee68027aeda11fc6cf2d2
 source_transcript: C:/Users/brsth/.grok/sessions/P%3A%5C/019f819a-7619-7cb3-a6a4-480ff1c916ce/chat_history.jsonl

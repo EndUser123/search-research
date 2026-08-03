@@ -4,7 +4,8 @@ parent_handoff_path: P:/docs/handoffs/session-019f9f4f-shipped-work-20260726/HAN
 current_session_id: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-26T19:40:00Z
-status: open
+status: CLOSED
+superseded_by: P:/docs/handoffs/design-skill-improvement-program-20260802/HANDOFF.md
 handoff_type: investigation
 accurate_as_of_head: ea0a48be110dee12dd78317a611c1f6231c4d0f5
 ---

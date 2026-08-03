@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019f96f5-dc4a-79d0-9e17-396f2a582186
 current_terminal_id: console_9f93f0d3-0b5b-4985-b779-6a2c
 produced_at: 2026-07-26T01:00:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: beb1a58
 ---

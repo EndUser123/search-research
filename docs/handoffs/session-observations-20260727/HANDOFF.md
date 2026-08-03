@@ -2,7 +2,7 @@
 title: session-observations-20260727
 current_session_id: 019f9f4f-7f5b-7a71-9eaf-8f43ba9f8fb9
 parent_handoff_path: none
-status: open
+status: CLOSED
 created: 2026-07-27
 ---
 

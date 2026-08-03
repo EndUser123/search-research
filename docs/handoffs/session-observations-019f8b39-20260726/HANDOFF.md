@@ -4,7 +4,7 @@ parent_handoff_path: P:\docs\handoffs\tp-session-shipped-work-20260726\HANDOFF.m
 current_session_id: 019f8b39-95e3-7121-a8de-4e3f117e511a
 current_terminal_id: console
 produced_at: 2026-07-26T20:15:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: varies (see commits)
 ---

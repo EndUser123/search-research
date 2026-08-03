@@ -4,7 +4,7 @@ parent_handoff_path: P:/docs/handoffs/qmd-fts5-replacement-20260727/HANDOFF.md
 current_session_id: 019fa48a-fb52-79a3-b8dc-d13c5da284d2
 current_terminal_id: grok-build-terminal
 produced_at: 2026-07-27T23:00:00Z
-status: resolved
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 00e8458
 ---

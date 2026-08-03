@@ -14,7 +14,7 @@ parent_handoff_path: none
 current_session_id: 019f821c-854e-76c1-a755-add284838bdf
 current_terminal_id: console_9f699e91-fb33-4b67-a977-2e7a
 produced_at: 2026-07-21T14:30:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 13f19d20c70f3e09dd26e08b414b4335154847ed
 source_transcript: C:\Users\brsth\.grok\sessions\P%3A%5C\019f821c-854e-76c1-a755-add284838bdf\chat_history.jsonl

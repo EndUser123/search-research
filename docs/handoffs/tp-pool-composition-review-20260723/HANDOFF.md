@@ -4,7 +4,7 @@ parent_handoff_path: P:\docs\handoffs\tp-model-pool-not-inline-fallback-20260722
 current_session_id: 019f8b39-95e3-7121-a8de-4e3f117e511a
 current_terminal_id: console
 produced_at: 2026-07-23T14:25:00Z
-status: open
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 86f1ac13c9b6fcacf700be88a37a6725cd9a968c
 source_transcript: C:\Users\brsth\.grok\sessions\P%3A%5C\019f8b39-95e3-7121-a8de-4e3f117e511a\chat_history.jsonl
@@ -75,7 +75,7 @@ The user's cancelled spawn — nemotron-3-ultra, the **first pool member** — a
 **Failure receipt (raw):**
 
 ```
-Status: failed
+status: CLOSED
 Exit Code: 1
 Error: serialization error: invalid type: null, expected u32 at line 1 column 331
 Prompt: 98,243 tokens (actual /tp-sized prompt, NOT the 2026-07-22 trivial "Reply READY" probe)

@@ -3,7 +3,7 @@ thread_id: close-scanner-timeout-safe-fallback-20260726
 parent_handoff_path: none
 current_session_id: 019f96f5-dc4a-79d0-9e17-396f2a582186
 produced_at: 2026-07-26T01:00:00-06:00
-status: open
+status: CLOSED
 handoff_type: implementation
 implementation_status: RUNNER_IMPLEMENTED_AND_INTEGRATED
 last_updated: 2026-07-27T01:10:00Z

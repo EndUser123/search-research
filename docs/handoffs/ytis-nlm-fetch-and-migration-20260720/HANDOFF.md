@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019f7653-7598-79e0-a0c3-1161f9c0b793
 current_terminal_id: console_aa25af78-8c68-4f72-9ff5-489b78d25ece
 produced_at: 2026-07-21T03:30:00Z
-status: superseded
+status: CLOSED
 assigned_to: grok
 assigned_at: 2026-07-20T16:48:47Z
 assigned_by: 019f81b3-4a76-76f3-baf7-b87184b44b7b
