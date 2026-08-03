@@ -1,0 +1,139 @@
+---
+thread_id: cohere-integration-019fc5eb
+parent_handoff_path: none
+current_session_id: 019fc5eb-183e-7bf2-89bc-160737289cba
+current_terminal_id: noterm
+produced_at: 2026-08-03T23:00:00Z
+status: open
+handoff_type: investigation
+accurate_as_of_head:
+  P: dfdb965
+  grok: edc6280
+---
+
+# Handoff: Cohere integration + model-benchmark dispatch-path enhancement
+
+## Objective
+
+Enhance `/model-benchmark` so a single command produces complete fleet dispatch data: per-model latency across spawn/PI/OC/HTTP, auto-written to fleet-models.json, with gaps detection and fallback validation. This is the continuation of session 019fc5eb which integrated Cohere as a fleet provider, validated persona injection, and built the dispatch-path benchmark — but the benchmark skill itself still only tests HTTP, not all dispatch paths.
+
+## Background — what was done this session (context the next session needs)
+
+### Cohere integration (complete)
+
+- 4 Cohere models registered in Grok config.toml (`cohere-command-a-plus`, `cohere-command-a-reasoning`, `cohere-command-a`, `cohere-north-mini-code`)
+- Cohere registered as provider in PI (`~/.pi/agent/models.json`) and OpenCode (`~/.config/opencode/opencode.json`)
+- Cohere API key in `P:/.env` as `COHERE_API_KEY` + `CO_API_KEY`
+- Quota tracking via response headers (`check_cohere()` in `fleet_quota.py`) — `x-trial-endpoint-call-remaining` for per-minute, local telemetry for monthly
+- Spawn gate + error hook updated for Cohere (`FREE_PROVIDERS`, prefix map)
+- Rate limit: 20 req/min trial, 500 req/min prod, 1000 calls/month — serial dispatch recommended
+
+### CAR fixes (complete)
+
+- `cohere-command-a-reasoning` config: `reasoning_effort = "none"` (Cohere rejects "medium")
+- PI: `supportsReasoningEffort: False` for Cohere provider (prevents PI from sending rejected parameter)
+- Spawn limitation documented: CAR fails on instruction-following tasks via spawn (357-382s timeout, "empty response from model reasoning_only"). Works via PI/OC/HTTP. Documented in tool-fallbacks.md.
+
+### Dispatch-path benchmark (complete — data collected, skill not yet updated)
+
+- Full 5-model × 4-path × 5-task benchmark completed manually
+- Results in `P:/tmp/dispatch-benchmark/results.json` and in fleet-models.json `dispatch_latency` fields
+- Key finding: PI is consistently fastest for one-shot prompts (~4s overhead vs ~9s for OC vs ~3.4s for spawn with heavy agent context)
+- Key finding: NMC via spawn is 3-10x slower than via PI (72s vs 18s on code-gen)
+
+### Persona injection (complete)
+
+- 10 personas in `~/.grok/personas/` (3 enriched existing + 3 new)
+- `tp_dispatch.py` has `--persona` flag for cross-model dispatch
+- PI A/B test validated: persona'd prompt 43% faster, zero unsolicited extras
+- Wiki concept: `persona-injection-across-dispatch-paths.md`
+- Behavioral/format split: personas consumed by skills with their own format provide behavioral defaults only
+
+### Fleet registry enhancements (complete)
+
+- `fleet-models.json` version 3: every model entry has `dispatch_path`, `persona`, `spawn_limitation`
+- 5 models have `dispatch_latency` data (M3, NMC, CA, CAP, CAR)
+- `pick_model.py` returns and displays `dispatch_path`, `persona`, `spawn_limitation`, `dispatch_latency`
+- 15 models still lack dispatch_latency data — the benchmark skill enhancement addresses this
+
+## What's NOT done — the implementation plan
+
+The approved plan is at `C:/Users/brsth/.grok/sessions/P%3A%5C/019fc5eb-183e-7bf2-89bc-160737289cba/plan.md`. Summary:
+
+### Step 1: Add Cohere to `_PROVIDER_DISPATCH_MAP` (1 line)
+
+File: `~/.grok/skills/model-benchmark/scripts/benchmark.py` line ~890
+
+Add: `"api.cohere.ai": ("cohere", "cohere"),` to `_PROVIDER_DISPATCH_MAP` and `"cohere": "Cohere"` to `_DISPATCH_LABELS`.
+
+### Step 2: Extract `DISPATCH_TASKS` constant
+
+File: `~/.grok/skills/model-benchmark/scripts/benchmark_tiers.py`
+
+Add the 5 standard dispatch test tasks as a shared constant:
+```python
+DISPATCH_TASKS = [
+    ("probe", "Reply with exactly: READY", "dispatch overhead"),
+    ("reasoning", "A store sells pencils at 3 for $1. ...", "reasoning speed"),
+    ("code-gen", "Write a Python function called is_palindrome(s) ...", "code generation"),
+    ("structured", "Create a JSON object with exactly these fields: ...", "instruction-following"),
+    ("multi-step", "Solve step by step: If 5 workers ...", "chain-of-thought"),
+]
+```
+
+### Step 3: Expand `run_methods_benchmark()` to full task battery (core change)
+
+File: `~/.grok/skills/model-benchmark/scripts/benchmark.py` ~line 1032
+
+Currently tests one probe prompt per model per method. Expand to loop over `DISPATCH_TASKS × methods`. Compute avg latency per method per model. Output a matrix.
+
+### Step 4: Add `_write_dispatch_latency_to_registry()`
+
+File: `~/.grok/skills/model-benchmark/scripts/benchmark.py`
+
+After `--methods` benchmark completes, write measured latency to fleet-models.json. Atomic write (tmp + os.replace). Read-modify-write preserving existing fields.
+
+### Steps 5-8 (lower priority, can follow incrementally)
+
+5. Extend `--gaps` to detect models missing `dispatch_latency`
+6. Add `--rate-probe` mode (parallel requests to find concurrency limit)
+7. Add `--persona-ab` mode (bare vs persona'd comparison)
+8. Add `--validate-fallbacks` mode (probe each model in fallback chain)
+
+## Key files
+
+| File | Role |
+|---|---|
+| `~/.grok/skills/model-benchmark/scripts/benchmark.py` | Main benchmark engine — has `run_methods_benchmark()`, `_benchmark_via_pi()`, `_benchmark_via_opencode()`, `_PROVIDER_DISPATCH_MAP` |
+| `~/.grok/skills/model-benchmark/scripts/benchmark_tiers.py` | Tier definitions — add `DISPATCH_TASKS` here |
+| `~/.grok/skills/model-quota/scripts/fleet-models.json` | Fleet registry — has `dispatch_path`, `persona`, `dispatch_latency` fields (5 models have latency data, 15 don't) |
+| `~/.grok/skills/model-quota/scripts/pick_model.py` | Model picker — reads and returns dispatch metadata |
+| `~/.grok/skills/model-benchmark/SKILL.md` | Skill docs — already updated with same-model-across-paths requirement |
+| `~/.grok/skills/tp/__lib/tp_dispatch.py` | Cross-model dispatch — has `--persona` flag and `load_persona()` |
+
+## Acceptance criteria
+
+1. `python benchmark.py --methods pi,opencode --models cohere-north-mini-code` runs 5 tasks × 3 methods and reports a latency matrix
+2. After the run, `fleet-models.json` has updated `dispatch_latency` for the tested model
+3. `python benchmark.py --gaps` reports which models are missing dispatch_latency data
+4. `pick_model.py coding` shows latency line for models that have been benchmarked
+5. Cohere models appear in `_PROVIDER_DISPATCH_MAP` so `--methods` works for them
+
+## Open decisions
+
+- Whether spawn_subagent should be included in `--methods` testing (can't be invoked from script — needs agent context). Current approach: test spawn separately via the `spawn_subagent dispatch test` section of the skill.
+- Whether to reduce to 3 tasks (probe, code-gen, multi-step) if 5-task battery takes >30 min for full fleet.
+
+## Related wiki
+
+- [[cohere-api-integration-rate-limit-tracking]] — Cohere setup, rate limits, response headers
+- [[persona-injection-across-dispatch-paths]] — persona validation, format-constraint principle
+- [[tool-fallbacks]] — CAR spawn limitation entry
+
+## Last user message (verbatim)
+
+> /handoff , then give me the prompt to continue the work.
+
+## Status
+
+OPEN — plan approved, implementation not started. Steps 1-4 are the high-value core.
