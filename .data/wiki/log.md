@@ -1,5 +1,17 @@
 # Vault Log
 
+## Verify, inference, and narrative: domain overview
+Source: session-2026-08-03
+Agent: grok
+Notes: 14 concepts indexed in 4 sub-themes: code-level inference, verification infrastructure, narrative as substitute, closure pressure
+Page: concepts/verify-inference-narrative-domain-overview.md
+
+## Web Design Skills for AI-Generated Internal Tools
+Source: session-2026-08-03
+Agent: grok
+Notes: State of CSS 2025 survey data + 20 AI design tells + shared token system
+Page: concepts/web-design-skills-ai-generated-internal-tools-2026.md
+
 ## Transient model errors vs serde incompatibility
 Source: session-20260803
 Agent: grok
