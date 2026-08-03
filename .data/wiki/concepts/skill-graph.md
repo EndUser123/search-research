@@ -198,16 +198,22 @@ and produces a prioritized action list (consumed by the operator and other skill
 
 ### Producers (generate information that /todo scans)
 
-These skills/systems create artifacts that `/todo` reads during its scan steps:
+These skills/systems create artifacts that `/todo` reads during its scan steps.
+Skills marked **NEW** are sources /todo does NOT yet scan — adding them is
+the primary enhancement:
 
 | Producer | What it produces | Where /todo finds it | Scan step |
 |----------|-----------------|---------------------|-----------|
 | `/handoff` | Work continuation artifacts (176 .md files) | `P:/docs/handoffs/*/HANDOFF.md` | coverage_scan.py |
 | `/harvest` | Obligation tracking, triaged items | `P:/.data/harvest/pending/`, `triaged/` | coverage_scan.py |
-| `/review` | Code review findings (bugs, risks) | `.artifacts/*/grok-review/*/FINDINGS.md` | **NEW scan step** |
-| `/wiki` (captures) | WIKI: markers in transcript | session chat_history.jsonl | **NEW scan step** |
-| Wiki concepts | Deferred/blocked/setup-needed patterns | `P:/.data/wiki/concepts/` | wiki grep step |
 | Git | Uncommitted changes, commits | `git status`, `git log` | git status step |
+| Wiki concepts | Deferred/blocked/setup-needed patterns | `P:/.data/wiki/concepts/` | wiki grep step |
+| `/review` | Code review findings (bugs, risks) | `.artifacts/*/grok-review/*/FINDINGS.md` | **NEW** |
+| `/check` | Failed verification verdicts | `.artifacts/*/grok-check/*/check-state.md` | **NEW** |
+| `/tp` (critique) | Unresolved REVISE/BLOCK verdicts | critique log + research-ready targets | **NEW** |
+| `/aar` | DO_NOW / NEW_HANDOFF dispositions | AAR report artifacts (or flows through harvest) | **NEW** |
+| `/www` | Research suggestions for /todo | `P:/.data/wiki/_state/research-suggestions.json` | **NEW** |
+| `/wiki` | Uncaptured WIKI: markers + high epistemic debt | transcript + `_state/epistemic-debt-cache.json` | **NEW** |
 
 ### Consumers (use /todo's output or the same data)
 
@@ -228,13 +234,9 @@ These skills serve different domains and do NOT feed into or consume `/todo`'s s
 
 | Skill | Domain | Why separate |
 |-------|--------|-------------|
-| `/tp` (critique) | Evaluation ("is this good?") | Different question, different output |
-| `/recap-grok` | Reconstruction ("what happened?") | Backward-looking, no action items |
-| `/aar` | Retrospective ("what to learn?") | Pattern extraction, not work discovery |
-| `/wiki` (write) | Knowledge capture ("what to remember?") | Produces durable knowledge, not action items |
-| `/www` | Research ("what do we know?") | External research, not internal work discovery |
-| `/notice` | Ambient surfacing (mid-conversation) | Different cadence (auto-fires, not invoked) |
-| `/check`, `/review`, `/trace` | Quality verification | Different lifecycle stage (verify, not discover) |
+| `/recap-grok` | Reconstruction ("what happened?") | Backward-looking, no action items (stripped this session) |
+| `/notice` | Ambient surfacing (mid-conversation) | Different cadence (auto-fires, not invoked); output flows through harvest |
+| `/trace` | Logic verification | Produces inline findings, no durable artifact for /todo to scan |
 
 ## Shared services (used by 3+ skills)
 
