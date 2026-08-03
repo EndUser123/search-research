@@ -1,5 +1,11 @@
 # Vault Log
 
+## cohere-api-integration-rate-limit-tracking
+Source: session-2026-08-03
+Agent: grok
+Notes: Cohere API integration: compatibility endpoint, response-header quota tracking, per-minute rate-limit fleet management
+Page: wiki/concepts/cohere-api-integration-rate-limit-tracking.md
+
 ## social-media-data-extraction-landscape-2026
 Source: session-2026-08-02-www
 Agent: grok
