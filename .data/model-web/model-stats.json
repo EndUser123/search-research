@@ -13,5 +13,6 @@
   "Perplexity": {"uses": 1, "elo": 2150, "family": "search-augmented", "lab": "Perplexity", "access": "free", "strengths": ["research-grounding", "cost-models", "outcome-framing"], "last_used": "2026-08-02"},
   "Copilot":    {"uses": 0, "elo": 1200, "family": "aggregator", "lab": "Microsoft", "access": "free", "strengths": [], "last_used": null},
   "Poe":        {"uses": 0, "elo": 1200, "family": "aggregator", "lab": "Quora", "access": "free", "strengths": [], "last_used": null},
-  "Multio":     {"uses": 0, "elo": 1200, "family": "aggregator", "lab": "Multio", "access": "free", "strengths": [], "last_used": null}
+  "Multio":     {"uses": 0, "elo": 1200, "family": "aggregator", "lab": "Multio", "access": "free", "strengths": [], "last_used": null},
+  "Cohere":     {"uses": 0, "elo": 1200, "family": "aggregator", "lab": "Cohere", "access": "free", "strengths": [], "last_used": null}
 }
