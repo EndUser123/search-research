@@ -214,6 +214,10 @@ the primary enhancement:
 | `/aar` | DO_NOW / NEW_HANDOFF dispositions | AAR report artifacts (or flows through harvest) | **NEW** |
 | `/www` | Research suggestions for /todo | `P:/.data/wiki/_state/research-suggestions.json` | **NEW** |
 | `/wiki` | Uncaptured WIKI: markers + high epistemic debt | transcript + `_state/epistemic-debt-cache.json` | **NEW** |
+| `/capture` | Improvement opportunities (7 categories) | `harvest/pending/tp.json` + inline findings | **NEW** (inline findings evaporate if not scanned) |
+| `/friction` | Friction patterns + automation gaps | `harvest/pending/` + inline findings | **NEW** (inline findings evaporate if not scanned) |
+| `/dream` | Offline consolidation proposals | `docs/dreams/*.md` | **NEW** |
+| `/tasks` | Cross-tool persistent task store | `~/.claude/tasks/project-main-tasks/` | **NEW** (when populated) |
 
 ### Consumers (use /todo's output or the same data)
 
@@ -230,13 +234,15 @@ These skills read the same data or consume `/todo`'s prioritized list:
 
 ### Not in the data flow (different domains)
 
-These skills serve different domains and do NOT feed into or consume `/todo`'s scan:
+Only 2 skills produce no artifacts /todo could scan:
 
 | Skill | Domain | Why separate |
 |-------|--------|-------------|
 | `/recap-grok` | Reconstruction ("what happened?") | Backward-looking, no action items (stripped this session) |
-| `/notice` | Ambient surfacing (mid-conversation) | Different cadence (auto-fires, not invoked); output flows through harvest |
-| `/trace` | Logic verification | Produces inline findings, no durable artifact for /todo to scan |
+| `/notice` | Ambient surfacing (mid-conversation) | Different cadence (auto-fires); output flows through harvest |
+| `/trace` | Logic verification | Produces inline findings only, no durable artifact for /todo to scan |
+
+**Note:** `/capture` and `/friction` are listed as producers above because they write to `harvest/pending/` (already scanned) AND produce inline findings that evaporate. Once they are folded into `/tp session` (per the simplified solution), their output flows through /tp session's findings which /todo scans as a producer.
 
 ## Shared services (used by 3+ skills)
 
