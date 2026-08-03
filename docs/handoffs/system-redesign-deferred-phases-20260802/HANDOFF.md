@@ -194,3 +194,26 @@ Or if the operator wants to update routing tables:
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-02T05:30 | 019fc0a7 | created |
+| 2026-08-03T01:00 | 019fc0a7 | revision — post-/review + wiki + /check updates |
+
+---
+
+## Revision 1 — 2026-08-03T01:00Z (session 019fc0a7)
+
+**Trigger:** post-/review PASS + wiki concept capture + /check PASS. Updating handoff to reflect final session state.
+
+**What changed since the original:**
+
+1. **Minimal-bias hook reviewed and fixed.** /review found 5 bugs (escape hatch inverted, consolidat typo, false positives on review output, blocked-pending-evidence, bare step). All fixed in commit `faf5c8f`. 12/12 tests pass. Problem-existence check added to framing question (commit `92762b2`).
+
+2. **Two wiki concepts written** (commit `f9231ab`, validation fixes `b492431`):
+   - `minimal-change-bias-detection-via-stop-hook` — the Stop-hook pattern for enforcing behavioral rules
+   - `extend-existing-artifact-types-not-parallel` — extend handoff schema instead of creating parallel artifact types
+
+3. **/review and /check both PASS.** FINDINGS.md at `P:/.artifacts/review/019fc0a7/20260802/FINDINGS.md`. All verified bugs fixed.
+
+4. **Session is complete.** All work streams are either shipped+committed or deferred-by-design (captured in this handoff). Ready for `/close`.
+
+**Status update:** unchanged — all phases still deferred by design. The session's shipped work is verified and reviewed.
+
+**New open items:** none. The hook's multi-root staleness blind spot (ARCH-10) was already documented in the handoff's Verified Facts section.
