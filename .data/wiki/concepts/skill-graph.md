@@ -191,6 +191,51 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `workflow-automation-analysis` | `friction` |
 | `workspace-prioritized-action-list` | `todo` |
 
+## Insight data flow — producers and consumers of work-surface information
+
+**`/todo` is the discovery front door.** It scans multiple sources (producers)
+and produces a prioritized action list (consumed by the operator and other skills).
+
+### Producers (generate information that /todo scans)
+
+These skills/systems create artifacts that `/todo` reads during its scan steps:
+
+| Producer | What it produces | Where /todo finds it | Scan step |
+|----------|-----------------|---------------------|-----------|
+| `/handoff` | Work continuation artifacts (176 .md files) | `P:/docs/handoffs/*/HANDOFF.md` | coverage_scan.py |
+| `/harvest` | Obligation tracking, triaged items | `P:/.data/harvest/pending/`, `triaged/` | coverage_scan.py |
+| `/review` | Code review findings (bugs, risks) | `.artifacts/*/grok-review/*/FINDINGS.md` | **NEW scan step** |
+| `/wiki` (captures) | WIKI: markers in transcript | session chat_history.jsonl | **NEW scan step** |
+| Wiki concepts | Deferred/blocked/setup-needed patterns | `P:/.data/wiki/concepts/` | wiki grep step |
+| Git | Uncommitted changes, commits | `git status`, `git log` | git status step |
+
+### Consumers (use /todo's output or the same data)
+
+These skills read the same data or consume `/todo`'s prioritized list:
+
+| Consumer | How it uses the data | Relationship |
+|----------|---------------------|--------------|
+| Operator | Reads NOW/NEXT/LATER list, decides what to do | Primary consumer — makes all decisions |
+| `/tp session` | Reads transcript + git commits for retrospective evaluation | Parallel reader (different domain: backward-looking) |
+| `/close-check` | Reads coverage_scan output to check session readiness | Gate consumer — verifies all gates pass |
+| `/go` | Suggests `/todo` in output when work scope is unclear | Recommender, not consumer |
+| `/handoff` | Auto-update mode scans for existing handoffs to update | Read-write (creates AND reads) |
+| `/harvest` | Reads pending/ for unrealized obligations | Read-write (creates AND reads) |
+
+### Not in the data flow (different domains)
+
+These skills serve different domains and do NOT feed into or consume `/todo`'s scan:
+
+| Skill | Domain | Why separate |
+|-------|--------|-------------|
+| `/tp` (critique) | Evaluation ("is this good?") | Different question, different output |
+| `/recap-grok` | Reconstruction ("what happened?") | Backward-looking, no action items |
+| `/aar` | Retrospective ("what to learn?") | Pattern extraction, not work discovery |
+| `/wiki` (write) | Knowledge capture ("what to remember?") | Produces durable knowledge, not action items |
+| `/www` | Research ("what do we know?") | External research, not internal work discovery |
+| `/notice` | Ambient surfacing (mid-conversation) | Different cadence (auto-fires, not invoked) |
+| `/check`, `/review`, `/trace` | Quality verification | Different lifecycle stage (verify, not discover) |
+
 ## Shared services (used by 3+ skills)
 
 Infrastructure that many skills depend on — capabilities and tools with
