@@ -1,5 +1,11 @@
 # Vault Log
 
+## social-media-data-extraction-landscape-2026
+Source: session-2026-08-02-www
+Agent: grok
+Notes: Social media scraping tool landscape. twscrape recommended for X.com. CDP/Puppeteer/Playwright comparison. Updates web-research-state-2026 twscrape assessment.
+Page: P:/.data/wiki/concepts/social-media-data-extraction-landscape-2026.md
+
 ## enforcement-and-hooks-domain-overview
 Source: session-2026-08-02-wiki
 Agent: grok
