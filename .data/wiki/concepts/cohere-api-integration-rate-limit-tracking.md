@@ -73,8 +73,25 @@ The Compatibility API accepts `reasoning_effort` but only supports `"none"` and
 ```
 
 **Fleet impact:** the global `default_reasoning_effort = "medium"` in config.toml
-inherited by all models will cause Command A Reasoning to fail unless overridden
-with `reasoning_effort = "high"` in its `[model.*]` block.
+inherited by all models will cause Command A Reasoning to fail unless overridden.
+
+**Fix (verified 2026-08-03):** set `reasoning_effort = "none"` in the CAR model
+block in config.toml. This tells Grok to send "none" (which Cohere accepts),
+disabling thinking in the compat API. Cohere's native `thinking` parameter
+controls reasoning independently — the model still reasons internally when
+the compat API receives `reasoning_effort = "none"`, but Grok doesn't send a
+conflicting default. Additionally, set `supportsReasoningEffort: False` in
+PI's models.json for the Cohere provider so PI doesn't send the parameter
+either.
+
+**Spawn limitation (verified 2026-08-03):** CAR via `spawn_subagent` fails on
+instruction-following tasks with `empty response from model (reasoning_only)`
+after 357-382s. Root cause: the reasoning model spends its entire output budget
+thinking about Grok's heavy agent context (~35K tokens of AGENTS.md + skills +
+system prompt) and produces no content response. CAR via spawn works for
+reasoning tasks (probe 10s, reasoning 7.5s, code-gen 25.6s) but fails on
+instruction-following precision tasks. Workaround: use PI or OC (lighter
+context) for structured-output dispatch. Documented in [[tool-fallbacks]].
 
 ### 3. Response headers contain live quota data — undocumented
 
