@@ -78,6 +78,22 @@ This is a visibility improvement, not a root-cause fix. It helps future readers 
 - Rate limits written from blog posts without checking the API
 - Any external-sourced constant that might be stale or wrong
 
+## Broader instances (added 2026-08-03, session 019fbf77)
+
+The pattern extends beyond code constants to **any artifact built on unverified external data**:
+
+| Instance | Artifact type | What was unverified | Operator corrections needed |
+|----------|--------------|---------------------|---------------------------|
+| Perplexity quota (2026-08-02) | Code constants | Pool sizes from SKILL.md estimates | 4 rounds |
+| Model notes UI (2026-08-03) | UI display data | 12 of 15 model notes from recall, not from picker table data that existed | 1 catch (all 12 fixed at once) |
+| Reddit app (2026-08-03) | Capability claim | "Never registered" — the app existed at reddit.com/prefs/apps | 1 correction |
+| upload_file CDP (2026-08-03) | Capability claim | "Blocked" — repeated from stale docs, never tested | 1 challenge |
+| Grok Heavy (2026-08-03) | Feature assertion | "Available" — not on operator's subscription | 1 correction |
+
+**The meta-pattern:** the agent treats "I recall this" or "I read this in docs" as equivalent to "I verified this with a tool call." The failure is the same whether the artifact is a code constant, a UI label, a capability claim, or a feature assertion — the decision to skip verification happens before the artifact is built.
+
+**The picker-table incident is the most costly instance:** the verified data existed at `~/.grok/skills/model-web/SKILL.md` (Chrome DevTools picker inspection from 2026-08-01). The agent built the entire UI layer from inferred/recalled data instead of reading the verified source. 12 of 15 entries were wrong. The operator caught it in one pass, but the fix required re-doing the entire display layer.
+
 ## What this does NOT apply to
 
 - Constants defined by the code's own logic (array sizes, loop bounds)
@@ -105,6 +121,10 @@ The primary fix (verify-before-write) catches the decision. The secondary fix (r
 - **Perplexity incident (4 rounds):** [FACT] Session transcript 019fbf77, turns L256-L491. The operator's corrections are visible in the user_query blocks. `pwm usage` was available from the start.
 - **Root cause diagnosis:** [FACT] /tp critique inline session 2026-08-02. The critique identified that the tools were available but unused — grounded in conversation evidence.
 - **Receipt-or-label insufficiency:** [INFERENCE] — the claim that the convention alone would not have prevented the incident is reasoned from the failure pattern, not empirically tested. The falsifier section acknowledges this.
+- **Model notes incident (12/15 wrong):** [FACT] Session 019fbf77, commits 0e51f15 through b8391c0. The picker table data existed at `~/.grok/skills/model-web/SKILL.md` from 2026-08-01 DevTools inspection. The agent built the UI from recall instead of reading the verified source.
+- **Reddit app "never registered":** [FACT] Session 019fbf77, operator corrected: the app existed at reddit.com/prefs/apps (Arindam200-mcp). The agent asserted non-existence without checking.
+- **upload_file "blocked" claim:** [FACT] Session 019fbf77, agent repeated stale-doc claim without testing the CDP upload path. Marked [UNVERIFIED] after operator challenge.
+- **Pattern identification:** [FACT] /tp improve session 019fbf77, 2026-08-03. The 4-dimension analysis identified this as the session's dominant failure pattern across efficiency, effectiveness, and thought-partnership dimensions.
 
 ## Falsifier
 

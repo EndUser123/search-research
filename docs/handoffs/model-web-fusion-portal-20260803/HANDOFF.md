@@ -5,6 +5,7 @@ current_session_id: 019fbf77-8fe7-7070-bccd-e12f5d1807d8
 produced_at: 2026-08-03T00:30:00-06:00
 status: open
 handoff_type: implementation
+accurate_as_of_head: 96668cc346fbad6175591047373b86841850ca04
 ---
 
 # Handoff: Model-web fusion portal + social media research + capture improvements
@@ -116,3 +117,27 @@ model has updated its picker since then.
 This handoff is obsolete if the operator decides not to pursue the fusion
 portal approach, or if a different tool (big-AGI, ChatALL) is deployed
 instead of the custom page.
+
+---
+
+## Revision 1 — 2026-08-03T02:30:00-06:00 (session 019fbf77)
+
+**Trigger:** auto-update — post-handoff commits + /tp session + /tp improve analysis.
+
+**What changed since the original:**
+- Cohere integrated into EU/Canada category across fusion2.html, launcher.html, and model-stats.json (commit f9e5543). Originally miscategorized as "aggregator" — corrected to "Canadian AI company" per operator feedback.
+- Review fixes applied: F-01 basename match, F-02 escalation TOCTOU lock, F-03 var rename, F-04 dedup, F-06 sentinel, F-08 random tmp suffix, F-09 backoff simplify, F-10 quoted #, F-12 ownership check (commits c63be3e, 788fd7a).
+- Copy buttons added to response cards + label wrapping for model entries (commit adc1989).
+- /tp session + /tp improve analysis completed — 13 improvement findings across efficiency, effectiveness, insightfulness, thought-partnership dimensions.
+
+**Updated evidence:**
+- HEAD at revision: 96668cc (P:/ repo)
+- The "build-on-unverified-data" pattern identified as session's dominant failure: 3+ instances (model notes 12/15 wrong, Reddit app "never registered", upload_file "blocked" claim). Wiki concept being written.
+
+**Status update:** OPEN — UI complete + review-fixed. Primary gap is NEXT-1 (Grok orchestration).
+
+**NEXT-3 resolved:** fusion.html should be deleted — fusion2.html is the redesign the operator has consistently worked with. Not a decision needed; it's cleanup.
+
+**New open items from /tp improve:**
+- The "build-on-unverified-data" pattern needs structural enforcement: a pre-build verification step for external-sourced values in UI/code. The wiki concept captures the pattern; structural fix (hook or skill check) is a separate workstream.
+- Harvest CLI integration in /tp session protocol points to `P:/.data/harvest/harvest.py` which does not exist — needs correct path or removal.
