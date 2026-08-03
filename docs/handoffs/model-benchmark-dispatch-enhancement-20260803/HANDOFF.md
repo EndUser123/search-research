@@ -155,7 +155,7 @@ All findings from the session cluster into two dependency chains. Implement in t
 
 ## Status
 
-IN PROGRESS — Steps 1-4 implemented and verified. Steps 5-8 remain.
+CLOSED — All 8 steps implemented, verified, and committed.
 
 ---
 
@@ -170,3 +170,17 @@ IN PROGRESS — Steps 1-4 implemented and verified. Steps 5-8 remain.
 - Step 4: Added `_write_dispatch_latency_to_registry()` — atomic write-back to fleet-models.json with merge semantics (preserves existing path data, updates only tested paths). Caller in `main()` updated to pass results through.
 - All changes: syntax-checked, ruff-clean, write-back merge logic verified against both v3 and v4 fleet-models.json schemas.
 - Note: fleet-models.json was concurrently migrated to v4 schema by another session (commit c94ea4c). The v4 schema preserves the backward-compatible `lanes` hierarchy, so the write-back function works without modification.
+
+---
+
+## Revision 2 — 20260804T010000Z (session 019fc95d)
+
+**Trigger:** implementation of steps 5-8.
+
+**What changed:**
+- Step 5: Extended `--gaps` mode with `detect_dispatch_gaps()` and `print_dispatch_gap_report()` — now scans fleet-models.json for models missing `dispatch_latency` data across the 4 standard paths (spawn, PI, OC, HTTP), reports gaps, and auto-generates the command to fill them. Verified: correctly identifies 77/79 models as missing dispatch data, only the 2 benchmarked models pass.
+- Step 6: Added `run_rate_probe()` — sends N parallel probe requests to a single model via HTTP, counts successes vs 429s vs errors. Reports `parallel_safe_count`. Wired as `--rate-probe N`.
+- Step 7: Added `run_persona_ab_test()` — runs the 5-task DISPATCH_TASKS battery twice (bare prompt vs persona-prepended) via HTTP, reports per-task latency/length/success deltas. Wired as `--persona-ab`.
+- Step 8: Added `run_fallback_validation()` — reads fleet-models.json lane structure, probes each model in each tier with a simple HTTP request, reports reachability. Wired as `--validate-fallbacks`.
+- All 4 new functions are ruff-clean, syntax-verified, and importable.
+- Committed as `b0fa50a`.
