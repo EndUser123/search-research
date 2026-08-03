@@ -1,5 +1,11 @@
 # Vault Log
 
+## Transient model errors vs serde incompatibility
+Source: session-20260803
+Agent: grok
+Notes: M3 finish_reason enum mismatch misdiagnosed as serde-broken; hook classifier fix distinguishes transient from systemic
+Page: P:/.data/wiki/concepts/transient-model-errors-vs-serde-incompatibility.md
+
 ## persona-injection-across-dispatch-paths
 Source: session-2026-08-03
 Agent: grok
