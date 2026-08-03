@@ -1,5 +1,17 @@
 # Vault Log
 
+## work-discovery-skill-organization-best-practices
+Source: session-019fb177
+Agent: grok
+Notes: 12 work-management domains, solo operator needs 10
+Page: wiki/concepts/work-discovery-skill-organization-best-practices.md
+
+## review-attacks-implementation-misses-framing
+Source: session-019fb177
+Agent: grok
+Notes: Review panels optimize implementation, miss framing errors
+Page: wiki/concepts/review-attacks-implementation-misses-framing.md
+
 ## Verify, inference, and narrative: domain overview
 Source: session-2026-08-03
 Agent: grok
