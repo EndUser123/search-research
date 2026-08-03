@@ -1,19 +1,22 @@
 ---
-title: "Fix /maintain concurrent-execution lock no-op (REV-003)"
+title: "Fix /maintain review findings: lock no-op (REV-003) + inline quoting (REV-001/002)"
 created: 2026-08-02
 source: session-019fc303
 status: OPEN
 yaml_status: open
 assignee: unassigned
 session: 019fc303-700f-7711-b376-12da1aff578a
-tags: [maintain, bug, concurrent-execution, lock, review-finding]
+tags: [maintain, bug, concurrent-execution, lock, review-finding, class-c-quoting]
 ---
 
-# Fix /maintain concurrent-execution lock no-op (REV-003)
+# Fix /maintain review findings: REV-001, REV-002, REV-003
 
 ## Objective
 
-Replace the subprocess-based lock in `/maintain` Step 0 with a file-based sentinel that actually persists for the session duration.
+Fix all 3 findings from `/review` REV-001/002/003 on `/maintain` SKILL.md:
+- **REV-003 (risk):** Concurrent-execution lock is a no-op (subprocess exits immediately)
+- **REV-001 (suggestion):** Inline `python -c` with nested quotes violates AGENTS.md §Class C
+- **REV-002 (suggestion):** PowerShell here-string piped to `python -` may have encoding issues
 
 ## Context
 
@@ -37,10 +40,21 @@ Replace the subprocess-based lock with a **file-based sentinel**:
 
 **Alternative considered:** wrap the entire flow in one Python process. Rejected because `/maintain` is LLM-orchestrated (the LLM reads output from each step and decides what to do next), not a linear script.
 
+## REV-001 + REV-002: Inline python -c quoting (Class C)
+
+Both the lock script (Step 0) and the P:\tmp cleanup (Step 2d) use inline `python -c` with nested quotes. AGENTS.md §Class C says: "for multi-line or nested-quote shell payloads, write to a temp file and invoke against the file."
+
+**Fix:** Extract both scripts to files:
+- `skills/maintain/__lib/maintain_lock.py` — the lock sentinel (REV-003 fix + REV-001 quoting fix in one)
+- `skills/maintain/__lib/clean_tmp.py` — the P:\tmp cleanup (REV-002 fix)
+
+This also makes them independently testable — the execution-receipts rule requires test-firing before declaring done.
+
 ## Acceptance criteria
 
-- [ ] Lock file created at start of `/maintain`, deleted at end
-- [ ] Second concurrent `/maintain` invocation exits with message when lock file exists
-- [ ] Lock file includes PID + timestamp for stale-lock diagnosis
-- [ ] Stale lock detection: if lock file mtime > 1 hour old, warn but allow override
-- [ ] Test-fired: verify the lock actually blocks a second invocation
+- [ ] Lock file created at start of `/maintain`, deleted at end (REV-003)
+- [ ] Second concurrent `/maintain` invocation exits with message when lock file exists (REV-003)
+- [ ] Lock file includes PID + timestamp for stale-lock diagnosis (REV-003)
+- [ ] Stale lock detection: if lock file mtime > 1 hour old, warn but allow override (REV-003)
+- [ ] Lock and cleanup scripts extracted to `__lib/*.py` files, not inline `python -c` (REV-001, REV-002)
+- [ ] Test-fired: verify the lock actually blocks a second invocation (execution-receipts rule)
