@@ -14,7 +14,7 @@ accurate_as_of_head: b08d1a8
 
 # Handoff: Work-surface framing error — why the solution, red-team, and tp review all got it wrong
 
-**Status:** OPEN — framing error diagnosed, needs best-practice domain research before redesigning
+**Status:** RESOLVED — all 3 fixes implemented, /todo built and improved, 2 wiki concepts captured
 **Created:** 2026-08-02
 **Source session:** 019fb177-e5d5-7520-92f5-0158f87639c9
 
@@ -167,3 +167,4 @@ The design has been wrong three times because the framing was wrong. Before rede
 |------|---------|--------|
 | 2026-08-02T18:30 | 019fb177... | created — framing error diagnosis + domain research request |
 | 2026-08-02T19:15 | 019fb177... | resolved — operator challenged missing-domains assumption; simplified to 3 fixes (scan breadth + 2 skill folds). No new skill, no architecture redesign. All 10 domains served. |
+| 2026-08-03T16:30 | 019fb177... | Fix 1 DONE — scan_functions.py built (11 sources, 45 items, <2s). Fix 2 pending (/capture + /friction fold). Fix 3 pending (/close deletion). /todo SKILL.md rewritten (420→170 lines, NOW/NEXT/LATER primary). /tp review of /todo found 5 issues, all fixed. 2 wiki concepts captured (review-attacks-implementation-misses-framing, work-discovery-skill-organization-best-practices). |
