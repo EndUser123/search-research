@@ -110,8 +110,8 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 
 | Tool | Symptom (1 line) | Type | Workaround | Re-test |
 |---|---|---|---|---|
-| `reddit__search_reddit` | ~~"Search failed for all subreddits"~~ | **RESOLVED 2026-08-02** — OAuth app registered (Arindam200-mcp), credentials wired in config.toml + env vars. Authenticated API access (60 QPM) confirmed working. | ~~Use DDG `site:reddit.com` searches~~ → **Use Reddit MCP directly** (browse_subreddit, search_reddit, get_post_details). DDG site-search remains the fallback only if MCP returns 429 or fails. | ~~Re-test~~ — now working. Re-test only if Reddit changes API policy. |
-| `reddit__get_post_details` | ~~"Cannot access r/\<sub\>"~~ | **RESOLVED 2026-08-02** — same OAuth fix. Full post + comment data available via authenticated API. | Use Reddit MCP `get_post_details` directly. Fallback: `reddit-rss__get_post_comments` or DDG. | ~~Re-test~~ — now working. |
+| `reddit__search_reddit` | **RESOLVED 2026-08-02** — OAuth credentials wired. Working at 60 QPM. | ~~STRUCTURAL~~ → RESOLVED | Use Reddit MCP directly (browse, search, get_post_details). DDG site-search only if MCP returns 429. | N/A — working |
+| `reddit__get_post_details` | **RESOLVED 2026-08-02** — same OAuth fix. Full threads + comments. | ~~STRUCTURAL~~ → RESOLVED | Use Reddit MCP directly. Fallback: DDG or reddit-rss MCP (disabled, re-enable if needed). | N/A — working |
 | `firecrawl_scrape` | "Insufficient credits to perform this request" | TRANSIENT (monthly credit refresh) | Use `web_fetch` (built-in) for page content, or DDG for search. Check quota dashboard for current credit count. | Try when quota dashboard shows credits >0 |
 | `web_fetch` (Cloudflare-protected sites) | "Just a moment..." on perplexity.ai, pcmag.com, etc. | TRANSIENT (intermittent CDN block) | Use DDG to find blog aggregators or mirrors. Or `firecrawl_scrape` (when credits available). For Reddit: `old.reddit.com` (dying) → switch to RSS MCP. | Try once each session — Cloudflare blocks are intermittent |
 
