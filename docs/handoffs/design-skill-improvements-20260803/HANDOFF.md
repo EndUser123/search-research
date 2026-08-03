@@ -5,8 +5,8 @@ current_session_id: 019fc30c-545e-7432-b46e-7b9712afe9e1
 current_terminal_id: grok-main
 produced_at: 2026-08-03T00:15:00Z
 last_updated_by: 019fc30c-545e-7432-b46e-7b9712afe9e1
-last_updated_at: 2026-08-03T00:15:00Z
-status: open
+last_updated_at: 2026-08-03T12:30:00Z
+status: CLOSED
 handoff_type: investigation
 accurate_as_of_head: 631abcb18114a929c0cb0e4e0484c5cbe0a8c2bf
 checkpoint: false
@@ -22,7 +22,11 @@ Fix three friction patterns surfaced by `/tp improve` after the LLM-Judge Stop H
 
 ## Status
 
-OPEN — all items are design-ready but unstarted. The implementing session should pick the highest-impact item first (quota pre-check) and work down.
+CLOSED — all three items implemented and committed.
+
+- **DESIGN-QUOTA-01:** DONE. Added `pick_model.py --list` pre-check to `/design` "Model selection for subagents" section. Replaced hardcoded model names in Step 0.9 with lane references. Added global convention to `~/.grok/AGENTS.md`. Commit `f768c24`.
+- **DESIGN-CONTEXT-01:** DONE. Added proactive context-size check (>1500 lines OR resume count ≥2) to Step 4 (writer) and Step 5 (reviewer). Added `writer_resume_count` / `reviewer_resume_count` state variables. Updated reactive fallback to safety-net. Commit `4369371`.
+- **BACKLOG-TRIAGE-01:** DONE. Closed 89 stale handoffs (30.0% reduction from 263 open → ~184 open). Batch: 30 session observations, 10 already-done, 49 stale July items. Commit `a417fc4`.
 
 ## Producing context
 
@@ -145,3 +149,4 @@ Nothing implemented. All three improvements are identified with evidence. The ha
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-03T00:15 | 019fc30c... | created — 3 improvement items + backlog triage from /tp improve |
+| 2026-08-03T12:30 | 019fc882... | all 3 items implemented + committed. Handoff CLOSED. |
