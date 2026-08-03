@@ -124,6 +124,22 @@ After `--methods` benchmark completes, write measured latency to fleet-models.js
 - Whether spawn_subagent should be included in `--methods` testing (can't be invoked from script — needs agent context). Current approach: test spawn separately via the `spawn_subagent dispatch test` section of the skill.
 - Whether to reduce to 3 tasks (probe, code-gen, multi-step) if 5-task battery takes >30 min for full fleet.
 
+## Recommended sequencing (from /tp session review)
+
+All findings from the session cluster into two dependency chains. Implement in this order:
+
+| Priority | Task | Effort | Dependencies |
+|---|---|---|---|
+| **Step 1-4** | Benchmark skill enhancement (Cohere mapping, DISPATCH_TASKS, methods expansion, registry write-back) | ~2-3 hours | None — head of Chain A |
+| **After steps 1-4** | Register Zen/OR models in PI's models.json, then run full benchmark across all fleet models on all paths | ~30 min | After step 4 (skill auto-writes results) |
+| **After steps 1-4** | Add PI reasoning audit to SKILL.md "Adding a new provider" section: "check if model accepts reasoning_effort=medium; if not, set supportsReasoningEffort=False" | ~5 min | None |
+| **After steps 1-4** | Update pool-selection policy wiki (model-pool-selection-policy-speed-quota-diversity.md): add section on dispatch-path overhead varying by model — "a model fast on HTTP can be 3-10x slower on spawn due to agent context; always check dispatch_latency, not just HTTP speed" | ~10 min | None |
+| **LATER (plan step 7)** | Persona A/B mode in benchmark skill | ~1 hour | After steps 1-4 |
+| **LATER** | CAR spawn root cause (lightweight agent definition or thinking:disabled param) | ~1 hour | None, low urgency — workaround (PI/OC) works |
+| **LOW** | OpenCode `opencode models` command broken (ProviderModelNotFoundError) | ~30 min | None, dispatch works fine |
+
+**Key insight from /tp:** items 3, 6, and 7 in the original gaps list are ONE workstream (this handoff), not three separate tasks. Don't manually fill dispatch_latency for 15 models — the skill IS the structural fix. Run the benchmark once after implementation and it fills all gaps automatically.
+
 ## Related wiki
 
 - [[cohere-api-integration-rate-limit-tracking]] — Cohere setup, rate limits, response headers
