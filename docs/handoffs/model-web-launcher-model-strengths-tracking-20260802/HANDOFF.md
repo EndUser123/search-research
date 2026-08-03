@@ -128,7 +128,29 @@ Use these as initial quality scores and strength tags:
 
 ELO scale: 1200 = untested (provisional), 2000+ = strong contributor, 2400+ = elite. Untested models start at 1200 so the launcher visually distinguishes "never tried" from "tried and weak." Scores adjust after each ensemble run based on response quality.
 
-## Resolved decisions (operator, 2026-08-02)
+## Revision: 2026-08-03 (session 019fba58)
+
+### What was shipped this session
+
+The launcher page was fully redesigned and shipped (7 commits `840233a` through `677431e`):
+
+- 5-column family grouping (US Frontier / Chinese Frontier / European / Search-Augmented / Aggregators)
+- ELO scores per model (seed data from 2 ensemble rounds)
+- Clickable sub/free tier toggle (persists in localStorage)
+- Model notes showing available chat models per provider
+- ELO sorting (highest-to-lowest, ties shuffle on refresh)
+- "new" tags removed (all tested)
+
+### What remains
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Dynamic stats tracking (`P:/.data/model-web/model-stats.json`) | Not started | Source of truth for ELO/usage; launcher reads generated `.js` copy |
+| Orchestrator auto-update after ensemble | Not started | Read each response, assess quality, update stats file |
+| Model rotation suggestion | Not started | Highlight underused models based on usage count + ELO |
+| Fusion page enhancements | Shipped separately | ELO display, reasoning level dropdowns, file input — multiple commits |
+
+The launcher currently has hardcoded ELO scores. Dynamic tracking is the next step but requires the `model-stats.js` JSONP pattern described in the resolved decisions section.
 
 1. **Chess score scale:** ELO-style 800-3000.
 2. **Stats file location:** `P:/.data/model-web/model-stats.json` — consistent with workspace data root (`P:/.data/chrome-llm-profile/`, `P:/.data/harvest/`, `P:/.data/www-ledger/`).
