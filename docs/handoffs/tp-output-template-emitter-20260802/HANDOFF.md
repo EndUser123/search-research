@@ -156,3 +156,9 @@ improve-protocol.md) and the version bump.
 - `P:/.data/wiki/concepts/code-orchestrates-model-judges-skill-scale.md` (design principle)
 - `P:/.data/wiki/concepts/visible-output-contracts-for-behavioral-skill-steps.md` (enforcement layer)
 - Commit: `203b033`
+
+## Suggested next invocation
+
+```
+/go Extend tp_output_template.py to emit session mode skeleton (same pattern as improve mode). Then test-fire: run /tp improve in a session with enough content to produce real findings. Verify the output has all 4 dimensions with item counts and completeness counter — no NOTED table or 0 - /go line.
+```

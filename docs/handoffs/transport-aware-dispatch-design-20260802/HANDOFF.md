@@ -88,3 +88,9 @@ fix (commit `40bce90`) resolves the root cause. Skip this unit.
 - Evidence brief: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\evidence-brief.md` (TEMP)
 - Review: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-review-17eea2bf.md` (TEMP)
 - Critique: `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-critique-17eea2bf.md` (TEMP)
+
+## Suggested next invocation
+
+```
+/go Copy the transport-aware dispatch design doc from C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\grok-design-doc-17eea2bf.md to P:/docs/designs/transport-aware-dispatch-20260802.md before OS reaps it. Then implement Unit 1 (schema migration): convert fleet-models.json from v2 to v3 with per-model transports blocks. Include false-positive reconciliation for 4 models with stale serde_broken entries. Verify: python fleet-models.json loads cleanly with new schema and all 9 active models have transports blocks.
+```

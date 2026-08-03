@@ -106,3 +106,9 @@ session's harvest write fire via code instead of behavioral rule.
 - `~/.grok/skills/todo/SKILL.md` (MODIFIED — Step 6 renderer instructions, domain table, presentation rule)
 - `~/.grok/skills/tp/SKILL.md` (MODIFIED — code block removal from recommendations)
 - Commits: 0348867, 4da236a, 46f642d, 621e224, ecde532, 0464774, 0eebf8c, 4f0b0ed, f7f8706
+
+## Suggested next invocation
+
+```
+/go Fix the transcript scanner persist-detection false positives in scan_transcript.py. Start with _check_persisted_after() — tighten the keyword matching threshold and proximity window. Then wire the renderer directly into scan_functions.py so the LLM doesn't need to manually build CrossSessionAction objects. Verify: python scan_functions.py --json produces correctly classified items with no false positives on this session's transcript.
+```
