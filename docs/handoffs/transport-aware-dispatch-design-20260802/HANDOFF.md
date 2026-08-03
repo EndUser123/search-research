@@ -55,14 +55,36 @@ collision (fleet-models.json already declares version 2).
 
 ### NEXT-1: Copy design doc to durable location
 
-The design doc is at `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\`.
-Copy to `P:/docs/designs/transport-aware-dispatch-20260802.md` before OS reaps.
+~~The design doc is at `C:\Users\brsth\AppData\Local\Temp\grok-design-17eea2bf\`.~~
+DONE — copied to `P:/docs/designs/transport-aware-dispatch-20260802.md` (commit `2cdcf86`).
 
 ### NEXT-2: Implement Unit 1 (schema migration)
 
-Convert `fleet-models.json` from v2 (lanes + serde_broken array) to v3
-(per-model transports block). Includes false-positive reconciliation for
-4 models with stale serde_broken entries.
+**STATUS: BLOCKED on version-collision decision (needs operator input)**
+
+The design doc assumed `fleet-models.json` was at `version: 2` and planned to
+migrate to `version: 3`. However, the file ALREADY declares `version: 3` — it
+was bumped to 3 for `dispatch_latency` data addition (commit `f852e0b`), NOT
+for the transport-aware schema migration. The file still has the lanes-based
+(v2-shape) schema.
+
+**The version-collision issue (design doc CF #2) is already live:** the file
+says v3 but doesn't have the v3 schema shape. Two options for the migration:
+
+1. **Bump to version 4** (cleaner — avoids collision; consumers checking
+   `version >= 3` still work; consumers checking `version == 3` for old shape
+   must update to `version >= 4`)
+2. **Keep version 3, change shape** (matches design doc but creates ambiguity:
+   two different schema shapes have both been "version 3")
+
+**Recommendation:** option 1 (bump to v4). The design doc's CF #2 specifically
+warned about this collision.
+
+Other implementation details (from design doc Unit 1):
+- Convert all 9 active models to per-model `transports` blocks
+- False-positive serde_broken reconciliation for 4 models
+- `serde_broken` and `spawn_broken` arrays become derived views
+- Add `provenance` block
 
 ### NEXT-3: Implement Unit 11 (M3 entry — MAY BE SKIPPED)
 
