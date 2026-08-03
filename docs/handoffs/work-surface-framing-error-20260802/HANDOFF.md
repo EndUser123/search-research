@@ -168,3 +168,33 @@ The design has been wrong three times because the framing was wrong. Before rede
 | 2026-08-02T18:30 | 019fb177... | created — framing error diagnosis + domain research request |
 | 2026-08-02T19:15 | 019fb177... | resolved — operator challenged missing-domains assumption; simplified to 3 fixes (scan breadth + 2 skill folds). No new skill, no architecture redesign. All 10 domains served. |
 | 2026-08-03T16:30 | 019fb177... | Fix 1 DONE — scan_functions.py built (11 sources, 45 items, <2s). Fix 2 pending (/capture + /friction fold). Fix 3 pending (/close deletion). /todo SKILL.md rewritten (420→170 lines, NOW/NEXT/LATER primary). /tp review of /todo found 5 issues, all fixed. 2 wiki concepts captured (review-attacks-implementation-misses-framing, work-discovery-skill-organization-best-practices). |
+| 2026-08-03T20:40 | 019fb177... | 3 uncaptured gaps identified: (G1) /www→/research propagation grep — AGENTS.md and skill refs still say /www; (G2) scanner known limitations — FINDINGS.md resolved-vs-unresolved detection, WIKI: marker GROK_SESSION_ID env var, cross-terminal FINDINGS.md noise (26 old items from siblings); (G3) /todo↔/handoff shared classification function — `/todo` recommends "needs handoff", `/handoff` structures it, but the shared complexity-classification function was discussed but not implemented or formally tracked. |
+
+## Remaining tasks (post-session)
+
+### Fix 2: Fold /capture + /friction into /tp session
+Both are transcript scans with different output routing. `/tp session` already has a transcript scan. Add `/capture`'s 7 categories and `/friction`'s 2 modes as additional scan passes. Mark both deprecated.
+
+### Fix 3: Delete /close (already deprecated by /close-check)
+Remove the deprecated skill. `/close-check` is the lifecycle gate.
+
+### G1: /www → /research propagation grep
+A sibling session renamed `/www` to `/research`, then it was renamed back. AGENTS.md and skill references may still reference `/research` as primary or `/www` as alias. Grep all docs and skill files for stale references and normalize to `/www` primary + `/research` alias.
+
+### G2: Scanner known limitations (3 issues)
+1. **FINDINGS.md resolved-vs-unresolved** — scanner flags every file containing "needs_attention" or "bug" even if the bugs were fixed in a later commit. Fix: parse FINDINGS.md for a `Status: RESOLVED` or `All fixed` marker, or check whether the commit that fixed the bugs came after the FINDINGS.md write.
+2. **WIKI: marker GROK_SESSION_ID** — `scan_wiki_markers()` fails silently when `GROK_SESSION_ID` isn't set in the subprocess env. Fix: pass session ID explicitly from the LLM context, or fall back to the most-recently-modified session dir.
+3. **Cross-terminal FINDINGS.md noise** — scanner picks up 26+ old FINDINGS.md from sibling sessions. Fix: scope to this session's artifact dir (already done for review/check scanners via `_session_artifacts_dir()`, but the session-dir detection fails when env var isn't set).
+
+### G3: /todo ↔ /handoff shared classification function
+Discussion conclusion (not yet implemented): `/todo` and `/handoff` share a core (work-item storage and retrieval) but differ in resolution. `/todo` gives a one-liner; `/handoff` gives a full task packet. The missing piece: a shared function that classifies whether something is a quick task vs. a full handoff based on complexity signals (effort, architectural scope, number of files). `/todo` would flag "needs handoff" and `/handoff` would receive items pre-classified. This is architectural — defer until Fix 2+3 are done and the scan-function model is proven.
+
+### render_rns.py fate decision
+The 5-domain hierarchical renderer (DO NOW/FIX/CAPTURE/MAINTAIN/BACKLOG) was demoted to `--detailed` opt-in. Decide: keep as opt-in, rewrite to produce NOW/NEXT/LATER, or delete. The 460-line renderer produces output nobody asked for in this session.
+
+### Prior-session handoffs (still open)
+- agy_lens.py live 3-lens test (tp-parallel-panel-dispatch)
+- 8 MEDIUM review findings M2-M9 (tp-parallel-panel-dispatch)
+- /tp SKILL.md refactor 92KB → <30KB (tp-parallel-panel-dispatch)
+- /skill-dev v2 routing + audit mode (skill-dev-orchestrator-plan-v2)
+- 13-handoff premature-recommendation audit (premature-recommendation-pattern)
