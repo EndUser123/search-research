@@ -282,6 +282,18 @@ All Phase 0-2 items from the handoff are DONE. Phase 3 (behavior changes — E-0
 | Remaining 14 caller file migrations to safe_io/yaml_fm | Mechanical sweep | Each is replace tmp.replace → atomic_write_* |
 | Design Intent Contract in persona TOMLs | Not needed | DRY'd personas reference SKILL.md as source of truth |
 
+### Deferred ensemble items (captured 2026-08-03 — not lost)
+
+These 5 items were surfaced during the 8-LLM ensemble review but not implemented. They're captured here so a future session can evaluate them:
+
+| ID | Item | Source | Why deferred | When to revisit |
+|----|------|--------|-------------|-----------------|
+| E-09 | **Evidence Ledger** — persistent premise tracking. Each premise maintains its original [FACT]/[INFERENCE]/[UNKNOWN] label throughout the document, preventing silent promotion of UNKNOWN→INFERENCE during writing rounds. | ChatGPT + DeepSeek | Step 0.8 already labels premises; the reviewer checks labeling. The ledger adds persistence across rounds — marginal value unless premise drift during revision becomes an observed problem. | If a design doc is found where a premise labeled [UNKNOWN] in round 1 was treated as [FACT] in round 3 without verification. |
+| E-10 | **RAIDC Layer** (Risks/Assumptions/Issues/Dependencies/Constraints) with owner, evidence, impact-if-false, closure status per item. Enterprise architecture governance framework. | DeepSeek | Heavyweight for a solo operator. The premise verification + failure mode analysis + coupling inventory already cover most of what RAIDC formalizes. | If the design skill starts producing designs for multi-person teams where formal governance tracking matters. |
+| E-12 | **Conflict Resolution Protocol** for reviewer/critical-friend disagreements. Currently the writer has unilateral "wontfix" authority; a protocol would add an escalation path. | DeepSeek + Perplexity | The existing stalemate detection (Step 3, two-round disagreement → escalate to user) already handles this. A formal protocol may add ceremony without value. | If reviewer and critical-friend reach contradictory verdicts (one says PROCEED, other says BLOCK) and the orchestrator doesn't know how to route. |
+| E-15 | **Persona version pinning** — record which persona TOML version produced a given design doc. | Claude | The DRY'd personas now reference SKILL.md as source of truth, so persona drift is less of an issue. Version pinning adds audit trail but SKILL.md is version-controlled via git. | If persona files are edited mid-session and a design doc's quality is attributed to the wrong persona version. |
+| E-19 | **"Design Spine"** — pre-compute a decision skeleton (options/tradeoffs/recommendation/confidence score per decision) before generating full prose. Cheaper iteration, better traceability. | Perplexity | The Design Intent Contract + Alternatives sections already capture the skeleton. A separate pre-prose artifact adds a step without clear value over the current flow. | If design rounds are consistently slow because the writer produces full prose before the reviewer can assess the decisions — the spine would let the reviewer check decisions before prose investment. |
+
 ## Explicit non-goals
 
 - Do NOT re-implement the model routing system (from RT handoff — it's done)
