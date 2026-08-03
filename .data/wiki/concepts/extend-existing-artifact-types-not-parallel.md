@@ -51,9 +51,18 @@ This pattern is wrong when:
 - The new artifact has a fundamentally different lifecycle (e.g., immutable audit trail vs mutable work document)
 - The consumer query patterns are incompatible (e.g., temporal range queries vs keyword search)
 
-## Sources
+## What this means for our workspace
 
-- Red-team findings: AUTH-1, AUTH-5, PERF-006, CORR-4
-- Implementation: `~/.grok/skills/handoff/references/core-fields.md` (investigation_state: block)
-- `/why` SKILL.md Step 14 (--persist routing)
+When a future session proposes creating a new directory or file format for structured state, it should first check whether an existing artifact type (handoff, wiki concept, skill) can be extended with an optional block. The `investigation_state:` block in handoff frontmatter is the worked example — it added structured investigation fields without creating a parallel persistence layer.
+
+The test is simple: if the new artifact has frontmatter, lifecycle, identity binding, and cross-skill consumers, check whether an existing artifact type already provides those. If yes, extend; don't create parallel.
+
+Related patterns: [[mechanical-enforcement-over-behavioral-reminder]] (structural fixes over behavioral rules), [[no-question-theater]] (acting on derived defaults), [[trust-over-believability]] (the proposal believed its own "don't do" list while violating it).
+
+## Receipts
+
+- `~/.grok/skills/handoff/references/core-fields.md` lines 172-217 — the `investigation_state:` optional frontmatter block
+- `~/.grok/skills/why/SKILL.md` line 484-489 — Step 14 `--persist` routing to handoff
+- Red-team findings AUTH-1, AUTH-5, PERF-006, CORR-4 (session 019fc0a7, `P:/.artifacts/review/019fc0a7/20260802/FINDINGS.md`)
 - Commit `653db5b` (Phase 1: collapse investigation persistence into handoff schema)
+- Reverted: `P:/docs/investigations/` directory (removed, commit `a309fa5`)

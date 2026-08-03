@@ -55,8 +55,17 @@ The hook is wrong if, within 6 months:
 - Reference: `[[mechanical-enforcement-over-behavioral-reminder]]`
 - Reference: `~/.grok/AGENTS.md` § "Optimal long-term solution (not minimal fix)"
 
-## What this does NOT do
+## What this means for our workspace
 
-- Does not check "is the problem real?" — only checks "is minimal optimal?" The companion check (problem-existence) is a separate concern.
-- Does not enforce on non-architectural work (code fixes, typo corrections, task instructions).
-- Does not block permanently — the 8-continuation cap means the gate can be overridden by repeated attempts.
+Every future architectural assessment, /red-team review, or /tp critique that produces minimal-change recommendations will be structurally checked by this hook. The operator no longer needs to manually catch minimal-change bias — the hook catches it at Stop time and forces re-examination.
+
+The hook should be monitored for false-positive fatigue. If it fires >5 times per session on legitimate recommendations, the regexes need narrowing. Check `~/.grok/state/hook_failures.jsonl` for `minimal_bias_gate` entries to assess fire rate.
+
+Related patterns: [[mechanical-enforcement-over-behavioral-reminder]], [[invariants-beat-environment-comfort]], [[self-review-before-shipping-advice]].
+
+## Receipts
+
+- `~/.grok/hooks/scripts/minimal_bias_gate.py` — the hook script (lines 39-50: MINIMAL_PHRASES, lines 53-62: ARCHITECTURE_PHRASES, lines 66-72: REVIEW_LINE_ITEM suppressor, lines 74-82: JUSTIFICATION_PHRASES, lines 105-125: is_review_context proximity check, lines 140-175: should_gate main logic)
+- `~/.grok/hooks/minimal-bias-gate.json` — Stop hook registration
+- Commits: `0e867ae` (initial), `faf5c8f` (review fixes), `92762b2` (problem-existence check)
+- Test results: 12/12 cases pass including 4 false-positive cases
