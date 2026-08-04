@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: multi-terminal-isolation-stale-data-immunity
+Agent: --action
+Notes: created
+Page: --summary
+
 ## prompt-patterns-improvement-ideas-2026
 Source: session-019fca0e /www research
 Agent: grok
