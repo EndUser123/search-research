@@ -46,6 +46,16 @@ A subscription model that is faster and has high quota beats a free model
 that is slower, even when the free model could do the work. The operator's
 time (waiting) is the scarcest resource; subscription quota is abundant.
 
+**Dispatch-path overhead (verified 2026-08-03):** speed is NOT just a model
+property — it varies by dispatch path. The same model can be 3-10x slower via
+`spawn_subagent` than via PI due to agent context overhead (~35K tokens of
+AGENTS.md + skills + system prompt). Always check `dispatch_latency` in
+`fleet-models.json` for the measured per-path latency, not just the model's
+raw HTTP speed. A model that benchmarks at 2s on HTTP can take 30-70s on spawn
+because the agent context triggers deeper reasoning. When `pick_model.py`
+recommends `dispatch_path: PI`, use PI — the recommendation is based on measured
+data, not assumption.
+
 **Worked example:** `minimax-m3` (subscription, 4,500 calls/5h, fast
 instruction-following) is preferred over `gemma-4-31b-it` (free, 625/5h,
 unmeasured latency) for `/check` verifiers. M3 could absorb the entire fleet's
