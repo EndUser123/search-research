@@ -4,8 +4,8 @@ description: >
   Knowledge hygiene for skills and wiki concepts — detect stale, duplicate,
   and drifted entries. Proposes merges, archives, and promotions. Use when
   the skill catalog is cluttered, after bulk skill additions, or monthly.
-  Adapted from Claude-side "garden" for Grok Build (qmd + index_skills.py
-  as the inventory layer instead of CKS).
+  Adapted from Claude-side "garden" for Grok Build (index_skills.py as the
+  inventory layer instead of CKS; grep-based wiki search instead of qmd).
 host: both
 provides: [knowledge-hygiene]
 domain: self-improvement
@@ -33,14 +33,14 @@ operator confirmation.
 
 ```
 PHASE 1: INVENTORY
-  ── index_skills.py (catalog) + qmd search (wiki)
+  ── index_skills.py (catalog) + grep (wiki search)
   ── list all skills with grok_enabled/claude_enabled state
   ── list wiki concepts with age + tag distribution
   ↓ STOP: present inventory before analysis
 
 PHASE 2: ISSUE DETECTION
   ── duplicate skills: same name across scopes (catalog shows 3+ nlm-to-wiki)
-  ── stale wiki concepts: >6 months old, never cited in qmd search results
+  ── stale wiki concepts: >6 months old, never referenced by other concepts
   ── disabled skills still indexed: grok_enabled=false or claude_enabled=false
   ── orphan skills: SKILL.md references scripts/files that don't exist
   ── drifted concepts: wiki content contradicts current code/state
@@ -67,7 +67,7 @@ PHASE 5: VERIFY + SUMMARY
 | Source | What it provides | Command |
 |---|---|---|
 | `index_skills.py` | Full skill catalog with scope + enable state | `python P:/.data/wiki/scripts/index_skills.py` |
-| qmd search | Wiki concept coverage + staleness | `qmd search --collection wiki "<topic>" --top-k N` |
+| grep | Wiki concept coverage + staleness | `grep pattern="<topic>" path="P:/.data/wiki/concepts/" -i` |
 | `audit_buried_facts.py` | Decision-time facts buried in longer pages | `python P:/.data/wiki/scripts/audit_buried_facts.py` |
 | `validate_wiki_entry.py` | Wiki entries that fail the quality gate | `python ~/.grok/skills/wiki/scripts/validate_wiki_entry.py <path>` |
 
@@ -84,7 +84,7 @@ cross-agent scope is the canonical location; caches are derived.
 ## Staleness detection
 
 A wiki concept is stale if:
-- Not referenced by any qmd search result in the last 90 days (requires search-log analysis)
+- Not referenced by any other wiki concept via [[wikilinks]] in the last 90 days
 - Frontmatter `created:` is >12 months old AND `updated:` is absent or >6 months old
 - Content references file paths that no longer exist
 
@@ -94,7 +94,7 @@ concepts may still have value for historical context.
 ## Operational notes
 
 - **Grok Build, not Claude Code.** No CKS (Constitutional Knowledge System).
-  The inventory layer is `index_skills.py` + qmd, not CKS search.
+  The inventory layer is `index_skills.py` + grep, not CKS search or qmd.
 - **No `/rewind` or checkpoints.** Recovery is via git + transcripts
   (see `/recover` skill). Pruning is additive (archive, not delete).
 - **Multi-agent filesystem.** Other sessions may be reading the catalog

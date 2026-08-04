@@ -38,9 +38,7 @@ needs a trust verdict. Route elsewhere if:
 Query the wiki for existing knowledge before spawning specialists. This prevents
 false-positive findings based on missing context.
 
-```
-qmd search --collection wiki "<target keywords>" --limit 10
-```
+# Use the built-in grep tool: grep pattern="<target keywords>" path="P:/.data/wiki/concepts/" -i
 
 Pass wiki-confirmed premises to specialists as context. Pass contradictions as
 pre-found attack vectors.
