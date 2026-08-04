@@ -1,5 +1,11 @@
 # Vault Log
 
+## Correction-response discipline update
+Source: session-019fcb54
+Agent: grok
+Notes: Added 5-outcome disposition matrix, CRITIC principle, research validation, measurement criteria
+Page: P:/.data/wiki/concepts/correction-response-discipline-anti-binary-swing.md
+
 ## Adaptive Research Depth: preventing incomplete /www coverage
 Source: session-2026-08-04 /why + /www
 Agent: grok
