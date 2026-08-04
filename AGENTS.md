@@ -156,6 +156,8 @@ If any of these is unanswered, the recommendation is premature. Label it `[PREMA
 
 **Anti-pattern recognition:** if you find yourself writing "X doesn't work because..." or "we should replace X with Y..." — STOP. Have you tried X's documented workarounds? Have you verified the failure is about X and not about your specific invocation? This is the [[replacement-before-investigation-pattern]]. Reference: 13+ handoffs exhibit this pattern across 6 days (2026-07-26 through 2026-08-01).
 
+**Applies to restructuring callers too, not just replacing tools.** When an external component (CLI, API, subprocess, hook) doesn't behave as expected, reproduce the failure in isolation — run the underlying command directly — before changing the orchestration layer (threading model, timeout handling, retry logic). The root cause is almost always a config mismatch or incompatible parameter in the callee, discoverable in seconds with an isolated test. Restructuring the caller to work around an undiagnosed callee failure introduces new bugs while leaving the original problem active.
+
 ## Workspace Routing
 
 Before acting on a package, read its local instruction files. For `yt-is`: read `P:\packages\yt-is\CLAUDE.md`, `AGENTS.md`, `HANDOFF.md`. Do not rely on parent-workspace prompt when package-local docs exist.
