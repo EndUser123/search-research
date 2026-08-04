@@ -215,3 +215,26 @@ OPEN — All coding-lane benchmarked successfully (105/105, zero FAILs). Config 
 4. **pick_model.py --exclude-self** — read `[models] default` from config.toml to exclude the parent session's model from same-model selection. Grok Build exposes this at `config["models"]["default"]`.
 
 5. **NIM DeepSeek in lanes** — `nim-deepseek-ai-deepseek-v4-flash` (dedicated NVIDIA key) not in any lane. Add as alternative to `zen-deepseek-v4-flash-free` for dedicated-quota-first routing.
+
+---
+
+## Execution Status
+
+Updated: 2026-08-04T12:00:00Z
+Session: 019fc95d-8132-7181-a6f4-9ab6d1624cd5
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | pick_model.py --exclude-self | ✅ DONE | `python pick_model.py coding --exclude-self` excludes glm-5-2, verified via human + JSON output |
+| 2 | /tp spawn lens fix | ✅ DONE | SKILL.md line 1148: zen-deepseek → nim-deepseek (verified PASS: 4s spawn); grep confirms no remaining zen-deepseek refs |
+| 3 | NIM DeepSeek in lanes | ✅ DONE | Added to coding tier2, reasoning tier1, critic tier1; pick_model.py --list shows all lanes healthy |
+| 4 | dispatch_paths caller docs | ✅ DONE | pick_model.py docstring + print_human updated; output shows "PI → HTTP → OC → spawn" chain |
+| 5 | Full-fleet benchmark | ✅ DONE | 5 models benchmarked (75 tasks, 221s); latency written to fleet-models.json |
+
+### Key findings during execution
+- zen-deepseek-v4-flash-free was NOT in serde_broken or spawn_broken — handoff claim was outdated
+- nim-deepseek-ai-deepseek-v4-flash is the better spawn lens: verified working (4s), dedicated NVIDIA quota
+- Registration gaps: nemotron-ultra + arcee-trinity only work via HTTP (not registered in PI/OC)
+- 2 pre-existing test failures in spawn gate tests (gpt-5-6-luna serde_broken + glm fallback order) — not caused by this session's changes
+- Benchmark auto-write-back confirmed for all 5 models in fleet-models.json
