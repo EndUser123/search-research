@@ -33,6 +33,7 @@ SCOPES = [
     ("grok-bundled", Path("C:/Users/brsth/.grok/bundled/skills")),
     ("grok-project", Path("P:/.grok/skills")),
     ("grok-agents", Path("P:/.agents/skills")),
+    ("grok-installed-plugins", Path("C:/Users/brsth/.grok/installed-plugins")),
     ("marketplace", Path("P:/packages/.claude-marketplace/plugins")),
 ]
 
@@ -61,7 +62,12 @@ SLASH_SKILL_PATTERN = re.compile(
     r'|grok-discovery|grok-route|check|close|review|plan-writer'
     r'|refine|red-team|notice|create-skill|packet|mmx|agy|codex'
     r'|debrief|maintain|wargame|skill-dev|skill-prune|model-benchmark'
-    r'|recover|preflight|todo|tasks|imagine|help|fmea)'
+    r'|recover|preflight|todo|tasks|imagine|help|fmea'
+    r'|grill-me|domain-terms|write'
+    r'|design-codebase|design-frontend'
+    r'|diagnosing-bugs|tdd|teach|to-spec|to-tickets'
+    r'|wayfinder|triage|improve-codebase-architecture'
+    r'|wizard|writing-great-skills)'
     r'\b',
     re.IGNORECASE,
 )
@@ -92,6 +98,12 @@ KNOWN_SKILLS = {
     'maintain', 'wargame', 'skill-dev', 'skill-prune',
     'model-benchmark', 'recover', 'preflight', 'todo', 'tasks',
     'imagine', 'help', 'fmea',
+    # Ported from mattpocock-skills (2026-08-04)
+    'grill-me', 'domain-terms', 'write',
+    'design-codebase', 'design-frontend',
+    'diagnosing-bugs', 'tdd', 'teach', 'to-spec', 'to-tickets',
+    'wayfinder', 'triage', 'improve-codebase-architecture',
+    'wizard', 'writing-great-skills',
 }
 
 # Known providers for filtering
@@ -150,6 +162,13 @@ def find_skills() -> list[SkillNode]:
                             skills.append(SkillNode(
                                 skill_dir.name, str(skill_file), scope
                             ))
+        # Installed plugins: <root>/<plugin-hash>/skills/<category>/<skill>/SKILL.md
+        # Walk recursively to find all SKILL.md files under installed-plugins
+        if scope == "grok-installed-plugins":
+            for skill_file in sorted(root.rglob("SKILL.md")):
+                skill_dir = skill_file.parent
+                if skill_dir.name != "__pycache__":
+                    skills.append(SkillNode(skill_dir.name, str(skill_file), scope))
     return skills
 
 
