@@ -123,8 +123,7 @@ corrections received, the matrix isn't being used — only the relabel row.
 ## Prose-rule-decay acknowledgment
 
 This rule IS a prose rule for a response pattern — the exact category
-documented as "What does NOT work" in `[[theatrical-contrition-and-over-
-apologetic-response-patterns]]` (line 131: "Prose rule in AGENTS.md ('don't
+documented as "What does NOT work" in `[[theatrical-contrition-and-over-apologetic-response-patterns]]` (line 131: "Prose rule in AGENTS.md ('don't
 apologize') — Self-critique shares producer bias; rules decay under closure
 pressure"). The structural fix would be an EGDP-style template enforced at the
 system-prompt level. Until that structural fix is built, this rule is a
