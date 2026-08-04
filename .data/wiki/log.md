@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --concept
+Source: declarative-quality-gates-skills-declare-evidence
+Agent: --action
+Notes: created
+Page: --summary
+
+## --concept
 Source: multi-terminal-isolation-stale-data-immunity
 Agent: --action
 Notes: created
