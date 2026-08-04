@@ -175,4 +175,43 @@ of just the 2 Zen models would update the latency data.
 
 ## Status
 
-OPEN — coding lane benchmarked and config-fixed. Full fleet + dispatch_paths integration remains.
+OPEN — All coding-lane benchmarked successfully (105/105, zero FAILs). Config fixes complete for all providers. Remaining work: full-fleet benchmark + /tp model pool update + pick_model callers.
+
+---
+
+## Revision 2 — 20260804T10:30:00Z (session 019fc95d)
+
+**Trigger:** All provider config fixes completed, benchmark running clean.
+
+**What changed since Revision 1:**
+- All 7 coding-lane models now pass pre-flight check for both PI and OpenCode (zero "not registered" warnings)
+- Benchmark completes in ~8 min with 105/105 tasks, zero FAILs (one expected empty-content FAIL on zen-north-mini-code-free code-gen fixed by raising max_tokens from 256→1024)
+- Provider registrations completed:
+  - OpenCode: added opencode-zen, openrouter, nvidia-nim providers
+  - PI: added zai (direct Z.ai), fixed opencode-zen supportsDeveloperRole, added MiniMax-M3 alias, added inclusionai/ling-3.0-flash:free
+  - OpenCode config: updated glm-4.6→glm-5.2, MiniMax-M2→MiniMax-M3, fixed zai baseURL
+- Dispatch map fixed: 3-tuple (pi_provider, oc_prefix, label) with correct names for all providers
+- Pre-flight registration check added to benchmark
+- Subprocess timeout fix (Popen + taskkill /F /T) verified working
+- dispatch_paths fallback chains added to fleet-models.json + pick_model.py
+- Ship receipt format upgraded (RNS-style + skills-used section)
+- 41 ship tests written
+- AGENTS.md rule extended (test component not caller)
+- 2 wiki concepts written (subprocess deadlock + dedicated-quota-first routing)
+- Benchmark SKILL.md troubleshooting table added
+- Grok Build documentation research: confirmed `[models] default` in config.toml exposes active model; `[subagents.models]` exposes per-type overrides
+
+**Remaining work (updated):**
+
+1. **Full-fleet benchmark** — coding lane done (7 models). Run remaining lanes:
+   ```powershell
+   python benchmark.py --methods pi,opencode,direct --models <lane-models> --timeout 90 --max-per-provider 1
+   ```
+
+2. **/tp model pool update** — `/tp` SKILL.md default panel still lists `zen-deepseek-v4-flash-free` as spawn lens, but it's spawn_broken (serde failure). Update to use a working model. Operator directive: same-model as critic is acceptable; reliability > diversity.
+
+3. **pick_model.py callers** — `pick_model.py` now returns `dispatch_paths` list, but callers (spawn gate, /tp, /check, /go) still use single `dispatch_path`. Update to iterate fallback chain.
+
+4. **pick_model.py --exclude-self** — read `[models] default` from config.toml to exclude the parent session's model from same-model selection. Grok Build exposes this at `config["models"]["default"]`.
+
+5. **NIM DeepSeek in lanes** — `nim-deepseek-ai-deepseek-v4-flash` (dedicated NVIDIA key) not in any lane. Add as alternative to `zen-deepseek-v4-flash-free` for dedicated-quota-first routing.
