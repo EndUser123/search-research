@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-04
 cognitive_load: 3
-summary: Auto-generated index of 679 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 714 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 679 across 21 scopes.
+**Total skills:** 714 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (54 skills)
+## grok-user (69 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -41,10 +41,15 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **codex** | ✓ | — | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | — | `~/.grok/skills/codex/SKILL.md` |
 | **create-skill** | ✓ | — | DEPRECATED — use /skill-dev create instead. Skill-dev Mode 0 absorbs create-skill with added quality gates (scanner + te... | — | `~/.grok/skills/create-skill/SKILL.md` |
 | **design** | ✓ | — | Run the full design-doc-writer and design-doc-reviewer loop until consensus. Produces a polished design document with an... | — | `~/.grok/skills/design/SKILL.md` |
+| **design-codebase** | ✓ | — | Shared vocabulary for designing deep modules: module, interface, depth, seam, adapter, leverage, locality. Use when desi... | — | `~/.grok/skills/design-codebase/SKILL.md` |
+| **design-frontend** | ✓ | — | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthe... | — | `~/.grok/skills/design-frontend/SKILL.md` |
+| **diagnosing-bugs** | ✓ | — | Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports som... | — | `~/.grok/skills/diagnosing-bugs/SKILL.md` |
 | **doc-check** | ✓ | — | Documentation readiness check for publishing. Scans the diff/commits being shipped against README, CHANGELOG, version fi... | — | `~/.grok/skills/doc-check/SKILL.md` |
+| **domain-terms** | ✓ | — | Extract domain terminology from conversation or codebase, flag ambiguities, propose canonical terms, and produce a struc... | — | `~/.grok/skills/domain-terms/SKILL.md` |
 | **dream** | ✓ | — | Offline memory consolidation for the LLM agent fleet. Reads the last 90 days of handoffs, AAR artifacts, and the www-led... | — | `~/.grok/skills/dream/SKILL.md` |
 | **friction** | ✓ | — | Detect interaction friction and workflow automation opportunities from chat history and session evidence. Two categories... | — | `~/.grok/skills/friction/SKILL.md` |
 | **go** | ✓ | — | Intelligent high-horsepower engineering orchestrator for Grok. Primary slash: /go. From plain language, auto-selects gro... | Implement, fix, build, or execute engineering work. Orchestrate multi-step tasks... | `~/.grok/skills/go/SKILL.md` |
+| **grill-me** | ✓ | — | Relentless batch interview that walks a decision tree until shared understanding is reached. Asks questions in frontier ... | — | `~/.grok/skills/grill-me/SKILL.md` |
 | **grok-discovery** | ✓ | — | Build an evidence-backed source-authority inventory before non-trivial plan, implement, refactor, or "does X exist / is ... | — | `~/.grok/skills/grok-discovery/SKILL.md` |
 | **grok-go** | ✓ | — | Compatibility alias for /go (formerly /grok-go). Use when the user says /grok-go. Immediately load and execute ~/.grok/s... | — | `~/.grok/skills/grok-go/SKILL.md` |
 | **grok-parallel** | ✓ | — | Fan out independent work across Grok subagents (and worktrees when writes conflict) for research, implementation, testin... | — | `~/.grok/skills/grok-parallel/SKILL.md` |
@@ -56,6 +61,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **harvest** | ✓ | — | Recover value already produced but not realized. Event-sourced obligation tracking with claim-based concurrency, verific... | — | `~/.grok/skills/harvest/SKILL.md` |
 | **help** | ✓ | — | Grok documentation and configuration help. Use when users ask about setup, configuration, MCP servers, authentication, s... | — | `~/.grok/skills/help/SKILL.md` |
 | **imagine** | ✓ | — | How to use the image_gen and image_edit tool calls in Grok Build: when to build a visual with code instead of generating... | — | `~/.grok/skills/imagine/SKILL.md` |
+| **improve-codebase-architecture** | ✓ | — | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you ... | — | `~/.grok/skills/improve-codebase-architecture/SKILL.md` |
 | **maintain** | ✓ | — | Fleet maintenance orchestrator for Grok Build. Three layers: DIAGNOSE (workspace health), ACT (cleanup/rotation/repair),... | — | `~/.grok/skills/maintain/SKILL.md` |
 | **marketplace-bridge** | ✓ | — | Pulls AI-skill listings from four public marketplaces (SkillsMP, SkillHub, ClawHub, skills.sh), fetches each skill's SKI... | — | `~/.grok/skills/marketplace-bridge/SKILL.md` |
 | **mmx** | ✓ | — | Run MiniMax CLI (mmx) for a cross-model second opinion or web search via the MiniMax index. Conductor evaluates assignme... | — | `~/.grok/skills/mmx/SKILL.md` |
@@ -77,21 +83,50 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **skill-dev** | ✓ | — | Create, measure, and improve Grok skills from evidence. Modes: (0) create — scaffold a new skill with quality gates; (1)... | — | `~/.grok/skills/skill-dev/SKILL.md` |
 | **slc** | ✓ | — | Behavioral reset for the thought-partner standard. When invoked, re-anchors the agent to its identity, quality bar, proa... | — | `~/.grok/skills/slc/SKILL.md` |
 | **tasks** | ✓ | — | Read and write Claude Code's persistent task store at ~/.claude/tasks/project-main-tasks/. Use when the user asks to tra... | — | `~/.grok/skills/tasks/SKILL.md` |
+| **tdd** | ✓ | — | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor"... | — | `~/.grok/skills/tdd/SKILL.md` |
+| **teach** | ✓ | — | Teach the user a new skill or concept, within this workspace. disable-model-invocation: true argument-hint: "What would ... | — | `~/.grok/skills/teach/SKILL.md` |
+| **to-spec** | ✓ | — | Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of ... | — | `~/.grok/skills/to-spec/SKILL.md` |
+| **to-tickets** | ✓ | — | Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, ... | — | `~/.grok/skills/to-tickets/SKILL.md` |
 | **todo** | ✓ | — | ADHD-friendly "what should I do?" orchestrator. Scans the workspace for unfinished work, unreviewed research, and open t... | — | `~/.grok/skills/todo/SKILL.md` |
 | **tp** | ✓ | — | Critical-friend / thought-partner. Two modes: (1) critique — a fresh subagent challenges framing, assumptions, and appro... | Challenge a decision, proposal, or approach. Find flaws in reasoning. Surface wh... | `~/.grok/skills/tp/SKILL.md` |
 | **trace** | ✓ | — | Manual trace-through verification for code, skills, workflows, and documents. Catches logic errors that automated testin... | — | `~/.grok/skills/trace/SKILL.md` |
+| **triage** | ✓ | — | Move issues and external PRs through a state machine of triage roles — categorise, verify, grill if needed, and write ag... | — | `~/.grok/skills/triage/SKILL.md` |
 | **wargame** | ✓ | — | Content discipline for plans where observation is expensive, ambiguity is high, or the decision is hard to reverse. Forc... | — | `~/.grok/skills/wargame/SKILL.md` |
+| **wayfinder** | ✓ | — | Plan a huge chunk of work — more than one agent session can hold — as a shared map of decision tickets on your issue tra... | — | `~/.grok/skills/wayfinder/SKILL.md` |
 | **web** | ✓ | — | Intelligent web research across multiple backends. Every invocation MUST fan out to the mandatory default recipe (DDG + ... | — | `~/.grok/skills/web/SKILL.md` |
 | **why** | ✓ | — | Evidence-tiered, pattern-aware root cause analysis for AI agent failures, diagnostic errors, and system observations. Qu... | — | `~/.grok/skills/why/SKILL.md` |
 | **wiki** | ✓ | — | Persistent knowledge base for durable findings AND design decisions. Default (/wiki with no args): distill the current s... | Capture durable findings and design decisions. Write wiki concepts. Query existi... | `~/.grok/skills/wiki/SKILL.md` |
 | **wiki-crawl4ai** | ✓ | — | Ingest websites into the wiki vault as searchable markdown. Crawls with crawl4ai (local Python), dedupes by SHA256 + eta... | — | `~/.grok/skills/wiki-crawl4ai/SKILL.md` |
+| **wizard** | ✓ | — | Generate an interactive Python wizard that walks a human through a manual procedure — third-party setup, a one-off migra... | — | `~/.grok/skills/wizard/SKILL.md` |
+| **write** | ✓ | — | Long-form content production pipeline: explore (mine raw fragments), shape (structure into paragraphs), refine (assemble... | — | `~/.grok/skills/write/SKILL.md` |
+| **writing-great-skills** | ✓ | — | Reference for writing and editing skills well — the vocabulary and principles that make a skill predictable. disable-mod... | — | `~/.grok/skills/writing-great-skills/SKILL.md` |
 | **www** | ✓ | — | Wiki-Web-Wiki compound research skill. Queries the local wiki for what we already know, researches the web for what we d... | — | `~/.grok/skills/www/SKILL.md` |
 
-## grok-bundled (1 skills)
+## grok-bundled (21 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
+| **build-with-ai** | ✓ | — | Default to SpaceXAI when building AI/LLM features into an app. Use whenever adding or scaffolding AI functionality — pic... | — | `~/.grok/bundled/skills/build-with-ai/SKILL.md` |
+| **code-review** | ✓ | — | Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use... | — | `~/.grok/bundled/skills/code-review/SKILL.md` |
+| **create-skill** | ✓ | — | Interactively create a new Grok skill (SKILL.md + optional scripts/references). Use when the user wants to create a skil... | — | `~/.grok/bundled/skills/create-skill/SKILL.md` |
+| **create-workflow** | ✓ | — | Create a Grok Build workflow: author a Rhai orchestration script (agents, phases, bounded parallel fan-out, verification... | — | `~/.grok/bundled/skills/create-workflow/SKILL.md` |
 | **design** | ✓ | — | Run the full design-doc-writer and design-doc-reviewer loop until consensus. Produces a polished design document with a ... | — | `~/.grok/bundled/skills/design/SKILL.md` |
+| **docx** | ✓ | — | Use this skill whenever the user wants to create, read, edit, or manipulate Word documents (.docx or .dotx files). Trigg... | — | `~/.grok/bundled/skills/docx/SKILL.md` |
+| **execute-plan** | ✓ | — | Execute a PR Plan DAG from a design document. Parses the plan, topologically sorts it, implements PRs in parallel using ... | — | `~/.grok/bundled/skills/execute-plan/SKILL.md` |
+| **game-animation-frames** | ✓ | — | Deep guide for game ANIMATION assets: motion cycles, action keyframes, effect sequences, and animation sprite sheets — b... | — | `~/.grok/bundled/skills/game-animation-frames/SKILL.md` |
+| **game-asset-core** | ✓ | — | Core discipline for ANY game-asset generation with Imagine tools: the engine-ready defaults users don't state, spec chec... | — | `~/.grok/bundled/skills/game-asset-core/SKILL.md` |
+| **game-character-consistency** | ✓ | — | Deep guide for CHARACTER IDENTITY across images: turnarounds (front/side/ back), state and damage variants, palette swap... | — | `~/.grok/bundled/skills/game-character-consistency/SKILL.md` |
+| **game-tilesets** | ✓ | — | Deep guide for game TILE assets: seamless tileable textures, terrain transition tilesets, autotiles, and ground/platform... | — | `~/.grok/bundled/skills/game-tilesets/SKILL.md` |
+| **game-ui-icons** | ✓ | — | Deep guide for game UI assets: buttons with interaction states, panels, bars, wordmark logos, and icon sets. Use wheneve... | — | `~/.grok/bundled/skills/game-ui-icons/SKILL.md` |
+| **imagine** | ✓ | — | How to use the image_gen and image_edit tool calls in Grok Build: when to build a visual with code instead of generating... | — | `~/.grok/bundled/skills/imagine/SKILL.md` |
+| **implement** | ✓ | — | Run the full implement-review-fix loop using implementer and reviewer personas. Supports effort-based multi-reviewer sca... | — | `~/.grok/bundled/skills/implement/SKILL.md` |
+| **pdf** | ✓ | — | Read, create, and transform PDF files. Covers pulling text and tables out of PDFs, generating new PDFs, merging and spli... | — | `~/.grok/bundled/skills/pdf/SKILL.md` |
+| **pptx** | ✓ | — | Use this skill any time a .pptx file is involved in any way — as input, output, or both. This includes creating slide de... | — | `~/.grok/bundled/skills/pptx/SKILL.md` |
+| **pr-babysit** | ✓ | — | Monitor PRs, fix CI failures, address review comments, resolve merge conflicts, and restack stacks. Supports independent... | — | `~/.grok/bundled/skills/pr-babysit/SKILL.md` |
+| **resume-claude** | ✓ | — | Resume or continue work from a recent Claude Code session. Use when the user switched from Claude Code, says "continue f... | — | `~/.grok/bundled/skills/resume-claude/SKILL.md` |
+| **resume-codex** | ✓ | — | Resume or continue work from a recent Codex CLI or Codex VS Code session. Use when the user switched from Codex, says "c... | — | `~/.grok/bundled/skills/resume-codex/SKILL.md` |
+| **resume-cursor** | ✓ | — | Resume or continue work from a recent Cursor CLI or Cursor Desktop session. Use when the user switched from Cursor, says... | — | `~/.grok/bundled/skills/resume-cursor/SKILL.md` |
+| **review** | ✓ | — | Run a reviewer subagent against uncommitted local changes, a named branch, or a GitHub PR. Local and branch modes write ... | — | `~/.grok/bundled/skills/review/SKILL.md` |
 
 ## grok-installed-plugins (73 skills)
 
