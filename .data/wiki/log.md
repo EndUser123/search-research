@@ -1,5 +1,11 @@
 # Vault Log
 
+## Mermaid, Diagram-as-Code, and Code Visualization Skills Landscape
+Source: session-2026-08-04 /www
+Agent: grok
+Notes: /www research: 4 subagents + Reddit MCP + HN Algolia. Ranked 8 installable Mermaid skills, compared Mermaid vs D2 vs PlantUML vs Structurizr, cataloged code-to-diagram tools.
+Page: P:/.data/wiki/concepts/mermaid-and-code-visualization-skills-landscape.md
+
 ## --concept
 Source: declarative-quality-gates-skills-declare-evidence
 Agent: --action

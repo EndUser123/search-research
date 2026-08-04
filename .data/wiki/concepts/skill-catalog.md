@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-03
 cognitive_load: 3
-summary: Auto-generated index of 657 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 699 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-03 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 657 across 21 scopes.
+**Total skills:** 699 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,17 +28,18 @@ Auto-generated on 2026-08-03 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (53 skills)
+## grok-user (54 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
 | **aar** | ✓ | — | Evidence-grounded continual-improvement system: reconstructs sessions, performs value accounting, identifies the opportu... | After-action review, post-mortem, retrospective. What went wrong, what worked, w... | `~/.grok/skills/aar/SKILL.md` |
 | **agy** | ✓ | — | Run Google Antigravity CLI (agy / Gemini) for a second opinion, code review, research, or analysis. Conductor evaluates ... | — | `~/.grok/skills/agy/SKILL.md` |
+| **ask** | ✓ | — | Route to the right skill based on session context and latest turns. Extracts intent from the conversation, queries the s... | — | `~/.grok/skills/ask/SKILL.md` |
 | **behave** | ✓ | — | Post-hoc diagnostic for verdict-transition integrity. Detects self-protection patterns, load-bearing failure, authority-... | — | `~/.grok/skills/behave/SKILL.md` |
 | **capture** | ✓ | — | Proactive improvement opportunity scanner. Two functions: (1) scans the session transcript for 6 categories of opportuni... | — | `~/.grok/skills/capture/SKILL.md` |
 | **close** | ✓ | — | Session close-out orchestrator. Runs close_accounting.py to scan handoffs, wiki, git commits, temp files, git status, an... | Check if session is safe to close. Scan for uncommitted work, missing handoffs, ... | `~/.grok/skills/close/SKILL.md` |
 | **codex** | ✓ | — | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | — | `~/.grok/skills/codex/SKILL.md` |
-| **create-skill** | ✓ | — | Interactively create a new Grok skill (SKILL.md + optional scripts/references). Use when the user wants to create a skil... | — | `~/.grok/skills/create-skill/SKILL.md` |
+| **create-skill** | ✓ | — | DEPRECATED — use /skill-dev create instead. Skill-dev Mode 0 absorbs create-skill with added quality gates (scanner + te... | — | `~/.grok/skills/create-skill/SKILL.md` |
 | **design** | ✓ | — | Run the full design-doc-writer and design-doc-reviewer loop until consensus. Produces a polished design document with an... | — | `~/.grok/skills/design/SKILL.md` |
 | **doc-check** | ✓ | — | Documentation readiness check for publishing. Scans the diff/commits being shipped against README, CHANGELOG, version fi... | — | `~/.grok/skills/doc-check/SKILL.md` |
 | **dream** | ✓ | — | Offline memory consolidation for the LLM agent fleet. Reads the last 90 days of handoffs, AAR artifacts, and the www-led... | — | `~/.grok/skills/dream/SKILL.md` |
@@ -73,7 +74,7 @@ Auto-generated on 2026-08-03 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **review** | ✓ | — | Intelligent code/package review with verified findings on disk. Auto-infers target (local diff, branch, PR, or package p... | Code review, package review, PR review, branch review, audit code quality. Find ... | `~/.grok/skills/review/SKILL.md` |
 | **search-fleet** | ✓ | — | Capability-routed multi-backend search with RRF aggregation. Reads the tool registry at ~/.grok/search-fleet.toml, class... | — | `~/.grok/skills/search-fleet/SKILL.md` |
 | **ship** | ✓ | — | Verify-and-publish chain: review → fix → verify → merge → close-prep. Takes a branch or set of commits from code-complet... | — | `~/.grok/skills/ship/SKILL.md` |
-| **skill-dev** | ✓ | — | Measure and improve Grok skills from evidence. Two modes: (1) measure — evaluate marginal contribution of active skills ... | — | `~/.grok/skills/skill-dev/SKILL.md` |
+| **skill-dev** | ✓ | — | Create, measure, and improve Grok skills from evidence. Modes: (0) create — scaffold a new skill with quality gates; (1)... | — | `~/.grok/skills/skill-dev/SKILL.md` |
 | **slc** | ✓ | — | Behavioral reset for the thought-partner standard. When invoked, re-anchors the agent to its identity, quality bar, proa... | — | `~/.grok/skills/slc/SKILL.md` |
 | **tasks** | ✓ | — | Read and write Claude Code's persistent task store at ~/.claude/tasks/project-main-tasks/. Use when the user asks to tra... | — | `~/.grok/skills/tasks/SKILL.md` |
 | **todo** | ✓ | — | ADHD-friendly "what should I do?" orchestrator. Scans the workspace for unfinished work, unreviewed research, and open t... | — | `~/.grok/skills/todo/SKILL.md` |
@@ -112,7 +113,7 @@ Auto-generated on 2026-08-03 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **resume-cursor** | ✓ | — | Resume or continue work from a recent Cursor CLI or Cursor Desktop session. Use when the user switched from Cursor, says... | — | `~/.grok/bundled/skills/resume-cursor/SKILL.md` |
 | **review** | ✓ | — | Run a reviewer subagent against uncommitted local changes, a named branch, or a GitHub PR. Local and branch modes write ... | — | `~/.grok/bundled/skills/review/SKILL.md` |
 
-## grok-installed-plugins (32 skills)
+## grok-installed-plugins (73 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -129,6 +130,47 @@ Auto-generated on 2026-08-03 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **using-superpowers** _[superpowers-21e2a56d]_ | ✓ | — | Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY respo... | — | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/using-superpowers/SKILL.md` |
 | **verification-before-completion** _[superpowers-21e2a56d]_ | ✓ | — | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verifi... | — | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/verification-before-completion/SKILL.md` |
 | **writing-skills** _[superpowers-21e2a56d]_ | ✓ | — | Use when creating new skills, editing existing skills, or verifying skills work before deployment | — | `~/.grok/installed-plugins/superpowers-21e2a56d/skills/writing-skills/SKILL.md` |
+| **grill-me** _[skills-bce86e95]_ | ✓ | — | A relentless interview to sharpen a plan or design. disable-model-invocation: true | — | `~/.grok/installed-plugins/skills-bce86e95/skills/productivity/grill-me/SKILL.md` |
+| **grilling** _[skills-bce86e95]_ | ✓ | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or u... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/productivity/grilling/SKILL.md` |
+| **handoff** _[skills-bce86e95]_ | ✓ | — | Compact the current conversation into a handoff document for another agent to pick up. argument-hint: "What will the nex... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/productivity/handoff/SKILL.md` |
+| **teach** _[skills-bce86e95]_ | ✓ | — | Teach the user a new skill or concept, within this workspace. disable-model-invocation: true argument-hint: "What would ... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/productivity/teach/SKILL.md` |
+| **writing-great-skills** _[skills-bce86e95]_ | ✓ | — | Reference for writing and editing skills well — the vocabulary and principles that make a skill predictable. disable-mod... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/productivity/writing-great-skills/SKILL.md` |
+| **edit-article** _[skills-bce86e95]_ | ✓ | — | Edit and improve articles by restructuring sections, improving clarity, and tightening prose. Use when user wants to edi... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/personal/edit-article/SKILL.md` |
+| **obsidian-vault** _[skills-bce86e95]_ | ✓ | — | Search, create, and manage notes in the Obsidian vault with wikilinks and index notes. Use when user wants to find, crea... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/personal/obsidian-vault/SKILL.md` |
+| **git-guardrails-claude-code** _[skills-bce86e95]_ | ✓ | — | Set up Claude Code hooks to block dangerous git commands (push, reset --hard, clean, branch -D, etc.) before they execut... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/misc/git-guardrails-claude-code/SKILL.md` |
+| **migrate-to-shoehorn** _[skills-bce86e95]_ | ✓ | — | Migrate test files from `as` type assertions to @total-typescript/shoehorn. Use when user mentions shoehorn, wants to re... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/misc/migrate-to-shoehorn/SKILL.md` |
+| **scaffold-exercises** _[skills-bce86e95]_ | ✓ | — | Create exercise directory structures with sections, problems, solutions, and explainers that pass linting. Use when user... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/misc/scaffold-exercises/SKILL.md` |
+| **setup-pre-commit** _[skills-bce86e95]_ | ✓ | — | Set up Husky pre-commit hooks with lint-staged (Prettier), type checking, and tests in the current repo. Use when user w... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/misc/setup-pre-commit/SKILL.md` |
+| **batch-grill-me** _[skills-bce86e95]_ | ✓ | — | A relentless interview that asks every frontier question at once, round by round. disable-model-invocation: true | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/batch-grill-me/SKILL.md` |
+| **claude-handoff** _[skills-bce86e95]_ | ✓ | — | Hand the current conversation off to a fresh background agent that picks up the work immediately. argument-hint: "What w... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/claude-handoff/SKILL.md` |
+| **loop-me** _[skills-bce86e95]_ | ✓ | — | Grill me about specs for the workflows I want to build, within this workspace. disable-model-invocation: true argument-h... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/loop-me/SKILL.md` |
+| **setup-ts-deep-modules** _[skills-bce86e95]_ | ✓ | — | Wire dependency-cruiser into a TypeScript repo so each package is a deep module — implementation hidden in subfolders, r... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/setup-ts-deep-modules/SKILL.md` |
+| **to-questionnaire** _[skills-bce86e95]_ | ✓ | — | Turn a decision you can't fully answer into a questionnaire for someone else to fill in. disable-model-invocation: true | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/to-questionnaire/SKILL.md` |
+| **wizard** _[skills-bce86e95]_ | ✓ | — | Generate an interactive bash wizard that walks a human through a manual procedure — third-party setup, a one-off migrati... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/wizard/SKILL.md` |
+| **writing-beats** _[skills-bce86e95]_ | ✓ | — | Writing, exploit — assemble raw material into a journey of beats, grounding each term before a beat leans on it. disable... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/writing-beats/SKILL.md` |
+| **writing-fragments** _[skills-bce86e95]_ | ✓ | — | Writing, explore — mine raw fragments, no structure yet. disable-model-invocation: true | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/writing-fragments/SKILL.md` |
+| **writing-shape** _[skills-bce86e95]_ | ✓ | — | Writing, exploit — shape raw material into an article, paragraph by paragraph. disable-model-invocation: true | — | `~/.grok/installed-plugins/skills-bce86e95/skills/in-progress/writing-shape/SKILL.md` |
+| **ask-matt** _[skills-bce86e95]_ | ✓ | — | Ask which skill or flow fits your situation. A router over the skills in this repo. disable-model-invocation: true | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/ask-matt/SKILL.md` |
+| **code-review** _[skills-bce86e95]_ | ✓ | — | Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code fo... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/code-review/SKILL.md` |
+| **codebase-design** _[skills-bce86e95]_ | ✓ | — | Shared vocabulary for designing deep modules. Use when the user wants to design or improve a module's interface, find de... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/codebase-design/SKILL.md` |
+| **diagnosing-bugs** _[skills-bce86e95]_ | ✓ | — | Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports som... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/diagnosing-bugs/SKILL.md` |
+| **domain-modeling** _[skills-bce86e95]_ | ✓ | — | Build and sharpen a project's domain model. Use when the user wants to pin down domain terminology or a ubiquitous langu... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/domain-modeling/SKILL.md` |
+| **grill-with-docs** _[skills-bce86e95]_ | ✓ | — | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go. disable-model... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/grill-with-docs/SKILL.md` |
+| **implement** _[skills-bce86e95]_ | ✓ | — | "Implement a piece of work based on a spec or set of tickets." disable-model-invocation: true | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/implement/SKILL.md` |
+| **improve-codebase-architecture** _[skills-bce86e95]_ | ✓ | — | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you ... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/improve-codebase-architecture/SKILL.md` |
+| **prototype** _[skills-bce86e95]_ | ✓ | — | Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model o... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/prototype/SKILL.md` |
+| **research** _[skills-bce86e95]_ | ✓ | — | Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the repo. Use w... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/research/SKILL.md` |
+| **resolving-merge-conflicts** _[skills-bce86e95]_ | ✓ | — | "Use when you need to resolve an in-progress git merge/rebase conflict." | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/resolving-merge-conflicts/SKILL.md` |
+| **setup-matt-pocock-skills** _[skills-bce86e95]_ | ✓ | — | Configure this repo for the engineering skills — set up its issue tracker, triage label vocabulary, and domain doc layou... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/setup-matt-pocock-skills/SKILL.md` |
+| **tdd** _[skills-bce86e95]_ | ✓ | — | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor"... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/tdd/SKILL.md` |
+| **to-spec** _[skills-bce86e95]_ | ✓ | — | Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of ... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/to-spec/SKILL.md` |
+| **to-tickets** _[skills-bce86e95]_ | ✓ | — | Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, ... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/to-tickets/SKILL.md` |
+| **triage** _[skills-bce86e95]_ | ✓ | — | Move issues and external PRs through a state machine of triage roles — categorise, verify, grill if needed, and write ag... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/triage/SKILL.md` |
+| **wayfinder** _[skills-bce86e95]_ | ✓ | — | Plan a huge chunk of work — more than one agent session can hold — as a shared map of decision tickets on your issue tra... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/engineering/wayfinder/SKILL.md` |
+| **design-an-interface** _[skills-bce86e95]_ | ✓ | — | Generate multiple radically different interface designs for a module using parallel sub-agents. Use when user wants to d... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/deprecated/design-an-interface/SKILL.md` |
+| **qa** _[skills-bce86e95]_ | ✓ | — | Interactive QA session where user reports bugs or issues conversationally, and the agent files GitHub issues. Explores t... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/deprecated/qa/SKILL.md` |
+| **request-refactor-plan** _[skills-bce86e95]_ | ✓ | — | Create a detailed refactor plan with tiny commits via user interview, then file it as a GitHub issue. Use when user want... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/deprecated/request-refactor-plan/SKILL.md` |
+| **ubiquitous-language** _[skills-bce86e95]_ | ✓ | — | Extract a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canon... | — | `~/.grok/installed-plugins/skills-bce86e95/skills/deprecated/ubiquitous-language/SKILL.md` |
 | **firecrawl-agent** _[firecrawl-grok-plugin-ba077673]_ | ✓ | — | AI-powered autonomous data extraction that navigates complex sites and returns structured JSON. Use this skill when the ... | — | `~/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-agent/SKILL.md` |
 | **firecrawl** _[firecrawl-grok-plugin-ba077673]_ | ✓ | — | Search, scrape, and interact with the web via the Firecrawl CLI. Use this skill whenever the user wants to search the we... | — | `~/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-cli/SKILL.md` |
 | **firecrawl-crawl** _[firecrawl-grok-plugin-ba077673]_ | ✓ | — | Bulk extract content from an entire website or site section. Use this skill when the user wants to crawl a site, extract... | — | `~/.grok/installed-plugins/firecrawl-grok-plugin-ba077673/skills/firecrawl-crawl/SKILL.md` |
