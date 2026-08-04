@@ -1,5 +1,23 @@
 # Vault Log
 
+## prompt-patterns-improvement-ideas-2026
+Source: session-019fca0e /www research
+Agent: grok
+Notes: External patterns: PEEM 9-axis rubric, Willison agentic patterns, Anthropic simple-patterns-win
+Page: P:/.data/wiki/concepts/prompt-patterns-improvement-ideas-2026.md
+
+## mechanical-enforcement-of-llm-skill-steps-2026
+Source: session-019fca0e /www research
+Agent: grok
+Notes: External enforcement patterns: Agentic OS work-trail, Claude Code Stop hooks, CI gates
+Page: P:/.data/wiki/concepts/mechanical-enforcement-of-llm-skill-steps-2026.md
+
+## --concept
+Source: output-template-emitter-for-multi-variant-skills
+Agent: --action
+Notes: created
+Page: --source
+
 ## work-discovery-skill-organization-best-practices
 Source: session-019fb177
 Agent: grok
