@@ -101,6 +101,17 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 | **MiniMax-M3** (same 429 mechanism) | Same 429 under parallel load. | Same: serialize or `mmx search query`. | Same |
 | **web-search-prime** MCP | API Error 1027 `new_sensitive` — content moderation blocks query/results. | Rephrase to avoid trigger words, or use `mmx search query` (different moderation path). | [[web-search-tool-routing]] |
 
+### AGY (Antigravity CLI) headless failures
+
+| Symptom | Type | Cause | Fix | Re-test |
+|---|---|---|---|---|
+| **Silent 0-output, exit 0, 0 bytes** | STRUCTURAL | Non-TTY subprocess (background task, redirected stdout) without `--output-format json` (Issue #76, antigravity-cli). agy hangs waiting for a permission prompt that can't be answered. | **Always use `--output-format json` and `--dangerously-skip-permissions` in headless dispatch.** Run the tp_dispatch.py-printed command verbatim. Never bare `agy "<prompt>"`. | Re-test after agy upgrade. Fixed in agy ≥ 1.1.8 when JSON output is used. |
+| **OAuth 5-min hang** | STRUCTURAL | Google One AI Ultra OAuth hangs silently for 300s then errors (gemini-cli Issue #22241, closed-not-planned). | Use API key (`GEMINI_API_KEY`) for headless automation instead of OAuth. | Re-test: try OAuth once per month to check if Google fixed it. |
+| **Quota exhaustion (token overhead)** | TRANSIENT | 23-25K token baseline overhead per request (system prompt + system tools) burns subscription quota fast (Discussion #27307). Symptom: `⚠ Individual quota reached. Resets in XhYmZs.` | Use direct Gemini API (spawn_subagent with model slug) for batch work. Reserve AGY for single-opinion dispatch. | Re-test: check quota dashboard before dispatching. |
+| **Sandbox bypass** | STRUCTURAL | `--dangerously-skip-permissions` disables sandbox enforcement — file writes outside workspace despite `--sandbox` (Issue #36). | **Never combine `--sandbox` with `--dangerously-skip-permissions`.** | Re-test after antigravity-cli fixes Issue #36. |
+
+**Reference incident (2026-08-04):** /tp parallel panel dispatched bare `agy "Read P:\tmp\tp-agy-context.md..."` without `-p`, `--dangerously-skip-permissions`, or `--output-format json`. Result: 180s timeout, 0 bytes output, 0 bytes stderr. Root cause: orchestrator bypassed tp_dispatch.py output and freehanded the invocation. See session transcript and `/why` analysis. `[[gemini-api-vs-agy-cli]]` § headless invocation.
+
 ### CLI caller errors (not model bugs)
 
 | Tool | Symptom | Resolution |

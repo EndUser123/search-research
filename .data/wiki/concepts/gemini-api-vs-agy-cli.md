@@ -81,6 +81,39 @@ Both ultimately call Gemini models. The **harness** differs, not the weights.
 - **Don't** use agy for parallel fan-out inside a `/go` wave. Use `spawn_subagent(model=gemini-*)` — one process, many slugs.
 - **Don't** route write authority through the API. It is read/inference only on this host.
 
+## Headless invocation pattern (mandatory for automated dispatch — added 2026-08-04)
+
+**Reference incident (2026-08-04):** `/tp` parallel panel dispatched a bare `agy "<prompt>"` without mandatory flags. Result: 180s timeout, 0 bytes stdout, 0 bytes stderr. Root cause: antigravity-cli Issue #76 — silent zero-output on non-TTY subprocesses without `--output-format json`.
+
+**Correct headless invocation (production-ready):**
+
+```bash
+agy -p "<prompt>" \
+  --dangerously-skip-permissions \
+  --print-timeout 10m \
+  --output-format json \
+  --model gemini-3.5-flash-medium
+```
+
+**Mandatory flags for headless/automated dispatch:**
+
+| Flag | Default | Why mandatory headless | Source |
+|------|---------|----------------------|--------|
+| `-p` / `--print` | — | Headless mode — runs once and exits. Without `-p`, agy enters interactive mode and hangs. | [Official docs](https://antigravity.google/docs/cli/headless) |
+| `--dangerously-skip-permissions` | false | Auto-approves all tool calls. Without it, tools that need approval are soft-denied and the run may hang waiting for a prompt that can't be answered. | [Permissions docs](https://antigravity.google/docs/permissions) |
+| `--output-format json` | text | Without JSON, a silent failure on non-TTY returns exit 0 with 0 bytes (Issue #76). JSON envelope includes `.status` (`SUCCESS`/`ERROR`/`CANCELED`), `.response`, and `.usage` — machine-parseable failure detection. **This flag is the difference between detecting the failure and missing it entirely.** | [Issue #76](https://github.com/google-antigravity/antigravity-cli/issues/76) |
+| `--print-timeout` | 5m | For large-context prompts (100KB+), set 10m-15m explicitly. The 5m default is insufficient for complex critique tasks. | Official flag table |
+
+**Flag ordering:** place `-p` last (or after other flags) to avoid shell parsing ambiguity when the prompt is long. The `tp_dispatch.py` script handles this correctly — always run its output verbatim.
+
+**Known headless failure modes** (full table in `[[tool-fallbacks]]` § AGY headless failures):
+- Silent 0-output on non-TTY without `--output-format json` (Issue #76) — **STRUCTURAL**
+- OAuth 5-min hang (Issue #22241, closed-not-planned) — use API key instead
+- Quota exhaustion from 23-25K token baseline overhead per request (Discussion #27307)
+- Sandbox bypass when `--dangerously-skip-permissions` is combined with `--sandbox` (Issue #36)
+
+**Windows-specific guidance:** native Windows (Git Bash/MSYS) is not recommended for headless `agy -p`. The yuting0624/antigravity-for-claude-code plugin (most mature Claude Code + AGY integration) recommends WSL. Always wrap with external wall-clock timeout as defense in depth.
+
 ## General API-vs-CLI pattern (transfers beyond Gemini)
 
 The same shape applies to MiniMax (`minimax-m3` API vs `mmx` CLI), OpenAI (API vs `codex`), and others.
