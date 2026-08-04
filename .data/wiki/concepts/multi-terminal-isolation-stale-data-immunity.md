@@ -210,7 +210,7 @@ sessions' artifacts on disk, verify each session only sees its own.
 - [[auto-commit-authority-isolation]] — concurrent-session fail-closed for git auto-commit
 - [[concurrent-cdp-auth-contention]] — multi-terminal auth isolation for browser state
 - [[inference-chains-bare-numbers-destructive-write]] — destructive-write preflight requirements
-- [[claims-require-receipts-narrative-sufficiency-is-not-verification]] — the broader receipt discipline
+- AGENTS.md § "Claims require receipts; narrative sufficiency is not verification" — the broader receipt discipline
 
 ## Falsifier
 
