@@ -206,6 +206,93 @@ These tools **read a codebase and produce diagrams + explanations automatically*
 
 ---
 
+## Part 4: The Visual Explainer Skill Class (deep-dive — 2026-08-04 follow-up research)
+
+The operator flagged that YouTube recently discussed "visual explainer skills" as a distinct class. This is a **different category from Mermaid-only skills** — visual explainers use image generation (or rich HTML rendering) to produce polished visual artifacts, not text-based diagrams. They are the fastest-growing skill class in the AI coding agent ecosystem.
+
+### Two sub-classes
+
+| Sub-class | Mechanism | Output | Best for |
+|-----------|-----------|--------|----------|
+| **Image-generation** | Uses AI image models (gpt-image-1.5, Nano Banana 2, GPT Image 2) | Raster images (PNG) — infographics, whiteboards, mind maps | Non-technical audiences, presentations, share-ready visuals |
+| **HTML/Mermaid rendering** | Generates self-contained HTML pages with CSS, interactive Mermaid, Chart.js | Browser-viewable HTML | Interactive exploration, dashboards, diff reviews |
+
+### Ranked skills in this class
+
+**1. `visual-explainer-skill` (ericblue)** — ⭐ Dominant leader, image-generation
+- GitHub: [github.com/ericblue/visual-explainer-skill](https://github.com/ericblue/visual-explainer-skill)
+- **10,050 stars**, 1,328 forks, **last updated 2026-08-04** (today). Version 1.3.0. MIT license.
+- 7 visual styles: whiteboard, infographic, presentation slides, technical diagrams, colorful mind maps, XMind-style mind maps, UI wireframe mockups.
+- Dual backend: OpenAI gpt-image-1.5 (default) or Google Gemini Nano Banana 2.
+- Key innovation: **structured prompt engineering** — analyzes content first (concepts, relationships, visual metaphors, layout strategy), then builds 400-800 word prompts using style-specific templates with explicit spatial layout, icons, color palettes, typography.
+- Supports `--from mermaid` to convert existing Mermaid diagrams into visual styles. Multi-frame progressive builds. Device-frame mockups.
+- Install: `git clone && make install` → `~/.claude/commands/`
+
+**2. `visual-explainer-extension` (Jakedismo)** — ⭐ Best for Gemini CLI
+- GitHub: [github.com/Jakedismo/visual-explainer-extension](https://github.com/Jakedismo/visual-explainer-extension)
+- **9,406 stars**, 632 forks, last updated 2026-08-04. MIT license.
+- Fork of nicobailon re-engineered for Gemini CLI as native extension.
+- Hybrid approach: HTML pages (CSS `@layer`, `@container`, premium typography) + AI-generated hero banners/icons via Nano Banana 2.
+- 9 visualization commands + 5 image-generation commands. "Design Engineering Mandate" with anti-slop rules.
+
+**3. `visual-explainer` (nicobailon)** — Original HTML/Mermaid variant
+- GitHub: [github.com/nicobailon/visual-explainer](https://github.com/nicobailon/visual-explainer)
+- 28 stars, 5 forks, 43 commits. MIT license. Version 0.6.3.
+- Self-contained HTML pages with real typography, dark/light themes, interactive Mermaid (11 diagram types with zoom/pan), Chart.js dashboards.
+- 7 slash commands: `/generate-web-diagram`, `/diff-review`, `/plan-review`, `/project-recap`, `/fact-check`, `/generate-slides`, `/generate-visual-plan`.
+- Auto-detects complex tables (4+ rows or 3+ columns) and renders them as styled HTML instead of ASCII.
+- Cross-harness: Claude Code, Pi, Codex, OpenCode, Cursor, OpenClaw.
+
+**4. `garden-skills` (ConardLi)** — Best image-generation template library
+- GitHub: [github.com/ConardLi/garden-skills](https://github.com/ConardLi/garden-skills)
+- **646 stars**, 108 forks, 142 commits. MIT license.
+- `gpt-image-2` skill: 18 visual categories, 79 structured prompt templates (posters, UI mockups, infographics, technical diagrams, comics, storyboards, branding).
+- `beautiful-article` skill: 10 article types including `visual-essay` and `interactive-explainer`.
+- Install: `npx skills add ConardLi/garden-skills -s gpt-image-2`
+
+**5. `higgsfield-ai/skills`** — Multi-model image/video generation
+- GitHub: [github.com/higgsfield-ai/skills](https://github.com/higgsfield-ai/skills)
+- 8 stars, 80 commits. MIT license.
+- Supports 30+ image models (Nano Banana 2, GPT Image 2, Soul V2, Veo 3.1, Kling 3.0, Seedance 2.0).
+- `higgsfield-video-explainer`: creates narrated non-photoreal explainer videos. More general-purpose than dedicated visual explainer.
+
+### YouTube coverage
+
+A YouTube video (ID `tdKDHLgQCgY`, April 2026) covers the nicobailon visual-explainer skill specifically, demonstrating how it generates HTML plans and summaries from Claude Code. This is likely the video the operator saw referenced.
+
+### Reddit practitioner signal on visual explainers (Phase 2b — direct MCP search)
+
+**To directly answer the operator's question: the previous /www run did NOT search Reddit specifically for visual explainer skills.** The previous Reddit MCP call was on r/softwarearchitecture about architecture diagram tools broadly. This follow-up corrects that gap.
+
+**Direct Reddit search results on visual explainer skills:**
+
+| Post | Subreddit | Score | Key signal |
+|------|-----------|-------|------------|
+| "I built a Claude Code skill that turns any topic into visual explanations" (erictblue) | r/ClaudeCode | 2pts, 1 comment | Comment: "This is amazing. thank you!" — positive but very low engagement |
+| "Visual Explainer - Open source project" (erictblue cross-post) | r/openclaw | 5pts, 4 comments | Question about OAuth support (wants to use ChatGPT Plus sub) |
+| "Claude now creates interactive charts, diagrams and visualizations" | r/ClaudeAI | **1,305pts, 94 comments** | Community calls it "game-changer" — overwhelming enthusiasm for inline visuals |
+| "I built a list of 48 design skill files with custom styles" | r/ClaudeAI | **1,055pts, 149 comments** | Style/template-driven skills are the most popular approach |
+| "Drawpad - Giving coding agents a whiteboard" | r/ClaudeCode | 36pts, 9 comments | "Blank canvas" problem — users want AI to generate initial layout, then refine |
+| "AI + human readable architecture diagrams?" | r/softwarearchitecture | 12pts, 34 comments | **Key insight:** text-based diagram-as-code preferred over image gen for architecture; image gen better for infographics/explanations |
+| "Built an agent skill for Excalidraw diagrams with animation + image export" | r/ClaudeAI | 2pts, 4 comments | Existing Excalidraw MCP skills inadequate — want starting point, not blank canvas |
+
+**What people like `[PRACTITIONER]`:**
+1. Template-driven prompt engineering (style-specific templates) — the skill's value is in prompt quality, not the model
+2. The "analyze first, then visualize" pipeline — extracting concepts/relationships before building the image
+3. Conversion from Mermaid → visual styles (bridges the text-diagram and image-generation worlds)
+4. Claude's native inline interactive visuals (1,305pts) — users want this in the terminal too, not just web chat
+
+**What people don't like `[PRACTITIONER]`:**
+1. The "blank canvas" problem — AI generates Excalidraw but you spend 10-15 minutes placing boxes before real thinking begins
+2. Token cost — model generated a 300-line script to render one diagram (Drawpad)
+3. Generic built-in skills (Claude's canvas-design) produce ugly, vague mockups — need hard constraints for quality
+4. No "save and reference" mechanism — generated diagrams are ephemeral, can't be saved for future use
+5. For **architecture diagrams specifically**, image generation is LESS reliable than Mermaid/diagram-as-code (not reproducible, not version-controllable)
+
+**The key tension:** Image-generation visual explainers produce beautiful share-ready visuals but are not reproducible/version-controllable. Mermaid/diagram-as-code produces version-controllable diagrams but with worse aesthetics. The hybrid approach (ericblue's `--from mermaid` flag, Jakedismo's HTML + image overlay) is the emerging solution.
+
+---
+
 ## Practitioner signal (Phase 2b)
 
 ### Reddit — r/softwarearchitecture (39pts, 47 comments, March 2026)
@@ -298,12 +385,13 @@ Scanned recommendations against known host invariants ([[invariants-beat-environ
 1. **Install `mermaid-diagram-skill` (mgranberry) as the primary Mermaid skill.** It has the best feature set (render pipeline, theming, per-type references). Install to `~/.grok/skills/mermaid-diagram/SKILL.md`. Confidence: HIGH.
 2. **Install `design-doc-mermaid` (SpillwaveSolutions) for architecture and design-doc workflows.** Code-to-diagram conversion for multiple languages, Python utilities for validation/image export. Complements the existing `/design` skill. Confidence: HIGH.
 3. **Install `cc-visualization-skills` (tjboudreaux) for the visualization bundle.** 6 skills (Mermaid + ASCII architecture + workflows + state machines + cheatsheets + retro templates). Confidence: MEDIUM.
-4. **Consider `mermaid-skill` (WH-2099) for maximum diagram-type coverage (23 types).** Auto-syncs upstream Mermaid docs. Good as a reference skill. Confidence: MEDIUM.
-5. **For interactive flows, evaluate `OpenHop` (naorsabag).** Step-through data-flow visualization is a different paradigm than static Mermaid. Token-light and local-first. Confidence: LOW (needs evaluation).
+4. **Install `visual-explainer-skill` (ericblue) for the image-generation visual explainer class.** 10K+ stars, 7 visual styles, Mermaid→image conversion, dual backend (gpt-image-1.5 + Nano Banana 2). This is the skill class YouTube discussed. Best for producing polished, share-ready infographics and explanations. Confidence: HIGH.
+5. **Consider `mermaid-skill` (WH-2099) for maximum diagram-type coverage (23 types).** Auto-syncs upstream Mermaid docs. Good as a reference skill. Confidence: MEDIUM.
+6. **For interactive flows, evaluate `OpenHop` (naorsabag).** Step-through data-flow visualization is a different paradigm than static Mermaid. Token-light and local-first. Confidence: LOW (needs evaluation).
 
 **For code visualization (read code → diagram + explanation):**
-6. **Evaluate `explain-code` (dotbrains) as a Claude Code skill.** Analogy + Mermaid + step-through. Fits the "ask for excellent diagrams and explanations" use case directly. Confidence: MEDIUM.
-7. **Consider CodeBoarding for codebase-wide architecture diagrams.** Self-hosted, static-analysis + LLM. Fits the fleet architecture. Confidence: MEDIUM.
+7. **Evaluate `explain-code` (dotbrains) as a Claude Code skill.** Analogy + Mermaid + step-through. Fits the "ask for excellent diagrams and explanations" use case directly. Confidence: MEDIUM.
+8. **Consider CodeBoarding for codebase-wide architecture diagrams.** Self-hosted, static-analysis + LLM. Fits the fleet architecture. Confidence: MEDIUM.
 
 **Not recommended for this workspace:**
 - Structurizr DSL — too heavy, too niche, poor LLM syntax reliability.
