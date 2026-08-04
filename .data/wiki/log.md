@@ -1,5 +1,11 @@
 # Vault Log
 
+## Adaptive Research Depth: preventing incomplete /www coverage
+Source: session-2026-08-04 /why + /www
+Agent: grok
+Notes: Root cause: /www is one-pass pipeline, not adaptive loop. Fix: topic-space breadth scan, reflection/gap-detection step, Self-Ask prompt gate. Sources: GPT Researcher, STORM, ODR+, Reflexion, DRACO benchmark.
+Page: P:/.data/wiki/concepts/adaptive-research-depth-preventing-incomplete-www-coverage.md
+
 ## Mermaid, Diagram-as-Code, and Code Visualization Skills Landscape
 Source: session-2026-08-04 /www
 Agent: grok
