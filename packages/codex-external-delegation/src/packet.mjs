@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { classifyTask } from "./policy.mjs";
+import { selectModel } from "./model-selector.mjs";
 
 function canonical(value) {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
@@ -19,6 +20,13 @@ export function compilePacket(input = {}) {
   const classification = input.classification || classifyTask(input);
   const invocationId = input.invocation_id || randomUUID();
   const effectiveMode = input.mode || "read_only";
+  const hasExplicitModel = Boolean(input.model || input.requested_model);
+  const selection = !hasExplicitModel && classification.lane === "pi"
+    ? selectModel({ ...input, classification })
+    : null;
+  const selectedWorker = input.requested_worker || selection?.worker || (classification.lane === "pi" || classification.lane === "opencode" ? classification.lane : null);
+  const selectedProvider = input.requested_provider || selection?.provider || selectedWorker;
+  const selectedModel = input.model || input.requested_model || selection?.model || null;
   const requestedAgent = input.requested_agent || (classification.lane === "opencode" ? (effectiveMode === "read_only" ? "external-readonly-primary" : "external-writer") : null);
   const packet = {
     schema_version: "2",
@@ -27,12 +35,12 @@ export function compilePacket(input = {}) {
     task_id: input.task_id || invocationId,
     role: classification.role,
     selected_lane: classification.lane,
-    requested_worker: input.requested_worker || (classification.lane === "opencode" ? "opencode" : null),
-    requested_provider: input.requested_provider || (classification.lane === "opencode" ? "opencode" : null),
-    requested_model: input.requested_model || input.model || null,
+    requested_worker: selectedWorker,
+    requested_provider: selectedProvider,
+    requested_model: selectedModel,
     requested_agent: requestedAgent,
-    worker: classification.lane === "opencode" ? "opencode" : null,
-    model: input.model || input.requested_model || null,
+    worker: selectedWorker,
+    model: selectedModel,
     agent: input.agent || requestedAgent,
     objective: input.objective || "",
     relevant_context: input.relevant_context || [],
@@ -41,16 +49,20 @@ export function compilePacket(input = {}) {
     forbidden_paths: input.forbidden_paths || [],
     forbidden_actions: input.forbidden_actions || ["invoke another lane", "commit", "push"],
     mode: effectiveMode,
+    write_scope: input.write_scope || [],
     output_schema: input.output_schema || { required: ["observations"] },
     timeout_seconds: input.timeout_seconds || 120,
     timeout_ms: input.timeout_ms || (input.timeout_seconds || 120) * 1000,
     containment: input.containment || (input.mode === "write" ? "isolated_worktree_required" : "read_only"),
     isolated_cwd: input.isolated_cwd || null,
+    worktree_request: input.worktree_request || null,
+    worktree_cleanup: input.worktree_cleanup || "preserve",
     verification: { commands: input.verification_commands || input.verification?.commands || [] },
     evidence_requirements: input.evidence_requirements || ["raw_stdout", "raw_stderr", "result_json"],
     failure_policy: input.failure_policy || "halt_no_automatic_fallback",
     acceptance_criteria: input.acceptance_criteria || ["codex_independent_verification"],
     classification_reason: classification.reason,
+    model_selection: selection,
   };
   packet.packet_hash = hashPacket(packet);
   return { classification, packet };

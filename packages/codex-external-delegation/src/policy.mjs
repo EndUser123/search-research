@@ -24,7 +24,7 @@ export function classifyTask(input = {}) {
     [typeof input.objective === "string" && input.objective.trim().length > 0, NON_DELEGABLE_REASONS.missing_scope],
     [Array.isArray(input.allowed_paths) && input.allowed_paths.length > 0, NON_DELEGABLE_REASONS.missing_scope],
     [Array.isArray(input.verification_commands) && input.verification_commands.length > 0, NON_DELEGABLE_REASONS.missing_verification],
-    [typeof (input.model || input.requested_model) === "string" && (input.model || input.requested_model).trim().length > 0, "requested_worker_model_missing"],
+    [input.requested_worker ? (typeof (input.model || input.requested_model) === "string" && (input.model || input.requested_model).trim().length > 0) : true, "requested_worker_model_missing"],
     [input.ambiguity !== "high", NON_DELEGABLE_REASONS.ambiguous],
     [input.needs_architecture !== true, NON_DELEGABLE_REASONS.architecture],
     [input.needs_security_judgment !== true, NON_DELEGABLE_REASONS.security],
@@ -34,10 +34,10 @@ export function classifyTask(input = {}) {
     return { role: "CODEX_NATIVE", lane: "codex_native", eligible: false, selection_mode: "parent_owned", reason: failed[1] };
   }
 
-  const lane = getLane("opencode");
+  const lane = getLane("pi");
   return {
     role: "BOUNDED_EXECUTION",
-    lane: "opencode",
+    lane: "pi",
     eligible: lane.automatic_eligibility === "candidate",
     selection_mode: lane.selection_mode,
     reason: "bounded_low_ambiguity_task_with_deterministic_verification",
