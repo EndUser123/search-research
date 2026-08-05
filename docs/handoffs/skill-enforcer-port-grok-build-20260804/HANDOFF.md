@@ -1,14 +1,15 @@
 # Handoff — Port skill_enforcer.py to Grok Build as UserPromptSubmit hook
 
 ## Status
-OPEN — research complete, implementation not started.
+BLOCKED — native UserPromptSubmit additionalContext does NOT work on Grok Build.
+Verified 2026-08-05 via local test. Alternative paths exist but are unverified.
 
 ## Objective
 
-Port the Claude-side skill enforcement system (`P:/.claude/hooks/UserPromptSubmit_modules/skill_enforcer.py`)
-to Grok Build as a native UserPromptSubmit hook. The hook detects `/<skill-name>`
-in the user prompt and injects additionalContext reminding the agent to execute
-the skill, not discuss it.
+Find a mechanism to prevent the agent from treating `/<skill-name>` invocations
+as discussion prompts instead of execution commands. Originally proposed as a
+UserPromptSubmit hook port of skill_enforcer.py. **Native hook approach is
+verified non-functional.** Two alternative paths remain.
 
 ## Problem this solves
 
@@ -19,37 +20,79 @@ compliance rate. The quality gates Stop hook (built this session) catches
 missing evidence POST-execution, but nothing prevents the discuss-instead-of-
 execute pattern BEFORE the agent responds.
 
-The 3-layer model from [[skill-enforcement-layers]]:
-- Layer 1 (UserPromptSubmit, pre-response) — NOT YET IMPLEMENTED on Grok Build
-- Layer 2 (Stop hook, post-response) — quality_gate.py + quality_gates_frontmatter.py (shipped this session)
-
-This handoff implements Layer 1.
-
 ## Verified facts
 
-1. **UserPromptSubmit CAN inject additionalContext on Grok Build.** Vectorize/Hindsight
-   plugin does this in production (https://hindsight.vectorize.io/sdks/integrations/grok-build).
-   A local test hook was registered at `~/.grok/hooks/test-ups-injection.json`.
-   Receipt: wiki concept `[[userpromptsubmit-hooks-cannot-auto-invoke-skills-grok-build]]`
-   (corrected 2026-08-04).
+1. **UserPromptSubmit additionalContext does NOT work for native Grok hooks.**
+   Local test hook (`~/.grok/hooks/test-ups-injection.json`) with correct JSON
+   format produced valid additionalContext JSON on stdout. After 2 Grok Build
+   restarts, the marker was NOT visible in the agent's context. Grok Build docs
+   confirm: "For passive events, stdout is ignored." UserPromptSubmit is passive.
 
-2. **The Claude-side implementation exists and was working.** Located at
-   `P:/.claude/hooks/UserPromptSubmit_modules/skill_enforcer.py` + `skill_context_writer.py`.
-   State files (`skill_first_enforcement.jsonl`, 518KB) show it was active through
-   mid-July 2026. Test suite: `P:/.claude/hooks/tests/test_skill_first_enforcement.py` (13KB).
+2. **The Vectorize/Hindsight claim may work via the Claude Code plugin compat layer.**
+   Hindsight is a Claude Code plugin (`.claude-plugin/` format). Grok Build
+   "natively reads Claude Code plugin format." The compat layer MAY process
+   UserPromptSubmit stdout through Claude Code semantics (where it IS a special
+   case). This is [INFERENCE] — not verified locally.
 
-3. **The Claude-side enforcer was ~50% effective** per [[skill-enforcement-layers]]:
-   "UserPromptSubmit injection is just context. The model can ignore it."
+3. **The Claude-side skill_enforcer.py exists and was working on Claude Code.**
+   Located at `P:/.claude/hooks/UserPromptSubmit_modules/skill_enforcer.py`.
+   State files show it was active through mid-July 2026.
 
-4. **UserPromptSubmit is non-blocking** on Grok Build (docs line 89). The hook
-   cannot block the prompt — only PreToolUse and Stop can block. The hook
-   injects advisory context; the Stop hook provides enforcement.
+4. **The quality gates Stop hook IS working** for post-execution enforcement.
+   Built and tested this session. Catches missing evidence after the agent responds.
 
-## Design
+## Three alternative paths (pick one to investigate)
 
-### Hook: `~/.grok/hooks/UserPromptSubmit_skill_enforcer.py`
+### Path A: Claude Code plugin format (most promising)
 
-Registered in: `~/.grok/hooks/skill-enforcer.json`
+Package the skill_enforcer as a minimal Claude Code plugin with a
+`.claude-plugin/plugin.json` + hooks directory. Register it via the plugin
+system instead of `~/.grok/hooks/*.json`. The compat layer may process
+UserPromptSubmit stdout.
+
+**Test:** create a minimal `.claude-plugin/plugin.json` with a UserPromptSubmit
+hook that outputs additionalContext. Install as a plugin. Check if the marker
+appears in the agent's context.
+
+### Path B: `.claude/settings.json` registration
+
+Register the hook in `P:/.claude/settings.json` instead of `~/.grok/hooks/*.json`.
+The Grok Build docs say `.claude/settings.json` hooks "are read as well" — this
+dispatch path may go through the compat layer rather than the native runner.
+
+**Test:** move `test-ups-injection.json` content into `.claude/settings.json`
+hook format. Restart. Check if the marker appears.
+
+### Path C: Stop-hook-only enforcement (fallback)
+
+Accept that pre-execution enforcement is not available on Grok Build. Rely
+entirely on the quality gates Stop hook (Layer 2). The discuss-instead-of-execute
+pattern costs one round-trip (agent discusses → Stop hook blocks → agent
+re-executes). This is the current working state.
+
+**Effort:** zero — already implemented. Cost: one wasted turn per skip.
+
+## Acceptance criteria (for whichever path is chosen)
+
+1. The mechanism fires when the operator types `/<skill-name>`
+2. The agent receives additional context telling it to execute, not discuss
+3. The mechanism does NOT fire for non-skill prompts
+4. The mechanism completes in <500ms
+5. The mechanism fails open (errors don't block the prompt)
+
+## Key files
+
+- **Claude-side source (reference):** `P:/.claude/hooks/UserPromptSubmit_modules/skill_enforcer.py`
+- **Claude-side tests (reference):** `P:/.claude/hooks/tests/test_skill_first_enforcement.py`
+- **Quality gates (working Layer 2):** `~/.grok/hooks/scripts/quality_gate.py` + `quality_gates_frontmatter.py`
+- **Wiki concept (verified):** `P:/.data/wiki/concepts/userpromptsubmit-hooks-cannot-auto-invoke-skills-grok-build.md`
+- **Test hook (proves native path doesn't work):** `~/.grok/hooks/test-ups-injection.json` + `P:/tmp/test_ups_hook.py`
+
+## Handoff is wrong if
+
+- Path A or B is tested and works (the handoff should then become an implementation task)
+- Grok Build adds UserPromptSubmit stdout processing in a future release
+- The operator decides Path C (Stop-hook-only) is sufficient and closes this handoff
 
 **Behavior:**
 1. Read user prompt from stdin (JSON payload, field `userPrompt` or `prompt`)

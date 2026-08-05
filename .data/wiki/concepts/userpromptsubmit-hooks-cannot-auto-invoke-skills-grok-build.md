@@ -1,137 +1,139 @@
 ---
-title: "UserPromptSubmit hooks: CAN inject additionalContext on Grok Build (corrected)"
+title: "UserPromptSubmit native hooks: stdout ignored on Grok Build (verified)"
 created: 2026-07-28
-source: session-2026-07-28, corrected 2026-08-04
-tags: [hooks, userpromptsubmit, grok-build, additionalContext, skill-enforcement, corrected-finding]
+source: session-2026-07-28, corrected-falsified-reconfirmed 2026-08-05
+tags: [hooks, userpromptsubmit, grok-build, hook-limitations, passive-events, two-dispatch-paths, verified]
 summary: >
-  CORRECTED 2026-08-04: UserPromptSubmit hooks CAN inject additionalContext
-  on Grok Build. The original analysis (2026-07-28) incorrectly classified
-  UserPromptSubmit as passive-only (stdout ignored), extending the
-  SessionStart/PostToolUse stdout-ignored pattern without testing.
-  Vectorize/Hindsight plugin proves UserPromptSubmit additionalContext works
-  in production on Grok Build. This enables the skill_enforcer pattern:
-  detect /<skill-name> in user prompt, inject "execute, don't discuss"
-  additionalContext before the agent responds.
+  VERIFIED 2026-08-05: UserPromptSubmit is a passive event on Grok Build's
+  native hook runner. Stdout is ignored for hooks registered via
+  ~/.grok/hooks/*.json. Confirmed by local test (marker not visible after
+  2 restarts with correct JSON format) and by official docs: "For passive
+  events, stdout is ignored." Claude Code plugins (like Vectorize/Hindsight)
+  MAY work via the compat layer dispatch path, but this is unverified
+  locally. The skill_enforcer UserPromptSubmit approach does NOT work for
+  native Grok hooks. Skill enforcement must rely on the Stop hook quality
+  gates (Layer 2) until Grok Build adds stdout processing for UserPromptSubmit.
 agent: grok
 host: grok
 cognitive_load: 2
-verification: multi-source-verified
+verification: locally-tested
 relations:
   - target: wiki/concepts/grok-pretooluse-deny-contract-verified
     type: extends
   - target: wiki/concepts/grok-build-runtime-docs-divergence
     type: related
   - target: wiki/concepts/skill-enforcement-layers
-    type: corrects — Layer 1 is now viable on Grok Build
+    type: related — Layer 1 is NOT viable for native hooks on Grok Build
   - target: wiki/concepts/skill-auto-invocation-reliability
-    type: corrects — "the entire Claude-side enforcement is missing" gap is now closeable
+    type: related — the enforcement gap remains open
 ---
 
-# UserPromptSubmit hooks: CAN inject additionalContext on Grok Build (corrected)
+# UserPromptSubmit native hooks: stdout ignored on Grok Build (verified)
 
-## The correction (2026-08-04)
+## The verified constraint
 
-**Previous claim (wrong):** UserPromptSubmit stdout is ignored on Grok Build,
-same as SessionStart and PostToolUse. The hook can write files but cannot
-inject context back to the model.
+Grok Build's `UserPromptSubmit` hook event is **passive-only** for natively
+registered hooks (`~/.grok/hooks/*.json`):
 
-**Corrected claim:** UserPromptSubmit CAN inject `additionalContext` via the
-same JSON stdout pattern used by Stop hooks. The Grok Build docs (line 304)
-say "for events like SessionStart or PostToolUse, stdout is ignored" — but
-UserPromptSubmit is NOT in that list. The original analysis extended the
-pattern without testing.
-
-**Evidence:** The Vectorize/Hindsight plugin runs in production on Grok Build
-and uses UserPromptSubmit to inject additionalContext on every prompt:
-
-> recall.py | UserPromptSubmit hook | Auto-recall — query memories, inject as additionalContext
-
-Source: https://hindsight.vectorize.io/sdks/integrations/grok-build
-
-Their features page: "on every user prompt, queries Hindsight for relevant
-memories and injects them as context (invisible to the chat transcript,
-visible to Grok)."
-
-A local test hook was registered (P:/tmp/test_ups_hook.py) to verify
-additionalContext injection in our specific environment.
-
-## Updated capability matrix
-
-| Capability | Claude Code | Grok Build | Cursor |
-|-----------|-------------|------------|--------|
-| Block the prompt | Yes | **No** | Yes (buggy) |
-| Inject context (`additionalContext`) | Yes | **Yes** | Buggy |
+| Capability | Claude Code | Grok Build (native) | Grok Build (Claude plugin compat) |
+|-----------|-------------|---------------------|-----------------------------------|
+| Block the prompt | Yes | **No** | **No** |
+| Inject context (`additionalContext`) | Yes | **No** | **Possibly** (unverified) |
 | Rewrite the prompt | No | **No** | No |
 | Write side-effect files | Yes | Yes | Yes |
 
-## Why this enables skill enforcement on Grok Build
+Source: Grok Build docs (https://docs.x.ai/build/features/hooks):
+"For passive events, stdout is ignored; exit 0 on success." UserPromptSubmit
+is non-blocking (events table), therefore passive, therefore stdout is ignored.
 
-A UserPromptSubmit hook can detect `/<skill-name>` in the user prompt and
-inject additionalContext: "This is an execution command. Follow the skill
-body — do not substitute a discussion for execution." This fires BEFORE
-the agent responds, preventing the discuss-instead-of-execute pattern.
+## Local verification (2026-08-05)
 
-Combined with the Stop hook quality gates (which fire AFTER the response
-and check for evidence artifacts), this creates the full 3-layer enforcement
-model from `[[skill-enforcement-layers]]`:
+A test hook (`P:/tmp/test_ups_hook.py`, registered in
+`~/.grok/hooks/test-ups-injection.json`) outputs:
 
-| Layer | Mechanism | Effectiveness | Fires |
-|-------|-----------|---------------|-------|
-| **Layer 1** (UserPromptSubmit) | Inject "execute, don't discuss" | ~50% | Before agent responds |
-| **Layer 2** (Stop hook quality gates) | Check evidence artifacts, block | ~100% | After agent responds |
+```json
+{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "USERPROMPTSUBMIT_TEST_MARKER_VISIBLE"}}
+```
 
-## The side-effect file pattern still works
+After 2 Grok Build restarts with correct JSON format (`{"hooks":{"UserPromptSubmit":[...]}}`),
+the marker was **NOT visible** in the agent's context. The hook script runs
+correctly (verified via manual execution), produces valid JSON, but the output
+does not reach the model.
 
-The previously-documented pattern (pre-create files via UserPromptSubmit
-side effects) still works and is complementary. The hook can both:
-1. Inject additionalContext (new — context injection)
-2. Write side-effect files (existing — pre-processing)
+## The Hindsight contradiction explained
 
-## What does NOT work
+Vectorize/Hindsight (https://hindsight.vectorize.io/sdks/integrations/grok-build)
+claims UserPromptSubmit additionalContext injection works on Grok Build.
+Their plugin is a **Claude Code plugin** (`.claude-plugin/` format) that Grok
+Build "natively reads" via the compat layer. The compat layer may process
+Claude Code plugin hooks through Claude Code's dispatch semantics, where
+UserPromptSubmit IS a special case that processes stdout (per Anthropic docs:
+"Exit code 0 with stdout: Claude sees the context (special case for
+UserPromptSubmit)").
 
-- **Blocking the prompt:** UserPromptSubmit cannot block (non-blocking event
-  on Grok Build per docs line 89). Only PreToolUse and Stop/SubagentStop
-  can block.
-- **Rewriting the prompt:** no hook can rewrite the user's prompt on any
-  platform.
-- **Replacing skill invocation:** the prompt still arrives at the agent;
-  the hook adds context but doesn't remove the need for the agent to
-  follow the skill.
+This means there are **two dispatch paths** on Grok Build:
+1. **Native hooks** (`~/.grok/hooks/*.json`) → Grok's native runner → stdout ignored for passive events
+2. **Claude Code plugin hooks** (`.claude-plugin/` format) → compat layer → possibly Claude Code semantics
+
+The Hindsight claim may be true for path 2 but is NOT true for path 1.
+This is [INFERENCE] — not verified locally because we don't have Hindsight
+installed. The verified fact is: path 1 does not work.
+
+## What IS possible (unchanged from original)
+
+The hook CAN run Python and write files. The limitation is specifically about
+context injection (stdout → model). Side-effect files still work.
+
+## What this means for skill enforcement
+
+The skill_enforcer UserPromptSubmit approach (detect `/<skill-name>`, inject
+"execute, don't discuss" additionalContext) **does NOT work** for native
+Grok hooks. The only enforcement layer available is the Stop hook quality
+gates (Layer 2), which fire post-execution.
+
+**Potential workaround:** package the skill_enforcer as a Claude Code plugin
+(`.claude-plugin/` format) instead of a native hook. The compat layer may
+process UserPromptSubmit stdout. This is unverified but testable.
+
+**Alternative:** investigate whether `.claude/settings.json` hook registration
+goes through the compat layer (which would process stdout) rather than the
+native runner (which ignores it). The Grok Build docs say `.claude/settings.json`
+hooks "are read as well" — this may mean they go through the compat dispatch.
 
 ## Falsifier
 
-This finding is wrong if the local test hook (P:/tmp/test_ups_hook.py) fails
-to produce visible additionalContext in the agent's context. The Hindsight
-plugin is strong evidence but runs via Claude Code plugin format, which
-Grok Build reads natively — a direct Grok-native hook JSON registration
-may behave differently. Verify with the test hook before building production
-hooks on this assumption.
+This finding is wrong if:
+1. A future Grok Build release adds stdout processing for UserPromptSubmit
+   (making it non-passive)
+2. The test hook failed to load for a reason other than "stdout is ignored"
+   (e.g., wrong registration, timeout, crash) — check `/hooks` in the TUI
+3. The `.claude/settings.json` dispatch path processes stdout (testable)
 
 ## Sources
 
-- Vectorize/Hindsight Grok Build integration: https://hindsight.vectorize.io/sdks/integrations/grok-build
-- Grok Build hook docs: `~/.grok/docs/user-guide/10-hooks.md` L89, L253-256, L304
-- Claude Code hooks: https://code.claude.com/docs/en/hooks
-- disler/claude-code-hooks-mastery: https://github.com/disler/claude-code-hooks-mastery
-- Local test hook: P:/tmp/test_ups_hook.py (registered in ~/.grok/hooks/test-ups-injection.json)
+- Grok Build hook docs: https://docs.x.ai/build/features/hooks — "For passive events, stdout is ignored"
+- Local test: `P:/tmp/test_ups_hook.py` + `~/.grok/hooks/test-ups-injection.json` — marker not visible after 2 restarts
+- Vectorize/Hindsight: https://hindsight.vectorize.io/sdks/integrations/grok-build — claims injection works via Claude Code plugin format
+- Anthropic hooks docs: https://docs.anthropic.com/en/docs/claude-code/hooks — UserPromptSubmit is a special case on Claude Code
+- stepcodex.com: SessionStart hooks "execute successfully (side effects work) but their stdout JSON containing hookSpecificOutput.additionalContext is silently discarded" — confirms passive-stdout-ignored pattern
 
-## Original analysis (preserved for audit trail)
+## Audit trail of corrections
 
-The original 2026-07-28 analysis incorrectly extended the SessionStart/PostToolUse
-stdout-ignored pattern to UserPromptSubmit. The extension was plausible (UserPromptSubmit
-is non-blocking like SessionStart) but untested. The Hindsight plugin's production use
-proves the extension was wrong. The side-effect file pattern documented in the original
-analysis remains valid — the correction is specifically about the additionalContext
-injection path, which was incorrectly marked as blocked.
+1. **2026-07-28 (original):** UserPromptSubmit stdout ignored on Grok Build. Correct.
+2. **2026-08-04 (first correction):** Changed to "CAN inject additionalContext" based on Hindsight plugin docs. WRONG — trusted third-party claim without testing or distinguishing dispatch paths.
+3. **2026-08-05 (this version):** Reconfirmed original finding via local test. Added two-dispatch-path nuance. The original wiki concept was right all along.
+
+**Lesson:** the first correction was the [[replacement-before-investigation]] pattern — I replaced a verified finding with an unverified claim from a third-party source. The Hindsight plugin's marketing docs are not authoritative evidence about Grok Build's native hook runner.
 
 ## What this means for our workspace
 
-1. **Port skill_enforcer.py to Grok Build** — create a UserPromptSubmit hook
-   at `~/.grok/hooks/UserPromptSubmit_skill_enforcer.py` that detects
-   `/<skill-name>` in the prompt and injects "execute, don't discuss"
-   additionalContext. See handoff: skill-enforcer-port-grok-build.
-2. **The quality gates Stop hook + skill_enforcer UserPromptSubmit hook**
-   together form the full 3-layer model: pre-execution advisory + post-execution
-   enforcement.
-3. **Update [[skill-auto-invocation-reliability]]** — the gap "on Grok Build,
-   the entire Claude-side enforcement is missing" (line 102) is now closeable.
+1. **The skill_enforcer port does NOT work via native hooks.** The handoff
+   at `P:/docs/handoffs/skill-enforcer-port-grok-build-20260804/HANDOFF.md`
+   needs updating: the approach must either use the Claude Code plugin format
+   or be abandoned in favor of Stop-hook-only enforcement.
+2. **The quality gates Stop hook (Layer 2) is the only enforcement mechanism
+   available** for the discuss-instead-of-execute pattern on Grok Build.
+3. **The operator's correction stands:** the `/ship`-as-discussion pattern is
+   caught by the operator, not by any structural mechanism. This remains an
+   open gap until either (a) Grok Build adds UserPromptSubmit stdout processing,
+   or (b) we verify the Claude Code plugin compat layer processes it.
