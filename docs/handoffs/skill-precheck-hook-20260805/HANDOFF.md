@@ -1,7 +1,7 @@
 # Handoff — Skill pre-check UserPromptSubmit hook + session wrap-up
 
 ## Status
-OPEN — not started. Design agreed, implementation deferred to fresh session.
+RESOLVED — hook built, test-fired, committed. Other open items partially addressed.
 
 ## Objective
 
@@ -37,19 +37,30 @@ When the operator types `/<skill-name>`:
 5. **Quality gates satisfiable?** — do the evidence paths in `quality_gates:`
    frontmatter have any chance of existing (is the artifacts dir present)?
 
-## Visibility question (unresolved)
+## Execution Status
 
-The quota hook shows `✓` or `✗` with timing — the operator sees it but must
-actively look at annotations. For a skill pre-check to be useful, the warning
-needs to be prominent enough that the operator notices before the agent's
-response starts. Options:
+Updated: 2026-08-05T15:00:00Z
+Session: 019fd259-dc0a-7dd0-b0e3-1b0ef17c385d
+Agent: grok
 
-- Use exit code 1 (shows as `✗` in TUI) for blocking issues
-- Use stderr with clear `⚠ SKILL WARNING:` prefix
-- Use exit code 0 with informational stderr for non-blocking issues
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | UserPromptSubmit_skill_precheck.py | ✅ DONE | 7 test scenarios pass; commit 5869b92 |
+| 2 | skill-precheck.json registration | ✅ DONE | commit 5869b92 |
+| 3 | Hook test-fired | ✅ DONE | nonexistent skill → exit 1 + stderr; valid skill → exit 0; timing 384ms (<500ms target) |
+| 4 | Fix ship-rhai broken path (item 5) | ✅ DONE | /go SKILL.md + test file fixed; commit 6ca72ac |
+| 5 | Wiki persistence step (item 4) | ✅ DONE | Added to ship-py + ship-rhai SKILL.md; commit 6ca72ac |
+| 6 | Ship-py/rhai end-to-end testing (item 1) | ❌ NOT STARTED | Deferred — requires real work to ship |
+| 7 | Scanner checks 9-11 broader testing (item 2) | ❌ NOT STARTED | Deferred — run /skill-dev audit-active |
+| 8 | Self-improving patterns research (item 3) | ❌ NOT STARTED | Deferred — /www research task |
+| 9 | Push unpushed commits (item 6) | ❌ NOT STARTED | Operator decision — shared state |
 
-This needs testing — does the operator actually notice the annotation in
-practice?
+### Key findings during execution
+
+- **UserPromptSubmit stdout IS ignored** (verified by prior session, confirmed by wiki). The hook targets the OPERATOR via TUI annotation (exit code + stderr), not the model. Exit 1 for critical issues (skill not found), exit 0 for warnings.
+- **The hook found a real issue during testing**: `/aar` declares `depends_on: [red-team]` but `red-team` doesn't exist as a skill (deprecated per AGENTS.md). The hook correctly surfaced this.
+- **Rhai workflow path was already fixed in HEAD** — the working tree had stale content from a prior session. The test file and /go SKILL.md path refs were the actual stale ones.
+- **Wiki persistence as prose, not quality_gate**: adding a hard quality_gate for wiki would be too aggressive (not every ship produces wiki-worthy findings). Conditional prose instruction is the right level.
 
 ## Key files
 
