@@ -183,8 +183,19 @@ evidence post-execution. One round-trip cost per skip.
 (Mechanism 3). The skill dispatches to Rhai workflows per phase. The workflow
 enforces deterministic step ordering. The Stop hook remains as backstop.
 
-**Rejected:** UserPromptSubmit hook injection (Mechanism 2). Verified
-non-functional on Grok Build native hooks.
+**Rejected for model injection:** UserPromptSubmit hook injection (Mechanism 2). Verified
+non-functional on Grok Build native hooks — stdout/stderr/exit-2 all ignored by the model.
+
+**Shipped (2026-08-05): Layer 1 operator-visible pre-check.** While
+UserPromptSubmit cannot reach the MODEL, the TUI annotation (exit code +
+stderr) IS visible to the OPERATOR. Hook at
+`~/.grok/hooks/UserPromptSubmit_skill_precheck.py` detects `/<skill-name>`,
+checks skill existence/staleness/depends_on/quality_gates plausibility, and
+writes warnings to stderr. Exit 1 for critical (skill not found), exit 0 for
+warnings. This is the correct Layer 1 design: the operator sees the warning
+before the agent starts, and can rephrase or abort. It does NOT replace the
+model-injection channel (which doesn't exist) — it adds an operator-visible
+channel that does exist.
 
 ## Steelman of the rejected alternative
 
