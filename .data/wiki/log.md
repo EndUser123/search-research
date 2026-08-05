@@ -1,5 +1,11 @@
 # Vault Log
 
+## Skill step enforcement architecture on Grok Build
+Source: session-2026-08-05
+Agent: grok
+Notes: Consolidated enforcement: quality gates (interim), UserPromptSubmit (dead), Rhai workflow (target)
+Page: P:/.data/wiki/concepts/skill-step-enforcement-architecture-grok-build.md
+
 ## plugin-skill-migration-port-absorb-retire
 Source: session-20260804
 Agent: grok
