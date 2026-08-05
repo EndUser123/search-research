@@ -85,39 +85,74 @@ Layer 0 — Execution Substrate (Codex sandbox primitive, Option C)
 - [x] **G1.2** PreToolUse hook firing test — **PASS**. Measured via existing hook evidence (new hooks can't be registered mid-session — Grok loads hooks at session start only). Direct-write tools (`search_replace`, `write`): **100% firing rate** (26/26 receipts with `pre_state` populated). `run_terminal_command`: inferred reliable (same hook script/registration; receipts only written when files change). Mid-session hook registration does NOT hot-reload — requires TUI 'r' key or session restart. **Design implication**: the broker must be registered before session start, not dynamically.
 - [x] **G1.3** Hook stdin JSON format confirmed. PreToolUse receives JSON on **stdin** with **camelCase** fields: `hookEventName` ("pre_tool_use"), `sessionId`, `cwd`, `workspaceRoot`, `permissionMode`, `toolName`, `toolInput`, `toolUseId`, `toolInputTruncated`, `timestamp`. Output: JSON on **stdout** — `{"decision": "allow"}` or `{"decision": "deny", "reason": "..."}`. Exit codes: 0 = allow, 2 = deny, other = fail-open. Environment vars: `GROK_SESSION_ID`, `GROK_HOOK_EVENT`, `GROK_HOOK_NAME`, `GROK_WORKSPACE_ROOT`. **IMPORTANT**: grok uses camelCase throughout stdin (not Claude's snake_case) — the broker's input parser must use `toolName`/`toolInput`, not `tool_name`/`tool_input`.
 
-### Phase 2 — Layer 0 substrate MVP (4-6 sessions)
+### Phase 2 — Partial Layer 0 + Layer 1 broker (3-5 sessions, REVISED by /risk assessment 2026-08-04)
 
-**Critical: write cleanup script FIRST, before setup script.**
+**Architecture revision (session 019fcdd2, `/risk` assessment):** the original
+phase ordering had full Layer 0 (synthetic SIDs + restricted tokens) as Phase 2
+and Layer 1 (broker) as Phase 3. The `/risk` assessment found this was wrong —
+the binary framing (full sandbox now vs. deferred entirely) missed a middle
+ground: **partial Layer 0** (ACL on hooks/ to prevent hook tampering) combined
+with **Layer 1 broker first** (fail-closed from day one). Full synthetic-SID
+sandbox is deferred until subprocess-bypass writes are observed in pilot.
 
-- [ ] **L0.1** `fleet-sandbox-uninstall.ps1` — removes local users, group, ACL grants, SID registry. Tested against clean host.
-- [ ] **L0.2** `fleet-sandbox-setup.ps1` — generates synthetic SIDs per agent, creates local users, adds to `FleetSandboxUsers` group, applies workspace ACLs (worktree + `P:/tmp/` writable, `.git/`/`.agents/`/`.claude/` write-denied)
-- [ ] **L0.3** `fleet-command-runner` — restricted token + per-process spawn (Python with `win32security` + `CreateProcessAsUserW`, or Rust/C# binary)
-- [ ] **L0.4** Cross-agent isolation test: Agent A cannot write to Agent B's worktree via raw Write, shell command, or subagent
-- [ ] **L0.5** Cleanup cycle test: setup → ACL verify → uninstall → ACL verify (idempotent, no orphans)
+**Revised phase ordering:**
 
-### Phase 3 — Layer 1 broker MVP (3-5 sessions)
+#### Phase 2a — Partial Layer 0 (1 session, no admin needed for ACL on user-owned dirs)
+
+- [ ] **L0a.1** Apply ACL on `~/.grok/hooks/` denying write for the agent user (one `icacls` command — G1.1 proved 100% reliable). This prevents hook script tampering (R2, the highest-likelihood structural risk from the `/risk` assessment).
+- [ ] **L0a.2** Verify the ACL doesn't break existing hook updates (operator can still modify hooks via elevated session)
+
+#### Phase 2b — Layer 1 broker MVP (3-5 sessions)
 
 - [ ] **L1.1** Capability manifest schema (YAML per agent) — declares `capabilities`, `limits`, `assurance_level`
 - [ ] **L1.2** Policy pack for fleet-critical ops: `git.push`, `file.delete.across_worktree_boundary`, `subagent.spawn`, `hook.script_edit`, `agent.passport_issue`
 - [ ] **L1.3** `PreToolUse_oap_broker.py` — implements Algorithm 1 (status → capability → policy → assurance → decision → audit). Register as a `~/.grok/hooks/oap-broker.json` hook (matching existing hook infrastructure — NOT config.toml).
 - [ ] **L1.4** Ed25519 key generation per agent, DPAPI-encrypted
-- [ ] **L1.5** Signed audit log writer — append-only to `P:/.claude/hooks/.evidence/<session>/audit.jsonl`
-- [ ] **L1.6** Fail-closed default for all hook error paths (timeout → deny; exception → deny; malformed output → deny; missing hook → deny + page operator)
+- [ ] **L1.5** Signed audit log writer — append-only to `~/.grok/hooks/.evidence/<session>/audit.jsonl`
+- [ ] **L1.6** **Fail-closed default for ALL hook error paths — this is the FIRST task, not the last.** (timeout → deny; exception → deny; malformed output → deny; missing hook → deny + page operator). Per the `/risk` assessment, fail-open with no backstop is the highest-severity risk (R3).
 
-### Phase 4 — Layer 2 authority semantics (3-4 sessions)
+#### Phase 2c — Layer 2 manifest hash (3-4 sessions)
 
-- [ ] **L2.1** Session-start manifest hasher — SHA-256 of hook scripts in `~/.grok/hooks/`, policy packs, broker Python files (walk import graph). Watchdog re-hashes per tool call.
+- [ ] **L2.1** Session-start manifest hasher — SHA-256 of hook scripts in `~/.grok/hooks/`, policy packs, broker Python files (walk import graph). Watchdog re-hashes per tool call (not session-start only — per `/risk` M4 finding about TOCTOU windows).
 - [ ] **L2.2** Capability mutation detector — fires on skill load, MCP server enable. Invalidates passport cache.
 - [ ] **L2.3** Spawn envelope comparator — records parent's authority scope at session start; refuses child effects outside parent scope. Requires Scope/L_max schema.
 - [ ] **L2.4** Wiki concept `source:` field (USER | WEB | SUBAGENT | INFERENCE) + `/wiki` pre-write provenance gate
 
-### Phase 5 — Pilot + iterate (2-4 sessions)
+#### Phase 2d — Full Layer 0 sandbox (DEFERRED — contingent on observing subprocess-bypass threats)
 
-- [ ] **P5.1** 2-week pilot on Grok Build only
-- [ ] **P5.2** Track false-positive rate from signed audit logs
-- [ ] **P5.3** Track manifest hash drift frequency (if >1/week, enforcement layer being modified outside change-control)
-- [ ] **P5.4** Operator feedback gate — if operator disables any layer to ship work, redesign that layer
-- [ ] **P5.5** Decide fleet rollout (Codex, Antigravity) based on rejection criteria
+- [ ] **L0.1** `fleet-sandbox-uninstall.ps1` — removes local users, group, ACL grants, SID registry. Tested against clean host. **Write FIRST, before setup.**
+- [ ] **L0.2** `fleet-sandbox-setup.ps1` — generates synthetic SIDs per agent, creates local users, adds to `FleetSandboxUsers` group, applies workspace ACLs
+- [ ] **L0.3** `fleet-command-runner` — restricted token + per-process spawn
+- [ ] **L0.4** Cross-agent isolation test
+- [ ] **L0.5** Cleanup cycle test
+- **Trigger to activate this phase:** subprocess-bypass writes observed in pilot (an agent writes files via obfuscated subprocess that the broker's pattern matching didn't catch)
+
+### Phase 3 — Pilot + iterate (2-4 sessions, was Phase 5)
+
+- [ ] **P3.1** 2-week pilot on Grok Build only
+- [ ] **P3.2** Track false-positive rate from signed audit logs
+- [ ] **P3.3** Track manifest hash drift frequency (if >1/week, enforcement layer being modified outside change-control)
+- [ ] **P3.4** Operator feedback gate — if operator disables any layer to ship work, redesign that layer
+- [ ] **P3.5** Decide fleet rollout (Codex, Antigravity) based on rejection criteria
+
+## 5b. Risk assessment findings (session 019fcdd2, `/risk` run)
+
+The `/risk` assessment produced 10 risks (4 HIGH) and a REVISE verdict. Key
+findings that change the architecture:
+
+1. **R3 (fail-open only mode) — HIGHEST+ severity.** During Phase 2b development,
+   if the broker crashes, ALL actions are allowed with no backstop. L1.6 (fail-closed
+   default) must be the FIRST implementation task, not the last.
+2. **R2 (hook tampering) — HIGH/HIGH.** Any agent can edit the broker's own code
+   mid-session. Partial Layer 0 (ACL on `~/.grok/hooks/`) is Phase 2a — first task.
+3. **M2 (subagent chain bypass) — UNKNOWN.** Does the parent broker's PreToolUse
+   fire on subagent tool calls? Needs a G1.2 extension test before pilot.
+4. **Binary framing error corrected.** Original phase ordering assumed full Layer 0
+   or nothing. Corrected: partial Layer 0 (ACL) + Layer 1 broker first, full sandbox
+   deferred until observed threat.
+5. **Threat model is unreliable-agent, not adversarial-agent.** The system runs LLM
+   agents that make mistakes, not adversaries. Design for accident prevention, not
+   attack resistance.
 
 ## 6. Critical design constraints (from skeptic review)
 
