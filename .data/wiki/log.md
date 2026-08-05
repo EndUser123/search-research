@@ -1,5 +1,17 @@
 # Vault Log
 
+## --concept
+Source: tool-fallbacks
+Agent: --action
+Notes: updated
+Page: --source
+
+## --concept
+Source: cross-session-ship-blocking-scoping-git-diff
+Agent: --action
+Notes: created
+Page: --source
+
 ## adaptive-risk-assessment-single-pass-first-architecture
 Source: session-20260804
 Agent: grok
