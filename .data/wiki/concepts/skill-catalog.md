@@ -64,7 +64,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **improve-codebase-architecture** | ✓ | — | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you ... | — | `~/.grok/skills/improve-codebase-architecture/SKILL.md` |
 | **maintain** | ✓ | — | Fleet maintenance orchestrator for Grok Build. Three layers: DIAGNOSE (workspace health), ACT (cleanup/rotation/repair),... | — | `~/.grok/skills/maintain/SKILL.md` |
 | **marketplace-bridge** | ✓ | — | Pulls AI-skill listings from four public marketplaces (SkillsMP, SkillHub, ClawHub, skills.sh), fetches each skill's SKI... | — | `~/.grok/skills/marketplace-bridge/SKILL.md` |
-| **mmx** | ✓ | — | Run MiniMax CLI (mmx) for a cross-model second opinion or web search via the MiniMax index. Conductor evaluates assignme... | — | `~/.grok/skills/mmx/SKILL.md` |
+| **mmx** | ✓ | — | Run MiniMax CLI (mmx) for cross-model second opinions, web search, and multimodal generation (images, video, speech, mus... | — | `~/.grok/skills/mmx/SKILL.md` |
 | **model-benchmark** | ✓ | — | Latency benchmark, quality scoring, cost tracking, and telemetry for the model fleet. Sends standardized prompts to each... | — | `~/.grok/skills/model-benchmark/SKILL.md` |
 | **model-discover** | ✓ | — | Alias for `model-benchmark --discover`. Discovers available models from inference providers (NVIDIA, Google, Groq, OpenR... | — | `~/.grok/skills/model-discover/SKILL.md` |
 | **model-quota** | ✓ | — | Unified fleet quota dashboard across ALL providers — LLM, search, and platform. Uses fleet_quota.py (single Python scrip... | — | `~/.grok/skills/model-quota/SKILL.md` |
