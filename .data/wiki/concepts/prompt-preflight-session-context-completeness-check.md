@@ -2,7 +2,7 @@
 title: "Prompt preflight: session-context completeness check before dispatching subagent prompts"
 created: 2026-07-30
 source: session-019fb189
-tags: [prompt-engineering, context-completeness, procedural-verification, reusable-pattern, skill-design, seed]
+tags: [prompt-engineering, context-completeness, procedural-verification, reusable-pattern, skill-design, implemented]
 summary: >
   Before a skill dispatches a subagent prompt (e.g., /design writer, /go
   implementer, /plan planner), check the prompt against the session transcript
@@ -11,8 +11,8 @@ summary: >
   verification ("what session facts are NOT in the prompt?") — which works
   because it checks against an external reference (the transcript). The pattern
   is reusable across /design, /plan, /go, /handoff, /refine. Implementation:
-  a shared utility that extracts load-bearing facts from session context,
-  checks each against the prompt, and proposes additions for missing items.
+  tp_dispatch.py --mode spawn produces the compact bundle for /tp spawn_subagent
+  dispatch; the pattern generalizes to any spawn_subagent caller.
 agent: grok
 host: grok
 cognitive_load: 2
@@ -88,9 +88,29 @@ These were load-bearing facts from the session that the writer needed. A prompt 
 
 If the preflight consistently finds zero missing facts across 10+ real skill dispatches, it's not earning its cost and should be removed. But the cost is so low (~5-10 seconds, a few thousand tokens) that there's no reason to gate it behind a trigger condition — always run it. The cost of a missing fact (a revision round, 5-10 minutes) dwarfs the cost of the check.
 
-## Implementation seed
+## Implementation (shipped 2026-08-05)
 
-[INFERENCE] Shared utility at `P:/.agents/scripts/prompt_preflight.py` that skills call before dispatching. Returns JSON: `{missing_facts: [...], enhanced_prompt: "...", original_prompt: "..."}`. Skills present the choice; the operator decides. Not yet implemented — this is a design seed from session 019fb189.
+**Script:** `~/.grok/skills/tp/__lib/tp_dispatch.py --mode spawn`
+
+**What it does:** produces a compact (~500-800 token) context bundle for
+`spawn_subagent` dispatch — verified facts, diff stat, key file paths,
+transcript grep terms, and protocol reference (absolute path, not inlined).
+The spawned agent uses the bundle as a launchpad and fetches deeper context
+via its own tools (read_file, grep, run_terminal_command).
+
+**Why compact, not full-dump:** `spawn_subagent` agents have tools — unlike
+CLI dispatch (codex/agy) which starts cold and pays per-tool-call to discover
+anything. Over-packing wastes prompt tokens on content the agent can fetch
+in one tool call. CLI mode (`--mode cli`) produces the full 4-6K pack; spawn
+mode (`--mode spawn`) produces the compact 500-800 token version.
+
+**How /tp uses it:** Step 1 of the SKILL.md references the script. The
+parent model runs one command and injects the output into the spawn prompt.
+This replaces the previous vague "extract ~500 tokens" prose instruction
+that was skipped under closure pressure (observed: agent spawned a /tp
+critique agent with a bare text prompt, resulting in 57 tool calls and
+10+ minutes of wasted context discovery — the exact failure this pattern
+exists to prevent).
 
 ## How it differs from /refine
 
