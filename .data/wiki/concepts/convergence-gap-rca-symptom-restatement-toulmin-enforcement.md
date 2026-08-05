@@ -53,7 +53,7 @@ relations:
 
 ## Decision context
 
-**Why this was needed:** across 4+ sessions, the operator repeatedly asked "why does /why keep producing symptom-restatements instead of actual root causes?" The v2/v3 /why refactors (evidence tiers, pattern library, six-layer model, agent-control lens) addressed depth, breadth, and evidence discipline — but the symptom-restatement pattern persisted. Two /why runs in session 019fb189 both produced well-structured symptom descriptions dressed as root causes. A /tp critique (mistral-medium-latest) found the real root — "chronic verification deficit" — by asking a question /why never asks: "what single mechanism makes ALL these causes disappear?" A /red-team then killed the proposed convergence step (Step 9.5) as redundant and methodology-inverting. A /www research run across medical diagnosis, aviation safety, formal RCA, and AI reasoning literature found the structural fix.
+**Why this was needed:** across 4+ sessions, the operator repeatedly asked "why does /why keep producing symptom-restatements instead of actual root causes?" The v2/v3 /why refactors (evidence tiers, pattern library, six-layer model, agent-control lens) addressed depth, breadth, and evidence discipline — but the symptom-restatement pattern persisted. Two /why runs in session 019fb189 both produced well-structured symptom descriptions dressed as root causes. A /tp critique (mistral-medium-latest) found the real root — "chronic verification deficit" — by asking a question /why never asks: "what single mechanism makes ALL these causes disappear?" A /risks then killed the proposed convergence step (Step 9.5) as redundant and methodology-inverting. A /www research run across medical diagnosis, aviation safety, formal RCA, and AI reasoning literature found the structural fix.
 
 ## The convergence gap
 
@@ -187,7 +187,7 @@ The enforcement gap (self-populated fields vs. independent verification) connect
 
 ## Receipts
 
-- /red-team run: `P:/.artifacts/red-team/019fb189/20260730-why-convergence/scope.json` + `workflow.json` — 12 findings, 3 BLOCK clusters, verdict REVISE
+- /risks run: `P:/.artifacts/risks/019fb189/20260730-why-convergence/scope.json` + `workflow.json` — 12 findings, 3 BLOCK clusters, verdict REVISE
 - /www research: 3 parallel agents (convergence, symptom-restatement, enforcement), 54 tool calls total, 20+ peer-reviewed sources
 - /tp mental simulation: 2 test cases (verification deficit, receipt-system 4-cause failure), 5 failure modes identified
 - Session transcript: 2 /why runs both producing symptom-restatements (the original evidence)

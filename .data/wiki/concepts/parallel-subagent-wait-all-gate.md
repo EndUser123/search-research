@@ -10,7 +10,7 @@ host: both
 cognitive_load: 2
 verification: local-only
 summary: >
-  When an orchestrator skill (/www, /red-team, /aar, /dream, /debrief) dispatches
+  When an orchestrator skill (/www, /risks, /aar, /dream, /debrief) dispatches
   N background subagents via spawn_subagent(background=true), NO durable artifact
   (wiki write, ledger entry, commit, run directory, conclusion in the response)
   may be emitted until get_command_or_subagent_output with ALL N task IDs returns
@@ -58,7 +58,7 @@ This rule sits at the intersection of three existing failure classes already doc
 
 ## How to apply
 
-### For orchestrator skills (/www, /red-team, /aar, /dream, /debrief)
+### For orchestrator skills (/www, /risks, /aar, /dream, /debrief)
 
 Add a single rule near the parallel-dispatch section:
 

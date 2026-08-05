@@ -4,7 +4,7 @@ created: 2026-07-26
 source: session-2026-07-25 (/design --lite on Stop hook scope-binding problem)
 sources:
   - C:\Users\brsth\AppData\Local\Temp\grok-design-4e4629f7\grok-design-doc-4e4629f7.md (design doc, temp — will be reaped)
-  - P:/.artifacts/red-team/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/ (red-team + tp + why artifacts)
+  - P:/.artifacts/risks/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/ (red-team + tp + why artifacts)
   - C:/Users/brsth/.grok/hooks/scripts/quality_gate.py (Stop hook source)
   - C:/Users/brsth/.grok/hooks/scripts/verification_receipt_writer.py (receipt writer source)
 tags: [design-decision, verification-receipt, scope-binding, stop-hook, auto-inference, error-messages, adr]
@@ -16,7 +16,7 @@ summary: >
   D3: conservative inference requiring explicit imports in test files (AST primary,
   regex fallback). Decision D5: security model preserved — observed_state_refs is
   never auto-promoted to claimed_scope_refs; inference only adds source files that
-  are already in observed_paths. These decisions were made after /why RCA, /red-team,
+  are already in observed_paths. These decisions were made after /why RCA, /risks,
   /tp critique, and /design --lite review (18 findings, all addressed, 0 open).
 agent: grok
 host: grok

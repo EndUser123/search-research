@@ -70,7 +70,7 @@ Any time the skill's imperative verb becomes a suggestive verb in the output, th
 
 - Session 019f7e24, `/close` invocation: the `/close` skill's gate guidance for `retrospective` says "ask: 'Run /aar (deep) or /debrief (quick)?'" The model's output wrote "Retrospective: none (recommend /aar)" in the summary table.
 - The operator's response: "aar isn't optional..." — confirming the question was never posed.
-- The same session had three friction events (premature solutioning × 2, self-preference in `/red-team` pre-check × 1) that would have warranted `/aar` capture. None were captured because the question was never asked.
+- The same session had three friction events (premature solutioning × 2, self-preference in `/risks` pre-check × 1) that would have warranted `/aar` capture. None were captured because the question was never asked.
 
 ## Related
 

@@ -227,7 +227,7 @@ This pattern applies beyond `/why`:
 
 - **`/check`** could benefit from adaptive expansion — instead of detecting concern types upfront and spawning fixed verifiers per type, run a quick scan first and spawn verifiers based on what the scan found (code? then Phase B; doc-only? then Phase A only; contract? then schema-diff). The current skill already does some of this with concern-type tagging (F6).
 - **`/review`** auto-infers lenses from the diff — that is adaptive expansion applied to the review target.
-- **`/red-team`** adaptive expansion would run light first, then expand specialist categories based on what the initial scan found.
+- **`/risks`** adaptive expansion would run light first, then expand specialist categories based on what the initial scan found.
 - **Any skill with dispatch classes** is a candidate. The rule of thumb: if the dispatch classification depends on evidence the skill will gather later, replace it with inline conditional expansion.
 
 ## Related concepts

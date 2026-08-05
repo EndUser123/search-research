@@ -83,7 +83,7 @@ If the critique had used parent-inherited Grok, it would have shared the
 same adversarial-security bias and missed the same things.
 
 **Applicability:** ANY skill that spawns subagents for critique or review.
-Includes `/review`, `/tp`, `/red-team`, `/check`.
+Includes `/review`, `/tp`, `/risks`, `/check`.
 
 ### P3: Adaptive panel sizing
 
@@ -105,7 +105,7 @@ wastes resources on low-stakes targets and under-protects high-stakes ones.
 (LAEFS enforcement layer) but only 1 critic. The panel should have been 3.
 
 **Applicability:** Skills with panel/roster dispatch — `/review`,
-`/red-team`, `/risks`. Not applicable to single-critic skills like `/tp`
+`/risks`, `/risks`. Not applicable to single-critic skills like `/tp`
 (which dispatches 1 fresh subagent).
 
 ### P4: Disagreement-as-signal
@@ -130,7 +130,7 @@ in ML theory. Not yet empirically validated on this host (first `/risks` v4
 run needed).
 
 **Applicability:** Multi-critic panels — `/risks`, `/review` (if it adopts
-multi-critic), `/red-team`.
+multi-critic), `/risks`.
 
 ### P5: Adaptive lens assignment
 
@@ -150,7 +150,7 @@ A fixed roster would have dispatched a security specialist (irrelevant for
 a decision target) instead of a scope/gap specialist (highly relevant).
 
 **Applicability:** Skills with specialist dispatch — `/risks`, `/review`,
-`/red-team`.
+`/risks`.
 
 ### P6: Threat-model classification
 
@@ -191,7 +191,7 @@ same root cause with different citations. The inflated count (4 HIGH instead
 of 3) made the escalation threshold fire differently. `[UNVERIFIED PATTERN — N=1]`
 
 **Applicability:** ANY skill that produces ranked findings — `/risks`,
-`/review`, `/red-team`, `/why`.
+`/review`, `/risks`, `/why`.
 
 ## Applicability matrix
 
@@ -200,7 +200,7 @@ of 3) made the escalation threshold fire differently. `[UNVERIFIED PATTERN — N
 | **`/risks`** | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v2 | ✅ v2 |
 | **`/review`** | ✅ P1 (2026-08-04) | ✅ P2 (2026-08-04) | ❌ Fixed roster | ✅ P4 (2026-08-04) | ✅ Inferred lenses | ✅ P6 (2026-08-04) | ✅ Existing dedup + clustering |
 | **`/tp`** | ✅ P1 (2026-08-04) | ✅ Has pool | ❌ N/A (1 critic) | ✅ Convergence signal | ❌ N/A | ✅ P6 (2026-08-04) | ❌ N/A |
-| **`/red-team-old`** | N/A (deprecated) | N/A | N/A | N/A | N/A | N/A | N/A |
+| **`/risks-old`** | N/A (deprecated) | N/A | N/A | N/A | N/A | N/A | N/A |
 | **`/www`** | ❌ Missing | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
 | **`/check`** | ✅ P1 (2026-08-04) | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
 | **`/go`** | ❌ Missing | Partial (pool) | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
@@ -236,7 +236,7 @@ skill with a gap in that pattern's column, the matrix surfaces it. This makes
 propagation mechanical — no need for the operator to remember to ask.
 
 Example: "P1 (host-context) applied to `/risks`. Matrix shows `/review`,
-`/red-team`, `/www`, `/check`, `/go` all missing P1. Recommend
+`/risks`, `/www`, `/check`, `/go` all missing P1. Recommend
 `/skill-dev improve /review` next."
 
 ## Falsifier

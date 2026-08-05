@@ -77,7 +77,7 @@ training corpora). Rules 1-2 do not apply here.
 **Why:** different model families catch different blind spots. A faster or
 cheaper model from the same family is not a substitute for a slower model from
 a different family when the goal is independent perspective. This is the entire
-basis of `/review`, `/red-team`, `/tp` critique lenses, and cross-model second
+basis of `/review`, `/risks`, `/tp` critique lenses, and cross-model second
 opinions (`/agy`, `/codex`, `/mmx`).
 
 **When this fires:** red-team specialists, /tp fresh-lens critique, cross-model

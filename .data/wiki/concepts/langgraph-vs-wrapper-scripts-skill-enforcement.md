@@ -34,7 +34,7 @@ relations:
 
 ## Decision context
 
-**The problem:** Skills like /red-team and /tp have mandatory steps written in SKILL.md prose (e.g., "merge files before dispatching to agy"). The model skips these steps under context momentum — the exact failure mode documented in `mandatory-step-enforcement-code-over-prose.md`. We need a way to enforce step ordering during skill execution, not just catch violations afterward.
+**The problem:** Skills like /risks and /tp have mandatory steps written in SKILL.md prose (e.g., "merge files before dispatching to agy"). The model skips these steps under context momentum — the exact failure mode documented in `mandatory-step-enforcement-code-over-prose.md`. We need a way to enforce step ordering during skill execution, not just catch violations afterward.
 
 **Why this research was needed:** The operator asked whether Lang* frameworks (LangChain, LangGraph, LangSmith, LangServe) could solve the "skill not following its own instructions" problem. This page records the evaluation and decision so future sessions don't re-derive it.
 

@@ -122,7 +122,7 @@ Variants add **voting** for classification/judge tasks (reported +pp accuracy in
 | Skill / system | Fit | How |
 |----------------|-----|-----|
 | `/design` | **High** | Optional panel+judge before sealing design doc |
-| `/red-team` | **High** | Already specialists → critic; add cross-family panel for B-class |
+| `/risks` | **High** | Already specialists → critic; add cross-family panel for B-class |
 | `/review --second-opinion` | **High** | External critics already; formalize Fusion judge fields |
 | `/debrief --deep` | **Medium** | Multi-lens + critic is thin MoA |
 | `/wargame`, `/plan` (hard reverse) | **Medium** | Opt-in |

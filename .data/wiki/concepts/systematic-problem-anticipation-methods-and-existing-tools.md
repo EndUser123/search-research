@@ -107,10 +107,10 @@ agents explore different solution paths and backtrack from dead ends.
 
 | Capability | Skill/Tool | Status |
 |---|---|---|
-| Pre-mortem | `/red-team` (pre-mortem specialist), `/tp` (domain 3a) | ✅ Strong — multiple skills |
+| Pre-mortem | `/risks` (pre-mortem specialist), `/tp` (domain 3a) | ✅ Strong — multiple skills |
 | Steelman + falsifier | `/tp`, `/design` (critical friend) | ✅ Strong |
 | Disconfirmation | `/www` Round 3 (mandatory) | ✅ Strong |
-| Adversarial review | `/red-team` (8 specialist lenses) | ✅ Strong |
+| Adversarial review | `/risks` (8 specialist lenses) | ✅ Strong |
 | Content discipline under uncertainty | `/wargame` | ✅ Present |
 | Decision tree (SDLC) | `decision-tree` (cc-skills-architect, in catalog) | ⚠ In catalog, not loaded in Grok Build |
 | FMEA | — | ❌ Missing |
@@ -181,7 +181,7 @@ agents explore different solution paths and backtrack from dead ends.
 
 ## What this means for our workspace
 
-- **The informal layer is strong** (pre-mortem in `/red-team` + `/tp` +
+- **The informal layer is strong** (pre-mortem in `/risks` + `/tp` +
   `/wargame`; disconfirmation in `/www`; steelman in `/tp`). Don't add more
   of the same — the literature says layer different techniques, not stack
   copies.

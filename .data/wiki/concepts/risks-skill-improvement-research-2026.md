@@ -234,7 +234,7 @@ our specific context is weaker because our operator is sophisticated).
 
 Three `/risks` runs executed cold-start (empty wiki, unmodified skill):
 
-### Run 1: Trivial target (/red-team-old removal) — PASS ✅
+### Run 1: Trivial target (/risks-old removal) — PASS ✅
 - **Tested:** false-positive rate, Phase 0 classification, "zero risks" re-scan logic
 - **Result:** 2 LOW risks (appropriate for a 7-file reversible change). No escalation. Correct Phase 0 classification. No false positives.
 - **Falsified:** "the scan might produce HIGH risks for trivial targets" — did not occur.

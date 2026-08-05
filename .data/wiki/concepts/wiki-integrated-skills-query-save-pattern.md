@@ -105,7 +105,7 @@ A skill needs wiki integration when it produces **findings that future invocatio
 | `/tp` | Step 0.5 preflight | No wiki query for prior critique patterns; critique log is local-only | **Medium** — the `tp_critique_log.py` should feed the wiki |
 | `/check` | 3 refs | No query/save loop | Low — verifies sessions, not patterns |
 | `/review` | 2 refs | Could query known bug patterns | Medium |
-| `/red-team` | 1 ref | Could query known attack/failure patterns | Medium |
+| `/risks` | 1 ref | Could query known attack/failure patterns | Medium |
 | `/handoff` | 5 refs | Doesn't systematically save decisions | Medium |
 
 ### ❌ Clear gaps — should have integration, has none

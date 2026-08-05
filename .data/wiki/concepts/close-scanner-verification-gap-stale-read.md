@@ -171,7 +171,7 @@ Get-Content P:\.artifacts\<terminal>\grok-check\*\check-state.md
 This pattern applies whenever a scanner greps the parent transcript but verification happens in spawned subagents:
 
 - `/close` scanner vs `/check` verifiers (the documented case)
-- `/close` scanner vs `/red-team` specialist subagents (if they run commands)
+- `/close` scanner vs `/risks` specialist subagents (if they run commands)
 - `/close` scanner vs `/review` specialists that run tests as part of their review
 - Any future skill that spawns execute-capable subagents for verification work
 

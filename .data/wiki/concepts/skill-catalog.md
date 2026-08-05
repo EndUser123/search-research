@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-05
 cognitive_load: 3
-summary: Auto-generated index of 715 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 716 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 715 across 21 scopes.
+**Total skills:** 716 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (71 skills)
+## grok-user (72 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -36,6 +36,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **agy** | ✓ | — | Run Google Antigravity CLI (agy / Gemini) for a second opinion, code review, research, or analysis. Conductor evaluates ... | — | `~/.grok/skills/agy/SKILL.md` |
 | **ask** | ✓ | — | Route to the right skill based on session context and latest turns. Extracts intent from the conversation, queries the s... | — | `~/.grok/skills/ask/SKILL.md` |
 | **behave** | ✓ | — | Post-hoc diagnostic for verdict-transition integrity. Detects self-protection patterns, load-bearing failure, authority-... | — | `~/.grok/skills/behave/SKILL.md` |
+| **brain** | ✓ | — | "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying... | — | `~/.grok/skills/brain/SKILL.md` |
 | **capture** | ✓ | — | Proactive improvement opportunity scanner. Two functions: (1) scans the session transcript for 6 categories of opportuni... | — | `~/.grok/skills/capture/SKILL.md` |
 | **close** | ✓ | — | Session close-out orchestrator. Runs close_accounting.py to scan handoffs, wiki, git commits, temp files, git status, an... | Check if session is safe to close. Scan for uncommitted work, missing handoffs, ... | `~/.grok/skills/close/SKILL.md` |
 | **codex** | ✓ | — | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | — | `~/.grok/skills/codex/SKILL.md` |
@@ -386,7 +387,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **perf** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | Performance tracing wrapper — detect runtime anti-patterns (nested pools, resource waste) in running Python code via exe... | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/perf/SKILL.md` |
 | **performance-profiler** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | Static performance analysis — detect bottlenecks, O(n^2) loops, duplicate calculations, and synchronous blocking in code... | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/performance-profiler/SKILL.md` |
 | **planning** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | "Build and verify implementation plans with strict readiness gating. Produces separate artifacts: plan, review results, ... | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/planning/SKILL.md` |
-| **pre-mortem** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | "DEPRECATED entry — use /red-team pre-mortem. 3-phase adaptive adversarial critique (triage+specialist → meta-critique →... | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/pre-mortem/SKILL.md` |
+| **pre-mortem** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | "DEPRECATED entry — use /risks pre-mortem. 3-phase adaptive adversarial critique (triage+specialist → meta-critique →... | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/pre-mortem/SKILL.md` |
 | **profile** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | Performance baseline and comparison — measure execution time, import time, peak memory, and complexity; establish a base... | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/profile/SKILL.md` |
 | **qmd-wiki** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | Ingest, query, lint, and index QMD wiki pages from an Obsidian vault. | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/qmd-wiki/SKILL.md` |
 | **rca** _[cc-skills-sdlc/1.0.237]_ | — | ✓ | AI-assisted root cause analysis engine combining Python RCA library and Claude Code skill for systematic debugging. | — | `~/.claude/plugins/cache/local/cc-skills-sdlc/1.0.237/skills/rca/SKILL.md` |
@@ -471,7 +472,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **top-problems** _[cc-skills-analysis/1.0.123]_ | — | ✓ | "DEPRECATED — use /debrief top. 6-source problem scan → ranked tasks (findings become tasks)." | — | `~/.claude/plugins/cache/local/cc-skills-analysis/1.0.123/skills/top-problems/SKILL.md` |
 | **trace** _[cc-skills-analysis/1.0.123]_ | — | ✓ | Manual trace-through verification for code, skills, workflows, and documents - catch logic errors that automated testing... | — | `~/.claude/plugins/cache/local/cc-skills-analysis/1.0.123/skills/trace/SKILL.md` |
 | **why** _[cc-skills-analysis/1.0.123]_ | — | ✓ | Decision archaeology — trace backward through sessions to reconstruct why something exists, what caused it, and the reas... | — | `~/.claude/plugins/cache/local/cc-skills-analysis/1.0.123/skills/why/SKILL.md` |
-| **adv-review** _[cc-skills-ai-api/1.0.22]_ | — | ✓ | "DEPRECATED entry — use /red-team adversarial. Dispatch a response to N external LLM harnesses (agy / glm-5.2 / MiniMax-... | — | `~/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/adv-review/SKILL.md` |
+| **adv-review** _[cc-skills-ai-api/1.0.22]_ | — | ✓ | "DEPRECATED entry — use /risks adversarial. Dispatch a response to N external LLM harnesses (agy / glm-5.2 / MiniMax-... | — | `~/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/adv-review/SKILL.md` |
 | **agy** _[cc-skills-ai-api/1.0.22]_ | — | ✓ | Run Google Antigravity CLI (agy) for code review, research, or analysis. Single-model Gemini with 1M+ token context. Use... | — | `~/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/agy/SKILL.md` |
 | **ai-api** _[cc-skills-ai-api/1.0.22]_ | — | ✓ | Unified LLM API — direct SDK calls by default. (The `bf`/Bifrost route is RETIRED — transport is now CCR / opencode-go /... | — | `~/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/ai-api/SKILL.md` |
 | **ai-cli** _[cc-skills-ai-api/1.0.22]_ | — | ✓ | Parallel multi-LLM command - run agy, codex, and pi CLI tools in parallel with shared prompt enhancement | — | `~/.claude/plugins/cache/local/cc-skills-ai-api/1.0.22/skills/ai-cli/SKILL.md` |
@@ -699,7 +700,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **perf** _[cc-skills-sdlc]_ | ✗ | ✓ | Performance tracing wrapper — detect runtime anti-patterns (nested pools, resource waste) in running Python code via exe... | — | `…/marketplace/cc-skills-sdlc/skills/perf/SKILL.md` |
 | **performance-profiler** _[cc-skills-sdlc]_ | ✗ | ✓ | Static performance analysis — detect bottlenecks, O(n^2) loops, duplicate calculations, and synchronous blocking in code... | — | `…/marketplace/cc-skills-sdlc/skills/performance-profiler/SKILL.md` |
 | **planning** _[cc-skills-sdlc]_ | ✗ | ✓ | "Build and verify implementation plans with strict readiness gating. Produces separate artifacts: plan, review results, ... | — | `…/marketplace/cc-skills-sdlc/skills/planning/SKILL.md` |
-| **pre-mortem** _[cc-skills-sdlc]_ | ✗ | ✓ | "DEPRECATED entry — use /red-team pre-mortem. 3-phase adaptive adversarial critique (triage+specialist → meta-critique →... | — | `…/marketplace/cc-skills-sdlc/skills/pre-mortem/SKILL.md` |
+| **pre-mortem** _[cc-skills-sdlc]_ | ✗ | ✓ | "DEPRECATED entry — use /risks pre-mortem. 3-phase adaptive adversarial critique (triage+specialist → meta-critique →... | — | `…/marketplace/cc-skills-sdlc/skills/pre-mortem/SKILL.md` |
 | **preflight** _[cc-skills-sdlc]_ | ✗ | ✓ | Build an evidence-backed inventory before planning, reviewing, or implementing non-trivial changes to hooks, skills, plu... | — | `…/marketplace/cc-skills-sdlc/skills/preflight/SKILL.md` |
 | **profile** _[cc-skills-sdlc]_ | ✗ | ✓ | Performance baseline and comparison — measure execution time, import time, peak memory, and complexity; establish a base... | — | `…/marketplace/cc-skills-sdlc/skills/profile/SKILL.md` |
 | **qmd-wiki** _[cc-skills-sdlc]_ | ✗ | ✓ | Ingest, query, lint, and index QMD wiki pages from an Obsidian vault. | — | `…/marketplace/cc-skills-sdlc/skills/qmd-wiki/SKILL.md` |
@@ -748,7 +749,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **perf** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | Performance tracing wrapper — detect runtime anti-patterns (nested pools, resource waste) in running Python code via exe... | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/perf/SKILL.md` |
 | **performance-profiler** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | Static performance analysis — detect bottlenecks, O(n^2) loops, duplicate calculations, and synchronous blocking in code... | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/performance-profiler/SKILL.md` |
 | **planning** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | "Build and verify implementation plans with strict readiness gating. Produces separate artifacts: plan, review results, ... | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/planning/SKILL.md` |
-| **pre-mortem** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | "DEPRECATED entry — use /red-team pre-mortem. 3-phase adaptive adversarial critique (triage+specialist → meta-critique →... | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/pre-mortem/SKILL.md` |
+| **pre-mortem** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | "DEPRECATED entry — use /risks pre-mortem. 3-phase adaptive adversarial critique (triage+specialist → meta-critique →... | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/pre-mortem/SKILL.md` |
 | **profile** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | Performance baseline and comparison — measure execution time, import time, peak memory, and complexity; establish a base... | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/profile/SKILL.md` |
 | **qmd-wiki** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | Ingest, query, lint, and index QMD wiki pages from an Obsidian vault. | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/qmd-wiki/SKILL.md` |
 | **rca** _[cc-skills-sdlc/.claude/worktrees/sdlc-audit]_ | ✗ | ✓ | AI-assisted root cause analysis engine combining Python RCA library and Claude Code skill for systematic debugging. | — | `…/marketplace/cc-skills-sdlc/.claude/worktrees/sdlc-audit/skills/rca/SKILL.md` |

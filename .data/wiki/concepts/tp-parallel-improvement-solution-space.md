@@ -39,7 +39,7 @@ relations:
 
 ## Decision context
 
-**Why this research was needed:** the operator asked to brainstorm /tp improvements, specifically whether parallel agents could improve critique quality. Two cancelled spawns in the same session (nemotron-3-ultra failed at 47.6s; glm-5-2 cancelled at 188.7s/14 tool calls) raised the question of whether the current single-spawn architecture was optimal, and whether parallel multi-agent fan-out (like /red-team) could improve both richness and reliability.
+**Why this research was needed:** the operator asked to brainstorm /tp improvements, specifically whether parallel agents could improve critique quality. Two cancelled spawns in the same session (nemotron-3-ultra failed at 47.6s; glm-5-2 cancelled at 188.7s/14 tool calls) raised the question of whether the current single-spawn architecture was optimal, and whether parallel multi-agent fan-out (like /risks) could improve both richness and reliability.
 
 **What the research changed:** the naive assumption that "parallel = better" was disconfirmed. The research redirected the design from "always parallel" to "adaptive parallelism triggered by stakes and context degradation." The operator's parallel-agents suggestion was validated — but narrowly, not as a default.
 

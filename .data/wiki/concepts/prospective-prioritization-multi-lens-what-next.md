@@ -16,7 +16,7 @@ host: both
 agent: grok
 verification: web_sources_cited
 cognitive_load: 4
-summary: "How to answer 'what should I do next?' for a solo operator directing an AI fleet. The structural gap: existing skills do multi-lens work RETROSPECTIVELY (/red-team, /debrief) or build opportunity landscapes at SESSION END (/aar), but none do PROSPECTIVE multi-lens prioritization with horizon detection. Research synthesis: separate discovery from prioritization, decompose value/effort into named drivers, sequence quick wins then big bets, detect tactical vs strategic horizon, and start with single-lens before building multi-lens."
+summary: "How to answer 'what should I do next?' for a solo operator directing an AI fleet. The structural gap: existing skills do multi-lens work RETROSPECTIVELY (/risks, /debrief) or build opportunity landscapes at SESSION END (/aar), but none do PROSPECTIVE multi-lens prioritization with horizon detection. Research synthesis: separate discovery from prioritization, decompose value/effort into named drivers, sequence quick wins then big bets, detect tactical vs strategic horizon, and start with single-lens before building multi-lens."
 ---
 
 # Prospective multi-lens prioritization: the "what should I do next?" gap
@@ -27,7 +27,7 @@ Asking "what should I do?" needs three things held simultaneously:
 
 | Component | What it means | Closest existing skill | Gap |
 |---|---|---|---|
-| Multiple perspectives/lenses | Risk, learning, debt, momentum, strategic — applied *simultaneously* | `/red-team` (8 specialists), `/debrief` (5 lens subagents) | Both are **retrospective/adversarial**, not prospective prioritizers |
+| Multiple perspectives/lenses | Risk, learning, debt, momentum, strategic — applied *simultaneously* | `/risks` (8 specialists), `/debrief` (5 lens subagents) | Both are **retrospective/adversarial**, not prospective prioritizers |
 | ROI/impact ranking | Weight lenses so the answer isn't "everything matters equally" | `/aar` opportunity dispositions | `/aar` builds the landscape at **session end**, not as a live "next?" question |
 | Context intelligence (tactical vs strategic) | Detect horizon from current work, adapt the lens weighting | Nothing | **Missing entirely** |
 
@@ -155,7 +155,7 @@ Source: daily.dev. More than 5-7 criteria means the model is unfocused — colla
 Three methods, cheapest to most expensive:
 
 1. **Direct synthesis (no tooling)** — Read `/handoff list` + open AAR opportunities + tasks; operator states the criterion in one phrase; recommend with reasoning. Cost: one turn.
-2. **Lightweight variant (`/tp prioritize`)** — Extend `/tp` with a prospective mode that fans out lenses over open streams + criterion-weighting + horizon detection in one pass. Reuses proven `/red-team` fan-out shape. Cost: ~1 session to build and test.
+2. **Lightweight variant (`/tp prioritize`)** — Extend `/tp` with a prospective mode that fans out lenses over open streams + criterion-weighting + horizon detection in one pass. Reuses proven `/risks` fan-out shape. Cost: ~1 session to build and test.
 3. **Standalone skill (`/prioritize`)** — First-class skill with its own SKILL.md. Only justified after method 2 validates the pattern. Higher investment.
 
 **Selection criterion:** proven-pattern-reuse vs greenfield-investment. Method 2 wins on this axis IF the question recurs as a standing need. Method 1 wins if it's a one-off.

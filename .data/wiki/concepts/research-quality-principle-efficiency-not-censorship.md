@@ -96,7 +96,7 @@ This connects to [[reactive-pattern-matching-and-closure-pressure]]: the agent p
 1. **No skill should cap research depth to save time.** If research is slow, optimize the distribution (parallel agents, fast backends), not the depth.
 2. **The delegation rules are the means; this principle is the end.** Don't invert them — the rules exist to enable MORE research faster, not LESS research faster.
 3. **When the operator says "this is slow," the question is "how do we distribute better?" not "how do we do less?"**
-4. **This applies to /www, /design, /go, /red-team, /review, and any skill that does research or analysis.**
+4. **This applies to /www, /design, /go, /risks, /review, and any skill that does research or analysis.**
 5. **AGENTS.md should reference this principle** so it loads in every session, not just when a /www run happens.
 6. **The /www SKILL.md should state this principle at the top** so the agent never confuses "distribute better" with "do less."
 7. **The verification gate ([[self-reflection-in-llms-fails-without-external-evidence]]) applies here:** the agent can't self-assess whether its research is "good enough" — it needs external checks (applicability, disconfirmation, operator feedback). Skipping checks to save time trades 30 seconds for hours of rework.

@@ -153,7 +153,7 @@ considered for routing suggestions.
 
 ### 4. Decision framework library
 
-`/tp` and `/red-team` could query the wiki for `[decision-frameworks]`
+`/tp` and `/risks` could query the wiki for `[decision-frameworks]`
 tagged concepts to discover which mental models are available (FMEA,
 ACH, pre-mortem, etc.) instead of hardcoding which lenses to use.
 

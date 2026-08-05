@@ -57,7 +57,7 @@ The hook is wrong if, within 6 months:
 
 ## What this means for our workspace
 
-Every future architectural assessment, /red-team review, or /tp critique that produces minimal-change recommendations will be structurally checked by this hook. The operator no longer needs to manually catch minimal-change bias — the hook catches it at Stop time and forces re-examination.
+Every future architectural assessment, /risks review, or /tp critique that produces minimal-change recommendations will be structurally checked by this hook. The operator no longer needs to manually catch minimal-change bias — the hook catches it at Stop time and forces re-examination.
 
 The hook should be monitored for false-positive fatigue. If it fires >5 times per session on legitimate recommendations, the regexes need narrowing. Check `~/.grok/state/hook_failures.jsonl` for `minimal_bias_gate` entries to assess fire rate.
 

@@ -11,11 +11,11 @@ summary: >
   checking whether the benchmark's methodology applied to the workspace's task
   shape — an external-validity failure. Seven assumption-auditing techniques and
   seven unknown-unknown discovery techniques were identified. The highest-signal
-  finding: the workspace already has most of the pieces (/tp, /wargame, /red-team
+  finding: the workspace already has most of the pieces (/tp, /wargame, /risks
   referenced, AGENTS.md rules) but they don't FIRE under session pressure because
   they're opt-in skills, not default behavior. The gap is not missing techniques;
   it's making existing techniques fire by default at the right decision points.
-  Plus: /red-team is referenced in 4+ places but doesn't exist as a SKILL.md.
+  Plus: /risks is referenced in 4+ places but doesn't exist as a SKILL.md.
 agent: grok
 host: both
 cognitive_load: 4
@@ -64,13 +64,13 @@ by default, would have let the agent catch these itself?
 **What alternatives were explored.** Three parallel research streams: (1)
 external research on assumption-auditing techniques, (2) external research on
 unknown-unknown discovery, (3) workspace inventory of existing skills/concepts.
-The workspace already has /tp, /wargame, /why, /red-team (referenced), and
+The workspace already has /tp, /wargame, /why, /risks (referenced), and
 AGENTS.md rules for most of these techniques. The gap is not knowledge — it's
 firing discipline.
 
 **What the research changed.** Identified seven techniques the agent should
 adopt as default behavior (not opt-in skills) at specific decision points.
-Identified that /red-team is referenced in 4+ places but doesn't exist as a
+Identified that /risks is referenced in 4+ places but doesn't exist as a
 SKILL.md. Proposed a "default-fire" architecture where assumption-audit
 techniques fire mechanically at claim/verdict decision points.
 
@@ -85,8 +85,8 @@ wire it as a mandatory self-checkpoint before any verdict/claim of completion.
 ### 2. Pre-mortem (Klein 2007) [HIGH confidence]
 Assume the plan has failed; write the post-mortem from the future naming
 specific causes. Bypasses optimism bias. Workspace has /wargame (move-schema
-discipline) and /red-team (referenced). **Gap: premortem fires only when the
-user invokes /wargame or /red-team, not before every architectural commitment.**
+discipline) and /risks (referenced). **Gap: premortem fires only when the
+user invokes /wargame or /risks, not before every architectural commitment.**
 
 ### 3. Reference-class forecasting (Kahneman & Tversky 1979; Flyvbjerg) [HIGH confidence]
 Before trusting a study/benchmark, look up the distribution of outcomes from
@@ -147,7 +147,7 @@ State confidence as 0-100. Classify claims as FACT/INFERENCE/UNKNOWN. Answer
 
 | Technique | Workspace implementation | Fires by default? |
 |---|---|---|
-| Premortem | /wargame, /red-team (referenced) | ❌ opt-in only |
+| Premortem | /wargame, /risks (referenced) | ❌ opt-in only |
 | Devil's advocate | /tp (fresh subagent critique) | ❌ opt-in only |
 | Steelman | /tp core domain 4 | ❌ opt-in only |
 | "Could you be wrong?" | AGENTS.md standing rule | ⚠️ prose rule, fires sometimes |
@@ -186,7 +186,7 @@ specific to enforcement code, refined from the general principle in
 **Yes — and the workspace is 80% there.** The missing piece is a
 "claim-gate" or "verdict-gate" skill that fires assumption-audit techniques
 MECHANICALLY at specific decision points, rather than relying on the agent
-to remember to invoke /tp or /red-team.
+to remember to invoke /tp or /risks.
 
 **Proposed architecture (not implemented — for operator decision):**
 
@@ -225,8 +225,8 @@ in the prose.
    implementation exists.
 2. **The workspace is 80% there.** /tp, /wargame, /why, and AGENTS.md rules
    cover most techniques. The gap is default-firing, not missing knowledge.
-3. **/red-team is referenced but doesn't exist.** 4+ skills/docs cite it;
-   `~/.grok/skills/red-team/SKILL.md` is absent. This will produce "Unknown
+3. **/risks is referenced but doesn't exist.** 4+ skills/docs cite it;
+   `~/.grok/skills/risks/SKILL.md` is absent. This will produce "Unknown
    command" at invocation.
 4. **Adversarial framing reduces overconfidence by 15 percentage points**
    (Kaddour 2026) — the single most validated intervention for the failure
@@ -237,7 +237,7 @@ in the prose.
 - The proposed `/challenge` or claim-gate skill would be a structural fix for
   the "techniques exist but don't fire" problem — same principle as
   [[mandatory-step-enforcement-code-over-prose]]
-- The /red-team gap should be resolved: either build it, alias it to /tp,
+- The /risks gap should be resolved: either build it, alias it to /tp,
   or remove the references
 - Reference-class forecasting and external-validity audit should become
   default behavior before citing ANY external study or benchmark in /www,
@@ -246,7 +246,7 @@ in the prose.
 ## Receipts
 
 - [FACT] /tp exists with 1025-line SKILL.md at `C:\Users\brsth\.grok\skills\tp\SKILL.md` — verified by subagent read this session
-- [FACT] /red-team is referenced in 4+ places but `C:\Users\brsth\.grok\skills\red-team\SKILL.md` does NOT exist — verified by subagent read attempt this session
+- [FACT] /risks is referenced in 4+ places but `C:\Users\brsth\.grok\skills\red-team\SKILL.md` does NOT exist — verified by subagent read attempt this session
 - [FACT] /wargame exists at `C:\Users\brsth\.grok\skills\wargame\SKILL.md` — verified by subagent read this session
 - [FACT] Hills 2026 "Could You Be Wrong?" is already in `~/.grok/AGENTS.md` as a standing rule — verified by reading AGENTS.md this session
 - [FACT] CooperBench methodology (arXiv 2601.13295 §2.1) confirms interdependent overlapping tasks — verified by subagent research this session

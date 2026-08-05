@@ -30,7 +30,7 @@ relations:
 
 ## Decision context
 
-**The problem:** `/red-team` and `/tp` catch narrative-level failures ("what
+**The problem:** `/risks` and `/tp` catch narrative-level failures ("what
 if the approach is wrong?"). They don't catch component-level failures
 ("what if this script reads from a shared directory without filtering?").
 The cluster-filter bug in nlm-to-wiki (1,842 transcripts processed instead
@@ -87,13 +87,13 @@ the acceptance criterion from the handoff.
 
 ## What this means for our workspace
 
-/fmea fills a gap between narrative review (/tp, /red-team) and runtime
+/fmea fills a gap between narrative review (/tp, /risks) and runtime
 verification (/check, edit-then-verify). The three layers:
 
 | Layer | What it catches | When it runs |
 |-------|----------------|-------------|
 | /fmea (AST) | Structural I/O boundary failures | Before pipeline runs at scale |
-| /tp, /red-team (narrative) | Approach-level failures, framing errors | Before committing to a design |
+| /tp, /risks (narrative) | Approach-level failures, framing errors | Before committing to a design |
 | /check (runtime) | Behavioral failures, wrong output | After implementation |
 
 Run /fmea on any pipeline before scaling it. Run it after refactoring to

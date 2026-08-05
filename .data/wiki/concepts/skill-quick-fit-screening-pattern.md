@@ -97,7 +97,7 @@ Don't apply the pattern when:
 
 Apply the pattern when:
 
-1. **The skill is a substantive workflow** — `/plan`, `/design`, `/go`, `/tp`, `/review`, `/red-team`.
+1. **The skill is a substantive workflow** — `/plan`, `/design`, `/go`, `/tp`, `/review`, `/risks`.
 2. **The skill's output is durable** — the output outlives the conversation (a plan, a design doc, a code change). Mistakes are costly.
 3. **Adjacent skills exist** — if `/go` and `/plan` both could apply, the screening names which is preferred for which task shape.
 

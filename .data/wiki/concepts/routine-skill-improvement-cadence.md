@@ -13,7 +13,7 @@ summary: >
   their AI systems do it on a cadence (weekly/bi-weekly/monthly), not ad
   hoc. The recommended cadence: per-session (/check + /review), weekly
   (/aar opportunity landscape), monthly (/skill-dev measure + brainstorming
-  on failure modes), quarterly (/red-team + /wargame on load-bearing
+  on failure modes), quarterly (/risks + /wargame on load-bearing
   skills). Crucially, the skill combinations are not limited to the
   obvious ones — ANY skill can be combined with ANY other to create a
   new improvement lens. The operator should periodically explore novel
@@ -27,7 +27,7 @@ sources:
   - "SkillOpt (Microsoft Research): https://www.microsoft.com/en-us/research/blog/skillopt-agent-skills-as-trainable-parameters/"
   - "MAST taxonomy (Cemri et al. 2025): https://arxiv.org/abs/2503.13657"
   - "OWASP Top 10 for LLM Applications: https://owasp.org/www-project-top-10-for-large-language-model-applications/"
-  - "Promptfoo red-team: https://www.promptfoo.dev/docs/red-team/agents/"
+  - "Promptfoo red-team: https://www.promptfoo.dev/docs/risks/agents/"
   - "Google SRE postmortem culture: https://sre.google/sre-book/postmortem-culture/"
   - "Improvement Kata (Rother): https://danlebrero.com/2021/01/06/toyota-kata-in-software-development-continuous-improvement/"
   - "MITRE ATLAS: https://atlas.mitre.org/"
@@ -60,7 +60,7 @@ that the original design didn't anticipate, and code changes in one
 skill create interaction gaps with others (as this session
 demonstrated with /close × /aar).
 
-The question: can existing skills (/wargame, /brainstorming, /red-team,
+The question: can existing skills (/wargame, /brainstorming, /risks,
 etc.) be combined into a routine skill-improvement practice?
 
 **What the research found.** Three parallel research threads (systematic
@@ -126,7 +126,7 @@ systems do it on a schedule, not ad hoc.
     model family may see blind spots the primary model shares
 
 ### Quarterly (NEW — for load-bearing skills)
-- `/red-team` on skills with hooks/gates/receipts — adversarial testing
+- `/risks` on skills with hooks/gates/receipts — adversarial testing
   of the enforcement mechanism
 - `/wargame` on execution paths — "imagine this skill failed
   catastrophically in production. What happened?"
@@ -146,7 +146,7 @@ be combined with any other to create a new improvement lens:
 |-------------|-----------------|
 | /brainstorming + /why | Divergent failure-mode discovery before the failure happens |
 | /wargame + /close | "Imagine /close approved a fabricated report" — structural weaknesses |
-| /red-team + /design | Adversarial testing of a design's enforcement layer |
+| /risks + /design | Adversarial testing of a design's enforcement layer |
 | /tp + /why | Challenge the RCA's framing, not just its findings |
 | /skill-dev + /aar | Measure skill value from retrospective evidence |
 | /packet + /codex | Export skill traces for cold cross-model review |

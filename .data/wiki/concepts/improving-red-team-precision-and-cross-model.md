@@ -28,7 +28,7 @@ relations:
 
 ## Decision context
 
-The operator asked "how can we improve the red-team analysis?" after a /red-team run on /tp produced 52 findings, of which only ~10% were actually actionable. The over-reporting pattern — specialists finding "problems" that aren't real — is the dominant quality issue.
+The operator asked "how can we improve the red-team analysis?" after a /risks run on /tp produced 52 findings, of which only ~10% were actually actionable. The over-reporting pattern — specialists finding "problems" that aren't real — is the dominant quality issue.
 
 ## Key findings from research
 
@@ -51,7 +51,7 @@ FERZ measured that LLMs from different families share overlapping blind spots �
 
 ### 3. The cooperative disagreement protocol (OpenReview 2025)
 
-The "Adversarial Review" paper introduces a minimal protocol: builder + reviewer + critic, where the critic's job is to resolve disagreements between builder and reviewer. This is structurally similar to our /red-team critic, but with one key difference: **the critic penalizes the reviewer for non-reproducible findings**, creating a feedback loop that calibrates the reviewer over time.
+The "Adversarial Review" paper introduces a minimal protocol: builder + reviewer + critic, where the critic's job is to resolve disagreements between builder and reviewer. This is structurally similar to our /risks critic, but with one key difference: **the critic penalizes the reviewer for non-reproducible findings**, creating a feedback loop that calibrates the reviewer over time.
 
 ## Three improvements (operator-approved)
 
@@ -71,7 +71,7 @@ because they never see the critic's verdict.
 
 ### Improvement 2: Cross-model specialist per run [APPROVED — non-Anthropic only]
 
-Make one specialist per /red-team run use a cross-model CLI instead of
+Make one specialist per /risks run use a cross-model CLI instead of
 parent-model. Per operator constraint: use /agy (Antigravity/Gemini),
 /codex (OpenAI), or /mmx (MiniMax) — NOT Claude or Anthropic models.
 
@@ -98,7 +98,7 @@ Instead, use the **critic's verdict** as the precision signal:
 Precision = verified / (verified + non_reproducible) per specialist, per run.
 
 Track in the existing telemetry infrastructure
-(`P:/.artifacts/red-team/telemetry.jsonl`). After 5+ runs, each specialist
+(`P:/.artifacts/risks/telemetry.jsonl`). After 5+ runs, each specialist
 has a precision baseline. Specialists below 30% precision get prompt
 revisions in the Phase 3b improvement loop.
 

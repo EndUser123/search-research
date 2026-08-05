@@ -78,7 +78,7 @@ DEFINE → PLAN → BUILD → VERIFY → REVIEW → SHIP
 
 Supporting infrastructure: /preflight, /grok-discovery, /grok-route,
 /grok-safe-git, /www, /web, /wiki, /agy, /codex, /mmx, /handoff, /tasks,
-/aar, /debrief, /tp, /red-team, /refactor, /grok-verify.
+/aar, /debrief, /tp, /risks, /refactor, /grok-verify.
 
 ## Three areas of divergence
 
@@ -97,7 +97,7 @@ curve.
 | Code review | /review | /review (multi-lens, specialist fan-out) |
 | Structure | none | /refactor (seam-based, P0-P3) |
 | Inline gate | bash checklist | grok-verify (6-step) |
-| Premise challenge | /red-team | /tp + /review --adversarial + /red-team |
+| Premise challenge | /risks | /tp + /review --adversarial + /risks |
 | Retrospective | none | /aar + /debrief |
 
 Validated by Carnegie Mellon data (807 projects): agents cause +30% code

@@ -47,7 +47,7 @@ The operator's natural brainstorming process (decompose elements → look for pa
 | Brainwriting | Silent generation before sharing | ✅ Parallel subagent fan-out |
 | Reverse brainstorming | "How to guarantee failure" | ✅ Strong — avoids positivity bias |
 | Morphological analysis | Decompose → recombine all pairs | ✅ Strongest per research |
-| Pre-mortem | "It failed. Why?" | ✅ Already used as /red-team |
+| Pre-mortem | "It failed. Why?" | ✅ Already used as /risks |
 
 ## What works for LLMs (from research)
 
