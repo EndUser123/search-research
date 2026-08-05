@@ -80,6 +80,37 @@ pool selection framework. See [[model-fleet-provider-pools]] for the fleet
 inventory and provider definitions. See [[subprocess-run-timeout-deadlock-windows]]
 for the subprocess fix that made reliable benchmarking possible.
 
+## Transport-specific failures: metadata, not pool exclusion (2026-08-05)
+
+A model can fail on one transport but work perfectly on others. The
+`tool_grounded_spawn_broken` list in fleet-models.json tracks models that
+pass trivial probes but fail on real tool-grounded spawn_subagent prompts
+(serde error: `null, expected u32`). These same models work via PI, OpenCode,
+and HTTP.
+
+**Design principle:** transport-specific failure data should be **routing
+metadata** (tells callers "skip spawn, try PI first"), not a **pool-exclusion
+filter** (blocks the model entirely). The `dispatch_paths` chain already
+exists for exactly this purpose. Blocking a model from pick_model entirely
+when it works on 3 of 4 transports unnecessarily shrinks the pool.
+
+The `spawn_limitation` field in pick_model output surfaces this to callers:
+when set, the caller knows to skip `spawn` and start with the next
+dispatch_path. This keeps all models available while routing around the
+broken transport.
+
+**Anti-pattern that prompted this:** adding a model to a "broken" list that
+causes `is_available()` to return False, removing it from all lanes. The
+operator caught this: "but we have PI, so why limit ourselves to spawn?"
+The fix is to downgrade the hard exclusion to soft preference (rank
+spawn-broken models lower when alternatives exist) or simply surface the
+limitation as metadata for the caller.
+
+**Generalization:** any per-transport failure classification (serde broken,
+timeout-prone, rate-limited) should flow through `dispatch_paths` ordering
+and `spawn_limitation` metadata — not through pool exclusion. Pool exclusion
+is reserved for models that fail on ALL transports (genuinely broken).
+
 ## Falsifier
 
 If a dedicated provider consistently has higher latency than the subscription

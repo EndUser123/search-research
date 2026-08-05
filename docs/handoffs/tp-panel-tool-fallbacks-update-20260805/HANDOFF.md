@@ -1,7 +1,7 @@
 # Handoff — /tp panel tool-fallbacks update
 
 ## Status
-OPEN — evidence captured, implementation deferred.
+CLOSED — tool-fallbacks.md updated in commit `70479f9` (2026-08-05). All 3 failure signatures written. Entry for nim-deepseek updated from "VERIFIED WORKING" to "VERIFIED WORKING (probe only) — tool-grounded spawn FAILS with serde error."
 
 ## Objective
 

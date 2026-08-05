@@ -7,8 +7,10 @@ produced_at: 2026-08-04T06:00:00Z
 status: open
 handoff_type: investigation
 accurate_as_of_head:
-  P: 5738241
-  grok: b20d840
+  P: 8b05bae
+  grok: 08e3ac5
+last_updated_by: 019fc95d-8132-7181-a6f4-9ab6d1624cd5
+last_updated_at: 2026-08-05T20:35:00Z
 assigned_to: grok
 assigned_at: 2026-08-04T06:00:00Z
 assigned_by: 019fc95d-8132-7181-a6f4-9ab6d1624cd5
@@ -238,3 +240,71 @@ Agent: grok
 - Registration gaps: nemotron-ultra + arcee-trinity only work via HTTP (not registered in PI/OC)
 - 2 pre-existing test failures in spawn gate tests (gpt-5-6-luna serde_broken + glm fallback order) — not caused by this session's changes
 - Benchmark auto-write-back confirmed for all 5 models in fleet-models.json
+
+---
+
+## Revision 3 — 20260805T20:35:00Z (session 019fc95d)
+
+**Trigger:** auto-update — extensive post-compaction work completed (quality benchmarks, red-team fixes, tier timeouts, /tp lens architecture fix, /mmx expansion, ship receipt isolation fix).
+
+**What changed since Revision 2:**
+
+### Quality-tier benchmarking completed
+
+Full quality scoring across 3 tiers:
+| Tier | Models | Tasks | Quality Score | Notes |
+|---|---|---|---|---|
+| production | 10 | 10 | Q=1.0 | All correct |
+| reasoning-base | 50 | 50 | Q=1.0 | All correct |
+| code-exec | 129/130 | 130 | Q=0.99 | 1 failure: nemotron-ultra timeout at 600s (genuine speed limitation) |
+
+Tier-aware timeouts added to `benchmark_tiers.py`: `CodeExecTier(300s)`, `ProductionTier(120s)`, `DeepReasoningTier(300s)`. Default `Tier(60s)` replaced hardcoded timeouts. This fixed 6 false "timeout" failures that were actually ThreadPoolExecutor queue starvation, not model failures.
+
+### Red-team review fixes (all 4 issues addressed)
+
+| # | Issue | Fix |
+|---|---|---|
+| 1 | `serde_broken` list had false positives (all models pass probes) | Cleared list; replaced with `tool_grounded_spawn_broken` (models that pass probes but fail real prompts) |
+| 2 | Duplicate `_benchmark_with_limit` definition | Removed stale stub |
+| 3 | Retry timer inflation (not reset after backoff sleep) | Reset timer after sleep |
+| 4 | `import os` unused | Removed |
+
+### /tp spawn lens architecture fixed
+
+Changed from hardcoded model slug → dynamic `pick_model.py critic --exclude-self` selection. Tried 3 iterations (zen-deepseek → nim-deepseek → hardcoded) before settling on dynamic pool selection per operator directive: "why are you proposing a fixed model?"
+
+### /mmx skill expanded to 7 capabilities
+
+Expanded from 3 capabilities (chat/search/vision) to all 7 (image gen, speech synthesis, video gen, music gen). Added version-check preflight. Wiki concept `mmx-cli-full-multimodal-capability-surface.md` written. mmx updated to latest version.
+
+### Ship receipt multi-terminal isolation fix
+
+Added `--max-commits` parameter (default 15) to `collect_git_state()`. When merge-base divergence is large on multi-agent host, scan is capped to HEAD~15 instead of scanning all concurrent sessions' files. Wiki concept `cross-session-ship-blocking-scoping-git-diff.md` written. Removed dead `--llm-skills` argparse arg.
+
+### tool-fallbacks wiki updated
+
+Updated `tool-fallbacks.md` with 3 new failure signatures from /tp panel failures: nim-deepseek serde error (tool-grounded spawn), codex deep-preflight timeout, AGY recurrence note. Updated nim-deepseek entry from "VERIFIED WORKING" to "VERIFIED WORKING (probe only) — tool-grounded spawn FAILS with serde error."
+
+### Toon renderer for /todo
+
+Added `format_toon_rns()` to `render_rns.py` — markdown section headers with blank lines between items to prevent paragraph collapse. "Code orchestrates, model judges" pattern: Python renderer owns format, LLM owns judgment.
+
+### Other work
+
+- Node.js updated 24.11.1→24.19.0 (ZIP to C:\Tools\node24, PATH prepend)
+- Removed test-ups injection hooks from `~/.grok/hooks/` (operator directed)
+- config.toml: fixed hy3 slug, removed 3 gpt-5-6 model sections
+- PI models.json: added mistral provider, nemotron-3-ultra, arcee-trinity
+- OpenCode: added nemotron-3-ultra, nemotron-3-super, deepseek-v4-flash, arcee-trinity, mimo-v2.5-free, big-pickle
+
+**Remaining work (updated):**
+
+1. **CRITICAL: Revert tool_grounded_spawn_broken pool-exclusion** — The current `is_available()` block in pick_model.py blocks models entirely from the pool when only spawn_subagent is broken. These models work via PI/OC/HTTP. The fix: keep the list as metadata, remove the `is_available()` return-False, and have callers use `dispatch_paths` to try PI first when spawn is known broken. See handoff `dispatch-paths-fallback-not-spawn-block-20260805`.
+
+2. **Multi-method quality benchmarking** — Design section written in benchmark SKILL.md but not implemented. `benchmark_model()` needs a transport parameter to run quality scoring through PI/OC/spawn independently.
+
+3. **Spawn gate hook dispatch_paths** — `PreToolUse_spawn_model_gate.py` still uses single `dispatch_path`, not the `dispatch_paths` fallback chain.
+
+4. **Unpushed ~/.grok commit** — `08e3ac5` (todo HANDOFF section) not yet pushed to remote.
+
+**Status update:** substantially complete — all original plan steps + quality benchmarks done. The tool_grounded_spawn_broken revert is the critical remaining work that blocks the dispatch routing architecture from being correct.
