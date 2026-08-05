@@ -17,6 +17,7 @@
     "title": "Luna no-auto-pool update not applied",
     "obligation": "Wiki concept recommends adding Luna to no-auto-pool list in model-tool-calling-capability-matrix.md but the matrix was not updated",
     "operation": "COMPLETE",
-    "status": "pending"
+    "status": "dismissed",
+    "resolution": "Tested 2026-08-04: gpt-5.6-luna via Codex CLI passed both tool-grounded tests (file read + multi-step search). No text-only emission failure observed. The theoretical concern from router-proxy-tool-calling-normalization-patterns.md does not apply to Codex CLI transport on this host. Luna should NOT be excluded from tool pools."
   }
 ]

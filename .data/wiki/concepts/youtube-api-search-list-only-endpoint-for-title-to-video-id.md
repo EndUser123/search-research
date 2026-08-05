@@ -56,6 +56,7 @@ at most 100 times per key per day. With 4 keys, that's 400 searches/day max.
 
 | Source | Cost | Coverage | How |
 |--------|------|----------|-----|
+| **YouTube oEmbed** | Free, no API key | Channel name + handle for any video | `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=<id>&format=json` — returns `author_name`, `author_url` (channel handle). No quota. Works for any public video. Handle can be resolved to UC ID via `channels.list` (1 unit per 50). |
 | **YouTube Takeout History** | Free | Your full watch history | JSON export from takeout.google.com — contains video URLs + titles |
 | **yt-dlp --flat-playlist** | Free | Any playlist's full contents | Enumerates all videos in a playlist with titles + IDs |
 | **RSS feeds** | Free | 15 most recent per channel | `https://www.youtube.com/feeds/videos.xml?channel_id=<id>` — limited to recent |
@@ -64,6 +65,11 @@ at most 100 times per key per day. With 4 keys, that's 400 searches/day max.
 ## The miserly decision tree
 
 ```
+Need channel info for a video_id?
+├── oEmbed (free, no API key) → returns author_url (channel handle)
+│   └── Handle needs UC ID? → channels.list (1 unit, batch 50)
+└── Done
+
 Need to match titles → video_ids?
 ├── Do you have the video URLs anywhere?
 │   ├── YES → extract video_id from URL (free)

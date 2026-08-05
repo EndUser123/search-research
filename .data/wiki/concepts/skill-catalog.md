@@ -212,7 +212,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | — | `P:/.grok/skills/check/SKILL.md` |
-| **red-team** | ✓ | — | Multi-agent adversarial review of any proposal, solution, design, or implementation before commitment. Planner → special... | — | `P:/.grok/skills/red-team/SKILL.md` |
+| **red-team-old** | ✓ | — | DEPRECATED — absorbed into /risk. This skill is disabled and kept only as reference for the full specialist procedure th... | — | `P:/.grok/skills/red-team-old/SKILL.md` |
 
 ## grok-agents (12 skills)
 
@@ -251,7 +251,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
 | **evidence-driven-experiment-loop** | — | — | Manage evidence-first experiments, benchmarks, performance optimization, A/B comparisons, repeated evidence gathering, l... | — | `~/.codex/skills/evidence-driven-experiment-loop/SKILL.md` |
-| **external-delegation** | — | — | Delegate bounded low-ambiguity work to Pi using subscription-backed or local models, with generated packets, timeouts, a... | — | `~/.codex/skills/external-delegation/SKILL.md` |
+| **codex-pi** | — | — | Delegate bounded low-ambiguity work from Codex through Pi using subscription-backed or local models, with generated pack... | — | `~/.codex/skills/external-delegation/SKILL.md` |
 | **review-packet-runner** | — | — | Turn review, assessment, critique, validation, gap-analysis, and second-opinion requests into evidence-grounded review p... | — | `~/.codex/skills/review-packet-runner/SKILL.md` |
 | **skillopt** | — | — | Improve an existing Codex skill from local transcripts, rollout traces, scores, or validation feedback. Use when the use... | — | `~/.codex/skills/skillopt/SKILL.md` |
 | **"imagegen"** _[.system]_ | — | — | "Generate or edit raster images when the task benefits from AI-created bitmap visuals such as photos, illustrations, tex... | — | `~/.codex/skills/.system/imagegen/SKILL.md` |
