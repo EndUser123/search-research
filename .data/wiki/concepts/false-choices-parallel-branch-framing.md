@@ -78,13 +78,39 @@ that hold are:
    it will not fire every time and names the validator hook as the
    durable backstop.
 
-## What is NOT yet implemented
+## What was implemented (2026-08-04, updated 2026-08-05)
 
-- **Output validator hook** (`false_choice_validator.py`): scans model
-  output for false-binary patterns ("which subset," "should I pick,"
-  "either X or Y" where both have positive ROI) and rejects with a
-  rewrite prompt. Pattern: same as `validate_pre_clarification_gate.py`.
-  This is the structural fix that breaks the ~50% ceiling.
+- **`Stop_false_choice_validator.py`** — BLOCK severity Stop hook. Three trigger
+  patterns: "or both" telltale, "which subset" delegation, "should I do option"
+  menu delegation. Four escape patterns: "do all of them," genuine competition
+  (vs, trade-off, mutually exclusive), short response, and the combined
+  or-both-with-competition override. 12 tests pass. Registered as quality gate,
+  priority 95, BLOCK rollout. Commits: `fd8dfc7`, `abfcdaa`, `65578ee`.
+
+- **Bug fixed via specialist review:** the initial registration had a copy-paste
+  bug (`_CLAIM_GATE_RELEVANCE["recommendation_gate"]` instead of its own key) and
+  a missing dict entry. Found by `/ship` Phase 1 explore subagent — not by the
+  author. This validates the "ship specialist review catches what inline review
+  misses" pattern.
+
+## Monitoring obligation (the remembering problem)
+
+The hook is BLOCK severity. If false-positive rate >10% over 2-3 sessions, the
+hook erodes trust and the operator disables it. **How this will be remembered:**
+
+- **Mechanical trigger:** `/harvest` obligation with trigger condition "after
+  3 sessions or 7 days with false_choice_validator active, review telemetry at
+  `P:/.claude/hooks/logs/diagnostics/` for false positives." This surfaces in
+  `/harvest show` and `/todo` — not in prose that decays.
+- **Telemetry path:** `P:/.claude/hooks/logs/diagnostics/` contains the JSONL
+  records. A `/maintain` or `/close` run can check the fire count and block rate.
+- **Wiki decay:** this concept has a `last_verified: 2026-08-05` trigger. If no
+  session reviews the telemetry by 2026-08-19 (14 days), the concept should be
+  flagged as stale by `/maintain`.
+
+**The structural answer:** a wiki concept does NOT remember. A harvest obligation
+does, because it surfaces mechanically in `/harvest show` and `/todo`. The wiki
+captures the knowledge; the harvest obligation provides the trigger.
 
 ## Relationship to existing concepts
 
