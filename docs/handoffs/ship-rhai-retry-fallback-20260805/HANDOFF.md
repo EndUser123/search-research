@@ -1,7 +1,8 @@
 # Handoff — ship-rhai retry-with-fallback + remaining fixes
 
 ## Status
-OPEN — implementation complete, remaining items deferred. See Revision block below.
+RESOLVED — retry-with-fallback implemented (commit a0da067); capability_mode
+root-cause fix applied (commit e71d617). Both pushed to origin.
 
 ## Objective
 
