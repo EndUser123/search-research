@@ -156,7 +156,7 @@ These ideas are wrong if:
 ## Receipts
 
 - Existing epistemic system design: `P:/.data/wiki/concepts/epistemic-knowledge-system-design-2026.md` (Phase 1 confidence decay implemented; Phases 2-4 in handoff)
-- www-ledger location: `P:/.data/wiki/_state/www-ledger.json` (tracks /www runs — would be the source for adversarial replay traces)
+- www-ledger location: `P:/.data/www-ledger/*.md` (70+ markdown entries tracking /www runs — would be the source for adversarial replay traces)
 - [INFERENCE] The belief ledger schema would extend the existing SCHEMA.md frontmatter format rather than creating a new storage system
 - [INFERENCE] The research market utility function weights (α, β, γ, λ, μ) are not yet tuned and would need empirical calibration
 
