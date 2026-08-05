@@ -2085,12 +2085,12 @@ def _run_recommendation_gate(data: dict) -> dict | None:
 def _run_false_choice_validator(data: dict) -> dict | None:
     """Detect independent actions framed as competing choices (false-choices pattern).
 
-    Advisory only (systemMessage) - measures false-positive rate before block promotion.
+    Blocks the response when false-choice pattern detected. Tests verify false-positive discrimination.
     Quality gate - suppressed on control turns.
     """
     _, terminal_id = _resolve_scope_ids(data)
     claim_type = _read_claim_type(terminal_id)
-    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["recommendation_gate"]):
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["false_choice_validator"]):
         return None
     try:
         import Stop_false_choice_validator
@@ -2343,6 +2343,7 @@ _CLAIM_GATE_RELEVANCE: dict[str, frozenset] = {
     "anti_sycophancy_quality": frozenset({"style_heavy", "question"}),
     "lazy_workaround_gate": frozenset({"code_work", "mechanism_investigation"}),
     "recommendation_gate": frozenset({"design_recommendation", "mechanism_investigation"}),
+    "false_choice_validator": frozenset({"design_recommendation", "mechanism_investigation"}),
 }
 
 
