@@ -85,7 +85,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **ship-rhai** | ✓ | — | Rhai-workflow-enforced verify-and-publish chain: review, fix, verify, merge. Phases cannot be skipped — the workflow scr... | — | `~/.grok/skills/ship-rhai/SKILL.md` |
 | **skill-dev** | ✓ | — | Create, measure, and improve Grok skills from evidence. Modes: (0) create — scaffold a new skill with quality gates; (1)... | — | `~/.grok/skills/skill-dev/SKILL.md` |
 | **slc** | ✓ | — | Behavioral reset for the thought-partner standard. When invoked, re-anchors the agent to its identity, quality bar, proa... | — | `~/.grok/skills/slc/SKILL.md` |
-| **tasks** | ✓ | — | Read and write Claude Code's persistent task store at ~/.claude/tasks/project-main-tasks/. Use when the user asks to tra... | — | `~/.grok/skills/tasks/SKILL.md` |
+| **tasks** | ✓ | — | DISABLED on Grok Build — Claude Code persistent task store artifact. Grok Build does not have Claude Code's task store. ... | — | `~/.grok/skills/tasks/SKILL.md` |
 | **tdd** | ✓ | — | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor"... | — | `~/.grok/skills/tdd/SKILL.md` |
 | **teach** | ✓ | — | Teach the user a new skill or concept, within this workspace. disable-model-invocation: true argument-hint: "What would ... | — | `~/.grok/skills/teach/SKILL.md` |
 | **to-spec** | ✓ | — | Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of ... | — | `~/.grok/skills/to-spec/SKILL.md` |
@@ -214,7 +214,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | — | `P:/.grok/skills/check/SKILL.md` |
-| **red-team-old** | ✓ | — | DEPRECATED — absorbed into /risks. This skill is disabled and kept only as reference for the full specialist procedure th... | — | `P:/.grok/skills/red-team-old/SKILL.md` |
+| **red-team-old** | ✓ | — | DEPRECATED — absorbed into /risk. This skill is disabled and kept only as reference for the full specialist procedure th... | — | `P:/.grok/skills/red-team-old/SKILL.md` |
 
 ## grok-agents (12 skills)
 
