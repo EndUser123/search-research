@@ -1,16 +1,17 @@
 ---
-title: "UserPromptSubmit hooks: can run Python, cannot inject context (Grok Build)"
+title: "UserPromptSubmit hooks: CAN inject additionalContext on Grok Build (corrected)"
 created: 2026-07-28
-source: session-2026-07-28
-tags: [hooks, userpromptsubmit, grok-build, hook-limitations, passive-events, auto-routing]
+source: session-2026-07-28, corrected 2026-08-04
+tags: [hooks, userpromptsubmit, grok-build, additionalContext, skill-enforcement, corrected-finding]
 summary: >
-  On Grok Build, UserPromptSubmit hooks CAN run Python and write files, but
-  stdout is ignored — no context injection back to the model. A hook that
-  detects a slash command (e.g., /handoff) and pre-creates a file IS viable
-  as a pre-processor; the limitation is that it cannot tell the agent "I
-  already handled this" via stdout. The skill must check for existing files.
-  Corrected 2026-07-28 after operator pushback: initial analysis wrongly
-  dismissed the entire approach when only the context-injection path is blocked.
+  CORRECTED 2026-08-04: UserPromptSubmit hooks CAN inject additionalContext
+  on Grok Build. The original analysis (2026-07-28) incorrectly classified
+  UserPromptSubmit as passive-only (stdout ignored), extending the
+  SessionStart/PostToolUse stdout-ignored pattern without testing.
+  Vectorize/Hindsight plugin proves UserPromptSubmit additionalContext works
+  in production on Grok Build. This enables the skill_enforcer pattern:
+  detect /<skill-name> in user prompt, inject "execute, don't discuss"
+  additionalContext before the agent responds.
 agent: grok
 host: grok
 cognitive_load: 2
@@ -20,107 +21,117 @@ relations:
     type: extends
   - target: wiki/concepts/grok-build-runtime-docs-divergence
     type: related
+  - target: wiki/concepts/skill-enforcement-layers
+    type: corrects — Layer 1 is now viable on Grok Build
+  - target: wiki/concepts/skill-auto-invocation-reliability
+    type: corrects — "the entire Claude-side enforcement is missing" gap is now closeable
 ---
 
-# UserPromptSubmit hooks cannot auto-invoke skills on Grok Build
+# UserPromptSubmit hooks: CAN inject additionalContext on Grok Build (corrected)
 
-## The constraint
+## The correction (2026-08-04)
 
-Grok Build's `UserPromptSubmit` hook event is **passive-only**:
+**Previous claim (wrong):** UserPromptSubmit stdout is ignored on Grok Build,
+same as SessionStart and PostToolUse. The hook can write files but cannot
+inject context back to the model.
+
+**Corrected claim:** UserPromptSubmit CAN inject `additionalContext` via the
+same JSON stdout pattern used by Stop hooks. The Grok Build docs (line 304)
+say "for events like SessionStart or PostToolUse, stdout is ignored" — but
+UserPromptSubmit is NOT in that list. The original analysis extended the
+pattern without testing.
+
+**Evidence:** The Vectorize/Hindsight plugin runs in production on Grok Build
+and uses UserPromptSubmit to inject additionalContext on every prompt:
+
+> recall.py | UserPromptSubmit hook | Auto-recall — query memories, inject as additionalContext
+
+Source: https://hindsight.vectorize.io/sdks/integrations/grok-build
+
+Their features page: "on every user prompt, queries Hindsight for relevant
+memories and injects them as context (invisible to the chat transcript,
+visible to Grok)."
+
+A local test hook was registered (P:/tmp/test_ups_hook.py) to verify
+additionalContext injection in our specific environment.
+
+## Updated capability matrix
 
 | Capability | Claude Code | Grok Build | Cursor |
 |-----------|-------------|------------|--------|
 | Block the prompt | Yes | **No** | Yes (buggy) |
-| Inject context (`additionalContext`) | Yes | **No** | Buggy |
+| Inject context (`additionalContext`) | Yes | **Yes** | Buggy |
 | Rewrite the prompt | No | **No** | No |
 | Write side-effect files | Yes | Yes | Yes |
 
-Source: Grok Build docs (`docs.x.ai/build/features/hooks`): "for events like
-SessionStart or PostToolUse, stdout is ignored." UserPromptSubmit is in the
-same passive category — it fires, can write files, but its stdout never
-reaches the model.
+## Why this enables skill enforcement on Grok Build
 
-Wiki cross-reference: `[[grok-pretooluse-deny-contract-verified]]` — "passive
-events cannot inject context. UserPromptSubmit/PostToolUse/Stop hooks fire
-and can write side-effect files, but their stdout is dropped entirely."
+A UserPromptSubmit hook can detect `/<skill-name>` in the user prompt and
+inject additionalContext: "This is an execution command. Follow the skill
+body — do not substitute a discussion for execution." This fires BEFORE
+the agent responds, preventing the discuss-instead-of-execute pattern.
 
-## Why this kills auto-command routing
+Combined with the Stop hook quality gates (which fire AFTER the response
+and check for evidence artifacts), this creates the full 3-layer enforcement
+model from `[[skill-enforcement-layers]]`:
 
-The proposed pattern: a UserPromptSubmit hook detects `/handoff` in the prompt
-text and auto-creates a handoff file without interrupting the conversation.
+| Layer | Mechanism | Effectiveness | Fires |
+|-------|-----------|---------------|-------|
+| **Layer 1** (UserPromptSubmit) | Inject "execute, don't discuss" | ~50% | Before agent responds |
+| **Layer 2** (Stop hook quality gates) | Check evidence artifacts, block | ~100% | After agent responds |
 
-What actually happens:
-1. Hook fires, detects `/handoff`, writes a handoff file to disk
-2. The original `/handoff` prompt arrives at the agent unchanged (stdout ignored)
-3. The agent invokes the `/handoff` skill normally, producing a canonical handoff
-4. **Two handoffs exist** — the hook's orphan and the skill's canonical
-5. No mechanism for the hook to tell the agent "I already handled this"
+## The side-effect file pattern still works
 
-The orphan file is structurally disconnected from the user's intent. This is
-the same failure class as [[no-deferred-persistence]]: a side effect that
-isn't wired into the next action produces an orphan.
+The previously-documented pattern (pre-create files via UserPromptSubmit
+side effects) still works and is complementary. The hook can both:
+1. Inject additionalContext (new — context injection)
+2. Write side-effect files (existing — pre-processing)
 
-## Where auto-command routing DOES work
+## What does NOT work
 
-- **Claude Code**: `UserPromptSubmit` can inject `additionalContext`
-  (system-reminder style) and block. The ClaudeFast Skill Activation Hook
-  and `disler/claude-code-hooks-mastery` repo demonstrate the pattern.
-  Claude Code also has `UserPromptExpansion` — a dedicated hook for
-  slash-command auto-expansion that fires before the Skill tool.
-
-- **Inside the agent**: the `/go` skill's delegation-packet classifier already
-  does auto-routing — it reads the prompt, classifies it (score 0-6), and
-  strips ceremony automatically. This works because it runs *inside* the
-  agent's context, not as a side-effect that can't communicate back.
-
-## What IS possible (corrected 2026-07-28 after operator pushback)
-
-The hook CAN run Python and write files. The limitation is narrower than
-initially stated: the hook cannot *inject context back to the model* (stdout
-ignored), but it CAN write side-effect files that the agent reads later.
-
-A UserPromptSubmit hook that detects `/handoff <topic>` and pre-creates a
-handoff file IS viable:
-1. Hook fires, reads prompt from stdin, detects `/handoff`
-2. Python script calls the handoff-creation logic directly
-3. Handoff file is on disk before the agent processes the prompt
-4. Agent receives `/handoff <topic>`, invokes the skill
-5. Skill finds the existing handoff, updates rather than duplicates
-
-The constraint: the hook cannot tell the agent "I already handled this" via
-stdout. But it doesn't need to — the file is on disk and the agent can read
-it. The "duplicate artifact" problem is solvable by having the skill check
-for existing handoffs (which `/handoff` auto-update mode already does).
-
-**What does NOT work:** using the hook to *replace* the skill invocation
-entirely (the prompt still arrives at the agent, the agent still invokes
-the skill). The hook is a pre-processor, not a replacement.
-
-## Decision (corrected)
-
-**Viable with a design constraint.** A UserPromptSubmit hook can pre-create
-handoff files as a side effect. The constraint is that stdout cannot reach
-the model — so the hook can't inject "I handled this" context. The skill
-must check for existing files to avoid duplicates. The original analysis
-over-attributed the stdout limitation to mean "the whole approach is
-non-viable," when only the context-injection path is blocked.
+- **Blocking the prompt:** UserPromptSubmit cannot block (non-blocking event
+  on Grok Build per docs line 89). Only PreToolUse and Stop/SubagentStop
+  can block.
+- **Rewriting the prompt:** no hook can rewrite the user's prompt on any
+  platform.
+- **Replacing skill invocation:** the prompt still arrives at the agent;
+  the hook adds context but doesn't remove the need for the agent to
+  follow the skill.
 
 ## Falsifier
 
-This finding is wrong if a future Grok Build release adds context injection
-to UserPromptSubmit (making it non-passive). Check the hook docs at
-`~/.grok/docs/user-guide/10-hooks.md` before re-proposing this pattern.
+This finding is wrong if the local test hook (P:/tmp/test_ups_hook.py) fails
+to produce visible additionalContext in the agent's context. The Hindsight
+plugin is strong evidence but runs via Claude Code plugin format, which
+Grok Build reads natively — a direct Grok-native hook JSON registration
+may behave differently. Verify with the test hook before building production
+hooks on this assumption.
 
 ## Sources
 
-- Grok Build hook docs: `~/.grok/docs/user-guide/10-hooks.md` L89, L304
-- Wiki: `[[grok-pretooluse-deny-contract-verified]]` L98-100
-- Web research: Claude Code hooks (`code.claude.com/docs/en/hooks`),
-  ClaudeFast Skill Activation Hook, disler/claude-code-hooks-mastery,
-  Cursor forum bug reports on beforeSubmitPrompt injection
+- Vectorize/Hindsight Grok Build integration: https://hindsight.vectorize.io/sdks/integrations/grok-build
+- Grok Build hook docs: `~/.grok/docs/user-guide/10-hooks.md` L89, L253-256, L304
+- Claude Code hooks: https://code.claude.com/docs/en/hooks
+- disler/claude-code-hooks-mastery: https://github.com/disler/claude-code-hooks-mastery
+- Local test hook: P:/tmp/test_ups_hook.py (registered in ~/.grok/hooks/test-ups-injection.json)
+
+## Original analysis (preserved for audit trail)
+
+The original 2026-07-28 analysis incorrectly extended the SessionStart/PostToolUse
+stdout-ignored pattern to UserPromptSubmit. The extension was plausible (UserPromptSubmit
+is non-blocking like SessionStart) but untested. The Hindsight plugin's production use
+proves the extension was wrong. The side-effect file pattern documented in the original
+analysis remains valid — the correction is specifically about the additionalContext
+injection path, which was incorrectly marked as blocked.
+
 ## What this means for our workspace
 
-TODO (auto-generated by wiki_validator_sweep 2026-07-30): This concept predates the
-mandatory workspace-implications section. State what should be updated, created, or
-retired in our infrastructure based on this finding. If the concept is reference-only
-with no actionable implication, state: "Reference document — no workspace action needed."
+1. **Port skill_enforcer.py to Grok Build** — create a UserPromptSubmit hook
+   at `~/.grok/hooks/UserPromptSubmit_skill_enforcer.py` that detects
+   `/<skill-name>` in the prompt and injects "execute, don't discuss"
+   additionalContext. See handoff: skill-enforcer-port-grok-build.
+2. **The quality gates Stop hook + skill_enforcer UserPromptSubmit hook**
+   together form the full 3-layer model: pre-execution advisory + post-execution
+   enforcement.
+3. **Update [[skill-auto-invocation-reliability]]** — the gap "on Grok Build,
+   the entire Claude-side enforcement is missing" (line 102) is now closeable.
