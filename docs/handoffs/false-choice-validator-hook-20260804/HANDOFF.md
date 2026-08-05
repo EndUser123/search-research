@@ -20,7 +20,11 @@ This is the **structural backstop** that breaks the documented ~50% compliance c
 
 ## 2. Status
 
-OPEN — not started.
+CLOSED — implemented and committed (`fd8dfc7`).
+
+**What was built:** `Stop_false_choice_validator.py` advisory gate registered in Stop.py dispatch chain as quality-class, priority 95, ADVISORY rollout mode. 12 tests pass (4 true positives, 6 true negatives, 1 edge case, 1 short-response bypass).
+
+**Design decision:** started as advisory (systemMessage) rather than block to measure false-positive rate before promotion. This avoids the MINIMAL_BIAS_GATE noise problem documented in the handoff falsifier.
 
 ## 3. Motivation (why this work)
 
