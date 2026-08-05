@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-04
 cognitive_load: 3
-summary: Auto-generated index of 714 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 715 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 714 across 21 scopes.
+**Total skills:** 715 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (69 skills)
+## grok-user (70 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -78,6 +78,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **refine** | ✓ | — | Turn a rough task or vague handoff into an implementation-ready handoff by inspecting the codebase. Pre-plan stage: tigh... | — | `~/.grok/skills/refine/SKILL.md` |
 | **research** | ✓ | — | Compatibility alias for /www. Immediately load and execute ~/.grok/skills/www/SKILL.md with the same arguments. | — | `~/.grok/skills/research/SKILL.md` |
 | **review** | ✓ | — | Intelligent code/package review with verified findings on disk. Auto-infers target (local diff, branch, PR, or package p... | Code review, package review, PR review, branch review, audit code quality. Find ... | `~/.grok/skills/review/SKILL.md` |
+| **risk** | ✓ | — | Adaptive risk assessment that starts with an inline scan and escalates to deeper analysis only when evidence warrants. S... | — | `~/.grok/skills/risk/SKILL.md` |
 | **search-fleet** | ✓ | — | Capability-routed multi-backend search with RRF aggregation. Reads the tool registry at ~/.grok/search-fleet.toml, class... | — | `~/.grok/skills/search-fleet/SKILL.md` |
 | **ship** | ✓ | — | Verify-and-publish chain: review → fix → verify → merge → close-prep. Takes a branch or set of commits from code-complet... | — | `~/.grok/skills/ship/SKILL.md` |
 | **skill-dev** | ✓ | — | Create, measure, and improve Grok skills from evidence. Modes: (0) create — scaffold a new skill with quality gates; (1)... | — | `~/.grok/skills/skill-dev/SKILL.md` |
@@ -250,7 +251,7 @@ Auto-generated on 2026-08-04 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
 | **evidence-driven-experiment-loop** | — | — | Manage evidence-first experiments, benchmarks, performance optimization, A/B comparisons, repeated evidence gathering, l... | — | `~/.codex/skills/evidence-driven-experiment-loop/SKILL.md` |
-| **external-delegation** | — | — | Delegate bounded low-ambiguity work to OpenCode using subscription-backed or local models, with generated packets, timeo... | — | `~/.codex/skills/external-delegation/SKILL.md` |
+| **external-delegation** | — | — | Delegate bounded low-ambiguity work to Pi using subscription-backed or local models, with generated packets, timeouts, a... | — | `~/.codex/skills/external-delegation/SKILL.md` |
 | **review-packet-runner** | — | — | Turn review, assessment, critique, validation, gap-analysis, and second-opinion requests into evidence-grounded review p... | — | `~/.codex/skills/review-packet-runner/SKILL.md` |
 | **skillopt** | — | — | Improve an existing Codex skill from local transcripts, rollout traces, scores, or validation feedback. Use when the use... | — | `~/.codex/skills/skillopt/SKILL.md` |
 | **"imagegen"** _[.system]_ | — | — | "Generate or edit raster images when the task benefits from AI-created bitmap visuals such as photos, illustrations, tex... | — | `~/.codex/skills/.system/imagegen/SKILL.md` |

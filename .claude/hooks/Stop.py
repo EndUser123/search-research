@@ -4172,7 +4172,7 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
         "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.ADVISORY,
+        "rollout_mode": RolloutMode.BLOCK,
     },
     "intent_artifact_alignment": {
         "class": "quality", "trivial_suppressible": True, "priority": 67,

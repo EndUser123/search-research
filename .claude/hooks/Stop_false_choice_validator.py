@@ -9,8 +9,8 @@ This is the structural backstop for the false-choices pattern documented in
 ~/.grok/AGENTS.md section "No false choices" and the wiki concept
 [[false-choices-parallel-branch-framing]].
 
-SEVERITY: advisory (systemMessage) - not block. This is intentional to measure
-false-positive rate before promoting to block. Reference: MINIMAL_BIAS_GATE
+SEVERITY: block. The operator explicitly rejected advisory — advisory rules have a
+documented ~50% compliance ceiling. The tests verify false-positive discrimination.
 noise problem (keyword-matching fired on descriptive context).
 
 DIFFERENTIATION from Stop_recommendation_gate.py:
@@ -96,7 +96,7 @@ def _has_action_list(response: str) -> bool:
     return len(bulleted) >= 2
 
 
-ADVISORY_MESSAGE = (
+BLOCK_MESSAGE = (
     "[FALSE CHOICE CHECK] You may be presenting independent actions as competing choices.\n\n"
     "If these actions are independent and each has positive ROI, do ALL of them - "
     "do not ask the operator which subset to pick. Present as a parallel list, "
@@ -111,8 +111,8 @@ def check_false_choice(response: str, data: dict | None = None) -> dict | None:
     Check for false-choice patterns in the response.
 
     Returns:
-        dict with 'systemMessage' if potential false choice detected, else None.
-        Advisory only - never blocks.
+        dict with 'decision': 'block' and 'reason' if false choice detected, else None.
+        Blocks the response — the operator asked for structural enforcement, not advisory.
     """
     if not response or len(response) < MIN_RESPONSE_LENGTH:
         return None
@@ -130,9 +130,9 @@ def check_false_choice(response: str, data: dict | None = None) -> dict | None:
     )
 
     if _has_or_both(response) and not _has_genuine_competition(response):
-        return {"systemMessage": ADVISORY_MESSAGE}
+        return {"decision": "block", "reason": BLOCK_MESSAGE, "blocking_hook": "Stop_false_choice_validator"}
 
     if has_trigger and _has_action_list(response):
-        return {"systemMessage": ADVISORY_MESSAGE}
+        return {"decision": "block", "reason": BLOCK_MESSAGE, "blocking_hook": "Stop_false_choice_validator"}
 
     return None

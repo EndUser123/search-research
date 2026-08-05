@@ -29,7 +29,8 @@ class TestTruePositiveOrBoth:
         )
         result = check_false_choice(response)
         assert result is not None
-        assert "systemMessage" in result
+        assert result["decision"] == "block"
+        assert result["decision"] == "block"
 
     def test_or_all_of_them(self):
         response = (
@@ -38,7 +39,8 @@ class TestTruePositiveOrBoth:
         )
         result = check_false_choice(response)
         assert result is not None
-        assert "systemMessage" in result
+        assert result["decision"] == "block"
+        assert result["decision"] == "block"
 
 
 class TestTruePositiveSubsetDelegation:
@@ -54,7 +56,8 @@ class TestTruePositiveSubsetDelegation:
         )
         result = check_false_choice(response)
         assert result is not None
-        assert "systemMessage" in result
+        assert result["decision"] == "block"
+        assert result["decision"] == "block"
 
     def test_which_of_these_would_you_like(self):
         response = (
@@ -66,6 +69,7 @@ class TestTruePositiveSubsetDelegation:
         )
         result = check_false_choice(response)
         assert result is not None
+        assert result["decision"] == "block"
 
 
 class TestTruePositiveMenuDelegation:
@@ -81,6 +85,7 @@ class TestTruePositiveMenuDelegation:
         )
         result = check_false_choice(response)
         assert result is not None
+        assert result["decision"] == "block"
 
 
 class TestTrueNegativeGenuineCompetition:
