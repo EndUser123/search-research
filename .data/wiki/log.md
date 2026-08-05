@@ -1,5 +1,17 @@
 # Vault Log
 
+## adaptive-risk-assessment-single-pass-first-architecture
+Source: session-20260804
+Agent: grok
+Notes: Adaptive risk assessment architecture for /risk skill + display reliability pattern (agent emits data, code renders)
+Page: P:/.data/wiki/concepts/adaptive-risk-assessment-single-pass-first-architecture.md
+
+## --concept
+Source: open-dynamic-workflow-cross-agent-orchestration
+Agent: --action
+Notes: created
+Page: --source
+
 ## Correction-response discipline update
 Source: session-019fcb54
 Agent: grok
