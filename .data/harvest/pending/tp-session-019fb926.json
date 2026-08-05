@@ -2,16 +2,21 @@
   {
     "title": "NEXT_ACTION_PACKET prototype in /www",
     "obligation": "Replace prose Skill suggestion with structured packet so operator-gated skill routing costs one keystroke not re-derivation",
-    "operation": "GENERALIZE"
+    "operation": "GENERALIZE",
+    "status": "resolved",
+    "resolution": "Implemented as skills/__lib/next_action.py — emit_next_action() produces copy-pasteable ⟹ NOW/NEXT/LATER packets. Session 019fc99e, 2026-08-04."
   },
   {
     "title": "tool_choice=required injection in /codex skill for Luna/mini-class",
     "obligation": "Lighter GPT-5 tiers intermittently emit text-only instead of tool calls; conductor should inject tool_choice=required when available",
-    "operation": "GENERALIZE"
+    "operation": "GENERALIZE",
+    "status": "dismissed",
+    "resolution": "Not implementable as stated. Codex CLI does not expose the API request layer — tool_choice=required requires request-pipeline control. Wiki concept router-proxy-tool-calling-normalization-patterns.md documents this. Fix is to bypass Codex transport (use OpenCode/PI/direct API), not modify /codex. Operator confirmed no issue observed in actual Codex CLI usage."
   },
   {
     "title": "Luna no-auto-pool update not applied",
     "obligation": "Wiki concept recommends adding Luna to no-auto-pool list in model-tool-calling-capability-matrix.md but the matrix was not updated",
-    "operation": "COMPLETE"
+    "operation": "COMPLETE",
+    "status": "pending"
   }
 ]
