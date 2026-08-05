@@ -2082,6 +2082,28 @@ def _run_recommendation_gate(data: dict) -> dict | None:
         return None
 
 
+def _run_false_choice_validator(data: dict) -> dict | None:
+    """Detect independent actions framed as competing choices (false-choices pattern).
+
+    Advisory only (systemMessage) - measures false-positive rate before block promotion.
+    Quality gate - suppressed on control turns.
+    """
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["recommendation_gate"]):
+        return None
+    try:
+        import Stop_false_choice_validator
+
+        response = data.get("response", "")
+        if not response:
+            return None
+        return Stop_false_choice_validator.check_false_choice(response, data)
+    except Exception as e:
+        _logger.warning(f"false_choice_validator error: {e}")
+        return None
+
+
 def _run_reasoning_quality_gate(data: dict) -> dict | None:
     """Run automatic reasoning quality gate on responses using reasoning package."""
     try:
@@ -3619,6 +3641,7 @@ GATE_CLASSES: dict[str, str] = {
     "behavior_gates_blacklist": "policy",
     "command_execution_validator": "policy",
     "recommendation_gate": "quality",
+    "false_choice_validator": "quality",
     "intent_artifact_alignment": "quality",
     "deletion_verification_guard": "policy",
     "git_diff_reground": "policy",
@@ -4143,6 +4166,14 @@ GATE_METADATA: dict[str, dict] = {
         # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d).
         "rollout_mode": RolloutMode.ADVISORY,
     },
+    "false_choice_validator": {
+        "class": "quality", "trivial_suppressible": True, "priority": 95,
+        "description": "False-choices pattern detector (independent actions as competing)",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
     "intent_artifact_alignment": {
         "class": "quality", "trivial_suppressible": True, "priority": 67,
         "description": "Intent-artifact alignment",
@@ -4246,6 +4277,7 @@ IN_PROCESS_GATES = [
     ("reasoning_quality_gate", _run_reasoning_quality_gate),
     ("lazy_workaround_gate", _run_lazy_workaround_gate),
     ("recommendation_gate", _run_recommendation_gate),
+    ("false_choice_validator", _run_false_choice_validator),
     ("intent_artifact_alignment", _run_intent_artifact_alignment),
     ("semantic_critic", _run_semantic_critic),
     ("proposal_critique_gate", _run_proposal_critique_gate),
