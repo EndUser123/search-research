@@ -1,7 +1,7 @@
 # Handoff — ship-py hardening: architectural findings from specialist review
 
 ## Status
-OPEN — 4 mechanical fixes ready to do, 5 architectural items need design.
+OPEN — 4 mechanical fixes DONE. 5 architectural items remain.
 
 ## Objective
 
@@ -10,9 +10,9 @@ Address the remaining findings from the ship-py specialist code review
 Bug #1 (review-blocked bypass) was fixed this session (commit `3736f4e`).
 The remaining 11 findings need disposition.
 
-## Mechanical fixes (DO_NOW — no design decisions needed)
+## Mechanical fixes (DONE — commit 0cee78d)
 
-### 1. FREE_C default collides with FREE_A
+### 1. FREE_C default collides with FREE_A — DONE
 Both default to `minimax-m3`. When the operator doesn't pass model args,
 FREE_A and FREE_C are the same model — retry swaps to FREE_B which is
 correct, but the verify agent uses FREE_C which collides with the
