@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-05
 cognitive_load: 3
-summary: Auto-generated index of 716 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 715 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 716 across 21 scopes.
+**Total skills:** 715 across 21 scopes.
 
 ## How to use this catalog
 
@@ -208,12 +208,11 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **usage-query-skill** _[c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-usage-f12dc7b5]_ | ✓ | — | Run the usage query script to retrieve account usage information for GLM Coding Plan. Only use when invoked by usage-que... | — | `~/.grok/installed-plugins/c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-usage-f12dc7b5/skills/usage-query-skill/SKILL.md` |
 | **case-feedback-skill** _[c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-bug-4165180d]_ | ✓ | — | Run the case feedback script to submit feedback for the current conversation. Only use when invoked by case-feedback-age... | — | `~/.grok/installed-plugins/c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-bug-4165180d/skills/case-feedback-skill/SKILL.md` |
 
-## grok-project (2 skills)
+## grok-project (1 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | — | `P:/.grok/skills/check/SKILL.md` |
-| **red-team-old** | ✓ | — | DEPRECATED — absorbed into /risks. This skill is disabled and kept only as reference for the full specialist procedure t... | — | `P:/.grok/skills/red-team-old/SKILL.md` |
 
 ## grok-agents (12 skills)
 

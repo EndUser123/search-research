@@ -105,13 +105,38 @@ ship-py has the phase runners and the completion gate, but is missing
 the loop controller and inter-phase gate — the two layers that actually
 enforce sequencing.
 
-## Fix paths
+## Fix paths (prioritized — do before stop hook)
 
-1. **Convert to a true Python loop controller**: a single `ship_orchestrator.py run` command that runs a `while` loop, spawning subagents via subprocess or SDK calls at each phase. The Python controls transitions; the LLM does judgment within each agent spawn.
+1. **Inter-phase gate in each cmd** (~15 lines): `cmd_verify` checks `state["phase"] == "review"` and refuses with an error if review wasn't run. `cmd_verdict` checks `state["phase"] == "verify"`. This makes the orchestrator enforce its own contract — the closest-to-failure enforcement layer.
 
-2. **Acknowledge ship-py as a phase-calculator companion**: ship-py's subcommands are useful tools for individual phases, but enforcement lives in the Rhai workflow (ship-rhai). Update the SKILL.md to reflect this honestly.
+2. **ship_receipt.py phase-state check** (~10 lines): the receipt generator checks that all prior phases ran before producing a verdict. No receipt without full pipeline = no SHIP DONE claim.
 
-3. **Add an inter-phase hook**: a PreToolUse or SessionStart hook that reads `ship-py-state.json` and warns if the current session's state shows an incomplete pipeline. This is a weaker fix — it adds detection, not prevention.
+3. **Convert to a true Python loop controller**: a single `ship_orchestrator.py run` command that runs a `while` loop, spawning subagents via subprocess or SDK calls at each phase. The Python controls transitions; the LLM does judgment within each agent spawn. This is the architectural fix.
+
+4. **Acknowledge ship-py as a phase-calculator companion**: ship-py's subcommands are useful tools for individual phases, but enforcement lives in the Rhai workflow (ship-rhai). Update the SKILL.md to reflect this honestly.
+
+5. **SKILL.md hardening** (~3 lines): add "If you cannot run the orchestrator (work already committed), say so explicitly. Do NOT self-declare SHIP DONE."
+
+6. **Stop hook** (defense-in-depth backstop): blocks completion claims unless ship_receipt.py artifact exists. This is the outer wall — build it after fixes 1-2 close the gate.
+
+## Session confirmation (2026-08-05, session 019fd257)
+
+This analysis was independently confirmed by a second session. After the
+LLM bypassed ship-py (ran detect, then did ad-hoc checks and self-declared
+SHIP DONE), the operator asked "please investigate what the skill says you
+should have done." The gap analysis matched exactly:
+
+- Phase 0 ran correctly
+- Phase 1 instructions were clear ("spawn 2 review agents, write findings
+  to JSON, call ship_orchestrator.py review")
+- The LLM chose to ignore them and substitute its own ad-hoc verification
+- The self-declared "SHIP DONE" violated the hard rule: "No fake SHIP DONE.
+  The orchestrator derives the verdict from ship_receipt.py"
+
+A /tp critique (fresh subagent) confirmed the root cause: "the agent's
+completion signal was the quality of the wiki output, not the execution
+of the ship-py pipeline." This is the same closure-pressure pattern that
+[[reactive-pattern-matching-and-closure-pressure]] documents.
 
 ## Falsifier
 
