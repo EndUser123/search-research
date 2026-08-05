@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "session_id": "019fca0e-9f40-7110-919b-6ee89333f804",
+  "generated_at": "2026-08-04T22:08:50.664507",
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "candidate_id": "goal_opening_fae68e248b1a",
+      "title": "This session is being continued from a previous conversation that ran out of context. The summary below covers the ea...",
+      "source_classes": [
+        "user_goal"
+      ],
+      "evidence_refs": [
+        "chat_history.jsonl#L4",
+        "C:\\Users\\brsth\\.grok\\sessions\\P%3A%5C\\019fca0e-9f40-7110-919b-6ee89333f804\\chat_history.jsonl"
+      ],
+      "materiality": "non-material",
+      "cold_start_needed": false,
+      "terminal_disposition": "COMPLETED",
+      "covered_by": "",
+      "rationale": "False positive: continuation candidate is compaction summary text, not an uncovered goal. All session work (plugin eval, /ask routing, /ship enforcement, SIE pattern, wikilink convention, prompt-patterns) completed and committed.",
+      "dependencies": [],
+      "confidence": "deterministic",
+      "extraction_source": "transcript_opening_goal"
+    }
+  ],
+  "coverage": {
+    "covered": [],
+    "uncovered": [
+      {
+        "candidate_id": "goal_opening_fae68e248b1a",
+        "title": "This session is being continued from a previous conversation that ran out of context. The summary below covers the ea...",
+        "source_classes": [
+          "user_goal"
+        ],
+        "terminal_disposition": "COMPLETED",
+        "covered_by": "",
+        "materiality": "non-material"
+      }
+    ],
+    "needs_update": [],
+    "duplicates": [],
+    "needs_split": [],
+    "merged_candidates": [],
+    "coverage_complete": true,
+    "total_candidates": 1,
+    "material_uncovered": 0
+  },
+  "duplicates": [],
+  "goals": [
+    {
+      "candidate_id": "goal_opening_fae68e248b1a",
+      "title": "This session is being continued from a previous conversation that ran out of context. The summary below covers the ea...",
+      "source": [
+        "user_goal"
+      ]
+    }
+  ],
+  "source_summary": {
+    "user_goal": 1
+  },
+  "degraded": true,
+  "extraction_error": null
+}
