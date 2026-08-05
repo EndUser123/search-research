@@ -217,3 +217,23 @@ Or if the operator wants to update routing tables:
 **Status update:** unchanged — all phases still deferred by design. The session's shipped work is verified and reviewed.
 
 **New open items:** none. The hook's multi-root staleness blind spot (ARCH-10) was already documented in the handoff's Verified Facts section.
+
+---
+
+## Revision 2 — 2026-08-03T19:00Z (session 019fc927)
+
+**Trigger:** Phase 2 completed in a follow-up session. Scope defined, measured, decision recorded.
+
+**What changed since Revision 1:**
+
+1. **Phase 2 (tree-sitter scope definition) is COMPLETE.** Measured full-workspace scope: 6,402 .py files after filtering (11 ROOT_SCOPES, 12 exclusion patterns). Cold build: 58.73s, 0 parse errors, 63K defs / 400K call sites. Both abandonment criteria pass with 80%+ headroom. Decision: global single graph.
+
+2. **Key finding:** `plugins/` is 66% vendored dependencies. The PoC counted 7,806 .py files there; with proper exclusions only 2,687 are operator source. The real codebase is 3× smaller than the PoC suggested.
+
+3. **Deliverables committed:** `4025d04` — `P:/docs/designs/codegraph-scope.md` (design doc), `P:/tmp/codegraph_scope_measure.py` (measurement script), `P:/tmp/codegraph_scope_results.json` (raw results).
+
+4. **Phase 3 trigger is now met** (Phase 2 complete) but remains deferred by operator decision — grep limitations have not been felt in any session since the handoff was written.
+
+**Status update:** Phase 2 = COMPLETE. Phases 3-5 remain deferred by design. TASK-2 (AGENTS.md routing update) completed in same session.
+
+**Updated open items:** none new. Phase 3 can proceed whenever the operator wants it; the scope and numbers are defined.
