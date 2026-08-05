@@ -268,9 +268,9 @@ transport (use OpenCode, PI, or direct API with `tool_choice=required`).
 ## Do's and don'ts
 
 ### Do
-- **Force `tool_choice=required`** when calling lighter model tiers (Luna,
-  mini-class) from any harness that exposes the API request layer. This is
-  the single highest-leverage fix for text-only emission failures.
+- **Force `tool_choice=required`** when calling lighter model tiers through
+  raw API calls or proxies that expose the request layer. **Not needed for
+  Codex CLI** — Luna works without it (verified 2026-08-04).
 - **Treat text-only responses as failure conditions** when tools are required
   — retry or failover. Codex CLI currently treats them as success.
 - **Use the Responses API (`wire_api = "responses"`)** for Codex CLI with any
@@ -293,23 +293,35 @@ transport (use OpenCode, PI, or direct API with `tool_choice=required`).
 - **Don't blame the model before checking the transport.** The Kotonia study
   proved that "a harness mismatch is indistinguishable from model
   disobedience when you only look at outcomes."
-- **Don't route tool-required work to Luna/mini-class models** in harnesses
-  that don't support `tool_choice=required` or text-only retry detection.
+- ~~**Don't route tool-required work to Luna/mini-class models** in harnesses
+  that don't support `tool_choice=required` or text-only retry detection.~~
+  **CORRECTION (2026-08-04):** This advice was based on external research
+  (GitHub issues about text-only emission) that does not apply to Codex CLI
+  on this host. Tested empirically: `gpt-5.6-luna` via `codex exec` passed
+  both file-read and multi-step search tool-grounded tasks with zero
+  emission failures. Luna is verified working for tool-grounded work via
+  Codex CLI. See corrected recommendation below.
 
 ## What this means for our workspace
 
-1. **The `/codex` skill should add a `tool_choice=required` injection option**
-   for calls to lighter model tiers (Luna, mini-class). This is the
-   highest-leverage fix and aligns with the conductor-skill pattern already
-   used for `/agy`, `/mmx`, `/codex`.
-2. **Luna should NOT be routed to tool-required tasks** via Codex CLI unless
-   `tool_choice=required` is injected. Add Luna to the "no auto-pool for
-   tool-grounded work" list alongside Nemotron, per
-   [[model-tool-calling-capability-matrix]].
-3. **The bypass-transport pattern is now triply validated:** Nemotron (serde
-   bug) → OpenCode/PI; DiffusionGemma (parser conflict) → direct API; Luna
-   (emission failure) → should use direct API with `tool_choice=required` or
-   OpenRouter reliability routing.
+**CORRECTION (2026-08-04):** The original recommendations 1-2 below were
+based on theoretical research about Luna text-only emission failures that
+do NOT manifest in practice on this host. Empirical testing falsified the
+claim. The original text is preserved struck-through for provenance.
+
+1. ~~**The `/codex` skill should add a `tool_choice=required` injection option**
+   for calls to lighter model tiers (Luna, mini-class).~~ **Not needed.**
+   Codex CLI does not expose the API request layer, and testing shows Luna
+   emits tool calls correctly without `tool_choice=required`.
+2. ~~**Luna should NOT be routed to tool-required tasks** via Codex CLI.~~
+   **FALSIFIED.** Luna IS verified working for tool-grounded tasks via
+   Codex CLI (2026-08-04: file read 24.6s + multi-step search 26.0s, both
+   with correct tool calls and zero text-only emission). Luna should NOT
+   be excluded from tool pools.
+3. **The bypass-transport pattern is doubly validated (not triply):**
+   Nemotron (serde bug) → OpenCode/PI; DiffusionGemma (parser conflict)
+   → direct API. ~~Luna (emission failure)~~ — **removed: Luna works
+   via Codex CLI on this host (verified 2026-08-04).**
 4. **OpenRouter reliability routing** is the production-grade solution for
    fleet-wide tool-call reliability, but conflicts with the operator's
    intermediary-aversion preference. Flag as conditional recommendation.
@@ -330,15 +342,19 @@ transport (use OpenCode, PI, or direct API with `tool_choice=required`).
    `/codex` skill-level concern (request-pipeline injection at invocation),
    not a config.toml concern. When `/codex` invokes Luna via
    `--model gpt-5.6-luna`, the flag overrides config's `model =` — fine for
-   schema provisioning (harness-fixed), but Luna's emission reliability
-   remains the open risk that `tool_choice=required` addresses.
+   schema provisioning (harness-fixed). ~~Luna's emission reliability
+   remains the open risk~~ **Luna's emission reliability is verified working
+   (2026-08-04 empirical test, Codex CLI).**
 
 ## Falsifier
 
 This concept is wrong if:
-- `tool_choice=required` does not prevent Luna's text-only emission (the
-  failure is deeper than confidence-gating — perhaps the model truly cannot
-  emit structured tool calls in some contexts)
+- ~~`tool_choice=required` does not prevent Luna's text-only emission~~
+  **CONFIRMED FALSE (2026-08-04):** Luna emits tool calls correctly via
+  Codex CLI without `tool_choice=required`. Two empirical tests passed
+  (file read 24.6s, multi-step search 26.0s, both with correct tool calls).
+  The original concern was based on external GitHub issues that do not
+  reproduce on this host's Codex CLI transport.
 - Codex CLI ships a per-model-tier tool-provisioning toggle (making the
   harness-fixed assumption wrong)
 - `add_function_to_prompt` gets fixed and becomes a viable fallback (re-evaluate

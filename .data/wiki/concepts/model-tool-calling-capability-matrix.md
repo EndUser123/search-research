@@ -105,6 +105,7 @@ The existing model concepts (`model-fleet-provider-pools`, `model-selection-from
 | Model (host slug) | Tool calling? | Reason / evidence | Use for |
 |-------------------|---------------|-------------------|---------|
 | `parent-inherited` (Grok) | **Yes** | Verified: drives the parent agent full tool surface | All tool-grounded work (default) |
+| `gpt-5.6-luna` (via Codex CLI) | **Yes** | Verified 2026-08-04: two tool-grounded tests via `codex exec --json --ephemeral -s read-only -m gpt-5.6-luna` — (1) file read + assert count (24.6s, 1 tool call, correct), (2) multi-step search with rg (26.0s, 2 tool calls, correct). Zero text-only emission failures. | Cross-model second opinions, code review, tool-grounded research via `/codex` skill |
 | `ccr-ornith` | **Yes** | Verified 2026-07-22: probe-verified spawn_subagent + tool calls (slow: 31s) | Tool-grounded reads, slow but free |
 | `go-mimo-v2-5` (MiniMax) | **Yes** | Probe-verified 2026-07-22 spawn_subagent; llm-stats MCP Atlas 74.2% | Tool-grounded reads, fast + paid |
 | `glm-5-2` | **Yes** | Probe-verified 2026-07-22; llm-stats MCP Atlas 76.8%, Terminal-Bench 82.7% | Reasoning + tool-grounded (ration: scarce) |
