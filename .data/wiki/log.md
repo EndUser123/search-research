@@ -1,5 +1,11 @@
 # Vault Log
 
+## spawn-evaluate-return-pattern-shared-across-critique-skills
+Source: session-019fd276
+Agent: grok
+Notes: Pattern analysis: /tp /risks /review share spawn-evaluate-return but diverge in evaluation logic
+Page: P:/.data/wiki/concepts/spawn-evaluate-return-pattern-shared-across-critique-skills.md
+
 ## llm-text-degeneration-and-output-validation-gates
 Source: session-019fcd47
 Agent: grok
