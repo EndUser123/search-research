@@ -198,7 +198,7 @@ of 3) made the escalation threshold fire differently. `[UNVERIFIED PATTERN — N
 | Skill | P1 Host-ctx | P2 Cross-model | P3 Panel | P4 Disagree | P5 Adaptive lens | P6 Threat model | P7 Dedup |
 |---|---|---|---|---|---|---|---|
 | **`/risks`** | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v2 | ✅ v2 |
-| **`/review`** | ❌ Missing | ❌ Single model | ❌ Fixed roster | ❌ N/A | ❌ Fixed | ❌ Missing | ❌ Missing |
+| **`/review`** | ✅ P1 (2026-08-04) | ✅ P2 (2026-08-04) | ❌ Fixed roster | ✅ P4 (2026-08-04) | ✅ Inferred lenses | ✅ P6 (2026-08-04) | ✅ Existing dedup + clustering |
 | **`/tp`** | Partial | ✅ Has pool | ❌ N/A (1 critic) | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
 | **`/red-team`** | ❌ Missing | Partial (1 cross) | ❌ Fixed 3-6 | ❌ Missing | ❌ Fixed | ❌ Missing | ❌ Missing |
 | **`/www`** | ❌ Missing | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
