@@ -7,12 +7,12 @@ summary: >
   Three industry patterns for automated agent improvement from operational
   traces. All trigger on events (not schedules), connect detection to
   storage to improvement automatically, and treat agent traces as the
-  primary evidence source. Our workspace has detection (/aar detectors)
-  and storage (wiki/handoffs) but the connection between them is manual.
+  primary evidence source. Our workspace has detection (/aar 32-detector
+  engine) and storage (wiki/handoffs) but the connection between them is manual.
 agent: grok
 host: grok
 cognitive_load: 2
-verification: inferred
+verification: verified — detector count and relevance confirmed via grep + docstring read 2026-08-05
 relations:
   - target: wiki/concepts/non-use-signals-deployment-failure-not-capability-failure.md
     type: related — the improvement loop must be automated to fire; manual invocation is the deployment failure
@@ -77,12 +77,27 @@ All three patterns trigger on **events** (failures, corrections, traces), not sc
 
 The right trigger for our workspace: **operator corrections detected in the transcript.** The `/aar` detector `detect_user_corrections` already finds these mechanically. The missing connection is: detected correction → three-layer decomposition → wiki-worthy gate → auto-capture.
 
+## Relevant detectors for the auto-capture pipeline
+
+The `/aar` engine has **32 detectors** (`grep '^def detect_' detectors.py` → 32 functions). Not all are relevant to wiki-worthy auto-capture. The detectors that produce signals suitable for the wiki-worthy gate (6 checks):
+
+| Detector | Line | Severity | Why it's auto-capture-relevant |
+|----------|------|----------|-------------------------------|
+| `detect_user_corrections` | 726 | HIGH | Primary signal — operator corrections are the highest-authority trigger |
+| `detect_assistant_self_corrections` | 697 | MEDIUM | Self-corrections reveal tacit knowledge the agent revised mid-session |
+| `detect_successful_interventions` | 1345 | MEDIUM | Recovery patterns after errors — reusable solutions worth capturing (falsifier: "not reusable outside this session") |
+| `detect_recommendation_revisions` | 1309 | MEDIUM | Changed recommendations = decisions with rationale; classified via `RevisionClassification` enum |
+| `detect_correction_propagation_failure` | 1647 | LOW | Corrections that didn't propagate = structural gaps to document |
+| `detect_context_rederivation` | 1998 | MEDIUM | Same file read ≥3 times = the wiki concept should have been found/promoted (excludes state/config paths) |
+
+The original version of this concept said "12 detectors" — this was an undercount. The actual engine has 32, of which 6 are directly relevant to the auto-capture pipeline. The remaining 26 detectors cover error detection, efficiency analysis, and interaction quality — valuable for `/aar` reports but not directly feeding wiki-worthy auto-capture.
+
 ## What we already have vs. what's missing
 
 | Loop stage | What we have | Gap |
 |---|---|---|
 | Trace capture | Session transcripts, git history | ✅ |
-| Signal detection | `/aar` detectors.py (12 detectors) | ✅ |
+| Signal detection | `/aar` detectors.py (**32 detectors**, 6 relevant to auto-capture) | ✅ |
 | Human feedback | Operator corrections in transcript | ✅ (detected by `detect_user_corrections`) |
 | Reflection/extraction | `/tp` did it manually this session | ❌ Manual only — no auto-trigger |
 | Evaluation | Wiki-worthy gate (6 checks) | ✅ |

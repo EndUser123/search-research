@@ -1,5 +1,11 @@
 # Vault Log
 
+## Correct detector count in agent-improvement-loop concept
+Source: session-019fd42f (/tp critique verification)
+Agent: grok
+Notes: Fixed 12→32 detectors (grep verified), added 6 relevant detectors table, upgraded verification field
+Page: wiki/concepts/agent-improvement-loop-patterns-automated-learning-from-traces
+
 ## --concept
 Source: agent-improvement-loop-patterns-automated-learning-from-traces
 Agent: --action
