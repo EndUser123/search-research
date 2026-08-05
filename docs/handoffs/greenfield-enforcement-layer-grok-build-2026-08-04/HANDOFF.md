@@ -52,9 +52,30 @@ Layer 0 — Execution Substrate (Codex sandbox primitive, Option C)
 
 ### Phase 0 — Foundation (1-2 sessions)
 
-- [ ] **H0.1** UPDATE existing wiki concept `P:/.data/wiki/concepts/agent-control-plane-enforcement-architectures-2026.md` with LAEFS architecture details — do NOT create a new file (the concept already exists, 212 lines)
-- [ ] **H0.2** Reconcile three dangling wiki references (`[[earned-authority-fixed-ceiling]]`, `[[codex-windows-sandbox-pattern]]`, `[[open-agent-passport-specification]]`) — either lift sections or close with pointer to the parent concept
-- [ ] **H0.3** Study `cc-aca-authority` plugin source at `P:/packages/.claude-marketplace/plugins/cc-aca-authority/` for design patterns (NOT for reuse — for understanding what a production broker looks like)
+- [x] **H0.1** UPDATE existing wiki concept `P:/.data/wiki/concepts/agent-control-plane-enforcement-architectures-2026.md` with LAEFS architecture details — do NOT create a new file (the concept already exists, 212 lines)
+- [x] **H0.2** Reconcile three dangling wiki references (`[[earned-authority-fixed-ceiling]]`, `[[codex-windows-sandbox-pattern]]`, `[[open-agent-passport-specification]]`) — all 3 resolved as pointers to parent concept sections (content already covered, no new files needed)
+- [x] **H0.3** Study `cc-aca-authority` plugin source at `P:/packages/.claude-marketplace/plugins/cc-aca-authority/` for design patterns (NOT for reuse — for understanding what a production broker looks like)
+
+  **Findings (subagent study, session 019fcdd2):**
+
+  **5 transferable patterns for LAEFS Layer 1 broker:**
+  1. **Bootstrap + resolver path architecture** — `_bootstrap.py` + `hooks_resolver.py` decouple hook location from broker location via walk-up path resolution. LAEFS should adopt for `__file__`-relative path resolution.
+  2. **Terminal-scoped state with TTL + atomic writes** — delegation state model: `.artifacts/{terminal_id}/hook_state/`, `os.replace()` atomic writes, TTL-based expiration, permission-restricted files. LAEFS should use this as the state management model (with proper concurrency control added).
+  3. **Tiered risk classification with pre-compiled patterns** — ADVISORY/CONFIRM/DENY tiers with pre-compiled regex, configurable display modes, session-scoped dedup. LAEFS should adopt for policy evaluation engine.
+  4. **Dual-mode hook entry points (CLI + in-process)** — `main()` for subprocess dispatch, `run(data)` for in-process. Essential for testability. LAEFS router should prefer in-process dispatch for performance.
+  5. **Structured block logging** — `stop_blocks.jsonl` with structured diagnostic schema (timestamp, event, gate_name, reason, session_id, terminal_id). LAEFS should adopt as audit trail foundation.
+
+  **10 anti-patterns to avoid:**
+  1. Claude-specific coupling (CLAUDE_SESSION_ID, agent hook type, settings.json)
+  2. Subprocess dispatch per hook (expensive, no shared state, 10s hardcoded timeout)
+  3. Hardcoded path assumptions (P:/.claude/ baked in)
+  4. Empty hooks.json placeholder (no native registration)
+  5. State as flat JSON in shared filesystem (no locking, race conditions)
+  6. Monolithic hook files (950-1000+ lines per hook)
+  7. No policy versioning or audit trail
+  8. Implicit coupling via global __lib/ modules
+  9. Orphaned modules (response_intent.py only test-consumed)
+  10. **No fail-closed default** — crashed hook = no enforcement (the most critical anti-pattern for LAEFS to fix)
 
 ### Phase 1 — Gating tests (1-2 sessions, MUST pass before any implementation)
 

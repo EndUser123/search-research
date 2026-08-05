@@ -217,7 +217,7 @@ The skeptic verifier found the largest class of failure is **trust-binding ambig
 **Operator decision: greenfield IF it results in better development and outcomes.** The greenfield path is cleaner because:
 1. No inherited Claude plugin design constraints (cc-aca-authority was designed for Claude's `agent` hook type)
 2. No "does this Claude plugin fire on Grok?" uncertainty (the `[[grok-build-host-authority]]` anti-pattern)
-3. Design for Grok Build's actual hook capabilities: `command` + `http` hooks, fail-open semantics, Stop blocking, config.toml registration
+3. Design for Grok Build's actual hook capabilities: `command` + `http` hooks, fail-open semantics, Stop blocking, `~/.grok/hooks/*.json` registration
 
 **Grok-native hook system as the authority substrate:**
 - `PreToolUse` (command hook): the broker fires here — reads stdin JSON (tool name, parameters), outputs allow/deny/escalate
@@ -234,15 +234,61 @@ The research confirms the **greenfield "balanced" configuration** — built for 
 | Layer | Pattern source | Grok-native implementation |
 |---|---|---|
 | **Layer 0** (substrate) | Codex sandbox | Windows OS primitives — no host dependency. Synthetic SIDs + restricted tokens + workspace ACLs. |
-| **Layer 1** (broker) | OAP pattern | New Python `PreToolUse` command hook, registered in Grok Build `config.toml`. Passport + policy + fail-closed. NOT Claude's `settings.json` + `router.py`. |
+| **Layer 1** (broker) | OAP pattern | New Python `PreToolUse` command hook, registered in `~/.grok/hooks/*.json` (20 active hooks verified 2026-08-04; config.toml has zero hook registrations). Passport + policy + fail-closed. NOT Claude's `settings.json` + `router.py`. |
 | **Layer 2** (authority) | Earned Authority | New session-start hash hook + capability mutation detector + spawn envelope comparator. Uses Grok Build's hook event model. |
 
 **The research does NOT support the "maximum" configuration** (external workflow supervisor) yet — no production system combines all five layers into a single supervisor. The "maximum" architecture is theoretically optimal (per "Earned Authority") but would require building the integration ourselves.
 
+## LAEFS architecture (Layered Agent Enforcement for Fleet Substrate)
+
+The greenfield implementation is named **LAEFS** — Layered Agent Enforcement for Fleet Substrate. It implements the three-layer composition validated by the deep-research workflow:
+
+```
+Layer 2 — Authority Semantics (Earned Authority framework)
+  • Transition envelope per workflow phase (6 mutation classes)
+  • Effect ceiling — no runtime evidence may raise it
+  • Session-start manifest hash (detects in-session hook edits)
+  • Spawn envelope comparator (child authority ⊑ parent authority)
+  • Capability mutation detector (skill load, MCP enable)
+  • Wiki concept source: field + pre-write provenance gate
+
+Layer 1 — Pre-Action Broker (OAP-inspired pattern, greenfield)
+  • Agent passport (Ed25519-signed; status + capabilities + limits)
+  • Policy packs (declarative YAML, fail-closed)
+  • PreToolUse command hook (Grok-native, registered in ~/.grok/hooks/*.json)
+  • Signed audit log entries
+  • ESCALATE path (hybrid: model for low-risk, watcher for irreversible)
+
+Layer 0 — Execution Substrate (Codex sandbox primitive, Option C)
+  • Synthetic SIDs per agent + WRITE_RESTRICTED token
+  • Per-agent workspace ACLs (worktree = writable_roots)
+  • Forensic local users (FleetSandboxUsers group)
+  • NO WFP/firewall (defer to fleet egress)
+  • Cleanup script from day one
+```
+
+**Design constraints from skeptic review (must be addressed, not deferred):**
+1. Capabilities must have a separate issuer authority — agents cannot self-attest. Issued by operator at session start.
+2. Policy packs must be in the manifest hash — the drift detector walks the Python import graph.
+3. All hook error paths must fail closed — timeout, exception, malformed output, missing hook.
+4. DPAPI keys must be per-agent — not shared, stored where other agents cannot read them.
+
+### Phase 1 gating test results (session 019fcdd2, 2026-08-04)
+
+All three gating tests **PASSED**. Implementation may proceed.
+
+| Test | Result | Evidence |
+|---|---|---|
+| **G1.1** NTFS ACL reliability | **PASS** | 100% success (80/80 operations, 20 iterations of apply/verify/remove/verify). icacls works reliably on P:\ NTFS. |
+| **G1.2** PreToolUse hook firing | **PASS** | 100% firing on direct-write tools (26/26 receipts with pre_state). Key finding: hooks load at session start only — broker must be pre-registered. |
+| **G1.3** Hook stdin JSON format | **CONFIRMED** | camelCase JSON: `toolName`, `toolInput`, `sessionId`, `hookEventName`, `workspaceRoot`, `permissionMode`, `toolUseId`, `timestamp`. Output: `{"decision": "allow"}` or `{"decision": "deny", "reason": "..."}`. Exit 0=allow, 2=deny, other=fail-open. |
+
+**Implementation handoff:** `P:/docs/handoffs/greenfield-enforcement-layer-grok-build-2026-08-04/HANDOFF.md` — 6 phases, 20-30 session estimate, Phase 1 complete.
+
 **Three non-negotiable gates before any Layer 0 commitment:**
-1. Test NTFS ACL setup against actual `P:\worktrees/` — P:\ is NTFS (verified); Codex's documented failures were on ReFS, so NTFS is expected to work
-2. Confirm Grok Build's PreToolUse hook actually fires on the tool calls we need to gate (empirical test, not assumption)
-3. Write the cleanup script before the setup script
+1. ~~Test NTFS ACL setup against actual `P:\worktrees/`~~ — **PASSED** (100% success, 20-run test, 2026-08-04)
+2. ~~Confirm Grok Build's PreToolUse hook actually fires on the tool calls we need to gate~~ — **PASSED** (100% on direct-write tools, 2026-08-04)
+3. Write the cleanup script before the setup script *(Phase 2, pending)*
 
 **Rejection criteria (from synthesis + skeptic verification):**
 - J1: Layer 1 p95 latency exceeds 500ms in production (10+ session benchmark)
@@ -265,9 +311,7 @@ This concept is wrong, or the research is outdated, if:
 
 ## Research threads detected
 
-- **Dangling:** `[[open-agent-passport-specification]]` — OAP is the most promising spec; deserves its own concept after deeper evaluation
-- **Dangling:** `[[earned-authority-fixed-ceiling]]` — the arxiv paper deserves its own concept mapping the 6 mutation classes to fleet operations
-- **Dangling:** `[[codex-windows-sandbox-pattern]]` — the composed-sandbox architecture deserves its own implementation-focused concept
+- **Resolved (2026-08-04):** `[[open-agent-passport-specification]]`, `[[earned-authority-fixed-ceiling]]`, `[[codex-windows-sandbox-pattern]]` — all three deferred as separate concept files; their content is already covered in the Deep-research workflow findings sections above (OAP §, Earned Authority §, Codex §). If any topic grows large enough to warrant its own page, extract at that point.
 - **Adjacent:** Microsoft ACS + AGT open-source repo should be evaluated for direct adoption
 - **Pattern:** 1st run on agent control-plane enforcement — this is the foundational concept
 - **Gap:** composability of the five layers into a single stack remains unresolved in the literature
@@ -277,5 +321,5 @@ This concept is wrong, or the research is outdated, if:
 - Confidence: 0.90/1.0 (single-pass + deep-research workflow, multi-source verified, cross-model verification via skeptic + implementer)
 - Unverified claims: 1 (Antigravity CLI hook surface — unknown). P:\ filesystem type verified as NTFS.
 - Downstream dependents: 0 (new concept, but implementation handoff opened at `P:/docs/handoffs/`)
-- Status: VERIFIED (research complete; implementation pending)
+- Status: VERIFIED (research complete; Phase 1 gating tests PASSED 2026-08-04; implementation Phase 0 in progress)
 - Workflow report: `file:///C:/Users/brsth/.grok/sessions/P%3A%5C/019fcdd2-e190-7323-9b77-57a1c73dada5/workflows/wf_019fce5b6b8c7b4183f422e0c89eff41/scratch/deep-research-report.md` (197KB)
