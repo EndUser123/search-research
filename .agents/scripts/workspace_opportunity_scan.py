@@ -19,25 +19,14 @@ from pathlib import Path
 
 
 def scan_harvest_pending():
-    """Check for unread harvest suggestions in pending/."""
-    pending_dir = Path("P:/.data/harvest/pending")
-    if not pending_dir.exists():
-        return []
-    suggestions = []
-    for f in pending_dir.glob("*.json"):
-        try:
-            items = json.loads(f.read_text(encoding="utf-8"))
-            if isinstance(items, list):
-                for item in items:
-                    item["source"] = f.name
-                    suggestions.append(item)
-        except (json.JSONDecodeError, OSError):
-            continue
-    return suggestions
+    """Check for unread harvest suggestions in pending/.
+
+    harvest removed — handoffs are now the tracking system.
+    """
+    return []
 
 
 def scan_capability_gaps():
-    """Find capabilities consumed but not provided by any skill."""
     result = subprocess.run(
         [sys.executable, "P:/.data/wiki/scripts/capabilities.py", "--help-text"],
         capture_output=True, text=True, check=False, cwd="P:/"
@@ -158,8 +147,6 @@ def main():
     args = parser.parse_args()
 
     report = {
-        "harvest_pending": scan_harvest_pending(),
-        "harvest_open_items": scan_harvest_store(),
         "open_handoffs": scan_open_handoffs(),
         "capability_gaps": scan_capability_gaps(),
         "recent_skill_changes": scan_untested_additions(),
@@ -170,18 +157,6 @@ def main():
         return
 
     print("=== WORKSPACE OPPORTUNITY SCAN ===\n")
-
-    if report["harvest_pending"]:
-        print(f"Harvest pending suggestions ({len(report['harvest_pending'])}):")
-        for item in report["harvest_pending"]:
-            print(f"  [{item.get('source', '?')}] {item.get('title', '?')[:80]}")
-        print()
-
-    if report["harvest_open_items"]:
-        print(f"Harvest open items ({len(report['harvest_open_items'])}):")
-        for item in report["harvest_open_items"][:10]:
-            print(f"  {item}")
-        print()
 
     if report["open_handoffs"]:
         execute_ready = [h for h in report["open_handoffs"] if h["has_acceptance_criteria"]]

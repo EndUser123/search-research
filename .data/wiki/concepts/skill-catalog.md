@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-05
 cognitive_load: 3
-summary: Auto-generated index of 717 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 716 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 717 across 21 scopes.
+**Total skills:** 716 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (72 skills)
+## grok-user (71 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -59,7 +59,6 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **grok-sdlc** | ✓ | — | Compatibility alias for /go (formerly /grok-sdlc). Use when the user says /grok-sdlc or /sdlc. Immediately load and exec... | — | `~/.grok/skills/grok-sdlc/SKILL.md` |
 | **grok-verify** | ✓ | — | Evidence-first completion gate: refuse "done/fixed/verified" claims until scope, tests, runtime path, and dirty-tree che... | — | `~/.grok/skills/grok-verify/SKILL.md` |
 | **handoff** | ✓ | — | Write a durable handoff document for the work stream the user asks about. Within-session compaction recovery (reads comp... | Write continuation documents for future sessions. Recover pre-compaction work. C... | `~/.grok/skills/handoff/SKILL.md` |
-| **harvest** | ✓ | — | Recover value already produced but not realized. Event-sourced obligation tracking with claim-based concurrency, verific... | — | `~/.grok/skills/harvest/SKILL.md` |
 | **help** | ✓ | — | Grok documentation and configuration help. Use when users ask about setup, configuration, MCP servers, authentication, s... | — | `~/.grok/skills/help/SKILL.md` |
 | **imagine** | ✓ | — | How to use the image_gen and image_edit tool calls in Grok Build: when to build a visual with code instead of generating... | — | `~/.grok/skills/imagine/SKILL.md` |
 | **improve-codebase-architecture** | ✓ | — | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you ... | — | `~/.grok/skills/improve-codebase-architecture/SKILL.md` |

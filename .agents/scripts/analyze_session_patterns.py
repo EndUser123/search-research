@@ -395,14 +395,13 @@ def main():
     else:
         all_suggestions = suggestions
 
-    # Write harvest suggestions to pending/ (always, regardless of --output)
+    # Write suggestions to stdout (harvest removed — handoffs are now the tracking system)
     if all_suggestions:
-        HARVEST_PENDING.mkdir(parents=True, exist_ok=True)
-        pending_path = HARVEST_PENDING / "analyze_session_patterns.json"
-        pending_path.write_text(json.dumps(all_suggestions, indent=2), encoding="utf-8")
-        print(f"\nHarvest suggestions written to: {pending_path} ({len(all_suggestions)} items)")
-    else:
-        print("\nNo harvest suggestions")
+        print(f"\n=== Cross-Session Suggestions ({len(all_suggestions)} items) ===\n")
+        for s in all_suggestions:
+            print(f"  [{s.get('operation', '?')}] {s.get('title', '?')[:100]}")
+            print(f"    {s.get('obligation', '?')[:120]}")
+            print()
 
     # Full results to --output path (separate from harvest pending)
     if args.output:
