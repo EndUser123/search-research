@@ -24,14 +24,28 @@ export function buildCommand(packet, prompt, { platform = process.platform } = {
   const args = [];
 
   if (packet.worker === "pi") {
-    args.push("-p", "--no-session", "--mode", "json", "--model", packet.model);
+    args.push(
+      "-p", "--no-session", "--mode", "json", "--model", packet.model,
+      "--no-context-files", "--no-extensions", "--no-skills",
+      "--no-prompt-templates", "--no-themes", "--no-approve",
+    );
+    if (packet.requested_provider && packet.requested_provider !== "pi") {
+      args.push("--provider", packet.requested_provider);
+    }
     if (packet.mode === "read_only") {
       args.push("--thinking", "off", "--tools", "read,grep,find,ls");
     } else {
-      args.push("--thinking", packet.thinking || "low");
+      // Keep Pi's write lane limited to file-editing primitives. Verification
+      // commands belong to the parent; enabling bash here would let a worker
+      // mutate arbitrary paths or invoke network-capable tools outside the
+      // worktree before post-run scope checks can observe the result.
+      args.push("--thinking", packet.thinking || "low", "--tools", "read,grep,find,ls,edit,write");
     }
   } else if (packet.worker === "opencode") {
-    args.push("run", "--format", "json", "--model", packet.model, "--agent", agent, "--dir", cwd);
+    const model = !packet.requested_provider || packet.model.startsWith(`${packet.requested_provider}/`)
+      ? packet.model
+      : `${packet.requested_provider}/${packet.model}`;
+    args.push("run", "--format", "json", "--model", model, "--agent", agent, "--dir", cwd);
     if (packet.variant) args.push("--variant", packet.variant);
   } else {
     throw new Error(`Unsupported worker: ${packet.worker}`);

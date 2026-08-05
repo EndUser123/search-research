@@ -39,11 +39,16 @@ function contains(patterns, text) {
   return patterns.some((pattern) => pattern.test(text));
 }
 
-export function classifyFailure({ error = null, exitCode = null, timedOut = false, stdout = "", stderr = "" } = {}) {
+export function classifyFailure({ error = null, exitCode = null, timedOut = false, stdout = "", stderr = "", payload = null } = {}) {
   if (timedOut) return "timeout";
   if (error?.code === "ENOENT") return "command_missing";
 
-  const combined = `${stderr}\n${stdout}`;
+  // A successful structured result may legitimately quote words such as
+  // "quota", "billing", or "rate limit" while inspecting source or logs.
+  // Once the worker has produced a valid payload, classify provider failures
+  // from stderr only; otherwise task content can masquerade as infrastructure
+  // failure. Unsuccessful/unstructured runs still use stdout for diagnostics.
+  const combined = payload && exitCode === 0 ? stderr : `${stderr}\n${stdout}`;
   if (contains(IDENTITY_PATTERNS, combined)) return "identity_mismatch";
   if (contains(AUTH_PATTERNS, combined)) return "auth_or_quota";
   if (contains(CONTEXT_PATTERNS, combined)) return "context_limit";

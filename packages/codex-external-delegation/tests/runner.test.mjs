@@ -4,8 +4,8 @@ import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { buildCommand, runPacket, spawnSpec } from "../src/runner.mjs";
+import { dirname, join } from "node:path";
+import { buildCommand, redactText, runPacket, spawnSpec, workerEnvironment } from "../src/runner.mjs";
 
 const basePacket = {
   schema_version: "2",
@@ -45,10 +45,19 @@ function fakeSpawn({ stdout = "", stderr = "", exitCode = 0, delayMs = 0 } = {})
 }
 
 test("builds safe read-only commands for PI and OpenCode", () => {
-  const pi = buildCommand({ ...basePacket, worker: "pi", model: "minimax/MiniMax-M3" }, "do the task");
+  const pi = buildCommand({ ...basePacket, worker: "pi", model: "deepseek-v4-flash", requested_provider: "opencode-go" }, "do the task");
   assert.equal(pi.command, "pi.cmd");
+  assert.equal(pi.args[pi.args.indexOf("--provider") + 1], "opencode-go");
+  assert.ok(pi.args.includes("--no-context-files"));
+  assert.ok(pi.args.includes("--no-extensions"));
+  assert.ok(pi.args.includes("--no-skills"));
+  assert.ok(pi.args.includes("--no-approve"));
   assert.ok(pi.args.includes("--tools"));
   assert.ok(pi.args.includes("read,grep,find,ls"));
+
+  const piWriter = buildCommand({ ...basePacket, worker: "pi", model: "MiniMax-M3", requested_provider: "minimax", mode: "write" }, "do the task");
+  assert.equal(piWriter.args[piWriter.args.indexOf("--tools") + 1], "read,grep,find,ls,edit,write");
+  assert.equal(piWriter.args.includes("bash"), false);
 
   const opencode = buildCommand({ ...basePacket, worker: "opencode", model: "opencode-go/deepseek-v4-flash" }, "do the task");
   assert.equal(opencode.command, "opencode.cmd");
@@ -57,6 +66,14 @@ test("builds safe read-only commands for PI and OpenCode", () => {
   assert.ok(opencode.args.includes("external-readonly-primary"));
   assert.equal(opencode.args.includes("do the task"), false);
   assert.match(opencode.stdin, /do the task/);
+
+  const qualified = buildCommand({
+    ...basePacket,
+    worker: "opencode",
+    model: "deepseek-ai/deepseek-v4-pro",
+    requested_provider: "nvidia-nim",
+  }, "do the task");
+  assert.equal(qualified.args[qualified.args.indexOf("--model") + 1], "nvidia-nim/deepseek-ai/deepseek-v4-pro");
   assert.equal(pi.stdin, "do the task");
 });
 
@@ -64,6 +81,26 @@ test("wraps Windows command files through cmd.exe without enabling a shell", () 
   const launch = spawnSpec("opencode.cmd", ["--version"], { platform: "win32", comspec: "C:\\Windows\\System32\\cmd.exe" });
   assert.equal(launch.command, "C:\\Windows\\System32\\cmd.exe");
   assert.deepEqual(launch.args, ["/d", "/s", "/c", "call opencode.cmd --version"]);
+});
+
+test("redacts quoted and unquoted credential fields", () => {
+  const output = redactText('{"apiKey":"SECRET_A","authorization":"Bearer SECRET_B"} api_key=SECRET_C');
+  assert.doesNotMatch(output, /SECRET_[A-C]/);
+});
+
+test("makes the bridge Node runtime visible to Windows worker wrappers", () => {
+  const env = workerEnvironment({ worker: "pi" });
+  const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path");
+  assert.ok(pathKey);
+  assert.ok(env[pathKey].split(";")[0].toLowerCase() === dirname(process.execPath).toLowerCase());
+
+  const opencodeEnv = workerEnvironment({ worker: "opencode" });
+  const opencodePathKey = Object.keys(opencodeEnv).find((key) => key.toLowerCase() === "path");
+  assert.ok(opencodePathKey);
+  assert.ok(opencodeEnv[opencodePathKey].split(";")[0].toLowerCase() === dirname(process.execPath).toLowerCase());
+
+  const untrustedEnv = workerEnvironment({ worker: "pi", env: { NODE_OPTIONS: "--require=untrusted.js", CODEX_PI_TEST_INJECT: "1" } });
+  assert.notEqual(untrustedEnv.CODEX_PI_TEST_INJECT, "1");
 });
 
 test("normalizes a successful worker response and preserves artifacts", async () => {
@@ -80,6 +117,19 @@ test("normalizes a successful worker response and preserves artifacts", async ()
   assert.match(await readFile(join(artifactDir, "result.json"), "utf8"), /"status": "ok"/);
 });
 
+test("uses the final valid marker when the worker echoes a placeholder marker", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"value":null}}</external-delegation-result>\nworker stream\n<external-delegation-result>{"status":"ok","result_payload":{"value":42}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.failure_class, "none");
+  assert.equal(result.result_payload.value, 42);
+});
+
 test("classifies malformed successful output as protocol failure", async () => {
   const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
   const result = await runPacket(basePacket, {
@@ -88,6 +138,17 @@ test("classifies malformed successful output as protocol failure", async () => {
   });
   assert.equal(result.status, "failed");
   assert.equal(result.failure_class, "protocol_error");
+});
+
+test("rejects a marker that omits required output fields", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({ stdout: '<external-delegation-result>{"status":"ok","result_payload":{}}</external-delegation-result>' }),
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "contract_error");
+  assert.deepEqual(result.missing_result_fields, ["value"]);
 });
 
 test("kills timed-out workers and records timeout", async () => {
@@ -121,6 +182,31 @@ test("halts after an OpenCode failure even when legacy fallback fields are prese
   assert.equal(spawnCount, 1);
 });
 
+test("halts after a Pi failure without trying another worker", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  let spawnCount = 0;
+  const result = await runPacket({
+    ...basePacket,
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "pi",
+    requested_agent: null,
+    agent: null,
+    fallback_worker: "opencode",
+    fallback_model: "minimax/MiniMax-M3",
+  }, {
+    artifactDir,
+    spawnImpl: (...args) => {
+      spawnCount += 1;
+      return fakeSpawn({ exitCode: 1, stderr: "connection refused" })(...args);
+    },
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "provider_unavailable");
+  assert.equal(result.attempt, 1);
+  assert.equal(spawnCount, 1);
+});
+
 test("does not accept a valid payload when OpenCode substituted the requested agent", async () => {
   const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
   const result = await runPacket(basePacket, {
@@ -135,6 +221,45 @@ test("does not accept a valid payload when OpenCode substituted the requested ag
   assert.equal(result.result_payload, null);
 });
 
+test("rejects a successful Pi payload when runtime identity differs", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket({
+    ...basePacket,
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "opencode-go",
+    model: "deepseek-v4-flash",
+  }, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '{"type":"message_start","message":{"provider":"minimax","model":"MiniMax-M3"}}\n<external-delegation-result>{"status":"ok","result_payload":{"value":42}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "identity_mismatch");
+  assert.equal(result.result_payload, null);
+});
+
+test("does not classify task content mentioning quota as a provider failure", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket({
+    ...basePacket,
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "nvidia-nim",
+    model: "deepseek-ai/deepseek-v4-flash",
+  }, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '{"type":"message_start","message":{"provider":"nvidia-nim","model":"deepseek-ai/deepseek-v4-flash"}}\nThe inspected source documents quota and rate limits.\n<external-delegation-result>{"status":"ok","result_payload":{"value":"quota terminology is source content"}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.failure_class, "none");
+  assert.equal(result.provider, "nvidia-nim");
+  assert.equal(result.result_payload.value, "quota terminology is source content");
+});
+
 test("blocks malformed packets before spawning a worker", async () => {
   const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
   let spawned = false;
@@ -145,6 +270,27 @@ test("blocks malformed packets before spawning a worker", async () => {
   assert.equal(result.status, "blocked");
   assert.equal(result.failure_class, "contract_error");
   assert.equal(spawned, false);
+});
+
+test("classifies a missing worker command without retrying", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  let spawnCount = 0;
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: () => {
+      spawnCount += 1;
+      const child = new EventEmitter();
+      child.stdin = new PassThrough();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      queueMicrotask(() => child.emit("error", Object.assign(new Error("missing worker"), { code: "ENOENT" })));
+      return child;
+    },
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "command_missing");
+  assert.equal(result.attempt, 1);
+  assert.equal(spawnCount, 1);
 });
 
 // --- Result-contract classification regressions (task spec §2) -------------------
@@ -183,18 +329,18 @@ test("classifies blocked-without-reason as worker_blocked", async () => {
   assert.ok(result.result_payload);
 });
 
-// A successful result preserves observations and reports failure_class = "none".
+// A successful result preserves the required field and reports failure_class = "none".
 test("classifies successful result as ok with failure_class none", async () => {
   const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
   const result = await runPacket(basePacket, {
     artifactDir,
     spawnImpl: fakeSpawn({
-      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"observations":"src/SAMPLE.txt contains 1 file"}}</external-delegation-result>',
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"value":"src/SAMPLE.txt contains 1 file"}}</external-delegation-result>',
     }),
   });
   assert.equal(result.status, "ok");
   assert.equal(result.failure_class, "none");
-  assert.equal(result.result_payload.observations, "src/SAMPLE.txt contains 1 file");
+  assert.equal(result.result_payload.value, "src/SAMPLE.txt contains 1 file");
 });
 
 // A worker failure (e.g. crash, non-zero exit, garbage stream without a

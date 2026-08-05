@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { buildCommand, commandName, spawnSpec } from "../src/commands.mjs";
 import { validatePacket } from "../src/contract.mjs";
-import { runPacket } from "../src/runner.mjs";
+import { runPacket, workerEnvironment } from "../src/runner.mjs";
 import { compilePacket } from "../src/packet.mjs";
 import { classifyTask } from "../src/policy.mjs";
 import { getLane } from "../src/registry.mjs";
@@ -60,7 +60,10 @@ async function main(argv = process.argv.slice(2)) {
         encoding: "utf8",
         windowsHide: true,
         shell: false,
-        timeout: 10_000,
+        env: workerEnvironment({ worker }),
+        // Windows .cmd wrappers can cold-start their bundled/managed Node
+        // runtime noticeably slower than a warm invocation.
+        timeout: 30_000,
       });
       return {
         worker,
@@ -88,7 +91,7 @@ async function main(argv = process.argv.slice(2)) {
     }
     let input;
     try {
-      input = JSON.parse((await readFile(inputPath, "utf8")).replace(/^﻿/, ""));
+      input = await readPacket(inputPath);
     } catch (error) {
       print({ status: "blocked", failure_class: "invalid_input", message: error.message });
       return 30;
@@ -100,6 +103,16 @@ async function main(argv = process.argv.slice(2)) {
       return 0;
     }
     const { packet } = compilePacket(input);
+    if (packet.model_selection?.status === "no_eligible_candidate" || packet.model_selection?.confidence === "unverified") {
+      print({
+        status: "blocked",
+        failure_class: packet.model_selection?.status === "no_eligible_candidate" ? "no_eligible_external_candidate" : "unverified_model_selection",
+        classification,
+        lane,
+        selection: packet.model_selection,
+      });
+      return 20;
+    }
     print({ status: "ok", classification, lane, packet });
     return 0;
   }
@@ -119,8 +132,13 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   if (command === "classify") {
-    const validation = validatePacket(packet);
-    print(validation.ok ? { status: "ok", packet: validation.packet } : { status: "blocked", failure_class: "contract_error", errors: validation.errors });
+    // Classification happens before run-time worktree provisioning. Accept a
+    // valid worktree_request here, but keep runPacket strict after it resolves
+    // isolated_cwd and validates the actual Git identity.
+    const validation = validatePacket(packet, { allowWorktreeRequest: true });
+    print(validation.ok
+      ? { status: "ok", packet: validation.packet, isolation: packet.mode === "write" && !packet.isolated_cwd ? "deferred_worktree_provision" : "validated" }
+      : { status: "blocked", failure_class: "contract_error", errors: validation.errors });
     return validation.ok ? 0 : 30;
   }
 

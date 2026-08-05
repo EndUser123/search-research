@@ -68,3 +68,24 @@ test("classify accepts a UTF-8 BOM on stdin", () => {
   assert.equal(result.status, 0);
   assert.equal(JSON.parse(result.stdout).status, "ok");
 });
+
+test("classify accepts a write packet awaiting worktree provisioning", async () => {
+  const path = await packetFile({
+    schema_version: "2",
+    task_id: "cli-deferred-worktree",
+    worker: "pi",
+    model: "deepseek-ai/deepseek-v4-flash",
+    objective: "Edit one scoped file in a disposable worktree.",
+    cwd: "P:/repo",
+    mode: "write",
+    write_scope: ["src/example.mjs"],
+    worktree_request: { worktreeRoot: "P:/tmp/worktrees", intendedFiles: ["src/example.mjs"] },
+    output_schema: { required: ["files_changed"] },
+    verification: { commands: ["git diff --check"] },
+  });
+  const result = spawnSync(process.execPath, [cli, "classify", "--packet", path], { encoding: "utf8" });
+  assert.equal(result.status, 0);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.status, "ok");
+  assert.equal(output.isolation, "deferred_worktree_provision");
+});

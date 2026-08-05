@@ -17,7 +17,7 @@ export function renderPrompt(packet) {
     "",
     `Task ID: ${packet.task_id}`,
     `Mode: ${packet.mode}`,
-    `Working directory: ${packet.cwd}`,
+    `Working directory: ${packet.isolated_cwd || packet.cwd}`,
     `Objective: ${packet.objective}`,
     "",
     "Allowed paths:",
@@ -41,14 +41,19 @@ export function extractResultPayload(text) {
   if (typeof text !== "string") return null;
   const escapedStart = RESULT_MARKER_START.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const escapedEnd = RESULT_MARKER_END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = text.match(new RegExp(`${escapedStart}([\\s\\S]*?)${escapedEnd}`));
-  if (!match) return null;
-  try {
-    const parsed = JSON.parse(match[1]);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
+  const matches = [...text.matchAll(new RegExp(`${escapedStart}([\\s\\S]*?)${escapedEnd}`, "g"))];
+  // Pi can echo the prompt example and cumulative stream fragments before
+  // emitting the final result. Prefer the last parseable marker so an earlier
+  // placeholder cannot mask the worker's actual structured response.
+  for (const match of matches.reverse()) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    } catch {
+      // Keep looking: a quoted or partial marker is not the result.
+    }
   }
+  return null;
 }
 
 export function extractJsonEventText(text) {
@@ -66,5 +71,8 @@ export function extractJsonEventText(text) {
       // Preserve the raw parser path for non-JSON workers.
     }
   }
-  return parts.join("\n");
+  // Streaming deltas can split protocol tokens themselves. Do not insert a
+  // newline between deltas or `<external-delegation-result>` can become
+  // unparsable even though the worker emitted the complete marker.
+  return parts.join("");
 }

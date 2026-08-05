@@ -6,7 +6,14 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function packetErrors(packet) {
+function isSafeRelativeScope(value) {
+  if (!isNonEmptyString(value)) return false;
+  const normalized = value.replaceAll("\\", "/");
+  if (normalized.startsWith("/") || /^[A-Za-z]:\//.test(normalized)) return false;
+  return !normalized.split("/").includes("..");
+}
+
+function packetErrors(packet, { allowWorktreeRequest = false } = {}) {
   const errors = [];
   const required = [
     "schema_version",
@@ -36,8 +43,14 @@ function packetErrors(packet) {
   if (packet?.mode === "write") {
     if (!Array.isArray(packet.write_scope) || packet.write_scope.length === 0) {
       errors.push("missing_write_scope");
+    } else if (packet.write_scope.some((entry) => !isSafeRelativeScope(entry))) {
+      errors.push("invalid_write_scope");
     }
-    if (!isNonEmptyString(packet.isolated_cwd)) {
+    const deferredWorktree = allowWorktreeRequest
+      && packet.worktree_request
+      && typeof packet.worktree_request === "object"
+      && !Array.isArray(packet.worktree_request);
+    if (!isNonEmptyString(packet.isolated_cwd) && !deferredWorktree) {
       errors.push("missing_isolated_cwd");
     }
   }
@@ -46,15 +59,17 @@ function packetErrors(packet) {
     errors.push("missing_verification_commands");
   }
 
-  if (!Array.isArray(packet?.output_schema?.required)) {
+  if (!Array.isArray(packet?.output_schema?.required) || packet.output_schema.required.length === 0) {
     errors.push("missing_output_schema_required");
+  } else if (packet.output_schema.required.some((entry) => !isNonEmptyString(entry))) {
+    errors.push("invalid_output_schema_required");
   }
 
   return errors;
 }
 
-export function validatePacket(packet) {
-  const errors = packetErrors(packet);
+export function validatePacket(packet, options = {}) {
+  const errors = packetErrors(packet, options);
   return errors.length > 0 ? { ok: false, errors } : { ok: true, packet };
 }
 

@@ -28,6 +28,12 @@ test("renders all handoff controls and the result marker", () => {
   assert.match(prompt, /<external-delegation-result>/);
 });
 
+test("reports the isolated worktree as the worker working directory", () => {
+  const prompt = renderPrompt({ ...packet, isolated_cwd: "P:/tmp/task/packages/repo" });
+  assert.match(prompt, /Working directory: P:\/tmp\/task\/packages\/repo/);
+  assert.doesNotMatch(prompt, /Working directory: P:\/repo/);
+});
+
 test("extracts a valid structured result payload", () => {
   const text = 'noise\n<external-delegation-result>{"status":"ok","files":["a.ts"]}</external-delegation-result>\n';
   assert.deepEqual(extractResultPayload(text), { status: "ok", files: ["a.ts"] });
@@ -52,6 +58,15 @@ test("extracts text deltas from PI JSON events before parsing the result marker"
     { type: "message_update", assistantMessageEvent: { type: "text_delta", delta: '"value":43}</external-delegation-result>' } },
   ].map((event) => JSON.stringify(event)).join("\n");
   assert.deepEqual(extractResultPayload(extractJsonEventText(events)), { status: "ok", value: 43 });
+});
+
+test("preserves protocol markers split across PI streaming deltas", () => {
+  const events = [
+    { type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "<external-delegation-" } },
+    { type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "result>{\"status\":\"ok\",\"value\":44}</external-delegation-" } },
+    { type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "result>" } },
+  ].map((event) => JSON.stringify(event)).join("\n");
+  assert.deepEqual(extractResultPayload(extractJsonEventText(events)), { status: "ok", value: 44 });
 });
 
 test("classifies timeout before generic worker failure", () => {
