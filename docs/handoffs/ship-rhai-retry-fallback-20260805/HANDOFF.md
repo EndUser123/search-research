@@ -1,7 +1,7 @@
 # Handoff — ship-rhai retry-with-fallback + remaining fixes
 
 ## Status
-OPEN — design agreed, implementation deferred to fresh session.
+OPEN — implementation complete, remaining items deferred. See Revision block below.
 
 ## Objective
 
@@ -108,3 +108,31 @@ maps, so field access should work.
 - The retry logic adds too much latency (>2x the original run time)
 - The retry uses the same model (defeats the purpose — same blind spots)
 - The retry blocks the workflow instead of continuing with partial results
+
+## Revision history
+
+### 2026-08-05 — Implementation complete (session 019fd276)
+
+**Done:**
+- ship-rhai.rhai: retry-with-fallback for review agents (1 retry per agent,
+  different model, model-collision guard, scratch-file logging on failure)
+- ship-rhai.rhai: verify agent retry on agent-call failure
+- ship-py: new `review` subcommand (records findings via file, applies gate)
+- ship-py: review-failure gate in `cmd_verify` (missing findings → block)
+- ship-py: merge-base detection in `cmd_detect` (replaces HEAD~5)
+- ship-py: retry-with-fallback guidance in detect instructions
+- ship-py: partial-failure handling (proceeds with gap noted)
+- All changes tested: review gate (all-fail → block), partial-fail (proceed),
+  verify gate (missing findings → block). Rhai smoke check passed.
+- Committed to ~/.grok: `a0da067`
+
+**Checked, no action needed:**
+- ship-rhai-3 (background workflow from prior session): no on-disk artifacts
+  found. The workflow either completed without persisting output or died with
+  the prior session. No findings to incorporate.
+
+**Remaining (out of scope for this task):**
+- Skill pre-check hook — see `skill-precheck-hook-20260805/HANDOFF.md`
+- Self-improving patterns research — separate handoff
+- NO-WIKI-PERSISTENCE scanner: both SKILL.md files already have a
+  "Post-ship: knowledge capture" section mentioning `/wiki`
