@@ -1,5 +1,17 @@
 # Vault Log
 
+## plugin-skill-migration-port-absorb-retire
+Source: session-20260804
+Agent: grok
+Notes: Port/absorb/retire framework for plugin skill migration with version tracking
+Page: P:/.data/wiki/concepts/plugin-skill-migration-port-absorb-retire.md
+
+## config-disabled-list-bare-name-collision
+Source: session-20260804
+Agent: grok
+Notes: Bare-name disabled-list entries kill native skills with same name
+Page: P:/.data/wiki/concepts/config-disabled-list-bare-name-collision.md
+
 ## --concept
 Source: mmx-cli-full-multimodal-capability-surface
 Agent: --action
