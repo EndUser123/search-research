@@ -20,11 +20,15 @@ cap, sources past the limit silently fail to register. Always verify via
 **Verification recipe** (from [[notebooklm-source-limits-free-vs-paid]]):
 
 ```bash
-nb=$(nlm notebook create "capacity-test" --json | python -c "import json,sys; print(json.load(sys.stdin)['notebook_id'])")
+# Create a test notebook and get its ID (avoid inline python -c — Class C hazard)
+nlm notebook create "capacity-test" --json > P:/tmp/nbm-test.json
+nb=$(python P:/tmp/parse_nb_id.py P:/tmp/nbm-test.json)
 # Bulk-add 60 URLs (above free cap, below paid)
 nlm source add $nb --youtube u1 --youtube u2 ...   # 60 URLs
 sleep 30
-nlm notebook get $nb --json | python -c "import json,sys; print('count:', json.load(sys.stdin).get('source_count'))"
+# Check source count (redirect to file, parse separately)
+nlm notebook get $nb --json > P:/tmp/nbm-count.json
+python P:/tmp/parse_nb_count.py P:/tmp/nbm-count.json
 nlm notebook delete $nb --confirm
 # If count == 60: paid (cap ≥ 300). If count == 50: free.
 ```
