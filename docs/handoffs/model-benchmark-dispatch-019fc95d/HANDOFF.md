@@ -308,3 +308,21 @@ Added `format_toon_rns()` to `render_rns.py` — markdown section headers with b
 4. **Unpushed ~/.grok commit** — `08e3ac5` (todo HANDOFF section) not yet pushed to remote.
 
 **Status update:** substantially complete — all original plan steps + quality benchmarks done. The tool_grounded_spawn_broken revert is the critical remaining work that blocks the dispatch routing architecture from being correct.
+
+### Compaction coverage proof
+
+Cross-reference of all pending tasks from compaction segments (000 + 001) against handoff coverage:
+
+| Pending task (from compaction summary) | Covered? | Where |
+|---|---|---|
+| Revert tool_grounded_spawn_broken block | ✅ | `dispatch-paths-fallback-not-spawn-block-20260805` (new handoff, 4 task packets) |
+| Multi-method quality benchmarking (design only) | ✅ | This revision, remaining work #2 |
+| Commit and push ~/.grok | ✅ noted | This revision, remaining work #4 (1 unpushed commit `08e3ac5`) |
+| Spawn gate hook dispatch_paths | ✅ noted | `dispatch-paths-fallback-not-spawn-block-20260805`, other outstanding streams |
+| Quality-tier benchmark results | ✅ | This revision, quality-tier benchmarking table |
+| /tp spawn lens architecture fix | ✅ | This revision, /tp spawn lens section |
+| /mmx expansion to 7 capabilities | ✅ | This revision, /mmx section |
+| Ship receipt multi-terminal isolation fix | ✅ | This revision, ship receipt section |
+| tool-fallbacks wiki update | ✅ | `tp-panel-tool-fallbacks-update-20260805` (CLOSED, commit `70479f9`) |
+
+No compaction pending tasks uncovered.
