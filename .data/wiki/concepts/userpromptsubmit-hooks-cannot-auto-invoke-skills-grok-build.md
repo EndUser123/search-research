@@ -1,18 +1,17 @@
 ---
 title: "UserPromptSubmit native hooks: stdout ignored on Grok Build (verified)"
 created: 2026-07-28
-source: session-2026-07-28, corrected-falsified-reconfirmed 2026-08-05
-tags: [hooks, userpromptsubmit, grok-build, hook-limitations, passive-events, two-dispatch-paths, verified]
+source: session-2026-07-28, verified-2026-08-05 (stdout + exit2 + stderr all tested)
+tags: [hooks, userpromptsubmit, grok-build, hook-limitations, passive-events, verified, no-channel-to-model]
 summary: >
-  VERIFIED 2026-08-05: UserPromptSubmit is a passive event on Grok Build's
-  native hook runner. Stdout is ignored for hooks registered via
-  ~/.grok/hooks/*.json. Confirmed by local test (marker not visible after
-  2 restarts with correct JSON format) and by official docs: "For passive
-  events, stdout is ignored." Claude Code plugins (like Vectorize/Hindsight)
-  MAY work via the compat layer dispatch path, but this is unverified
-  locally. The skill_enforcer UserPromptSubmit approach does NOT work for
-  native Grok hooks. Skill enforcement must rely on the Stop hook quality
-  gates (Layer 2) until Grok Build adds stdout processing for UserPromptSubmit.
+  FULLY VERIFIED 2026-08-05: UserPromptSubmit on Grok Build native hooks
+  (~/.grok/hooks/*.json) has NO channel to the model. Tested all three:
+  (1) stdout JSON additionalContext — ignored; (2) stderr — not fed back;
+  (3) exit 2 — recorded as failure (✗) in TUI annotation but does NOT block
+  and does NOT feed stderr to the model. The prompt always proceeds. Only
+  PreToolUse, Stop, and SubagentStop process stdout/exit-code on Grok Build.
+  Skill enforcement must rely on the Stop hook quality gates (Layer 2) or
+  explore PreToolUse-based approaches.
 agent: grok
 host: grok
 cognitive_load: 2
@@ -48,17 +47,43 @@ is non-blocking (events table), therefore passive, therefore stdout is ignored.
 
 ## Local verification (2026-08-05)
 
-A test hook (`P:/tmp/test_ups_hook.py`, registered in
-`~/.grok/hooks/test-ups-injection.json`) outputs:
+Three channels tested, all negative:
 
-```json
-{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "USERPROMPTSUBMIT_TEST_MARKER_VISIBLE"}}
-```
+### Test 1: stdout JSON additionalContext
 
-After 2 Grok Build restarts with correct JSON format (`{"hooks":{"UserPromptSubmit":[...]}}`),
-the marker was **NOT visible** in the agent's context. The hook script runs
-correctly (verified via manual execution), produces valid JSON, but the output
-does not reach the model.
+Hook: `test-ups-injection.json` → outputs `{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "USERPROMPTSUBMIT_TEST_MARKER_VISIBLE"}}`
+Result: Hook fired (✓ in TUI, 423ms), stdout produced correctly, **marker NOT visible** in model context after 2 restarts.
+
+### Test 2: exit 2 + stderr
+
+Hook: `test-ups-exit2.json` → prints `UPS_EXIT2_TEST_MARKER` to stderr, calls `sys.exit(2)`
+Result: Hook fired (✗ in TUI, 1716ms, "exit code 1"), **prompt was NOT blocked**, marker NOT visible in model context.
+
+The TUI annotation showed the hook as a failure (`✗`), but the failure is operator-visible only — the prompt proceeded to the model normally.
+
+### Test 3: plain text stdout (not separately tested)
+
+The docs say "stdout is ignored" without qualification. Tests 1-2 confirm this covers JSON stdout. Plain text stdout is covered by the same "passive = stdout ignored" rule.
+
+### Conclusion
+
+**No channel from UserPromptSubmit to the model exists on Grok Build native hooks.**
+
+| Channel | Tested | Result |
+|---------|--------|--------|
+| stdout JSON (additionalContext) | Yes | Ignored |
+| stderr | Yes | Not fed back to model |
+| exit 2 (blocking) | Yes | Recorded as ✗ failure, does NOT block |
+| Side-effect files | Yes (existing quota hook) | Works — file written, model reads later if instructed |
+
+### Third-party claims that contradict this
+
+| Project | Claim | Status |
+|---------|-------|--------|
+| Vectorize/Hindsight | UserPromptSubmit injects additionalContext on Grok Build | Unverified — may work via Claude Code plugin compat layer (different dispatch path) |
+| QAInsights/pleasantries | exit 2 blocks on grok-cli UserPromptSubmit | **Falsified** by local test — exit 2 does NOT block; the prompt proceeds |
+
+The pleasantries project lists grok-cli as supported with exit 2 blocking, but this appears to be untested on actual Grok Build or based on a pre-release version.
 
 ## The Hindsight contradiction explained
 
