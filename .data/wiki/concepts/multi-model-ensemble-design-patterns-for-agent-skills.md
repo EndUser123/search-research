@@ -199,10 +199,10 @@ of 3) made the escalation threshold fire differently. `[UNVERIFIED PATTERN — N
 |---|---|---|---|---|---|---|---|
 | **`/risks`** | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v2 | ✅ v2 |
 | **`/review`** | ✅ P1 (2026-08-04) | ✅ P2 (2026-08-04) | ❌ Fixed roster | ✅ P4 (2026-08-04) | ✅ Inferred lenses | ✅ P6 (2026-08-04) | ✅ Existing dedup + clustering |
-| **`/tp`** | Partial | ✅ Has pool | ❌ N/A (1 critic) | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
-| **`/red-team`** | ❌ Missing | Partial (1 cross) | ❌ Fixed 3-6 | ❌ Missing | ❌ Fixed | ❌ Missing | ❌ Missing |
+| **`/tp`** | ✅ P1 (2026-08-04) | ✅ Has pool | ❌ N/A (1 critic) | ✅ Convergence signal | ❌ N/A | ✅ P6 (2026-08-04) | ❌ N/A |
+| **`/red-team-old`** | N/A (deprecated) | N/A | N/A | N/A | N/A | N/A | N/A |
 | **`/www`** | ❌ Missing | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
-| **`/check`** | ❌ Missing | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
+| **`/check`** | ✅ P1 (2026-08-04) | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
 | **`/go`** | ❌ Missing | Partial (pool) | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
 
 **Reading the matrix:** ✅ = pattern implemented. ❌ = gap. Partial =
