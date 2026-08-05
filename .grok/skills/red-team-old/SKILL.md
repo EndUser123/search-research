@@ -1,9 +1,9 @@
 ---
 name: red-team-old
 description: >
-  DEPRECATED — absorbed into /risk. This skill is disabled and kept only as
-  reference for the full specialist procedure that was inlined into /risk
-  Phase 4. Do not invoke — use /risk instead.
+  DEPRECATED — absorbed into /risks. This skill is disabled and kept only as
+  reference for the full specialist procedure that was inlined into /risks
+  Phase 4. Do not invoke — use /risks instead.
 user-invocable: false
 disable-model-invocation: true
 host: grok
