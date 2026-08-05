@@ -1,5 +1,11 @@
 # Vault Log
 
+## Self-reflective gap discovery: indirect-hunting prompts
+Source: session-2026-08-05
+Agent: grok
+Notes: Reusable 3-prompt pattern for unknown-unknown detection — assumption excavation, reference-class scan, pre-mortem
+Page: P:/.data/wiki/concepts/self-reflective-gap-discovery-indirect-hunting-prompts.md
+
 ## Enforcement code needs mechanical tests
 Source: session-20260804
 Agent: grok
