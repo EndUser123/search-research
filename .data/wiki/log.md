@@ -1,5 +1,17 @@
 # Vault Log
 
+## --concept
+Source: non-use-signals-deployment-failure-not-capability-failure
+Agent: --action
+Notes: created
+Page: --source
+
+## scanner-regex-scope-discipline
+Source: session-019fcd47
+Agent: grok
+Notes: Match data fields not full file body
+Page: wiki/concepts/scanner-regex-scope-discipline.md
+
 ## mechanical-as-input-not-mechanical-as-frame
 Source: session-019fcd47
 Agent: grok
