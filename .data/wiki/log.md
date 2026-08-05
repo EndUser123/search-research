@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --concept
+Source: mmx-cli-full-multimodal-capability-surface
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
 Source: tool-fallbacks
 Agent: --action
 Notes: updated
