@@ -1,5 +1,11 @@
 # Vault Log
 
+## Enforcement code needs mechanical tests
+Source: session-20260804
+Agent: grok
+Notes: Meta-enforcement gap: enforcement code has zero test coverage
+Page: P:/.data/wiki/concepts/enforcement-code-needs-its-own-mechanical-tests.md
+
 ## Skill step enforcement architecture on Grok Build
 Source: session-2026-08-05
 Agent: grok
