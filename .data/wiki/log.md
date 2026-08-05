@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: agent-improvement-loop-patterns-automated-learning-from-traces
+Agent: --action
+Notes: created
+Page: --source
+
 ## hook-regex-false-positives-pasted-terminal-output
 Source: session-019fcd47
 Agent: grok
