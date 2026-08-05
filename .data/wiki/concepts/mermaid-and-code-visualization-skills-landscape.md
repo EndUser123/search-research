@@ -24,7 +24,7 @@ evidence_gaps:
   - "D2 TALA layout engine quality not verified (requires paid license)"
 relations:
   - "[[skill-auto-invocation-reliability]]"
-  - "[[cross-environment-skill-portability]]"
+  - "[[skill-host-applicability-convention]]"
   - "[[agentic-sdlc-skill-lifecycle-architecture]]"
 ---
 
@@ -433,10 +433,10 @@ This concept is wrong if:
 ## Cross-references
 
 - [[skill-auto-invocation-reliability]] — skill triggering is the bottleneck for diagram skills
-- [[cross-environment-skill-portability]] — SKILL.md portability between Grok Build and Claude Code
+- [[skill-host-applicability-convention]] — SKILL.md portability between Grok Build and Claude Code
 - [[agentic-sdlc-skill-lifecycle-architecture]] — where diagram skills fit in the SDLC lifecycle
 - [[design-doc-spec-system-patterns]] — Mermaid skills complement design-doc workflows
-- [[improve-codebase-architecture]] — code visualization supports architecture improvement
+- `improve-codebase-architecture` skill — code visualization supports architecture improvement
 
 ## Auto-related
 
