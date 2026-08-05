@@ -2,7 +2,7 @@
 title: "Tool fallbacks: known-broken combinations and CLI fallbacks"
 slug: tool-fallbacks
 created: 2026-07-18
-updated: 2026-08-01
+updated: 2026-08-05
 tags: [tool-fallbacks, model-pool, spawn-subagent, cli-fallback, mcp, rate-limit, transferable-technique]
 host: grok
 summary: >
@@ -90,7 +90,7 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 
 | Model(s) | Symptom | Workaround | Wiki authority |
 |---|---|---|---|
-| **nim-deepseek-ai-deepseek-v4-flash** | ~~Formerly suspected serde failure.~~ **VERIFIED WORKING 2026-08-04**: spawn_subagent PASS (27.4s, exit 0, PROBE_OK). Added to coding tier2, reasoning tier1, critic tier1 in fleet-models.json. Now used as the /tp default spawn lens. | **No workaround needed.** This model is dispatch-safe via spawn_subagent. The prior "do not dispatch" warning was from unverified inherited labeling — the same false-positive class as the [[serde-broken-false-positive-sweep-20260801]]. | [[serde-broken-false-positive-sweep-20260801]], [[pick-model-stale-spawn-notes-failure-pattern]] |
+| **nim-deepseek-ai-deepseek-v4-flash** | **VERIFIED WORKING (probe only) — tool-grounded spawn FAILS with serde error (2026-08-05).** Probe: spawn_subagent PASS (27.4s, exit 0, PROBE_OK — 1-token no-tool test). Tool-grounded: `serialization error: invalid type: null, expected u32 at line 1 column 327` after 43.5s / 8 tool calls on /tp critique prompt (~113K tokens). Same serde class as nemotron (`null, expected u32`). The prior "VERIFIED WORKING" was a false positive — probe is insufficient for tool-grounded work. | **Do not spawn for tool-grounded work** (≥50K tokens, ≥3 tool calls). Use as direct API target or CLI invocation. For /tp panels, use `or-ling-3-flash-free` as the spawn lens. Re-test after: Grok Build serde update OR deepseek-v4 model revision. Must test with tool-grounded prompt, not probe. | [[serde-broken-false-positive-sweep-20260801]], [[pick-model-stale-spawn-notes-failure-pattern]] |
 | **nim-openai-gpt-oss-20b** (pick_model.py returned stale "spawn OK") | Direct spawn PASSED (41s) in [[serde-broken-false-positive-sweep-20260801]], but pick_model.py returned it as spawn-OK during the same session when prior session evidence suggests intermittent failure. Discrepancy suggests pick_model.py spawn_notes may be stale. | **Probe before dispatch.** Run a 1-token no-tool spawn test to verify, OR use a different OpenAI-OSS option. | [[pick-model-stale-spawn-notes-failure-pattern]] |
 
 ### web_search rate limiting
@@ -105,7 +105,7 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 
 | Symptom | Type | Cause | Fix | Re-test |
 |---|---|---|---|---|
-| **Silent 0-output, exit 0, 0 bytes** | STRUCTURAL | Non-TTY subprocess (background task, redirected stdout) without `--output-format json` (Issue #76, antigravity-cli). agy hangs waiting for a permission prompt that can't be answered. | **Always use `--output-format json` and `--dangerously-skip-permissions` in headless dispatch.** Run the tp_dispatch.py-printed command verbatim. Never bare `agy "<prompt>"`. | Re-test after agy upgrade. Fixed in agy ≥ 1.1.8 when JSON output is used. |
+| **Silent 0-output, exit 0, 0 bytes** | STRUCTURAL | Non-TTY subprocess (background task, redirected stdout) without `--output-format json` (Issue #76, antigravity-cli). agy hangs waiting for a permission prompt that can't be answered. **Recurred 2026-08-05** when orchestrator bypassed tp_dispatch.py output and ran bare `agy` without mandatory flags. | **Always use `--output-format json` and `--dangerously-skip-permissions` in headless dispatch.** Run the tp_dispatch.py-printed command verbatim. Never bare `agy "<prompt>"`. | Re-test after agy upgrade. Fixed in agy ≥ 1.1.8 when JSON output is used. |
 | **OAuth 5-min hang** | STRUCTURAL | Google One AI Ultra OAuth hangs silently for 300s then errors (gemini-cli Issue #22241, closed-not-planned). | Use API key (`GEMINI_API_KEY`) for headless automation instead of OAuth. | Re-test: try OAuth once per month to check if Google fixed it. |
 | **Quota exhaustion (token overhead)** | TRANSIENT | 23-25K token baseline overhead per request (system prompt + system tools) burns subscription quota fast (Discussion #27307). Symptom: `⚠ Individual quota reached. Resets in XhYmZs.` | Use direct Gemini API (spawn_subagent with model slug) for batch work. Reserve AGY for single-opinion dispatch. | Re-test: check quota dashboard before dispatching. |
 | **Sandbox bypass** | STRUCTURAL | `--dangerously-skip-permissions` disables sandbox enforcement — file writes outside workspace despite `--sandbox` (Issue #36). | **Never combine `--sandbox` with `--dangerously-skip-permissions`.** | Re-test after antigravity-cli fixes Issue #36. |
@@ -118,6 +118,7 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 |---|---|---|
 | mmx CLI (benchmark) | "33% success" was `caller_error` — FileNotFoundError (PATH) + missing `--message` flag. | Model is 100% reliable when called correctly. Resolved in telemetry. |
 | codex CLI (benchmark) | "50% success" was `transport_error` — FileNotFoundError (PATH). | Same — reliable when PATH is correct. |
+| codex CLI (/tp critique) | TRANSIENT: codex auto-loaded `review-packet-runner` skill which triggered `discovery_audit.py` preflight with 20K file scope. Exceeded /tp's 600s timeout (still running preflight when killed). 480 lines JSON captured, no critique produced. | For /tp via codex: (a) increase timeout to 900s+, (b) pass narrower scope hint in prompt, or (c) skip codex for /tp and rely on spawn + agy. Context-dependent — codex works fine for direct code review. |
 
 ### MCP tool failures (parent-agent tools)
 
