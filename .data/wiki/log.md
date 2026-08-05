@@ -1,5 +1,11 @@
 # Vault Log
 
+## llm-text-degeneration-and-output-validation-gates
+Source: session-019fcd47
+Agent: grok
+Notes: Decoder loop phenomenon + output validation gate pattern + ship-py implementation reference. Connects Holtzman 2020, Wang 2025, AgentPatterns.ai to our local incident.
+Page: wiki/concepts/llm-text-degeneration-and-output-validation-gates.md
+
 ## --concept
 Source: non-use-signals-deployment-failure-not-capability-failure
 Agent: --action
