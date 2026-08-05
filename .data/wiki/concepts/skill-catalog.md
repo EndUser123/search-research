@@ -213,7 +213,7 @@ Auto-generated on 2026-08-05 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | — | `P:/.grok/skills/check/SKILL.md` |
-| **red-team-old** | ✓ | — | DEPRECATED — absorbed into /risk. This skill is disabled and kept only as reference for the full specialist procedure th... | — | `P:/.grok/skills/red-team-old/SKILL.md` |
+| **red-team-old** | ✓ | — | DEPRECATED — absorbed into /risks. This skill is disabled and kept only as reference for the full specialist procedure t... | — | `P:/.grok/skills/red-team-old/SKILL.md` |
 
 ## grok-agents (12 skills)
 
