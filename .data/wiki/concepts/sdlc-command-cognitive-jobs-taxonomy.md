@@ -102,7 +102,7 @@ Many of the hardest questions are "what is true about our system?" — not "what
 
 ## What this means for our workspace
 
-1. **`/all` should be retired** as a public command. It's an implementation detail, not user intent. The capability-routing system becomes the internal engine behind `/research`, not exposed as a "run everything" command. This aligns with [[skill-domain-map]] — the domain map should reflect cognitive jobs, not tool mechanics.
+1. **Never create `/all` as a public command.** As of 2026-08-04, no `/all` skill exists in the catalog — this concept serves as a forward-looking guardrail, not a retirement recommendation. If someone proposes adding `/all` as a "run all backends" command, the "I want to all this" test should block it: it's an implementation detail, not user intent. The capability-routing system should remain the internal engine behind `/research`, not exposed as a "run everything" command. This aligns with [[skill-domain-map]] — the domain map should reflect cognitive jobs, not tool mechanics.
 
 2. **`/research` and `/www` are the same cognitive job** — the `/www` skill already implements the wiki→web→wiki research loop. The alias `/research` → `/www` already exists in the skill catalog. See [[research-system-novel-ideas-external-synthesis]] for how this cognitive job could be enhanced with belief ledger and research market models.
 
