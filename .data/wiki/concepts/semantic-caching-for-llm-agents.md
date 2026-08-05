@@ -35,6 +35,8 @@ relations:
     type: related
   - target: wiki/concepts/nlm-to-wiki-optimization-opportunities.md
     type: related
+  - target: wiki/concepts/self-improving-agent-systems-techniques-and-workspace-gaps.md
+    type: related
 ---
 
 # Semantic caching for LLM agents: skip the call, not just the tokens
@@ -172,5 +174,13 @@ This concept is wrong if, within 3 months of implementation:
 
 **Semantic deduplication:**
 - NVIDIA NeMo Curator SemDeDup — https://docs.nvidia.com/nemo/curator/curate-text/process-data/deduplication/semdedup
+
+**Cost benchmarks:**
+- Percona benchmark (10K queries/day, Claude Sonnet): https://www.percona.com/blog/semantic-caching-for-llm-apps-reduce-costs-by-40-80-and-speed-up-by-250x/
+- Gravitee benchmark (250x speedup): https://www.gravitee.io/blog/semantic-caching-for-llms-how-to-reduce-ai-costs-and-latency-at-the-gateway
+- GPT Semantic Cache paper (68.8% API call reduction): https://arxiv.org/abs/2411.05276
+
+**Threshold tuning:**
+- Portkey threshold guide: https://portkey.ai/blog/semantic-caching-thresholds
 
 **Research method:** /www pipeline, parallel or-ling-3-flash-free subagent + parent DDG/firecrawl practitioner signal, 20+ sourced findings synthesized.

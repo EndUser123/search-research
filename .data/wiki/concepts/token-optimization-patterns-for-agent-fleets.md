@@ -44,6 +44,10 @@ relations:
     type: related
   - target: wiki/concepts/code-orchestrates-model-judges-skill-scale.md
     type: related
+  - target: wiki/concepts/semantic-caching-for-llm-agents.md
+    type: complement
+  - target: wiki/concepts/deterministic-output-engineering.md
+    type: related
 ---
 
 # Token optimization patterns for LLM agent fleets
@@ -64,7 +68,7 @@ relations:
 | **Context management** | Compaction, distillation, lazy loading, output distillation | Session-level compaction; skill progressive disclosure | Tool-call output distillation (O(N^2) flattening); ACON failure-triggered compression |
 | **Output minimization** | Structured outputs, constrained decoding, schema enforcement | Deterministic output engineering concept | Systematic structured output across all agent calls |
 | **Routing** | Cost-aware model selection, token budget governance | Model routing (coding pool, reasoning pool) | Fleet-level token budget with per-agent quotas; cascading (cache→cheap→expensive) |
-| **Reuse** | Execution plan compilation, skill library | Skill catalog (244+ skills) | LOOP-style compiled plans for repeated workflows |
+| **Reuse** | Execution plan compilation, skill library | Skill catalog (700+ skills) | LOOP-style compiled plans for repeated workflows |
 
 ### Top techniques by impact × effort
 
@@ -85,7 +89,7 @@ relations:
 
 ### The O(N^2) tool-call growth problem
 
-The most novel finding: multi-step agent tool chains produce **quadratic context growth**. Each tool call's output is appended to context, and the agent reads all accumulated context on the next call. By step 20, context can reach 500K tokens even when the actual task needs ~50K.
+The most novel finding: multi-step agent tool chains produce **quadratic context growth**. Each tool call's output is appended to context, and the agent reads all accumulated context on the next call. By step 20, context can reach 500K tokens even when the actual task needs ~50K [INFERENCE — illustrative magnitudes; the O(N^2) framing is sourced to DEV.to 2026, specific numbers are approximate].
 
 **Solution: tool-call output distillation.** Intercept tool return values before appending to context and apply: schema hoisting (extract shared keys once), delta-encoding (replace sequential values with diffs), entity reference dedup (replace repeated entities with anchors). This flattens O(N^2) to O(N). The Atlassian mcp-compressor implements this for MCP tool surfaces.
 
@@ -144,7 +148,7 @@ This concept is wrong if, within 6 months:
 - [[context-management-trade-offs]]@related — sliding windows vs compaction trade-offs
 - [[enforcement-hierarchy-and-compaction-strategy]]@related — where compaction lives in the enforcement hierarchy
 - [[code-orchestrates-model-judges-skill-scale]]@related — code orchestration as a token optimization (zero tokens on coordination)
-- [[semantic-caching-for-llm-agents]]@related — semantic caching as a token optimization technique
+- [[semantic-caching-for-llm-agents]]@complement — semantic caching as a token optimization technique
 - [[deterministic-output-engineering]]@related — structured outputs as output token minimization
 
 ## Sources

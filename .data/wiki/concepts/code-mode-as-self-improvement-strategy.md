@@ -42,6 +42,10 @@ relations:
     type: related
   - target: wiki/concepts/deterministic-output-engineering.md
     type: related
+  - target: wiki/concepts/trace-eval-improve-loops-for-agent-fleets.md
+    type: related
+  - target: wiki/concepts/token-optimization-patterns-for-agent-fleets.md
+    type: related
 ---
 
 # Code mode as self-improvement strategy: from tool calls to programmatic control

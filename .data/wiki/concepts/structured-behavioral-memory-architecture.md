@@ -28,7 +28,7 @@ summary: >
   lifecycles, or connected through a retrieval mechanism. The Accumulated
   Behavioral Rules paper (arXiv 2607.13091) demonstrates 0% recurrence rate
   across 9 tracked error classes with 74 cumulative post-rule exposures — the
-  workspace's ~15KB of AGENTS.md corrections is an unstructured version of this
+  workspace's ~12KB of AGENTS.md corrections is an unstructured version of this
   pattern. Key risk: memory bloat → agent degradation (mem0 production issue:
   97.8% junk; ACL 2026 confirms memory management matters).
 relations:
@@ -39,6 +39,10 @@ relations:
   - target: wiki/concepts/cross-session-transcript-mining-continuous-improvement.md
     type: related
   - target: wiki/concepts/mechanical-enforcement-over-behavioral-reminder.md
+    type: related
+  - target: wiki/concepts/trace-eval-improve-loops-for-agent-fleets.md
+    type: related
+  - target: wiki/concepts/context-firewall-architecture.md
     type: related
 ---
 
@@ -57,8 +61,8 @@ relations:
 | Memory type | Cognitive analog | Agent implementation | Workspace equivalent | Lifecycle |
 |-------------|-----------------|---------------------|---------------------|-----------|
 | **Episodic** | "What happened" (Tulving) | Conversation logs, tool traces, structured episodes | Session handoffs, JSONL transcripts | Days-months (TTL) |
-| **Semantic** | "What is known" | Facts, preferences, entity knowledge, domain rules | Wiki concepts (244+) | Long-lived, staleness-checked |
-| **Procedural** | "How to do it" | System prompt rules, playbooks, skills, runbooks | AGENTS.md + skills (244+) | Long-lived, versioned |
+| **Semantic** | "What is known" | Facts, preferences, entity knowledge, domain rules | Wiki concepts (900+) | Long-lived, staleness-checked |
+| **Procedural** | "How to do it" | System prompt rules, playbooks, skills, runbooks | AGENTS.md + skills (700+) | Long-lived, versioned |
 
 Sources: CoALA (Sumers 2023), A-MEM (NeurIPS 2025), "Memory in the Age of AI Agents" survey (arXiv 2512.13564), Zylos 2026 survey.
 
@@ -97,9 +101,9 @@ Three mechanisms for memory management (Konishi, "AI Agent Memory Design Guide,"
 | **Usage-based decay** | Retrieval scores combine similarity + recency + reinforcement | None |
 | **Staleness detection** | Facts verified against `validity_basis` before use | None (wiki concepts have `verification:` field but no automated staleness check) |
 
-**The #1 unsolved problem:** an agent that never forgets accumulates contradictions and retrieves noise. The mem0 production issue (97.8% junk memories) demonstrates that unmanaged memory growth degrades agent performance.
+**The #1 unsolved problem:** an agent that never forgets accumulates contradictions and retrieves noise. The mem0 production issue (97.8% junk memories — source: [mem0 production analysis](https://github.com/mem0ai/mem0)) demonstrates that unmanaged memory growth degrades agent performance. ACL 2026 ("Anatomy of Agentic Memory," arXiv:2602.19320) confirms memory management matters.
 
-**Workspace relevance:** the workspace's AGENTS.md has grown to ~15KB. The wiki has 244+ concepts. Neither has formal TTL or staleness detection. The `/skill-prune` skill is a manual pruning tool, but there's no automated decay mechanism.
+**Workspace relevance:** the workspace's AGENTS.md files total ~130KB (~118KB at ~/.grok/AGENTS.md, ~12KB at P:/AGENTS.md). The wiki has 900+ concepts. Neither has formal TTL or staleness detection. The `/skill-prune` skill is a manual pruning tool, but there's no automated decay mechanism.
 
 ### Structured memory records
 
@@ -147,11 +151,11 @@ This concept is wrong if, within 6 months:
 
 | Raw material | Current form | Memory tier | Gap |
 |-------------|-------------|-------------|-----|
-| AGENTS.md corrections | ~15KB prose | Procedural | No schema, no provenance, no validation gate |
+| AGENTS.md corrections | ~12KB prose (P:/AGENTS.md) | Procedural | No schema, no provenance, no validation gate |
 | behavioral-check-log.jsonl | Detection logs | Episodic | No TTL, no clustering |
 | scan_corrections.ps1 | Pattern clustering | Reflection layer | Doesn't produce persistent rules |
-| Wiki concepts (244+) | Markdown with frontmatter | Semantic | No staleness check, no confidence field |
-| Skills (244+) | SKILL.md files | Procedural | No promotion gate from episodic to procedural |
+| Wiki concepts (900+) | Markdown with frontmatter | Semantic | No staleness check, no confidence field |
+| Skills (700+) | SKILL.md files | Procedural | No promotion gate from episodic to procedural |
 | Session handoffs | Markdown files | Episodic | No TTL, no retrieval mechanism |
 | /dream | 90-day consolidation | Forgetting | Primitive; no decay scoring |
 
@@ -199,5 +203,9 @@ This concept is wrong if, within 6 months:
 
 **Identity persistence:**
 - Persistent Identity in AI Agents — https://arxiv.org/abs/2604.09588
+
+**Memory bloat:**
+- mem0 production analysis — https://github.com/mem0ai/mem0
+- Anatomy of Agentic Memory (ACL 2026) — https://arxiv.org/abs/2602.19320
 
 **Research method:** /www pipeline, parallel or-ling-3-flash-free subagent, 28+ sourced findings synthesized.

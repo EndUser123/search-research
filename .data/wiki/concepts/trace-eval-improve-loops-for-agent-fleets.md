@@ -41,6 +41,10 @@ relations:
     type: related
   - target: wiki/concepts/mechanical-enforcement-over-behavioral-reminder.md
     type: related
+  - target: wiki/concepts/structured-behavioral-memory-architecture.md
+    type: related
+  - target: wiki/concepts/token-optimization-patterns-for-agent-fleets.md
+    type: related
 ---
 
 # Trace-eval-improve loops for agent fleets: from transcripts to measurable improvement
@@ -206,6 +210,9 @@ This concept is wrong if, within 6 months:
 **Evaluation methodology:**
 - Anthropic: Demystifying Evals for AI Agents — https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 - DeepEval: Eval-Driven Development — https://deepeval.com/blog/eval-driven-development
+
+**Self-correction grounding:**
+- LLMs Cannot Self-Correct Yet (Huang 2024, 600+ citations) — https://arxiv.org/abs/2310.01798
 
 **Failure taxonomy:**
 - MAST Taxonomy (NeurIPS 2025) — https://arxiv.org/abs/2509.25370
