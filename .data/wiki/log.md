@@ -1,5 +1,11 @@
 # Vault Log
 
+## mechanical-as-input-not-mechanical-as-frame
+Source: session-019fcd47
+Agent: grok
+Notes: Scanner output as one evidence stream, preserving model adaptivity
+Page: wiki/concepts/mechanical-as-input-not-mechanical-as-frame.md
+
 ## Self-reflective gap discovery: indirect-hunting prompts
 Source: session-2026-08-05
 Agent: grok
