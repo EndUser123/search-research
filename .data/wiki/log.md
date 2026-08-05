@@ -1,5 +1,11 @@
 # Vault Log
 
+## hook-regex-false-positives-pasted-terminal-output
+Source: session-019fcd47
+Agent: grok
+Notes: Predictable failure: regex matching /word in pasted CLI output. Test coverage gap: didn't test non-command text containing command patterns.
+Page: wiki/concepts/hook-regex-false-positives-pasted-terminal-output.md
+
 ## spawn-evaluate-return-pattern-shared-across-critique-skills
 Source: session-019fd276
 Agent: grok
