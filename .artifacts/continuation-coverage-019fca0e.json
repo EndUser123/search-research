@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "session_id": "019fca0e-9f40-7110-919b-6ee89333f804",
-  "generated_at": "2026-08-04T22:08:50.664507",
+  "generated_at": "2026-08-04T22:36:29.010598",
   "candidate_count": 1,
   "candidates": [
     {
@@ -25,8 +25,7 @@
     }
   ],
   "coverage": {
-    "covered": [],
-    "uncovered": [
+    "covered": [
       {
         "candidate_id": "goal_opening_fae68e248b1a",
         "title": "This session is being continued from a previous conversation that ran out of context. The summary below covers the ea...",
@@ -38,6 +37,7 @@
         "materiality": "non-material"
       }
     ],
+    "uncovered": [],
     "needs_update": [],
     "duplicates": [],
     "needs_split": [],
@@ -59,6 +59,6 @@
   "source_summary": {
     "user_goal": 1
   },
-  "degraded": true,
+  "degraded": false,
   "extraction_error": null
 }
