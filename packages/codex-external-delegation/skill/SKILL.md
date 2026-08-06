@@ -31,6 +31,36 @@ Do not delegate ambiguous diagnosis, architecture, security decisions, final rev
 8. Inspect the normalized JSON result and raw artifacts under `.codex/state/external-delegation/<task_id>/`.
 9. Independently inspect changed files and rerun verification before accepting any result.
 
+### Batch workflow
+
+Use the `batch.v1` harness when the parent has multiple independent, bounded
+work units or deliberate repetitions. Do not use it to split an ambiguous
+objective, hide planning, or let workers coordinate with one another.
+
+1. Create a manifest with a unique `batch_id`, an explicit `artifact_root`,
+   conservative `concurrency`, and one task per independent work unit.
+2. Each task must use `candidate_mode: "automatic"` (omit `model` and
+   `requested_model`) or `candidate_mode: "explicit"` with an explicit Pi
+   provider and model. Parent Codex remains responsible for the task packet,
+   scope, restrictions, and verification commands.
+3. Run `batch route --manifest <path>` first. Inspect every repetition and its
+   selected `(model, provider, dispatch path)` or blocking reason before using
+   worker quota. `batch run --manifest <path> --dry-run` is the zero-worker
+   alternative when only command planning is needed.
+4. Run `batch run --manifest <path>` only after the route is acceptable. Each
+   eligible repetition is attempted once; failures are recorded per repetition,
+   independent work continues, and there is no retry, fallback, or reroute.
+5. Inspect the redacted manifest, route, packet, result, stdout/stderr, and
+   batch-summary artifacts under `<artifact_root>/<batch_id>/`. A failed batch
+   or any blocked repetition is evidence for parent review, not acceptance.
+   Required-field presence is not a task-specific type/schema guarantee; when
+   result shape matters, state it in the objective and independently validate
+   it before acceptance.
+
+Keep batch concurrency within the provider/quota policy, and require a
+`worktree_request` for write tasks just as with a single packet. OpenCode is
+still an explicit new invocation, never an automatic batch fallback.
+
 ## Safety contract
 
 - A worker is not successful unless it returns the required structured result marker.

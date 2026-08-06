@@ -9,6 +9,14 @@ import { fileURLToPath } from "node:url";
 const packageRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const cli = join(packageRoot, "bin", "external-delegation.mjs");
 
+test("help lists the complete command surface", () => {
+  const result = spawnSync(process.execPath, [cli, "--help"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  const output = JSON.parse(result.stdout);
+  assert.match(output.usage, /<run\|classify\|route\|batch\|check>/);
+  assert.equal(output.commands.batch, "batch <route|run> --manifest <path> [--dry-run]");
+});
+
 async function packetFile(packet) {
   const dir = await mkdtemp(join(tmpdir(), "codex-delegation-cli-"));
   const path = join(dir, "packet.json");

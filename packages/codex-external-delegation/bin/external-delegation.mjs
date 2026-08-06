@@ -40,7 +40,7 @@ async function main(argv = process.argv.slice(2)) {
   const [command, ...args] = argv;
   if (!command || command === "--help" || command === "-h") {
     print({
-      usage: "node bin/external-delegation.mjs <run|classify|check> ...",
+      usage: "node bin/external-delegation.mjs <run|classify|route|batch|check> ...",
       commands: {
         run: "run --packet <path|-> [--dry-run]",
         classify: "classify --packet <path|->",
