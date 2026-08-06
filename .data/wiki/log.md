@@ -1,5 +1,11 @@
 # Vault Log
 
+## skill-bloat-research-thresholds-and-techniques-2026
+Source: session-20260806
+Agent: grok
+Notes: Skill bloat thresholds and techniques research
+Page: P:/.data/wiki/concepts/skill-bloat-research-thresholds-and-techniques-2026.md
+
 ## Stop-hook state-file keyword enforcement creates unbreakable agent feedback loops
 Source: session-019fc927
 Agent: grok
