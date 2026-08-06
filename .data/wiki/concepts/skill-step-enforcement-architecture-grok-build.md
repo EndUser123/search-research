@@ -54,9 +54,29 @@ Source: [Subramaniam 2026](https://trilogyai.substack.com/p/how-to-fix-your-ai-a
 **The question:** what enforcement mechanisms are available on Grok Build, and
 which combination is optimal?
 
-## Three mechanisms evaluated
+## Four mechanisms evaluated
 
-### Mechanism 1: Stop hook quality gates — WORKS (interim architecture)
+### Mechanism 0: PreToolUse phase-state hooks — WORKS (proactive enforcement)
+
+**What it is:** a PreToolUse hook reads a session-scoped phase-state file
+and blocks `git push` (exit 2) when the ship pipeline is in a pre-merge
+phase (review or verify). Fires BEFORE the tool executes — this is the
+only proactive enforcement mechanism on Grok Build.
+
+**Status:** SHIPPED 2026-08-05. Hook at
+`~/.grok/hooks/PreToolUse_ship_phase_gate.py`. Tested: 13/15 acceptance tests
+pass. Ship-variant-agnostic — enhances both ship-rhai and ship-py without
+replacing either. See [[ship-pipeline-enforcement-pretooluse-phase-state-hooks]].
+
+**Effectiveness:** proactive — blocks the push command before it runs. The
+agent must complete the pipeline (review → verify → merge-ready) before push
+succeeds. The agent can unblock itself by running the remaining phases.
+
+**Limitation:** tool-call boundary only. Enforces "can't push until pipeline
+complete" but does not enforce intra-skill step ordering (that's what wrapper
+scripts and Rhai workflows address).
+
+### Mechanism 1: Stop hook quality gates — WORKS (post-execution backstop)
 
 **What it is:** skills declare `quality_gates` in SKILL.md frontmatter naming
 evidence artifacts. The Stop hook (`quality_gate.py` + `quality_gates_frontmatter.py`)
@@ -176,12 +196,18 @@ control structure must live outside the LLM.
 
 ## Decision
 
-**Interim (shipped):** Stop hook quality gates (Mechanism 1). Catches missing
-evidence post-execution. One round-trip cost per skip.
+**Shipped (2026-08-05):**
+- **Mechanism 0** — PreToolUse phase-state hooks (proactive push-gating).
+  The only proactive enforcement layer. Enhances both ship skills.
+- **Mechanism 1** — Stop hook quality gates (post-execution backstop).
+  Catches missing evidence post-execution.
 
-**Target (next session):** Convert `/ship` to skill+workflow composition
-(Mechanism 3). The skill dispatches to Rhai workflows per phase. The workflow
-enforces deterministic step ordering. The Stop hook remains as backstop.
+**Target (next):** Rhai workflow conversion (Mechanism 3) for deterministic
+phase ordering within each ship variant. The PreToolUse hook and Rhai
+workflows are complementary — the hook gates push at the tool-call boundary;
+the workflow enforces step ordering within each phase. Neither replaces the
+other. Both ship skills (ship-rhai, ship-py) remain active and are being
+improved, not retired.
 
 **Rejected for model injection:** UserPromptSubmit hook injection (Mechanism 2). Verified
 non-functional on Grok Build native hooks — stdout/stderr/exit-2 all ignored by the model.

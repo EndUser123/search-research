@@ -34,12 +34,14 @@ relations:
 
 ## Decision
 
-**Retire ship-py and ship-rhai. Build a PreToolUse phase-state hook.**
+**Build a PreToolUse phase-state hook that enhances the existing ship skills
+(ship-rhai and ship-py).** The hook is ship-variant-agnostic — it reads
+whichever phase-state file the active ship skill writes, and blocks `git push`
+when the pipeline hasn't reached merge-ready.
 
-The field has converged on a simpler, more reliable architecture than either
-Python loop control or Rhai workflow enforcement: PreToolUse hooks that read
-a phase-state file and block git operations when prior pipeline phases
-haven't completed.
+The field has converged on PreToolUse hooks that read a phase-state file
+and block git operations when prior pipeline phases haven't completed. This
+adds a proactive enforcement layer to the ship skills without replacing them.
 
 ## Evidence from /www research (10 projects studied)
 
@@ -75,11 +77,10 @@ hook.
 
 | Criterion | PreToolUse hooks | ship-py | ship-rhai |
 |-----------|-----------------|---------|-----------|
-| Platform constraint | ✅ Works (PreToolUse fires, exit 2 blocks) | ❌ Python can't call spawn_subagent | ⚠️ Works but unproven |
+| Platform constraint | ✅ Works (PreToolUse fires, exit 2 blocks) | ⚠️ Known gap: Python can't call spawn_subagent; LLM controls continuation | ✅ Works (Rhai workflow controls phases) |
 | Proven by field | ✅ 10 projects, saytooy_arch 18→0 | ❌ No practitioner evidence | ❌ No practitioner evidence |
-| Simplicity | ✅ Hook + state file | ❌ 4 subcommands, LLM relay | ❌ Rhai engine + journaling + budget |
-| Failure surface | 1 (hook crash = fail-open) | 4 (subcommand exits, LLM deviation, state file, Python errors) | 5+ (subagent silent failure, model slug 404, smoke-check gap, launch staleness, session death) |
-| Composes with existing | ✅ quality_gates + ship_receipt.py | ❌ Separate pipeline | ❌ Separate pipeline |
+| Adds proactive enforcement | ✅ Blocks push before it happens | ❌ Post-hoc only | ⚠️ Workflow controls phases but doesn't gate push |
+| Composes with existing | ✅ Enhances both ship skills | ❌ Separate pipeline | ❌ Separate pipeline |
 
 ## The architecture
 
@@ -105,15 +106,21 @@ Enforcement layers:
 
 ## What ship-py and ship-rhai become
 
-- **ship-py**: retired. The orchestrator subcommands (`detect`, `review`,
-  `verify`, `verdict`) are useful as standalone tools but the skill itself
-  is marked as superseded. The SKILL.md points to the hook-based approach.
-- **ship-rhai**: retired. The Rhai workflow was a design experiment that
-  added complexity without proportional enforcement value. The workflow file
-  is kept for reference but not the primary path.
+Both ship skills remain active and under development. The PreToolUse
+phase-state hook is an **additive enforcement layer** — it does not replace
+either skill. Both ship skills write their phase state to variant-specific
+files (`ship-phase-rhai.json` / `ship-phase-py.json`) in a session-scoped
+directory. The hook reads whichever file exists.
 
-The `/ship` skill (prose) becomes the entry point, with hook enforcement
-providing the structural backbone.
+- **ship-py**: remains active. Known gap (LLM controls inter-phase
+  continuation — see [[ship-py-phase-fragmentation-llm-controlled-continuation]])
+  is addressed by the hook blocking push until the pipeline completes
+  mechanically, regardless of whether the LLM tried to skip ahead.
+- **ship-rhai**: remains active. The Rhai workflow provides deterministic
+  phase ordering; the hook adds push-gating on top.
+
+The `/ship` entry point may eventually unify these, but both skills are
+being actively tested and improved — not retired.
 
 ## Sources
 

@@ -60,14 +60,31 @@ The step-skip problem disappears because the graph structure makes it **impossib
 
 **But we don't need the framework to get the benefit.** A Python script with the same node/edge structure achieves identical enforcement. This is how `close_accounting.py` works today: it runs its own gate logic (13 gates, conditional loop, state machine) and returns results. The skill calls one script, the script enforces the ordering, the LLM never gets a chance to skip a step.
 
-## Why hooks aren't sufficient
+## Why hooks aren't sufficient (partially revised 2026-08-06)
 
-Hooks (quality-gate Stop hook, close scanner) are **reactive** — they fire at the end of a turn or at session close. They detect violations after they happen:
+**Original claim (2026-07-23):** "Hooks are reactive — they fire at the end
+of a turn or at session close."
 
-- Quality-gate fires at Stop → detects "verification receipt stale" → blocks the response → but the un-merged agy dispatch already burned quota
-- Close scanner fires at /close → detects "no AAR artifact" → blocks close → but the session already ran without AAR
+**Correction:** this was true for Stop hooks only. **PreToolUse hooks are
+proactive** — they fire BEFORE the tool executes and can block it entirely
+(exit 2). The ship phase gate hook (`PreToolUse_ship_phase_gate.py`, built
+2026-08-05) is a proactive enforcement layer: it blocks `git push` before
+the command runs, not after.
 
-**Proactive enforcement** requires code that runs *during* the skill's execution, between steps — not after. That's what wrapper scripts provide: they intercept the step transition (merge → dispatch) and enforce it structurally.
+However, the original point still holds for the specific gap it described:
+hooks fire at tool-call boundaries (PreToolUse, PostToolUse) or turn
+boundaries (Stop). They cannot enforce ordering *within* a skill's internal
+steps between tool calls — that still requires wrapper scripts or workflow
+control. PreToolUse fills the "block the next tool" niche; wrapper scripts
+fill the "enforce step ordering within a skill" niche.
+
+- **PreToolUse hooks** — proactive at tool-call boundaries (block push before
+  it executes). Added 2026-08-05; see [[ship-pipeline-enforcement-pretooluse-phase-state-hooks]].
+- **Stop hooks** — reactive at turn boundaries (block completion when
+  evidence is missing).
+- **Wrapper scripts** — proactive during skill execution (enforce step
+  ordering between tool calls). Still the right approach for intra-skill
+  enforcement that neither hook type covers.
 
 ## The decision
 

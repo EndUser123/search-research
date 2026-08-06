@@ -4,12 +4,21 @@ title: "Claude Code Skill Enforcement: Layer Analysis"
 created: 2026-04-18
 source: ~/Downloads/hooks_implementation_plan 2.md
 hash: 6e29ef00e690d59f033409a9927f886e4ecb9cf6f1f961f98e4f3576801f3566
+host: claude
 tags:
   - claude-code
   - hooks
   - skill-enforcement
   - architecture
 summary: "Comprehensive analysis of Claude Code's 3-layer skill enforcement model: PreToolUse (blocks non-skill tools), UserPromptSubmit (injects instructions ~50% effective), and Stop hook (100% backstop)."
+
+> **CROSS-HOST NOTICE (updated 2026-08-06):** This concept describes
+> **Claude Code's** skill enforcement model. It does NOT apply to Grok
+> Build. On Grok Build, UserPromptSubmit is verified non-functional for
+> model injection (stdout/stderr/exit-2 all ignored). The Grok Build
+> enforcement landscape is documented in
+> [[skill-step-enforcement-architecture-grok-build]] and
+> [[ship-pipeline-enforcement-pretooluse-phase-state-hooks]].
 ---
 
 # Claude Code Skill Enforcement: Layer Analysis

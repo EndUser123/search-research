@@ -4,12 +4,20 @@ title: "Skill Enforcement: The ~50% Layer 1 Failure Analysis"
 created: 2026-04-18
 source: ~/Downloads/hooks_implementation_plan 2.md
 hash: 6e29ef00e690d59f033409a9927f886e4ecb9cf6f1f961f98e4f3576801f3566
+host: claude
 tags:
   - claude-code
   - hooks
   - skill-enforcement
   - gap-analysis
 summary: "Deep dive into why Layer 1 UserPromptSubmit achieves only ~50% compliance, and the evidence from repo code showing enforcement contracts are inconsistent."
+
+> **CROSS-HOST NOTICE (updated 2026-08-06):** This concept describes
+> **Claude Code's** skill enforcement internals (`skill_enforcer.py`,
+> `PreToolUse.py`, `Stop.py`). These do not exist on Grok Build. On Grok
+> Build, UserPromptSubmit is verified non-functional for model injection.
+> See [[skill-step-enforcement-architecture-grok-build]] for the current
+> host's enforcement landscape.
 ---
 
 # Skill Enforcement Deep Dive: The ~50% Problem
