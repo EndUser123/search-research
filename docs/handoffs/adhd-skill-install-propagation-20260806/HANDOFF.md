@@ -118,6 +118,24 @@ OPEN — skill installed and 3 skills patched. Testing across live sessions is t
 **Status update:** unchanged — OPEN. Skill installed, review fixes shipped, testing across sessions is still the remaining work.
 
 **New open items:**
-- F-04 (hook quoting): extract `python -c` to `~/.grok/hooks/scripts/adhd_skill_reminder.py` when touching hooks next
 - F-05 (go placeholders): shorten `<one line: ...>` to `<findings>` style when editing `/go` next
+
+---
+
+## Revision 2 — 2026-08-06T20:30Z (session 019fd81d)
+
+**Trigger:** auto-update — F-04 resolved, second check + review pass complete.
+
+**What changed since Revision 1:**
+- F-04 resolved: extracted hook `python -c` to `hooks/scripts/adhd_skill_reminder.py` (commit `19b59a3`). ruff check passed.
+- Second `/check` passed: 18/18 items verified (includes hook script execution + ruff)
+- Second `/review` passed: no new findings. 5 of 6 original findings resolved; F-05 remains deferred (low-risk suggestion).
+- `/tp do?` + `/tp improve` completed: 8 improvement items surfaced (2 efficiency, 2 effectiveness, 2 insightfulness, 2 thought-partnership). All behavioral — no executable code changes beyond F-04.
+- Wiki concept updated to mark F-04 resolved.
+
+**Final commit inventory:**
+- `~/.grok`: `f7c57bd` (install), `571b8c5` (4 review fixes), `19b59a3` (hook script extraction)
+- `P:/`: `c683e9f`, `6f0fe1a`, `f8528c7`, `9806912`, `d1b5b11`, `190dbb6` (wiki, handoff, dream, clone convention)
+
+**Status update:** unchanged — OPEN. All implementation and review work complete. Remaining work is testing across sessions (next session) and F-05 (low priority).
 - `/wiki` to update the implementation concept after testing results come in
