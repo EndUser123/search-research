@@ -63,6 +63,14 @@ Installed at `~/.grok/skills/adhd/SKILL.md`. Invocable as `/adhd`. Opt-in — of
 - `/handoff`: body stance leads with concrete outcome, not background
 - `/go`: phase progress lines show what each phase produced that now works
 
+**Review fixes (2026-08-06, /review session 019fd8b0):**
+- Hook matcher expanded from `startup` to `startup|resume` — reminder now fires on resumed sessions
+- H1 heading fixed from `# i-have-adhd` to `# adhd` to match frontmatter
+- Rule 9 workspace override added inline: "AGENTS.md completeness-over-curation wins; chunk instead of capping"
+- Handoff stance bullet de-bolded for consistency
+
+**Upstream-skill + workspace-override pattern:** when installing a third-party skill that partially conflicts with workspace rules, keep the upstream content clean and add an inline override note at the conflict point. This preserves update-ability (git pull from upstream) while resolving the conflict at runtime.
+
 **Rejected alternatives and why:**
 
 | Option | Rejected because | Evidence |
