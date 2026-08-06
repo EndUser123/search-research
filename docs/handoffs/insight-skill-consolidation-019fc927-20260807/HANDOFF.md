@@ -22,7 +22,7 @@ Create `/insight`, a single skill that absorbs the improvement-finding functions
 
 ## Status
 
-OPEN — plan approved. Implementation not started.
+CLOSED — consolidation implemented and committed. See Execution Status below.
 
 ## Producing context
 
@@ -231,3 +231,35 @@ with 4 modes: default (session scan), --skills (skill MEC), --fleet (cross-sessi
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-07T00:00 | 019fc927 | created |
+| 2026-08-07T12:00 | 019fd820 | implemented all 6 tasks + closed |
+
+## Execution Status
+
+Updated: 2026-08-07T12:00:00Z
+Session: 019fd820-2fb5-7330-a0ab-290d5e529658
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | Create /insight SKILL.md with 4 modes | ✅ DONE | `~/.grok/skills/insight/SKILL.md` (450 lines, 9 categories + friction enrichment + 4 modes) |
+| 2 | Absorb /friction detection into default mode | ✅ DONE | Categories 1-2 enriched with friction markers, scoring rubric, output format |
+| 3 | Update /close + /close-check to call /insight | ✅ DONE | close/SKILL.md, close-check.rhai (9 edits), close-check.md all updated; grep for /capture returns 0 in close pipeline |
+| 4 | Deprecate /capture + /friction | ✅ DONE | DEPRECATED notices added to both SKILL.md files pointing to /insight |
+| 5 | Update skill graph + references | ✅ DONE | Catalog reindexed; /notice T10/T11/T13 updated; /behave, /dream references updated |
+| 6 | Wiki concept for consolidation decision | ✅ DONE | `P:/.data/wiki/concepts/insight-skill-consolidates-capture-friction-harvest.md` |
+
+### Key findings during execution
+- `/harvest` SKILL.md does not exist at `~/.grok/skills/harvest/` — it was referenced conceptually in other skills but never had a Grok skill file. The harvest concept is absorbed into `/insight --fleet` mode; no file to deprecate.
+- `/notice` has 8+ references to `/capture` across trigger definitions and version notes — all functional references (trigger tables, detection methodology) updated to `/insight`; historical version notes (v2.2-v2.5) left as-is since they describe what existed at the time.
+- The close-check Rhai workflow ran `/friction` as a separate read-only subagent in Wave 1 — this was removed and friction detection merged into `/insight` (write-capable Wave 2), reducing the remediation wave from 5 subagents to 4.
+
+### Verification
+- `/insight` SKILL.md: contains all 9 categories, dual-stream routing, friction markers, 4 modes, coverage check ✅
+- `/close` pipeline: zero `/capture` references remain (grep verified) ✅
+- close-check.rhai: zero functional `/capture` or `/friction` references remain (only descriptive comments mention them as absorbed) ✅
+- Catalog: `/insight` appears in skill catalog after reindex ✅
+- Commits: `.grok` repo (3771954), `P:` repo (2e4f3e4) ✅
+
+### Open decisions (unchanged from plan)
+1. `/insight --fleet` vs `/dream` — co-exist for now
+2. `/insight --skills` vs `/skill-dev measure` — co-exist for now
