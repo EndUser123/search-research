@@ -6,10 +6,10 @@ parent_session: none
 current_terminal_id: console_019fcdd2
 produced_at: 2026-08-06T06:00:00Z
 last_updated_by: 019fcdd2-e190-7323-9b77-57a1c73dada5
-last_updated_at: 2026-08-06T06:00:00Z
+last_updated_at: 2026-08-06T15:30:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 0c57435
+accurate_as_of_head: b72333a
 ---
 
 # HANDOFF: /risk skill improvement — test runs done, coverage gap found
@@ -22,7 +22,7 @@ Improve the `/risk` skill through evidence-driven iteration: run it on real targ
 
 ## 2. Status
 
-**OPEN** — Phase 1 (cold-start test runs) COMPLETE. Phase 2 (fix coverage gap + seed wiki) NOT STARTED.
+**OPEN** — Phase 1 (cold-start test runs) COMPLETE. TASK-1 (coverage gap fix) COMPLETE. TASK-2 (wiki seeding) + TASK-3 (warm-state re-test) NOT STARTED.
 
 ## 3. Producing context
 
@@ -63,7 +63,7 @@ Improve the `/risk` skill through evidence-driven iteration: run it on real targ
 - Skill naming convention captured to wiki
 
 **Not done:**
-- Scan coverage gap fix (add "operator experience" + "coverage gaps" to decision categories)
+- ~~Scan coverage gap fix~~ ✅ DONE (commit `b72333a` — added "operator experience" and "coverage gaps" to decision scan categories)
 - Wiki seeding (5-10 risk patterns from known incidents)
 - Warm-state re-test (compare cold-start vs warm-state after seeding)
 - Progressive disclosure split (deferred until data justifies)
@@ -71,17 +71,14 @@ Improve the `/risk` skill through evidence-driven iteration: run it on real targ
 
 ## 7. Task packets
 
-### TASK-1: Fix scan coverage gap
+### TASK-1: Fix scan coverage gap ✅ DONE
 
 - **id:** RISK-COVERAGE-01
+- **status:** COMPLETE (commit `b72333a`)
 - **goal:** Add "operator experience" and "coverage gaps" to the decision-type risk categories in Phase 1 SCAN so the scan catches what Run 2 missed
-- **in scope:** `~/.grok/skills/risk/SKILL.md` Phase 1 scan category table (around line 88)
-- **out of scope:** Phase 4 ATTACK categories, other skills
-- **files / anchors:** `risk/SKILL.md` — the section listing risk categories for "decision" target type
+- **what was done:** Added "operator experience, coverage gaps" to the Decision row of the Phase 1 risk categories table (line 100 of SKILL.md)
 - **acceptance:** Re-run `/risk` on the LAEFS target. Scan should find ≥1 of the 2 risks it previously missed (subagent bypass or false-positive friction) without critic help.
-- **falsifier:** Scan still produces 0 findings in the "operator experience" or "coverage gaps" categories for a target where those risks demonstrably exist
-- **verification level required:** LIVE_BEHAVIOR (run the skill)
-- **estimate:** ~5 min edit + ~10 min re-run
+- **acceptance met:** NOT YET VERIFIED — the edit is in place but the re-run has not been executed. Next session should verify.
 
 ### TASK-2: Seed wiki with risk patterns
 
@@ -161,10 +158,9 @@ Improve the `/risk` skill through evidence-driven iteration: run it on real targ
 ## 13. Resumption protocol
 
 1. Read this handoff + `risks-skill-improvement-research-2026.md`
-2. **TASK-1 first:** Add "operator experience" and "coverage gaps" categories to `risk/SKILL.md` Phase 1 decision-type scan table
-3. Re-run `/risk scan` on the LAEFS target to verify the coverage gap is fixed
-4. **TASK-2:** Write 5 risk-pattern wiki concepts from the candidate list
-5. **TASK-3:** Re-run all 3 test targets warm-state, compare to cold-start results
+2. **Verify TASK-1:** Re-run `/risk scan` on the LAEFS target to confirm the coverage gap fix catches ≥1 of the 2 previously-missed risks
+3. **TASK-2:** Write 5 risk-pattern wiki concepts from the candidate list
+4. **TASK-3:** Re-run all 3 test targets warm-state, compare to cold-start results
 
 ## 14. Suggested next invocation
 
@@ -196,3 +192,4 @@ Improve the `/risk` skill through evidence-driven iteration: run it on real targ
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-06T06:00 | 019fcdd2 | created |
+| 2026-08-06T15:30 | 019fcdd2 | updated — TASK-1 (coverage gap fix) COMPLETE, acceptance not yet verified via re-run |
