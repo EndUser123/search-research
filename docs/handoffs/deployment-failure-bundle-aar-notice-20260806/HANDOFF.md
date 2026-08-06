@@ -1,7 +1,16 @@
 # Handoff — deployment-failure bundle: /aar auto-capture + /notice embed
 
 ## Status
-OPEN — execution-ready, needs fresh session (multi-hour engineering).
+CLOSED — implemented in session 019fd42f (commit 7c9eac0 in ~/.grok).
+
+**Item 1 (auto-capture pipeline):** `C:/Users/brsth/.grok/skills/aar/__lib/auto_capture.py`
+— runs 6 relevant detectors on a transcript, gates through wiki-worthy checks,
+writes candidate JSON files. Smoke-tested on 2 real sessions.
+
+**Item 2 (/notice trigger hook):** `C:/Users/brsth/.grok/hooks/scripts/notice_trigger_hook.py`
++ `C:/Users/brsth/.grok/hooks/notice-trigger-hook.json` — Stop hook detecting
+T1 (error state) and T3 (stuck-loop) mechanically, writing candidates to
+`~/.grok/state/notice-candidates.jsonl`. Smoke-tested with simulated payloads.
 
 ## Objective
 
