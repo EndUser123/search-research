@@ -1,5 +1,11 @@
 # Vault Log
 
+## --title
+Source: Static defect scan for skills
+Agent: --slug
+Notes: static-defect-scan-for-skills-catch-structural-defects-without-firing-history
+Page: --source
+
 ## file-locking-atomic-replace-cache-pattern
 Source: fleet_quota.py TOCTOU fix
 Agent: grok
