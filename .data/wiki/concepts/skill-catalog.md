@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-06
 cognitive_load: 3
-summary: Auto-generated index of 718 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 716 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-06 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 718 across 21 scopes.
+**Total skills:** 716 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-08-06 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (73 skills)
+## grok-user (71 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -37,7 +37,6 @@ Auto-generated on 2026-08-06 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **ask** | ✓ | — | Route to the right skill based on session context and latest turns. Extracts intent from the conversation, queries the s... | — | `~/.grok/skills/ask/SKILL.md` |
 | **behave** | ✓ | — | Post-hoc diagnostic for verdict-transition integrity. Detects self-protection patterns, load-bearing failure, authority-... | — | `~/.grok/skills/behave/SKILL.md` |
 | **brain** | ✓ | — | "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying... | — | `~/.grok/skills/brain/SKILL.md` |
-| **capture** | ✓ | — | Proactive improvement opportunity scanner. Two functions: (1) scans the session transcript for 6 categories of opportuni... | — | `~/.grok/skills/capture/SKILL.md` |
 | **close** | ✓ | — | Session close-out orchestrator. Runs close_accounting.py to scan handoffs, wiki, git commits, temp files, git status, an... | Check if session is safe to close. Scan for uncommitted work, missing handoffs, ... | `~/.grok/skills/close/SKILL.md` |
 | **codex** | ✓ | — | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | — | `~/.grok/skills/codex/SKILL.md` |
 | **create-skill** | ✓ | — | DEPRECATED — use /skill-dev create instead. Skill-dev Mode 0 absorbs create-skill with added quality gates (scanner + te... | — | `~/.grok/skills/create-skill/SKILL.md` |
@@ -49,7 +48,6 @@ Auto-generated on 2026-08-06 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **doc-check** | ✓ | — | Documentation readiness check for publishing. Scans the diff/commits being shipped against README, CHANGELOG, version fi... | — | `~/.grok/skills/doc-check/SKILL.md` |
 | **domain-terms** | ✓ | — | Extract domain terminology from conversation or codebase, flag ambiguities, propose canonical terms, and produce a struc... | — | `~/.grok/skills/domain-terms/SKILL.md` |
 | **dream** | ✓ | — | Offline memory consolidation for the LLM agent fleet. Reads the last 90 days of handoffs, AAR artifacts, and the www-led... | — | `~/.grok/skills/dream/SKILL.md` |
-| **friction** | ✓ | — | Detect interaction friction and workflow automation opportunities from chat history and session evidence. Two categories... | — | `~/.grok/skills/friction/SKILL.md` |
 | **go** | ✓ | — | Intelligent high-horsepower engineering orchestrator for Grok. Primary slash: /go. From plain language, auto-selects gro... | Implement, fix, build, or execute engineering work. Orchestrate multi-step tasks... | `~/.grok/skills/go/SKILL.md` |
 | **grill-me** | ✓ | — | Relentless batch interview that walks a decision tree until shared understanding is reached. Asks questions in frontier ... | — | `~/.grok/skills/grill-me/SKILL.md` |
 | **grok-discovery** | ✓ | — | Build an evidence-backed source-authority inventory before non-trivial plan, implement, refactor, or "does X exist / is ... | — | `~/.grok/skills/grok-discovery/SKILL.md` |
