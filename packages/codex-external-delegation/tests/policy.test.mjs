@@ -1,7 +1,89 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { classifyTask } from "../src/policy.mjs";
 import { compilePacket, hashPacket } from "../src/packet.mjs";
+
+const selectorFixtureCandidates = [
+  {
+    id: "opencode-go/deepseek-v4-flash",
+    registry_slug: "go-deepseek-v4-flash",
+    worker: "pi",
+    provider: "opencode-go",
+    model: "deepseek-v4-flash",
+    quota_provider: "opencode-go",
+    roles: { mechanical: 96 },
+    capabilities: { tools: true, structured_output: true, reasoning: true, images: false },
+    context_window: 131072,
+    max_output_tokens: 32768,
+    quota_pool: "opencode-go",
+    quota_class: "shared_subscription",
+    priority: 100,
+  },
+  {
+    id: "nvidia-nim/deepseek-ai/deepseek-v4-flash",
+    registry_slug: "nim-deepseek-ai-deepseek-v4-flash",
+    worker: "pi",
+    provider: "nvidia-nim",
+    model: "deepseek-ai/deepseek-v4-flash",
+    quota_provider: "nvidia",
+    roles: { mechanical: 94 },
+    capabilities: { tools: true, structured_output: true, reasoning: true, images: false },
+    context_window: 131072,
+    max_output_tokens: 32768,
+    quota_pool: "nvidia-nim",
+    quota_class: "unlimited_with_rate_limit",
+    priority: 95,
+  },
+];
+
+async function createSelectorFixture(now) {
+  const root = await mkdtemp(join(tmpdir(), "codex-policy-selector-"));
+  const stateDir = join(root, "quota-provider-state");
+  const registryPath = join(root, "fleet-models.json");
+  const quotaPath = join(root, "fleet-quota-cache.json");
+  const modelsPath = join(root, "models.json");
+  await mkdir(stateDir);
+  await writeFile(registryPath, JSON.stringify({
+    models: {
+      "go-deepseek-v4-flash": { provider: "opencode-go", transports: { pi_cli: { status: "working" } } },
+      "nim-deepseek-ai-deepseek-v4-flash": { provider: "nvidia-nim", transports: { pi_cli: { status: "working" } } },
+    },
+    lanes: {},
+  }));
+  await writeFile(quotaPath, JSON.stringify({}));
+  await writeFile(modelsPath, JSON.stringify({ providers: {
+    "opencode-go": { models: [{ id: "deepseek-v4-flash" }] },
+    "nvidia-nim": { models: [{ id: "deepseek-ai/deepseek-v4-flash" }] },
+  } }));
+  await writeFile(join(stateDir, "opencode-go-fixture.json"), JSON.stringify({
+    providerId: "opencode-go",
+    timestamp: now,
+    result: { attempted: true, entries: [{ name: "monthly", percentRemaining: 0 }] },
+  }));
+  return { registryPath, quotaPath, stateDir, modelsPath };
+}
+
+function withSelectorEnv(paths, callback) {
+  const names = {
+    CODEX_PI_FLEET_REGISTRY: paths.registryPath,
+    CODEX_PI_QUOTA_CACHE: paths.quotaPath,
+    CODEX_PI_QUOTA_STATE: paths.stateDir,
+    CODEX_PI_MODELS: paths.modelsPath,
+  };
+  const previous = Object.fromEntries(Object.keys(names).map((name) => [name, process.env[name]]));
+  Object.assign(process.env, names);
+  try {
+    return callback();
+  } finally {
+    for (const name of Object.keys(names)) {
+      if (previous[name] === undefined) delete process.env[name];
+      else process.env[name] = previous[name];
+    }
+  }
+}
 
 const bounded = {
   objective: "List callers of module X.",
@@ -49,22 +131,27 @@ test("compiles a complete versioned packet and hashes authoritative inputs", () 
   assert.notEqual(packet.packet_hash, hashPacket(changed));
 });
 
-test("uses authoritative provider state when the caller leaves model selection open", () => {
-  const { packet } = compilePacket({
+test("uses authoritative provider state when the caller leaves model selection open", async () => {
+  const now = Date.now();
+  const paths = await createSelectorFixture(now);
+  const { packet } = withSelectorEnv(paths, () => compilePacket({
     objective: "Read the package manifest and report its name.",
     cwd: "P:/repo",
     allowed_paths: ["package.json"],
     verification_commands: ["node -e \"JSON.parse(require('fs').readFileSync('package.json'))\""],
     task_domain: "mechanical",
+    now_ms: now,
+    model_candidates: selectorFixtureCandidates,
     provider_health: {
       "opencode-go": { available: true, quota_available: true, reliability: 0.99, p90_latency_ms: 4000, evidence_count: 8 },
     },
-  });
+  }));
   assert.equal(packet.worker, "pi");
   assert.equal(packet.requested_provider, "nvidia-nim");
   assert.equal(packet.model, "deepseek-ai/deepseek-v4-flash");
   assert.equal(packet.model_selection.status, "selected");
-  assert.notEqual(packet.model_selection.health_source, "caller_input");
+  assert.equal(packet.model_selection.health_source, "fleet_registry_and_quota_cache");
+  assert.match(packet.model_selection.reasons.join(" "), /quota_status:static_unlimited_rate_limited/);
 });
 
 test("preserves explicit OpenCode identity when a caller selects that lane", () => {
