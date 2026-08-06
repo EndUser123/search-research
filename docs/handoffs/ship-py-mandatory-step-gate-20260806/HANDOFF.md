@@ -148,3 +148,4 @@ Both are small (~10-15 lines each). The investigation is complete — all altern
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-06T00:30 | 019fcd47... | created — investigation complete, implementation ready |
+| 2026-08-06T09:00 | 019fcd47... | updated — /review found 4 bugs in skill_precheck.py (COR-001/002/004/005), all fixed in commit 0c06ba6. The hook regex and terminal-marker logic were corrected. These fixes are in the same file as the terminal-output detection heuristic and should be verified together when the gate is implemented. |
