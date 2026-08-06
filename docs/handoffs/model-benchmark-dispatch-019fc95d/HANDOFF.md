@@ -7,10 +7,10 @@ produced_at: 2026-08-04T06:00:00Z
 status: open
 handoff_type: investigation
 accurate_as_of_head:
-  P: 8b05bae
-  grok: 08e3ac5
+  P: 9991571
+  grok: 0b3bea6
 last_updated_by: 019fc95d-8132-7181-a6f4-9ab6d1624cd5
-last_updated_at: 2026-08-05T20:35:00Z
+last_updated_at: 2026-08-06T23:00:00Z
 assigned_to: grok
 assigned_at: 2026-08-04T06:00:00Z
 assigned_by: 019fc95d-8132-7181-a6f4-9ab6d1624cd5
@@ -326,3 +326,103 @@ Cross-reference of all pending tasks from compaction segments (000 + 001) agains
 | tool-fallbacks wiki update | ✅ | `tp-panel-tool-fallbacks-update-20260805` (CLOSED, commit `70479f9`) |
 
 No compaction pending tasks uncovered.
+
+---
+
+## Revision 4 — 20260806T23:00:00Z (session 019fc95d)
+
+**Trigger:** auto-update — extensive post-Rev-3 work: benchmark infrastructure fixes, full fleet benchmark results, /review findings, wiki-crawl4ai migration, uncertainty_gate hook.
+
+**What changed since Revision 3:**
+
+### Benchmark infrastructure fixes (5 defects fixed)
+
+| # | Fix | File |
+|---|---|---|
+| 1 | Per-provider throttling for tier benchmark (defaults to 1/provider, DRY with --methods) | benchmark.py |
+| 2 | print_fleet_coverage count bug — write-back writes ALL entries per slug, not just first | benchmark.py |
+| 3 | Default model loading from fleet-models.json (20 models, not 78 from config.toml) | benchmark.py |
+| 4 | Entry point moved to last line — functions were unreachable at runtime | benchmark.py |
+| 5 | Quality score write-back (_write_quality_to_registry) | benchmark.py |
+
+### Full fleet benchmark results (final state)
+
+| Data type | Coverage | Gap reason |
+|---|---|---|
+| dispatch_latency | 17/20 | 3 models: OpenCode Go quota exhausted |
+| HTTP | 15/20 | 5 models: quota/region/PI-bug |
+| PI | 15/20 | 5 models: quota/Mistral-422 |
+| OC | 17/20 | 3 models: quota exhausted |
+| spawn | 14/20 | 6 models: quota/serde/context |
+| quality_scores | 14/20 | 6 models: Cohere trial exhausted + Go quota |
+
+### Cohere quota investigation
+
+- Trial key limit: 1000 API calls/month (confirmed via 429 body)
+- `{"id":"..."}` response is a trace UUID, not the error — actual error in `message` field
+- Monthly limit only in response body, NOT in headers
+- `fleet_quota.py check_cohere()` updated to parse 429 body for exhaustion
+- **REV-004**: Cohere not in spawn gate provider map (review finding, unfixed)
+
+### PI developer-role bug (Mistral)
+
+- PI sends `role='developer'` despite `supportsDeveloperRole: false` at provider+model level
+- Mistral rejects with 422 (only accepts system/user/assistant/tool)
+- Direct API + OpenCode both work fine for Mistral
+- Wiki concept written: `pi-cli-ignores-supports-developer-role-for-mistral`
+
+### Uncertainty gate hook (new)
+
+- Stop hook detecting hedge words adjacent to factual claims
+- 3 detection patterns: hedge+number, hedge+causal, hedge+factual
+- 4 suppression filters: proposals, questions, options, already-labeled
+- Test results: 10/10 TP, 12/12 FP suppression
+- **Review findings (unfixed):** HEDGE_PLUS_FACTUAL misses copular constructions (REV-002), QUESTION_CONTEXT broken for multi-sentence (REV-003), log_detection crashes hook on write failure (REV-008)
+
+### wiki-crawl4ai migration
+
+- Migrated from manual BFS loop to crawl4ai native BestFirstCrawlingStrategy
+- Added KeywordRelevanceScorer, DomainFilter, LXMLWebScrapingStrategy, streaming
+- Version check now fires at crawl start automatically
+- **Review findings (unfixed):** --prune-boilerplate flag is no-op (REV-007), dead code from old BFS (REV-013)
+
+### /review results
+
+14 findings: 4 bugs, 5 risks, 4 suggestions. 3 root-cause clusters:
+- **Cluster B**: uncertainty_gate incomplete detection+suppression (REV-002, REV-003, REV-008)
+- **Cluster C**: Cohere quota wiring incomplete (REV-004, REV-005, REV-006, REV-009, REV-010)
+- **Cluster D**: crawl dead code + no-op flag (REV-007, REV-013)
+
+FINDINGS.md at: `P:/.artifacts/review/019fc95d-session-review/FINDINGS.md`
+
+### Wiki concepts written this session (total: 6)
+
+1. `llm-uncertainty-hedging-detection-research-landscape` — research informing hook design
+2. `crawl4ai-optimization-built-in-features` — native APIs we should use
+3. `coverage-gap-hiding-reporting-success-without-surfacing-incomplete-state` — pattern
+4. `cohere-trial-api-quota-signals-and-failure-modes` — constraint
+5. `pi-cli-ignores-supports-developer-role-for-mistral` — constraint
+6. `dedicated-quota-first-dispatch-routing` (updated) — transport-metadata design principle
+
+**Remaining work (updated):**
+
+1. **Fix /review findings** — 14 findings at `P:/.artifacts/review/019fc95d-session-review/FINDINGS.md`. Priority: REV-004 (Cohere spawn gate), REV-002+REV-003 (uncertainty_gate detection/suppression), REV-007 (prune flag no-op)
+2. **dispatch-paths-fallback** handoff still open — `tool_grounded_spawn_broken` pool-exclusion revert
+3. **Commit fleet-models.json benchmark data** — uncommitted quality/dispatch scores
+4. **Push both repos** — many commits unpushed
+
+**Status update:** benchmark data collection substantially complete (14/20 quality, 17/20 dispatch). Infrastructure fixes shipped. Review findings documented. 6 wiki concepts captured. Remaining work is fixing the 14 review findings and the dispatch-paths-fallback revert.
+
+### Compaction coverage proof (Revision 4)
+
+| Pending task | Covered? | Where |
+|---|---|---|
+| Fix /review findings | ✅ | This revision, remaining work #1 |
+| dispatch-paths-fallback revert | ✅ | `dispatch-paths-fallback-not-spawn-block-20260805` (still open) |
+| Commit benchmark data | ✅ | This revision, remaining work #3 |
+| Push repos | ✅ | This revision, remaining work #4 |
+| Benchmark infrastructure fixes | ✅ | This revision, 5 defects table |
+| Uncertainty gate hook | ✅ | This revision, uncertainty gate section |
+| wiki-crawl4ai migration | ✅ | This revision, crawl4ai section |
+| Cohere quota fix | ✅ | This revision, Cohere investigation section |
+| Full fleet benchmark | ✅ | This revision, fleet results table |
