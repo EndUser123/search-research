@@ -105,6 +105,9 @@ Create `~/.grok/hooks/scripts/wiki_index_builder.py`.
 - Table: `wiki_concepts (title TEXT, summary TEXT, tags TEXT, path TEXT, created TEXT, verification TEXT)`
 - FTS5 virtual table: `wiki_concepts_fts` indexed on (title, summary, tags)
 - Idempotent: drops + recreates on each run
+- **WAL mode + atomic replace (from /tp review):** build to a temp file,
+  then `os.replace` to the final path. This prevents read-blocking when
+  another terminal's hook queries during rebuild. Set `PRAGMA journal_mode=WAL`.
 - Logs: concept count, index size, build time
 
 **Design notes:**
@@ -187,6 +190,18 @@ Create `~/.grok/hooks/scripts/wiki_context_injector.py`.
   how, what, why, when, where, who, can, do, does, did, should, would, could,
   will, this, that, these, those, it, its, for, from, with, and, or, but, not,
   have, has, had, been, being, to, of, in, on, at, by, we, you, they, me)
+- **camelCase/underscore normalization (from /tp review):** keywords like
+  `PreToolUse`, `spawn_subagent`, `updatedInput` must be split into component
+  words before FTS5 matching, because FTS5's unicode61 tokenizer splits on
+  underscores but treats camelCase as a single token. The normalizer:
+  - Split on underscores: `spawn_subagent` → `spawn`, `subagent`
+  - Split on camelCase boundaries: `PreToolUse` → `Pre`, `Tool`, `Use`
+  - Lowercase all components
+  - This ensures the extracted keywords tokenize the same way the FTS5
+    indexer tokenizes the wiki content (which also contains these identifiers)
+- **Non-blocking DB open (from /tp review):** use `timeout=0` on the sqlite3
+  connect. If DB is locked (another terminal rebuilding), skip silently.
+- **Per-concept word cap:** truncate each concept summary to 100 words max
 - Keyword deduplication: if "routing" and "router" both appear, keep only the
   first (crude stem dedup)
 
