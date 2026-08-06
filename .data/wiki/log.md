@@ -1,5 +1,11 @@
 # Vault Log
 
+## Fusion portal design discipline: token system, design cleanup, naming convention
+Source: session-2026-08-03
+Agent: grok
+Notes: Shared token system, design cleanup principles, CLI vs Grok naming, tab visibility validation
+Page: concepts/fusion-portal-design-discipline-token-system-2026.md
+
 ## toon-renderer-consolidation-single-format
 Source: session-019fc5eb
 Agent: grok
