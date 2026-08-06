@@ -1,7 +1,7 @@
 # Handoff — PreToolUse phase-state ship gate hook
 
 ## Status
-OPEN — design agreed, implementation not started.
+RESOLVED — implemented, tested, committed (commit 5c1e1b0 in ~/.grok).
 
 ## Objective
 
