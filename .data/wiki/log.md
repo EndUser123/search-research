@@ -1,5 +1,17 @@
 # Vault Log
 
+## Wiki concept fragmentation
+Source: session-20260806
+Agent: grok
+Notes: Sessions add conclusions without reconciling; fabricated retirement decision sub-pattern
+Page: P:/.data/wiki/concepts/wiki-concept-fragmentation-sessions-add-without-reconciling.md
+
+## Self-clearing enforcement hooks
+Source: session-20260806
+Agent: grok
+Notes: Design pattern: enforcement hooks must be self-clearing (agent can unblock without operator)
+Page: P:/.data/wiki/concepts/self-clearing-enforcement-hooks-design-pattern.md
+
 ## llm-overconfidence-documentation-as-truth-bias-field-solutions
 Source: session /www 019fce56
 Agent: grok
