@@ -117,3 +117,8 @@ None for this work.
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-05T06:00 | 019fce56... | created — backlog-to-handoff bridge |
+| 2026-08-06T19:40 | 019fd81d... | updated counts via /todo: now 149 defects across 10 skills (grew from 121/6). Added: packet (2), ship-rhai (21), skill-dev (7), todo (10), handoff grew 9→9. Ready for /maintain dispatch. |
+
+## Status
+
+OPEN — ready for `/maintain` dispatch. Defect counts updated 2026-08-06.
