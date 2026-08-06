@@ -1,9 +1,25 @@
 const WORKERS = new Set(["pi", "opencode"]);
 const MODES = new Set(["read_only", "write"]);
 const STATUSES = new Set(["ok", "failed", "blocked"]);
+const PROPERTY_TYPES = new Set(["string", "number", "integer", "boolean", "object", "array", "null"]);
 
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isValidPropertyDefinition(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const keys = Object.keys(value);
+  return keys.length === 1 && keys[0] === "type" && PROPERTY_TYPES.has(value.type);
+}
+
+function observedSchemaType(value) {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  if (typeof value === "number") return Number.isInteger(value) ? "integer" : "number";
+  if (typeof value === "string") return "string";
+  if (typeof value === "boolean") return "boolean";
+  return "object";
 }
 
 function isSafeRelativeScope(value) {
@@ -65,6 +81,36 @@ function packetErrors(packet, { allowWorktreeRequest = false } = {}) {
     errors.push("invalid_output_schema_required");
   }
 
+  if (packet?.output_schema?.properties !== undefined) {
+    const properties = packet.output_schema.properties;
+    if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+      errors.push("invalid_output_schema_properties");
+    } else {
+      for (const [name, definition] of Object.entries(properties)) {
+        if (!isNonEmptyString(name) || !isValidPropertyDefinition(definition)) {
+          errors.push("invalid_output_schema_properties");
+          break;
+        }
+      }
+    }
+  }
+
+  return errors;
+}
+
+export function validateResultPayloadSchema(payload, schema) {
+  const errors = [];
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return errors;
+  const properties = schema?.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) return errors;
+  for (const [field, definition] of Object.entries(properties)) {
+    if (!Object.prototype.hasOwnProperty.call(payload, field)) continue;
+    if (!definition || typeof definition !== "object" || !PROPERTY_TYPES.has(definition.type)) continue;
+    const observed = observedSchemaType(payload[field]);
+    if (definition.type !== observed) {
+      errors.push({ field, expected_type: definition.type, observed_type: observed });
+    }
+  }
   return errors;
 }
 

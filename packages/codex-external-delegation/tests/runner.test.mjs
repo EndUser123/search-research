@@ -371,3 +371,185 @@ test("distinguishes contract_error from worker_blocked", async () => {
   assert.equal(result.failure_class, "contract_error");
   assert.notEqual(result.failure_class, "worker_blocked");
 });
+
+// --- Optional typed output_schema.properties (backward-compatible) ------------
+//
+// When a packet declares output_schema.properties, every declared property
+// whose name is present in result_payload must have a value matching the
+// declared type. Arrays and null are distinguished from objects. A mismatch
+// becomes status=failed with failure_class=contract_error and the
+// result_payload is cleared; diagnostics name field, expected_type, and
+// observed_type. Blocked payloads and existing failure classes are preserved.
+
+const typedSchemaPacket = {
+  ...basePacket,
+  output_schema: {
+    required: ["observations"],
+    properties: {
+      observations: { type: "array" },
+    },
+  },
+};
+
+// A successful run whose payload matches the typed schema must pass with
+// status=ok and failure_class=none; the typed observations are preserved.
+test("accepts a result whose payload matches the typed output_schema", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(typedSchemaPacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"observations":["a","b"]}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.failure_class, "none");
+  assert.deepEqual(result.result_payload.observations, ["a", "b"]);
+});
+
+// A successful run whose payload declares `observations` as a string while
+// the schema requires `array` must fail with contract_error, a cleared
+// result_payload, and deterministic diagnostics naming field, expected_type,
+// observed_type.
+test("rejects a result whose declared present property has the wrong type", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(typedSchemaPacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"observations":"not an array"}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "contract_error");
+  assert.equal(result.result_payload, null);
+  assert.ok(Array.isArray(result.schema_errors));
+  assert.equal(result.schema_errors.length, 1);
+  const first = result.schema_errors[0];
+  assert.equal(first.field, "observations");
+  assert.equal(first.expected_type, "array");
+  assert.equal(first.observed_type, "string");
+  assert.deepEqual(result.contract_errors, ["result_payload_schema_mismatch"]);
+});
+
+// Arrays are distinguished from objects (typeof === "object") and null is
+// treated separately: a payload value of null must match a declared
+// `null` type, and an array must not satisfy a declared `object` type.
+test("distinguishes arrays from objects and treats null separately", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const arrayAsObject = await runPacket(typedSchemaPacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"observations":{}}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(arrayAsObject.status, "failed");
+  assert.equal(arrayAsObject.failure_class, "contract_error");
+  assert.equal(arrayAsObject.schema_errors[0].field, "observations");
+  assert.equal(arrayAsObject.schema_errors[0].expected_type, "array");
+  assert.equal(arrayAsObject.schema_errors[0].observed_type, "object");
+
+  const artifactDir2 = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const objectAsArray = await runPacket({
+    ...basePacket,
+    output_schema: {
+      required: ["meta"],
+      properties: { meta: { type: "object" } },
+    },
+  }, {
+    artifactDir: artifactDir2,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"meta":[1,2,3]}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(objectAsArray.status, "failed");
+  assert.equal(objectAsArray.failure_class, "contract_error");
+  assert.equal(objectAsArray.schema_errors[0].expected_type, "object");
+  assert.equal(objectAsArray.schema_errors[0].observed_type, "array");
+
+  const artifactDir3 = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const nullOk = await runPacket({
+    ...basePacket,
+    output_schema: {
+      required: ["maybe"],
+      properties: { maybe: { type: "null" } },
+    },
+  }, {
+    artifactDir: artifactDir3,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"maybe":null}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(nullOk.status, "ok");
+  assert.equal(nullOk.failure_class, "none");
+  assert.equal(nullOk.result_payload.maybe, null);
+
+  const artifactDir4 = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const nullWrong = await runPacket({
+    ...basePacket,
+    output_schema: {
+      required: ["maybe"],
+      properties: { maybe: { type: "null" } },
+    },
+  }, {
+    artifactDir: artifactDir4,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"maybe":{}}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(nullWrong.status, "failed");
+  assert.equal(nullWrong.failure_class, "contract_error");
+  assert.equal(nullWrong.schema_errors[0].expected_type, "null");
+  assert.equal(nullWrong.schema_errors[0].observed_type, "object");
+});
+
+// Missing-required-field behavior must run before the typed-property check,
+// so a payload missing the required field is reported as missing rather
+// than being misclassified by the type validator.
+test("reports missing required fields before validating declared properties", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(typedSchemaPacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "contract_error");
+  assert.deepEqual(result.missing_result_fields, ["observations"]);
+  assert.equal(result.result_payload, null);
+});
+
+// Blocked results must keep their payloads intact even when the schema
+// would otherwise mismatch. Existing failure classes (worker_blocked)
+// must not be overwritten by the typed-property validator.
+test("preserves blocked payloads and existing failure classes", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(typedSchemaPacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"blocked","result_payload":{"observations":"not an array","blocked_reason":"policy refusal"}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "blocked");
+  assert.equal(result.failure_class, "worker_blocked");
+  assert.ok(result.result_payload);
+  assert.match(String(result.result_payload.blocked_reason), /policy refusal/);
+});
+
+// Legacy packets without output_schema.properties must behave exactly as
+// before: a successful payload whose required field has any shape is
+// accepted without schema-mismatch errors.
+test("preserves legacy required-only behavior when no properties are declared", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket({
+    ...basePacket,
+    output_schema: { required: ["value"] },
+  }, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"value":{"any":"shape"},"extra":"ignored"}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.failure_class, "none");
+  assert.equal(result.result_payload.value.any, "shape");
+});

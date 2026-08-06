@@ -113,6 +113,87 @@ test("rejects legacy schema_version 1 packets", () => {
   assert.match(result.errors.join(";"), /unsupported_schema_version/);
 });
 
+// --- Optional typed output_schema.properties (backward-compatible) ------------
+//
+// Packets may optionally include output_schema.properties as a typed shape:
+// each property value must be an object with exactly one key, `type`, whose
+// value is one of: string, number, integer, boolean, object, array, null.
+// A `present` flag is not used: declared properties are validated against
+// result_payload only when their name is present there.
+
+test("accepts a packet with valid output_schema properties", () => {
+  const result = validatePacket({
+    schema_version: "2",
+    task_id: "task-typed-schema-ok",
+    worker: "pi",
+    model: "minimax/MiniMax-M3",
+    objective: "Return typed observations.",
+    cwd: "P:/repo",
+    mode: "read_only",
+    output_schema: {
+      required: ["observations"],
+      properties: { observations: { type: "array" } },
+    },
+    verification: { commands: ["rg -n module X"] },
+  });
+  assert.equal(result.ok, true);
+});
+
+test("rejects output_schema properties whose type is not allowed", () => {
+  const result = validatePacket({
+    schema_version: "2",
+    task_id: "task-typed-schema-bad-type",
+    worker: "pi",
+    model: "minimax/MiniMax-M3",
+    objective: "Bad type should be rejected.",
+    cwd: "P:/repo",
+    mode: "read_only",
+    output_schema: {
+      required: ["observations"],
+      properties: { observations: { type: "tuple" } },
+    },
+    verification: { commands: ["rg -n module X"] },
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join(";"), /invalid_output_schema_properties/);
+});
+
+test("rejects output_schema properties that are not objects with exactly one key", () => {
+  const result = validatePacket({
+    schema_version: "2",
+    task_id: "task-typed-schema-shape",
+    worker: "pi",
+    model: "minimax/MiniMax-M3",
+    objective: "Wrong shape should be rejected.",
+    cwd: "P:/repo",
+    mode: "read_only",
+    output_schema: {
+      required: ["observations"],
+      properties: { observations: { type: "array", description: "obs" } },
+    },
+    verification: { commands: ["rg -n module X"] },
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join(";"), /invalid_output_schema_properties/);
+});
+
+// Legacy packets must keep working: a packet with only `required` (no
+// `properties`) must still validate exactly as it did before this patch.
+test("preserves legacy required-only output_schema behavior", () => {
+  const result = validatePacket({
+    schema_version: "2",
+    task_id: "task-legacy-required-only",
+    worker: "pi",
+    model: "minimax/MiniMax-M3",
+    objective: "Legacy required-only shape is still accepted.",
+    cwd: "P:/repo",
+    mode: "read_only",
+    output_schema: { required: ["observations"] },
+    verification: { commands: ["rg -n module X"] },
+  });
+  assert.equal(result.ok, true);
+});
+
 test("rejects missing schema_version", () => {
   const result = validatePacket({
     task_id: "task-no-version",

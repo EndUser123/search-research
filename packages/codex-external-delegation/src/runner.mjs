@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { spawn as defaultSpawn } from "node:child_process";
 import { dirname, join } from "node:path";
-import { validatePacket, validateResult } from "./contract.mjs";
+import { validatePacket, validateResult, validateResultPayloadSchema } from "./contract.mjs";
 import { buildCommand, spawnSpec } from "./commands.mjs";
 import { classifyFailure } from "./failures.mjs";
 import { extractJsonEventText, extractResultPayload, renderPrompt } from "./prompt.mjs";
@@ -133,6 +133,17 @@ function createResult(packet, attempt, details) {
         failure_class: "contract_error",
         contract_errors: ["missing_required_result_fields"],
         missing_result_fields: missing,
+        result_payload: null,
+      };
+    }
+    const schemaErrors = validateResultPayloadSchema(result.result_payload, packet.output_schema);
+    if (schemaErrors.length) {
+      return {
+        ...result,
+        status: "failed",
+        failure_class: "contract_error",
+        contract_errors: ["result_payload_schema_mismatch"],
+        schema_errors: schemaErrors,
         result_payload: null,
       };
     }
