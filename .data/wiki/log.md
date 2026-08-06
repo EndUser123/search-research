@@ -1,5 +1,11 @@
 # Vault Log
 
+## Guard-at-wrong-branch anti-pattern
+Source: session-019fc927
+Agent: grok
+Notes: NEW
+Page: wiki/concepts/guard-at-wrong-branch-anti-pattern.md
+
 ## creative-reasoning-as-reusable-skill-graph-functions
 Source: session-20260806
 Agent: grok
