@@ -40,7 +40,23 @@ Extracted three reference files from /brain:
 | `brain/references/ideation-heuristics.md` | 20 cognitive moves (H1-H20) in 5 categories. Mutation operators for ideas. | When needing to mutate or jump-start idea generation |
 | `brain/references/creative-techniques.md` | Diamond process, TRIZ 40 principles (agent-design-specific), SCAMPER, cross-domain analogy | When needing divergent thinking, contradiction resolution, or systematic exploration |
 
-## How automatic invocation works
+## How automatic invocation works — and the discovery gap
+
+Skills with wiki grounding (like /www, /risk, /why, /design) query the wiki before executing. When this concept matches their domain keywords ("decompose", "combine", "contradiction", "ideation", "creative", "divergent"), they find this concept, which points them to the reference files. The invocation chain:
+
+```
+Skill queries wiki for "decompose" or "contradiction" or "combine"
+  → finds this concept
+  → reads: "Load brain/references/combinatorial-ideation.md"
+  → loads the procedure
+  → applies it
+```
+
+No manual Load instruction needed in each skill's SKILL.md. The wiki IS the routing layer.
+
+**Discovery gap (tested 2026-08-06):** "decompose" appears 88 times across all wiki concepts. "ideation" appears 55 times. The concept is present in search results but not necessarily first. Skills that grep with multi-word patterns ("combinatorial ideation", "TRIZ contradiction", "cross-domain recombination") find it easily (1-5 hits). Skills that grep with single common words ("decompose", "combine") will need to scan through noise.
+
+**Mitigation:** the reference files themselves are in `~/.grok/skills/brain/references/`. Skills that explicitly `Load` the reference path bypass the wiki search entirely. The wiki concept is for **discovery** (when a skill doesn't know it needs creative techniques); the explicit Load path is for **invocation** (when a skill knows it needs them).
 
 Skills with wiki grounding (like /www, /risk, /why, /design) query the wiki before executing. When this concept matches their domain keywords ("decompose", "combine", "contradiction", "ideation", "creative", "divergent"), they find this concept, which points them to the reference files. The invocation chain:
 
