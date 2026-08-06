@@ -38,12 +38,16 @@ Build (the host platform) was absent. The operator asked why, and initial
 research incorrectly concluded that xAI had no metered quota (confusing the
 public API's tier-based RPS/TPM ceilings with the consumer subscription's
 weekly metered pool). The operator corrected this: "except that there is a
-quota per week."
+quota per week." This conflation is documented in
+[[execution-path-based-model-routing-grok-build]] which covers the
+three-layer quota-aware architecture but assumed Grok was host-metered only.
 
 The real question: **can the weekly pool be queried programmatically** the way
 opencode-quota queries z.ai and MiniMax? The answer required distinguishing
 three separate xAI quota surfaces and finding the undocumented billing
 endpoint that the community (CodexBar, OmniRoute) had already reverse-engineered.
+This extends [[provider-quota-usage-api-reference]] which previously listed
+xAI SuperGrok as covered by opencode-quota only.
 
 ## Three xAI quota surfaces (don't conflate them)
 
@@ -107,7 +111,11 @@ interactive TUI). When xAI enables it, this becomes the preferred path.
 ## What this means for our workspace
 
 `check_grok()` in `fleet_quota.py` implements the gRPC-web approach. It runs
-alongside the other provider checkers in the unified `quota` dashboard:
+alongside the other provider checkers in the unified `quota` dashboard,
+complementing the fleet quota coordination covered in
+[[model-quota-contention-coordination-fleet-rate-limiting]]. The spawn gate
+hook ([[hook-script-shared-state-concurrent-io-antipattern]]) reads the
+quota cache that this function writes to.
 
 ```
 grok             [weekly]
@@ -159,3 +167,18 @@ This technique breaks if:
 - [OmniRoute issue #6844](https://github.com/diegosouzapw/OmniRoute/issues/6844) (steveepreston, 2026-07-11) — detailed feature request with endpoint, protobuf field semantics, IPv4 requirement, acceptance criteria
 - [xAI FAQ: Usage & Limits](https://docs.x.ai/grok/faq) (xAI, accessed 2026-08-06) — confirms shared weekly pool model, percentage measurement, per-product breakdown
 - [xAI API Rate Limits](https://docs.x.ai/developers/rate-limits) (xAI, accessed 2026-08-06) — the *public API* tier system (distinct from the consumer weekly pool)
+
+## Receipts
+
+- **Implementation:** `~/.grok/skills/model-quota/scripts/fleet_quota.py` — `check_grok()` function (lines ~575–769), `render_dashboard()` family grouping (line ~1073), `main()` checker list (line ~1317)
+- **Live verification:** HTTP 200 from `grok.com/grok_api_v2.GrokBuildBilling/GetGrokCreditsConfig` with bearer token from `~/.grok/auth.json`, 2026-08-06. Response parsed: `credit_usage_percent=20.0`, reset timestamp = Thu 2026-08-06 14:24 UTC (168h cycle).
+- **Protobuf response (raw):** 120 bytes, gRPC-web frame flags=0, length=95. Top-level field 1 (embedded message) contains field 1 float32 `0x0000a041` = 20.0%, field 5 nested message with varint timestamp `1786026280`.
+
+## Auto-related
+
+- [[skill-graph]]
+- [[skill-catalog]]
+- [[skill-step-enforcement-architecture-grok-build]]
+- [[grok-build-workflows-rhai-orchestration]]
+- [[model-quota-contention-coordination-fleet-rate-limiting]]
+

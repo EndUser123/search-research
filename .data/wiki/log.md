@@ -1,5 +1,11 @@
 # Vault Log
 
+## grok-build-grpc-web-billing-endpoint
+Source: session-20260806
+Agent: grok
+Notes: Reverse-engineered gRPC-web billing endpoint for Grok Build weekly quota (GetGrokCreditsConfig)
+Page: P:/.data/wiki/concepts/grok-build-grpc-web-billing-endpoint.md
+
 ## scanner-fallback-semantics-empty-vs-degraded
 Source: session-019fcd47
 Agent: grok
