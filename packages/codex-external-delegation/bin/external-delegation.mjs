@@ -7,6 +7,7 @@ import { runPacket, workerEnvironment } from "../src/runner.mjs";
 import { compilePacket } from "../src/packet.mjs";
 import { classifyTask } from "../src/policy.mjs";
 import { getLane } from "../src/registry.mjs";
+import { batchExitCode, routeBatch, runBatch } from "../src/batch.mjs";
 
 function option(args, name) {
   const index = args.indexOf(name);
@@ -44,6 +45,7 @@ async function main(argv = process.argv.slice(2)) {
         run: "run --packet <path|-> [--dry-run]",
         classify: "classify --packet <path|->",
         route: "route --input <path|->",
+        batch: "batch <route|run> --manifest <path> [--dry-run]",
         check: "check --worker <pi|opencode|all>",
       },
     });
@@ -76,6 +78,34 @@ async function main(argv = process.argv.slice(2)) {
     });
     print({ status: checks.every((item) => item.available) ? "ok" : "failed", checks });
     return checks.every((item) => item.available) ? 0 : 20;
+  }
+
+  if (command === "batch") {
+    const [batchCommand, ...batchArgs] = args;
+    if (batchCommand !== "route" && batchCommand !== "run") {
+      print({ status: "blocked", failure_class: "invalid_batch_command", message: "batch command must be route or run" });
+      return 30;
+    }
+    const manifestPath = option(batchArgs, "--manifest");
+    if (!manifestPath) {
+      print({ status: "blocked", failure_class: "invalid_input", message: "--manifest is required" });
+      return 30;
+    }
+    let manifest;
+    try {
+      manifest = await readPacket(manifestPath);
+    } catch (error) {
+      print({ status: "blocked", failure_class: "invalid_input", message: error.message });
+      return 30;
+    }
+    const dryRun = batchCommand === "route" || batchArgs.includes("--dry-run");
+    const result = batchCommand === "route"
+      ? await routeBatch(manifest)
+      : await runBatch(manifest, { dryRun });
+    const output = { ...result };
+    delete output.plans;
+    print(output);
+    return batchExitCode(output);
   }
 
   if (command !== "run" && command !== "classify" && command !== "route") {
