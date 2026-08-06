@@ -1,7 +1,7 @@
 # Codex/Pi Live Acceptance and Default Activation Plan
 
-Status: in progress. Gates 0–2 are complete; Gates 3–4 remain. This document
-is not yet a production-activation receipt.
+Status: bounded interactive default promoted. Unattended fleet work remains
+deferred. This document records the bounded-production activation evidence.
 
 ## Target
 
@@ -184,6 +184,25 @@ After Gates 0–4 pass:
 5. If a gate fails, stop using the default path and preserve the evidence.
 
 This is the production promotion point for the recommended target.
+
+Promotion evidence:
+
+- Activation slice commit: fc7abcd.
+- Typed-contract and acceptance-plan commit: 55d3704.
+- Parent package verification: 91 tests passed, 0 failed; git diff --check
+  passed.
+- Two real read-only tasks passed through Pi with automatic provider/model
+  selection: Zen/DeepSeek for mechanical extraction and MiniMax M3 for
+  verification. Both returned typed payloads, matched runtime identity, and
+  passed parent verification.
+- One real write task passed in a disposable fixture worktree. Only
+  README.md changed; the dirty worktree was quarantined and the fixture main
+  checkout remained at baseline.
+- A separate clean disposable worktree was removed successfully by the
+  cleanup lifecycle.
+- Initial monitoring evidence now covers the two read-only tasks, the write
+  task, the clean-worktree lifecycle, and the earlier two-repetition batch
+  pilot. Continue monitoring the first 5–10 normal bounded tasks.
 
 ## Deferred unattended-fleet work
 
