@@ -1,5 +1,11 @@
 # Vault Log
 
+## file-locking-atomic-replace-cache-pattern
+Source: fleet_quota.py TOCTOU fix
+Agent: grok
+Notes: Pattern for locking read-modify-write on shared JSON cache with atomic tmp.replace()
+Page: P:/.data/wiki/concepts/file-locking-atomic-replace-cache-pattern.md
+
 ## Fusion portal design discipline: token system, design cleanup, naming convention
 Source: session-2026-08-03
 Agent: grok
