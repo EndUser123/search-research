@@ -1,5 +1,11 @@
 # Vault Log
 
+## creative-reasoning-as-reusable-skill-graph-functions
+Source: session-20260806
+Agent: grok
+Notes: Creative techniques extracted from /brain as reusable references
+Page: P:/.data/wiki/concepts/creative-reasoning-as-reusable-skill-graph-functions.md
+
 ## --title
 Source: Static defect scan for skills
 Agent: --slug
