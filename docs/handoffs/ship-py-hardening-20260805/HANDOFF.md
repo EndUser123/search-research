@@ -128,3 +128,28 @@ cmd_verdict.
 ### Updated status
 
 The 5 architectural items (5-9) from the original handoff remain open. Items 10-13 (this revision) are new findings from live operator usage. The `ship-py-mandatory-step-gate-20260806` handoff addresses a related concern (preventing verdict without review) but does not address the "already shipped" or hook-trap problems.
+
+---
+
+## Revision 2 — 2026-08-07 (session 019fc927) — Finding 12 partially fixed + wiki concept written
+
+**Trigger:** auto-update — the Stop hook fired again during `/wiki` and `/handoff` invocations, demonstrating the exact feedback loop documented in Finding 11. The root cause (Finding 12: no aborted state recognized) was partially fixed this turn.
+
+### What shipped
+
+1. **quality_gate.py ABORTED fix (commit `083e493` in ~/.grok).** Added `"ABORTED"` to the recognized terminal verdicts at `quality_gate.py:208-210`, alongside `"SHIP DONE"` and `"SHIP BLOCKED"`. The hook now recognizes a manually-written abort state and stops blocking. This addresses the immediate symptom of Finding 12 — agents who abort the pipeline (by writing `verdict: "ABORTED"` to the state file) will no longer be trapped by the hook.
+
+2. **Wiki concept `[[stop-hook-state-file-keyword-trap]]` (commit `ed0d52b` in P:/).** Documents the full failure pattern: state-file coupling makes the regex feedback loop structurally unbreakable. Extends `[[llm-judgment-hooks]]` (conversation-collapse pattern) and `[[hook-regex-false-positives-pasted-terminal-output]]`. Includes source receipts for `quality_gate.py:160-220` and the ship_orchestrator state machine.
+
+### What remains open from Revision 1
+
+| Fix | Status | Notes |
+|-----|--------|-------|
+| Add `abort` subcommand to orchestrator | **STILL OPEN** | The hook now recognizes ABORTED, but agents still must hand-edit the JSON state file. A first-class `ship_orchestrator.py abort --session-id <UUID> --reason "..."` subcommand is still needed. |
+| Add "already shipped" detection in `cmd_detect` | **STILL OPEN** | `cmd_detect` still creates the state file even when work is already committed. Needs session-commit-range detection. |
+| Fix Stop hook regex to exclude "cannot" / "unable" patterns | **PARTIALLY ADDRESSED** | The ABORTED verdict recognition prevents the loop from persisting, but the regex still false-positive matches "ship-py cannot complete." The regex fix (negative lookahead for "cannot/unable") is still needed for non-aborted cases. |
+| Add "retroactive review" mode | **STILL OPEN** | Pipeline still assumes pre-commit invocation. |
+
+### Updated status
+
+Items 5-9 (architectural) remain open. Items 10-13 (live usage) remain open with Finding 12 partially addressed. The wiki concept captures the pattern for future hook designs.

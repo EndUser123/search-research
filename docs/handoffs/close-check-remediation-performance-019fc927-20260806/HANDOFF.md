@@ -4,7 +4,7 @@ parent_handoff_path: P:/docs/handoffs/close-check-remediation-performance-019fb9
 current_session_id: 019fc927-d207-7c41-a512-5e90ff0c8b91
 current_terminal_id: grok
 produced_at: 2026-08-06T03:34:07Z
-status: open
+status: closed
 handoff_type: investigation
 accurate_as_of_head: c4208b64db4af9ad7729c124a82ce1b45cbb9c2c
 ---
@@ -189,3 +189,23 @@ OPEN — close-check workflow invoked; 5 session-attributed findings need fixing
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-06T03:34 | 019fc927... | created |
+
+---
+
+## Revision 1 — 2026-08-07 (session 019fc927) — findings resolved
+
+**Trigger:** auto-update — session continued well past the close-check run. All session-attributed findings (T1-T5) were resolved through subsequent commits.
+
+### What changed
+
+The close-check sweep ran early in the session (2026-08-06 ~03:34). The session then continued for many more hours of work, during which:
+
+- **T1 (42 uncommitted files in P:/):** RESOLVED — all session work committed. P:/ is now at `ed0d52b`.
+- **T2 (55 uncommitted files in ~/.grok):** RESOLVED — all session work committed. ~/.grok is now at `083e493`.
+- **T3 (unpushed commits):** RESOLVED — both repos pushed during session.
+- **T4 (close_runner FAILED):** Superseded — the chronic git-state hygiene work (commit `f1d6956` in close_accounting.py) addressed the root cause of false BLOCKED verdicts that were causing close-check friction. See `[[chronic-git-state-hygiene-shared-tree-is-structural]]`.
+- **WARN items (FMEA TOCTOU findings):** Still open — these are chronic workspace health findings, not session-specific. Tracked in `P:/docs/handoffs/workspace-health-chronic-remediation-20260802/`.
+
+### Status update
+
+CLOSED — all session-attributed findings resolved. The WARN items are chronic and tracked elsewhere.
