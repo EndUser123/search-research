@@ -1,5 +1,11 @@
 # Vault Log
 
+## Skill effectiveness measurement gaps
+Source: session-20260806
+Agent: grok
+Notes: Trigger accuracy + token efficiency gaps in skill-dev and skill-prune
+Page: P:/.data/wiki/concepts/skill-effectiveness-measurement-gaps-trigger-accuracy-token-efficiency.md
+
 ## Fleet health patterns
 Source: session-20260806
 Agent: grok
@@ -8747,3 +8753,63 @@ d)
   - SHA256: 2c7bd0b0023e6c3d20590ef3b64fc9895d2ca9bb4754394addebff3ed65bd84a
   - Source: crawl-ingest (ingested)
 (ingested)
+
+## 2026-08-06
+- **Cohere Documentation | Cohere** (P:\.data\wiki\sources\docs.cohere.com\000-.md)
+  - URL: https://docs.cohere.com
+  - SHA256: 63d1dea768b8ef6ef8a2b80fdf2a8d329b014c5fa0ebd435613f3cd8ce4a599c
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **North Mini Code | Cohere** (P:\.data\wiki\sources\docs.cohere.com\001-docs-north-mini-code-1-0.md)
+  - URL: https://docs.cohere.com/docs/north-mini-code-1.0
+  - SHA256: 56655401997e8e2afea047412adb5f46a028b4f0b5a7e96bdba7561feec3b294
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Cohere Documentation | Cohere** (P:\.data\wiki\sources\docs.cohere.com\002-.md)
+  - URL: https://docs.cohere.com/
+  - SHA256: 1633bcba1b18ef0e005d2cba547cc7ec633593e7f174919c7fe2910cdb0b3c8c
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **An Overview of The Cohere Platform | Cohere** (P:\.data\wiki\sources\docs.cohere.com\003-docs-the-cohere-platform.md)
+  - URL: https://docs.cohere.com/docs/the-cohere-platform
+  - SHA256: 9fb7b6cac61b0a165767440a9023007c1dce66502e1aa9a337c10d60896137e3
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Working with Cohere's API and SDK | Cohere** (P:\.data\wiki\sources\docs.cohere.com\004-reference-about.md)
+  - URL: https://docs.cohere.com/reference/about
+  - SHA256: 94d05e243f31bc1837965c5322acf05ebdc73462af3729d748a16961b8be009d
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Release Notes | Cohere** (P:\.data\wiki\sources\docs.cohere.com\005-changelog.md)
+  - URL: https://docs.cohere.com/changelog
+  - SHA256: 5275e379e28053cdf01c9ee24940c54157a7de5b15f0aebedaec31230ac212ed
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Cookbooks | Cohere** (P:\.data\wiki\sources\docs.cohere.com\006-page-cookbooks.md)
+  - URL: https://docs.cohere.com/page/cookbooks
+  - SHA256: d5ac1279eeb3e8271a427beaea76876f5511e7e4321b7ab643db4e49017de09d
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **An Overview of The Cohere Platform | Cohere** (P:\.data\wiki\sources\docs.cohere.com\007-docs.md)
+  - URL: https://docs.cohere.com/docs
+  - SHA256: e2472be38b016d7ffeb028c62ee86e504191825c07c3ad0ab5f4b87189d20a1e
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Release Notes | Cohere** (P:\.data\wiki\sources\docs.cohere.com\008-release-notes.md)
+  - URL: https://docs.cohere.com/release-notes
+  - SHA256: 5275e379e28053cdf01c9ee24940c54157a7de5b15f0aebedaec31230ac212ed
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Chat | Cohere** (P:\.data\wiki\sources\docs.cohere.com\009-reference-chat.md)
+  - URL: https://docs.cohere.com/reference/chat
+  - SHA256: de651b7d73e1e6fd95fb55fb33906f73f2ecdf344b2cb7e2734a779900ea81f4
+  - Source: crawl-ingest (ingested)
