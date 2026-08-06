@@ -1,5 +1,11 @@
 # Vault Log
 
+## Stop-hook state-file keyword enforcement creates unbreakable agent feedback loops
+Source: session-019fc927
+Agent: grok
+Notes: NEW
+Page: wiki/concepts/stop-hook-state-file-keyword-trap.md
+
 ## grok-build-grpc-web-billing-endpoint
 Source: session-20260806
 Agent: grok
