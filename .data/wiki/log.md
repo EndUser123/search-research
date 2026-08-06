@@ -1,5 +1,11 @@
 # Vault Log
 
+## proactive-reactive-pair-pattern-for-predictable-failure-prevention
+Source: session-019fc882
+Agent: grok
+Notes: created
+Page: P:/.data/wiki/concepts/proactive-reactive-pair-pattern-for-predictable-failure-prevention.md
+
 ## Skill effectiveness measurement gaps
 Source: session-20260806
 Agent: grok
@@ -8812,4 +8818,28 @@ d)
 - **Chat | Cohere** (P:\.data\wiki\sources\docs.cohere.com\009-reference-chat.md)
   - URL: https://docs.cohere.com/reference/chat
   - SHA256: de651b7d73e1e6fd95fb55fb33906f73f2ecdf344b2cb7e2734a779900ea81f4
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Different Types of API Keys and Rate Limits | Cohere** (P:\.data\wiki\sources\docs.cohere.com\000-docs-rate-limits.md)
+  - URL: https://docs.cohere.com/docs/rate-limits
+  - SHA256: b4a08a0b8004039e1eeeb2dbbd91e98df59cc4c5ebdb40408480b387d7f1b2b1
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **How Does Cohere's Pricing Work? | Cohere** (P:\.data\wiki\sources\docs.cohere.com\001-docs-how-does-cohere-pricing-work.md)
+  - URL: https://docs.cohere.com/docs/how-does-cohere-pricing-work
+  - SHA256: 89733afab4d68b70fdce896e1e124d6fbdf61c4976335b7327a5a9913f7b9a83
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Deploy Finetuned Command Models from AWS Marketplace | Cohere** (P:\.data\wiki\sources\docs.cohere.com\002-docs-bring-your-finetuned-models-to-sagemaker.md)
+  - URL: https://docs.cohere.com/docs/bring-your-finetuned-models-to-sagemaker
+  - SHA256: efe20b3de5cbe6e8d3cfe503e22629ad38f30ac6470014dfa25852262e4d8f1a
+  - Source: crawl-ingest (ingested)
+
+## 2026-08-06
+- **Frequently Asked Questions About Cohere | Cohere** (P:\.data\wiki\sources\docs.cohere.com\003-docs-cohere-faqs.md)
+  - URL: https://docs.cohere.com/docs/cohere-faqs
+  - SHA256: 8ee50907e6478e6f341fc751c98498f7feb8034c923d6f4c5029fd65bb8148d4
   - Source: crawl-ingest (ingested)
