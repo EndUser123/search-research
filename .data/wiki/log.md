@@ -1,5 +1,11 @@
 # Vault Log
 
+## llm-overconfidence-documentation-as-truth-bias-field-solutions
+Source: session /www 019fce56
+Agent: grok
+Notes: field research on the RCA behavioral failures
+Page: concepts/llm-overconfidence-documentation-as-truth-bias-field-solutions-2026.md
+
 ## ship-pipeline-enforcement-field-solutions
 Source: session /www 019fce56
 Agent: grok
