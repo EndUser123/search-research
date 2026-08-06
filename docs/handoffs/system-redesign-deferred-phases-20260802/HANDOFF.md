@@ -7,7 +7,7 @@ current_terminal_id: grok-019fc0a7
 produced_at: 2026-08-02T05:30:00Z
 last_updated_by: 019fc0a7-b736-7eb3-8974-ede7d60cc647
 last_updated_at: 2026-08-02T05:30:00Z
-status: open
+status: closed
 handoff_type: investigation
 accurate_as_of_head: HEAD
 ---
@@ -20,7 +20,7 @@ Continue the system-redesign implementation by picking up Phases 2-5 when their 
 
 ## Status
 
-OPEN — all items are deferred by design. None are blocked. Each has a clear trigger condition that determines when to start.
+CLOSED — Phase 2 completed and answered the scope question. Phases 3-5 closed as no-value: the tree-sitter graph solves neither a performance problem nor a correctness problem in this workspace. No trigger condition has fired across any session since the original handoff. See Revision 3 for the full rationale.
 
 ## Producing context
 
@@ -237,3 +237,32 @@ Or if the operator wants to update routing tables:
 **Status update:** Phase 2 = COMPLETE. Phases 3-5 remain deferred by design. TASK-2 (AGENTS.md routing update) completed in same session.
 
 **Updated open items:** none new. Phase 3 can proceed whenever the operator wants it; the scope and numbers are defined.
+
+---
+
+## Revision 3 — 2026-08-03T19:30Z (session 019fc927) — CLOSING
+
+**Trigger:** Post-Phase-2 assessment of whether Phases 3-5 provide real value. Conclusion: they do not, and this handoff is closed.
+
+**Decision: Phases 3-5 closed as no-value.** After completing Phase 2 (scope definition) and evaluating the business case for the production graph, the operator and agent jointly determined there is no real value to justify building it:
+
+1. **No performance problem solved.** `/preflight`'s actual bottleneck is file discovery and evidence assembly, not the grep queries. Tree-sitter would improve interactive query latency from ~50ms to <1ms — for a query pattern (cross-module "who calls X") that hasn't been issued in any session.
+
+2. **No correctness problem solved.** The PoC's "grep returns 0 hits" result was a *scope* problem (PoC only scanned `plugins/`, function lived in `research_runtime/`), not a structural grep limitation. Full-workspace grep finds it fine. The substring-matching disambiguation problem (call vs def vs comment vs import) is theoretical in this workspace — Python function names are specific enough that substring matches are accurate, and no session has reported false positives/negatives from grep on a structural query.
+
+3. **No trigger condition fired.** A transcript scan of all post-handoff sessions (40 grep tool calls across 3 main sessions) found zero cross-module structural queries. Every grep was a text search scoped to a single directory or file. The trigger — "operator feels grep's limitations on cross-module structural queries" — has not been felt.
+
+4. **No consumer waiting.** `/preflight`, `/refactor`, and `/go` discovery all work correctly with their current grep-based approaches. `/refactor`'s `code_analysis.py` already does AST-based import graph analysis per package using stdlib `ast`. No skill has reported a correctness failure traceable to grep limitations.
+
+5. **Phase 2 was the right stopping point.** It answered "could we?" (yes) and "how big?" (6,402 files, 59s build — manageable). But the answer to "should we?" is no, given the above. The scope doc remains on disk (`P:/docs/designs/codegraph-scope.md`) if the situation ever changes.
+
+**What to do if circumstances Change.** If a future session hits a grep wall on a real cross-module structural query that causes rework, the scope doc from Phase 2 has the numbers to build the graph in ~3 days. Reopen this handoff or create a fresh one at that point.
+
+**Final disposition of all phases:**
+- Phase 0 (hook, cleanup, alias, evaluation) — COMPLETE (session 019fc0a7)
+- Phase 1 (investigation persistence via handoff extension) — COMPLETE (session 019fc0a7)
+- Phase 2 (tree-sitter scope definition) — COMPLETE (session 019fc927, commit `4025d04`)
+- Phase 3 (tree-sitter production graph) — CLOSED, no-value
+- Phase 4 (alias resolution + consumer wiring) — CLOSED, no-value
+- Phase 5 (archival + lifecycle) — CLOSED, no-value
+- TASK-2 (AGENTS.md routing update) — COMPLETE (session 019fc927, commit `517c185`)
