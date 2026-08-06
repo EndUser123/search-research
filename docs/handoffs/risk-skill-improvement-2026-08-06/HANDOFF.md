@@ -7,7 +7,7 @@ current_terminal_id: console_019fcdd2
 produced_at: 2026-08-06T06:00:00Z
 last_updated_by: 019fcdd2-e190-7323-9b77-57a1c73dada5
 last_updated_at: 2026-08-06T15:30:00Z
-status: open
+status: closed
 handoff_type: investigation
 accurate_as_of_head: b72333a
 ---
@@ -22,7 +22,7 @@ Improve the `/risk` skill through evidence-driven iteration: run it on real targ
 
 ## 2. Status
 
-**OPEN** — Phase 1 (cold-start test runs) COMPLETE. TASK-1 (coverage gap fix) COMPLETE. TASK-2 (wiki seeding) + TASK-3 (warm-state re-test) NOT STARTED.
+**CLOSED** — All 3 tasks complete. Coverage gap fixed and verified. Wiki seeded with 5 risk-pattern concepts. Warm-state re-test confirms wiki grounding adds value (finds relevant patterns, improves scan coverage).
 
 ## 3. Producing context
 
@@ -193,3 +193,4 @@ Improve the `/risk` skill through evidence-driven iteration: run it on real targ
 |------|---------|--------|
 | 2026-08-06T06:00 | 019fcdd2 | created |
 | 2026-08-06T15:30 | 019fcdd2 | updated — TASK-1 (coverage gap fix) COMPLETE, acceptance not yet verified via re-run |
+| 2026-08-06T16:00 | 019fcdd2 | updated — TASK-1 verified, TASK-2 (wiki seeding) COMPLETE, TASK-3 (warm-state re-test) COMPLETE. All tasks done. Status → CLOSED. |
