@@ -266,3 +266,5 @@ Or if the operator wants to update routing tables:
 - Phase 4 (alias resolution + consumer wiring) — CLOSED, no-value
 - Phase 5 (archival + lifecycle) — CLOSED, no-value
 - TASK-2 (AGENTS.md routing update) — COMPLETE (session 019fc927, commit `517c185`)
+
+**Post-closure work (session 019fc927):** the operator asked "is there any harm in implementing tree-sitter?" — answer was no value (no performance or correctness problem solved). Then pivoted to the chronic git-state hygiene problem surfaced by the close-check BLOCKED verdicts. A `/www` research run confirmed the shared-tree regime is structurally fragile. A `/design` run (676-line doc, 4 review rounds) + `/tp` critique (3 rounds) + `/risks` assessment (scan + 2-model critic panel) produced a converged recommendation: a targeted ~20-line fix to `close_accounting.py` that stops the close-check from blocking on sibling-session dirty files. Shipped as commit `f1d6956` in ~/.grok. Follow-on work captured in `P:/docs/handoffs/close-check-follow-on-019fc927-20260806/HANDOFF.md`. Design skill improved with 6 process changes (commit `9fbd6f9`).
