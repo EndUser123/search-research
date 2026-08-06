@@ -87,14 +87,11 @@ rate-limiting per process and watchdog-based self-healing.
 
 ## Workspace observations (Phase 1a)
 
-1. **The existing system is reactive, not proactive.** `fleet_quota.py`
+1. **The system was reactive-only until 2026-08-03, when proactive pre-checks were added.** `fleet_quota.py`
    checks provider quota dashboards; `pick_model.py` filters by quota
    cache; `PreToolUse_spawn_model_gate.py` denies serde-broken or
    quota-exhausted models; `PostToolUseFailure_spawn_quota.py` updates the
-   cache *after* a failure. Nothing tracks **live in-flight consumption**
-   across sessions or prevents two sessions from picking the same hot
-   model simultaneously. [FACT: read from
-   `execution-path-based-model-routing-grok-build.md` infrastructure list]
+   cache *after* a failure. As of 2026-08-03, `/design` and `~/.grok/AGENTS.md` now mandate a **proactive quota pre-check**: run `pick_model.py --list` before the first subagent dispatch, use the returned models instead of hardcoded slugs. The `PreToolUse_spawn_model_gate.py` hook remains as the reactive safety net. This eliminated the pattern of 3+ failed spawn attempts on quota-exhausted providers (observed 2026-08-03 with OpenCode-Go at 0%). [FACT: commit `f768c24` — `/design` SKILL.md "Quota pre-check" subsection + AGENTS.md "Quota pre-check before subagent dispatch"]
 
 2. **Prior incidents are documented.** Session 019f821c: Token Plan 429s
    made `/tp` degrade to inline every time. Session 019fa94d: parent
