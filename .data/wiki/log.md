@@ -1,5 +1,11 @@
 # Vault Log
 
+## skill-deletion-propagation-gap
+Source: session 019fce56
+Agent: grok
+Notes: when a skill is deleted, grep depends_on + routing tables + wiki for stale refs
+Page: concepts/skill-deletion-propagation-gap.md
+
 ## skill-naming-convention-short-imperative
 Source: session-20260806
 Agent: grok
