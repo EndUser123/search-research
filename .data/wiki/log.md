@@ -1,5 +1,11 @@
 # Vault Log
 
+## combinatorial-recombination-research-25-ideas-2026
+Source: session-20260806
+Agent: grok
+Notes: 25 cross-domain recombination ideas researched
+Page: P:/.data/wiki/concepts/combinatorial-recombination-research-25-ideas-2026.md
+
 ## novel-skill-improvement-approaches-2026
 Source: session-20260806
 Agent: grok
