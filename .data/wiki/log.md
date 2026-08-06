@@ -1,5 +1,17 @@
 # Vault Log
 
+## toon-renderer-consolidation-single-format
+Source: session-019fc5eb
+Agent: grok
+Notes: single renderer for /todo, removed 763 lines of redundant renderers
+Page: P:/.data/wiki/concepts/toon-renderer-consolidation-single-format.md
+
+## grok-headless-slash-command-routing-gotcha
+Source: session-20260806
+Agent: grok
+Notes: Headless mode treats slash commands as prompts, not TUI commands — routes through model skill-matching
+Page: P:/.data/wiki/concepts/grok-headless-slash-command-routing-gotcha.md
+
 ## combinatorial-recombination-research-25-ideas-2026
 Source: session-20260806
 Agent: grok
