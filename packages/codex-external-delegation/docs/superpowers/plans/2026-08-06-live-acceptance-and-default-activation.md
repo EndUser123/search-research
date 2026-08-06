@@ -21,6 +21,8 @@ Reach the following bounded-production definition:
 
 This is the recommended first finish line: bounded interactive production use.
 Unattended fleet operation is a separate, harder target described below.
+Here, automatic means the Codex skill-level default and current skill
+discovery path; no hard global Codex hook was installed.
 
 ## Current baseline
 
@@ -184,6 +186,9 @@ After Gates 0–4 pass:
 5. If a gate fails, stop using the default path and preserve the evidence.
 
 This is the production promotion point for the recommended target.
+It is a skill-level promotion, not a claim that every Codex prompt is forcibly
+intercepted by a global hook. Adding such enforcement would require a separate
+preflight and change review.
 
 Promotion evidence:
 
