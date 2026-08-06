@@ -2,7 +2,7 @@
 title: "Grok quota dashboard: Gemini dedup, sort order, Claude+OSS, and check_grok() billing endpoint"
 current_session_id: 019fd698-f697-7212-af73-19143fd58dcd
 produced_at: 2026-08-06T09:00:00Z
-last_updated_at: 2026-08-06T09:00:00Z
+last_updated_at: 2026-08-06T15:15:00Z
 status: open
 accurate_as_of_head: c526502
 source_transcript: ~/.grok/sessions/P%3A%5C/019fd698-f697-7212-af73-19143fd58dcd/chat_history.jsonl
@@ -130,3 +130,4 @@ None — this was a single-stream session focused on the quota dashboard.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-08-06 | grok (019fd698) | Initial handoff — all work done, 2 review bugs open |
+| 2026-08-06 | grok (019fd698) | Revision: SEC-6, SEC-7, CORR-1 all fixed (commit 8edd4af). /check PASS, /review healthy. Wiki concepts written. Remaining: SEC-1 (thread-safety), NEW-3 (used_pct clamp), hardening items. |
