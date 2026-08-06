@@ -1,5 +1,11 @@
 # Vault Log
 
+## browser-automation-failure-modes-llm-chat
+Source: session-019fd6f2
+Agent: grok
+Notes: Updated with 4 new failure modes: React textarea fill, type_text+submitKey race, evaluate_script IIFE syntax, SSE stale parse, site interstitials. Evolved from type_text to evaluate_script native setter.
+Page: P:/.data/wiki/concepts/browser-automation-failure-modes-llm-chat.md
+
 ## skill-deletion-propagation-gap
 Source: session 019fce56
 Agent: grok
