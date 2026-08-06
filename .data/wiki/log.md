@@ -1,5 +1,11 @@
 # Vault Log
 
+## scanner-fallback-semantics-empty-vs-degraded
+Source: session-019fcd47
+Agent: grok
+Notes: Scanner fallback semantics: when session ID is available but no artifacts exist, return empty (correctly scoped), not scan-all (degraded mode). Refines multi-terminal-isolation.
+Page: P:/.data/wiki/concepts/scanner-fallback-semantics-empty-vs-degraded.md
+
 ## browser-automation-failure-modes-llm-chat
 Source: session-019fd6f2
 Agent: grok
