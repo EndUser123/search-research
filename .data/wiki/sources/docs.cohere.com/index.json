@@ -1,0 +1,102 @@
+{
+  "https://docs.cohere.com": {
+    "crawled_at": "2026-08-06",
+    "etag": "W/\"fdw9x85fou96bf\"",
+    "file": "000-.md",
+    "hash": "63d1dea768b8ef6ef8a2b80fdf2a8d329b014c5fa0ebd435613f3cd8ce4a599c",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "Cohere Documentation | Cohere"
+  },
+  "https://docs.cohere.com/": {
+    "crawled_at": "2026-08-06",
+    "etag": "W/\"fdw9x85fou96bf\"",
+    "file": "002-.md",
+    "hash": "1633bcba1b18ef0e005d2cba547cc7ec633593e7f174919c7fe2910cdb0b3c8c",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "Cohere Documentation | Cohere"
+  },
+  "https://docs.cohere.com/changelog": {
+    "crawled_at": "2026-08-06",
+    "etag": "\"vmd6yjci9j5nnj\"",
+    "file": "005-changelog.md",
+    "hash": "5275e379e28053cdf01c9ee24940c54157a7de5b15f0aebedaec31230ac212ed",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "Release Notes | Cohere"
+  },
+  "https://docs.cohere.com/docs": {
+    "crawled_at": "2026-08-06",
+    "etag": "\"cl85wkw72w4qfp\"",
+    "file": "007-docs.md",
+    "hash": "e2472be38b016d7ffeb028c62ee86e504191825c07c3ad0ab5f4b87189d20a1e",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "An Overview of The Cohere Platform | Cohere"
+  },
+  "https://docs.cohere.com/docs/north-mini-code-1.0": {
+    "crawled_at": "2026-08-06",
+    "etag": "W/\"um690p9pndcy3g\"",
+    "file": "001-docs-north-mini-code-1-0.md",
+    "hash": "56655401997e8e2afea047412adb5f46a028b4f0b5a7e96bdba7561feec3b294",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "North Mini Code | Cohere"
+  },
+  "https://docs.cohere.com/docs/the-cohere-platform": {
+    "crawled_at": "2026-08-06",
+    "etag": "W/\"uhy22v8rlxe2m2\"",
+    "file": "003-docs-the-cohere-platform.md",
+    "hash": "9fb7b6cac61b0a165767440a9023007c1dce66502e1aa9a337c10d60896137e3",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "An Overview of The Cohere Platform | Cohere"
+  },
+  "https://docs.cohere.com/page/cookbooks": {
+    "crawled_at": "2026-08-06",
+    "etag": "W/\"rgyhkcofq2gxce\"",
+    "file": "006-page-cookbooks.md",
+    "hash": "d5ac1279eeb3e8271a427beaea76876f5511e7e4321b7ab643db4e49017de09d",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "Cookbooks | Cohere"
+  },
+  "https://docs.cohere.com/reference/about": {
+    "crawled_at": "2026-08-06",
+    "etag": "W/\"mwdhdmt9ilialz\"",
+    "file": "004-reference-about.md",
+    "hash": "94d05e243f31bc1837965c5322acf05ebdc73462af3729d748a16961b8be009d",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "Working with Cohere's API and SDK | Cohere"
+  },
+  "https://docs.cohere.com/reference/chat": {
+    "crawled_at": "2026-08-06",
+    "etag": "W/\"fm5xus04o22b35s\"",
+    "file": "009-reference-chat.md",
+    "hash": "de651b7d73e1e6fd95fb55fb33906f73f2ecdf344b2cb7e2734a779900ea81f4",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "Chat | Cohere"
+  },
+  "https://docs.cohere.com/release-notes": {
+    "crawled_at": "2026-08-06",
+    "etag": "\"v1xzml9ukv4qhf\"",
+    "file": "008-release-notes.md",
+    "hash": "5275e379e28053cdf01c9ee24940c54157a7de5b15f0aebedaec31230ac212ed",
+    "last_modified": null,
+    "revised_at": null,
+    "revisions": 1,
+    "title": "Release Notes | Cohere"
+  }
+}
