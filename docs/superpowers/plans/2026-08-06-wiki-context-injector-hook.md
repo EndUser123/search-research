@@ -128,7 +128,7 @@ Create `~/.grok/hooks/scripts/wiki_index_builder.py`.
 python ~/.grok/hooks/scripts/wiki_index_builder.py
 ```
 
-- [ ] Task 1 complete
+- [x] Task 1 complete
 
 ### Task 2: Test the index builder against real wiki
 
@@ -140,7 +140,7 @@ python ~/.grok/hooks/scripts/wiki_index_builder.py
 # Verify: FTS query for "model routing" returns execution-path-based-model-routing-grok-build
 ```
 
-- [ ] Task 2 complete
+- [x] Task 2 complete
 
 ### Track B: Hook script
 
@@ -220,7 +220,7 @@ Create `~/.grok/hooks/scripts/wiki_context_injector.py`.
 python ~/.grok/hooks/scripts/wiki_context_injector.py < test_input.json
 ```
 
-- [ ] Task 3 complete
+- [x] Task 3 complete
 
 ### Track C: Hook registration + integration
 
@@ -250,7 +250,7 @@ Create `~/.grok/hooks/UserPromptSubmit_wiki_context.json`:
 will be active next session. To test mid-session, restart the session or
 verify via `/hooks`.
 
-- [ ] Task 4 complete
+- [x] Task 4 complete
 
 ### Task 5: Integration test (manual)
 
@@ -269,7 +269,7 @@ verify via `/hooks`.
 - No injection for irrelevant prompts
 - Hook executes in <100ms (no perceptible delay on prompt submission)
 
-- [ ] Task 5 complete
+- [x] Task 5 complete
 
 ### Task 6: Wiki index auto-refresh (scheduled task)
 
@@ -285,7 +285,7 @@ Add a scheduler entry or SessionStart hook to refresh the index when stale:
 **Recommendation:** Option B (SessionStart) — no ongoing scheduler overhead,
 runs once per session, catches wiki writes from any session.
 
-- [ ] Task 6 complete
+- [x] Task 6 complete
 
 ## Acceptance criteria
 
