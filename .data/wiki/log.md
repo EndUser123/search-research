@@ -1,5 +1,11 @@
 # Vault Log
 
+## close-check workflow bundles lifecycle skills
+Source: session-019fc927 /close-check sweep (lifecycle-skill-coverage check)
+Agent: grok
+Notes: Workflow Remediate phase runs /wiki /handoff /friction etc., not the session itself; transcript grep for skill calls is normal
+Page: P:/.data/wiki/concepts/close-check-workflow-lifecycle-skill-bundling.md
+
 ## Correct detector count in agent-improvement-loop concept
 Source: session-019fd42f (/tp critique verification)
 Agent: grok
