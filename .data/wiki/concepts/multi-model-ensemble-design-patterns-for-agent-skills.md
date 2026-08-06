@@ -1,13 +1,13 @@
 ---
 title: "Multi-model ensemble design patterns for agent skills"
 created: 2026-08-04
-source: session-019fcdd2 (/risks v1-v4 improvement cycle)
+source: session-019fcdd2 (/risk v1-v4 improvement cycle)
 tags: [skill-design, multi-model, ensemble, cross-model, pattern-catalog, pattern-propagation, subagent-dispatch, host-context, threat-model, adaptive-escalation]
 summary: >
-  Seven reusable design patterns developed during the `/risks` skill
+  Seven reusable design patterns developed during the `/risk` skill
   improvement cycle (4 iterations, session 019fcdd2). Each pattern solves
   a specific failure mode in skills that spawn subagents for analysis,
-  review, or critique. Patterns are abstracted from `/risks` (the reference
+  review, or critique. Patterns are abstracted from `/risk` (the reference
   implementation) and mapped to 6+ other skills that have the same gaps.
   This concept is the source of truth for pattern propagation: `/skill-dev`
   Step 0.5 queries it, `/todo` can scan against it, and future skill authors
@@ -15,10 +15,10 @@ summary: >
 agent: grok
 host: grok
 cognitive_load: 3
-verification: observed (first-run evidence from /risks v1)
+verification: observed (first-run evidence from /risk v1)
 relations:
   - target: wiki/concepts/adaptive-risk-assessment-single-pass-first-architecture.md
-    type: documents — the architecture of /risks, which implements all 7 patterns
+    type: documents — the architecture of /risk, which implements all 7 patterns
   - target: wiki/concepts/skill-development-portfolio.md
     type: complements — portfolio covers technique-level patterns; this covers dispatch-level patterns
   - target: wiki/concepts/deferred-skill-improvements-registry.md
@@ -31,11 +31,11 @@ relations:
 
 ## Why this exists
 
-During the `/risks` skill improvement cycle (session 019fcdd2, 4 iterations),
+During the `/risk` skill improvement cycle (session 019fcdd2, 4 iterations),
 we developed 7 reusable design patterns for skills that spawn subagents.
 The patterns solve real failure modes observed in the first run — not
 theoretical concerns. Without this catalog, the patterns are trapped in
-`/risks`'s SKILL.md body while 6+ other skills have the same gaps.
+`/risk`'s SKILL.md body while 6+ other skills have the same gaps.
 
 **This concept is the source of truth for pattern propagation.** When a
 pattern is applied to one skill, scan other skills for the same gap using
@@ -56,7 +56,7 @@ what kind of agents operate here (LLM, human, untrusted code), (2) what
 trust model applies (operator-authorized, autonomous, sandboxed), (3) any
 wiki concepts relevant to the target domain.
 
-**Evidence:** Session 019fcdd2, `/risks` v1 critique — 3 of 14 findings
+**Evidence:** Session 019fcdd2, `/risk` v1 critique — 3 of 14 findings
 (M1, M3, partially R1) used an adversarial threat model that didn't match
 the host's unreliable-agent reality. Root cause: the critique subagent
 lacked host context and defaulted to enterprise-security analysis.
@@ -77,13 +77,13 @@ family from the parent that ran the analysis AND from each other. With 7+
 free families available (OpenRouter/ling, GLM, Zen/DeepSeek, MiniMax, Cohere,
 Qwen, NVIDIA), there is no cost constraint — only the diversity matters.
 
-**Evidence:** Session 019fcdd2, `/risks` v1 — the cross-family critique
+**Evidence:** Session 019fcdd2, `/risk` v1 — the cross-family critique
 (or-ling-3-flash-free) found structural gaps the parent Grok model missed.
 If the critique had used parent-inherited Grok, it would have shared the
 same adversarial-security bias and missed the same things.
 
 **Applicability:** ANY skill that spawns subagents for critique or review.
-Includes `/review`, `/tp`, `/risks`, `/check`.
+Includes `/review`, `/tp`, `/risk`, `/check`.
 
 ### P3: Adaptive panel sizing
 
@@ -101,11 +101,11 @@ wastes resources on low-stakes targets and under-protects high-stakes ones.
 | MEDIUM severity only | 1 critic | Standard verification sufficient |
 | CRITICAL stakes + any risk | 3 critics | Maximum diversity |
 
-**Evidence:** Session 019fcdd2 — the `/risks` v1 run had CRITICAL stakes
+**Evidence:** Session 019fcdd2 — the `/risk` v1 run had CRITICAL stakes
 (LAEFS enforcement layer) but only 1 critic. The panel should have been 3.
 
 **Applicability:** Skills with panel/roster dispatch — `/review`,
-`/risks`, `/risks`. Not applicable to single-critic skills like `/tp`
+`/risk`, `/risk`. Not applicable to single-critic skills like `/tp`
 (which dispatches 1 fresh subagent).
 
 ### P4: Disagreement-as-signal
@@ -126,11 +126,11 @@ that warrants deeper investigation.
 | All find new HIGH | Blind spot confirmed | Escalate |
 
 **Evidence:** Theoretical — derived from the decorrelated-ensemble principle
-in ML theory. Not yet empirically validated on this host (first `/risks` v4
+in ML theory. Not yet empirically validated on this host (first `/risk` v4
 run needed).
 
-**Applicability:** Multi-critic panels — `/risks`, `/review` (if it adopts
-multi-critic), `/risks`.
+**Applicability:** Multi-critic panels — `/risk`, `/review` (if it adopts
+multi-critic), `/risk`.
 
 ### P5: Adaptive lens assignment
 
@@ -144,13 +144,13 @@ fixed roster. For each risk category confirmed, dispatch a specialist for
 that lens. Always include meta/self-reflection. Invent specialists for
 categories not in the standard roster.
 
-**Evidence:** Session 019fcdd2 — the `/risks` scan found risks in
+**Evidence:** Session 019fcdd2 — the `/risk` scan found risks in
 "alternatives not considered" and "threat surface coverage" categories.
 A fixed roster would have dispatched a security specialist (irrelevant for
 a decision target) instead of a scope/gap specialist (highly relevant).
 
-**Applicability:** Skills with specialist dispatch — `/risks`, `/review`,
-`/risks`.
+**Applicability:** Skills with specialist dispatch — `/risk`, `/review`,
+`/risk`.
 
 ### P6: Threat-model classification
 
@@ -168,11 +168,11 @@ failure modes (LLM mistakes, operator errors).
 | external-attacker | Internet-facing systems, untrusted input | Injection, privilege escalation, data exfiltration |
 | operator-error | Human operator making manual changes | Misconfiguration, wrong path, wrong command |
 
-**Evidence:** Session 019fcdd2 — the `/risks` v1 scan and critique both
+**Evidence:** Session 019fcdd2 — the `/risk` v1 scan and critique both
 treated the LAEFS target as adversarial-agent when it was unreliable-agent.
 3 of 14 findings were threat-model-inflated. Pattern added in v2.
 
-**Applicability:** ANY skill that analyzes risk or security — `/risks`,
+**Applicability:** ANY skill that analyzes risk or security — `/risk`,
 `/review`, `/check`. Also relevant to `/handoff` (threat model shapes what
 "safe to merge" means).
 
@@ -185,22 +185,22 @@ descriptions but the same underlying mechanism are one finding, not two.
 **Pattern:** Before reporting, merge findings that share a root cause. State
 the deduplication in the output so the reader can verify.
 
-**Evidence:** Session 019fcdd2 — `/risks` v1 produced R1 (subprocess bypass)
+**Evidence:** Session 019fcdd2 — `/risk` v1 produced R1 (subprocess bypass)
 and R4 (pattern matching insufficient) as separate HIGH risks. They were the
 same root cause with different citations. The inflated count (4 HIGH instead
 of 3) made the escalation threshold fire differently. `[UNVERIFIED PATTERN — N=1]`
 
-**Applicability:** ANY skill that produces ranked findings — `/risks`,
-`/review`, `/risks`, `/why`.
+**Applicability:** ANY skill that produces ranked findings — `/risk`,
+`/review`, `/risk`, `/why`.
 
 ## Applicability matrix
 
 | Skill | P1 Host-ctx | P2 Cross-model | P3 Panel | P4 Disagree | P5 Adaptive lens | P6 Threat model | P7 Dedup |
 |---|---|---|---|---|---|---|---|
-| **`/risks`** | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v2 | ✅ v2 |
+| **`/risk`** | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v4 | ✅ v2 | ✅ v2 |
 | **`/review`** | ✅ P1 (2026-08-04) | ✅ P2 (2026-08-04) | ❌ Fixed roster | ✅ P4 (2026-08-04) | ✅ Inferred lenses | ✅ P6 (2026-08-04) | ✅ Existing dedup + clustering |
 | **`/tp`** | ✅ P1 (2026-08-04) | ✅ Has pool | ❌ N/A (1 critic) | ✅ Convergence signal | ❌ N/A | ✅ P6 (2026-08-04) | ❌ N/A |
-| **`/risks-old`** | N/A (deprecated) | N/A | N/A | N/A | N/A | N/A | N/A |
+| **`/risk-old`** | N/A (deprecated) | N/A | N/A | N/A | N/A | N/A | N/A |
 | **`/www`** | ❌ Missing | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
 | **`/check`** | ✅ P1 (2026-08-04) | ❌ Same model | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
 | **`/go`** | ❌ Missing | Partial (pool) | ❌ N/A | ❌ N/A | ❌ N/A | ❌ Missing | ❌ N/A |
@@ -211,9 +211,9 @@ architecture.
 
 ## Reference implementation
 
-`/risks` (at `~/.grok/skills/risks/SKILL.md`) implements all 7 patterns as
+`/risk` (at `~/.grok/skills/risk/SKILL.md`) implements all 7 patterns as
 of v4 (session 019fcdd2). When propagating a pattern to another skill, read
-`/risks`'s implementation of that pattern for the reference form.
+`/risk`'s implementation of that pattern for the reference form.
 
 ## How to use this concept
 
@@ -235,14 +235,14 @@ When a pattern is applied to a skill, scan the applicability matrix. For each
 skill with a gap in that pattern's column, the matrix surfaces it. This makes
 propagation mechanical — no need for the operator to remember to ask.
 
-Example: "P1 (host-context) applied to `/risks`. Matrix shows `/review`,
-`/risks`, `/www`, `/check`, `/go` all missing P1. Recommend
+Example: "P1 (host-context) applied to `/risk`. Matrix shows `/review`,
+`/risk`, `/www`, `/check`, `/go` all missing P1. Recommend
 `/skill-dev improve /review` next."
 
 ## Falsifier
 
 This concept is wrong if:
-1. The patterns don't generalize beyond `/risks` — if applying P1 (host-context)
+1. The patterns don't generalize beyond `/risk` — if applying P1 (host-context)
    to `/review` produces no measurable improvement in finding quality.
 2. The patterns are too granular — if they're really just one pattern
    ("use diverse models wisely") split into 7 sub-patterns for catalog
@@ -252,7 +252,7 @@ This concept is wrong if:
 
 ## What this means for our workspace
 
-1. **`/risks` is the reference implementation** — all 7 patterns are live in
+1. **`/risk` is the reference implementation** — all 7 patterns are live in
    its SKILL.md. Use it as the template when propagating.
 2. **`/review` is the highest-value propagation target** — it has the most
    gaps (7/7) and is the most frequently invoked analysis skill.

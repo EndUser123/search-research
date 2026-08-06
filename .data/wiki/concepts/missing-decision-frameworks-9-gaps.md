@@ -48,9 +48,9 @@ boosts).
 
 | Framework | Our equivalent |
 |---|---|
-| `thinking-pre-mortem` | ✅ `/risks`, `/tp` domain 3a, `/wargame` |
+| `thinking-pre-mortem` | ✅ `/risk`, `/tp` domain 3a, `/wargame` |
 | `thinking-steel-manning` | ✅ `/tp` steelman + falsifier |
-| `thinking-red-team` | ✅ `/risks` (8 specialist lenses) |
+| `thinking-red-team` | ✅ `/risk` (8 specialist lenses) |
 | `thinking-first-principles` | ✅ `/design` Phase 0, brainstorming-ideation |
 | `thinking-scientific-method` | ✅ `/why` hypothesis-differential (Step 6-7) |
 | `thinking-five-whys-plus` | ✅ `/why` Ishikawa + 5-whys |
@@ -90,7 +90,7 @@ boosts).
 | Framework | Why defer |
 |---|---|
 | `thinking-effectuation` | Startup/innovation focused ("start with means, not goals"). Our workspace is infrastructure, not product. |
-| `thinking-model-combination` | Our `/risks` already combines multiple lenses. A standalone meta-skill would compete. |
+| `thinking-model-combination` | Our `/risk` already combines multiple lenses. A standalone meta-skill would compete. |
 
 ## Decision context
 
@@ -107,10 +107,10 @@ miss.
 
 | Framework | Where it lives | Receipt |
 |---|---|---|
-| Pre-mortem | `/risks`, `/tp` domain 3a, `/wargame` | 3 skills implement it |
+| Pre-mortem | `/risk`, `/tp` domain 3a, `/wargame` | 3 skills implement it |
 | Steelman + falsifier | `/tp`, `/design` Step 5.5 | Core `/tp` domain |
 | Disconfirmation search | `/www` Round 3 (mandatory) | Structural enforcement |
-| Adversarial review | `/risks` (8 specialist lenses) | Full multi-agent pipeline |
+| Adversarial review | `/risk` (8 specialist lenses) | Full multi-agent pipeline |
 | Devil's advocate | `/tp` two-lens (fresh subagent) | Costa & Kallick pattern |
 | Double-loop learning | `/tp` problem framing, `/aar` Phase 4 | AAR captures meta-learning |
 

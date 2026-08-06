@@ -107,7 +107,7 @@ real failure, confirm the gate fires and the query emits a receipt.
 #### 2. Make evidence-tier system workspace-wide
 /why's four-tier system (Tier 1-4, weakest-link) is the structural fix
 for all five behavioral failure modes researched this session. But it
-exists only in /why. /aar, /debrief, /review, /risks all make causal
+exists only in /why. /aar, /debrief, /review, /risk all make causal
 claims without tiers. The session proved the tier system is needed (8
 findings, 3 wrong) but left it in the one skill that can't enforce it
 on itself. Extract the tier definitions into a shared reference; add a
@@ -128,7 +128,7 @@ Add a hit/miss counter; log query + keywords + hit count; report after
 The session recommended a monthly/quarterly cadence but didn't create
 the scheduled task. The session's own research predicts decay without
 structural enforcement (the rule-not-fired pattern). Use scheduler_create
-to schedule monthly /skill-dev measure + quarterly /risks.
+to schedule monthly /skill-dev measure + quarterly /risk.
 **Confidence: H.** Test: create the task, observe whether it fires and
 produces findings over 3 months.
 

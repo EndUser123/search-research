@@ -4,7 +4,7 @@ created: 2026-08-05
 source: session-019fd276
 tags: [skill-design, critique, pattern-similarity, skill-boundary, spawn-evaluate-return]
 summary: >
-  /tp, /risks, and /review all implement the spawn-evaluate-return pattern
+  /tp, /risk, and /review all implement the spawn-evaluate-return pattern
   (spawn agents → evaluate target → return findings + verdict) independently
   with different implementations. They share a pattern, not an implementation.
   Decomposition reveals 3 potentially shared utility functions (context packing,
@@ -32,7 +32,7 @@ relations:
 superset of `/tp` findings (via transcript scan), the operator asked whether the
 two skills should be merged or whether /tp's critique engine should be extracted
 into a shared capability on the skill graph. This raised the broader question:
-how much implementation do `/tp`, `/risks`, and `/review` actually share?
+how much implementation do `/tp`, `/risk`, and `/review` actually share?
 
 ## The pattern
 
@@ -50,13 +50,13 @@ the human practice of "get a second opinion."
 
 ## Decomposition: what's genuinely shared vs domain-specific
 
-| Operation | /tp | /risks | /review | Shared? |
+| Operation | /tp | /risk | /review | Shared? |
 |-----------|------|--------|---------|---------|
 | Model selection | `pick_model.py` | `pick_model.py` | `pick_model.py` | **Already shared** |
 | Spawn | `spawn_subagent` × 1 | `spawn_subagent` × 2-3 | `spawn_subagent` × N | **Platform primitive** |
 | Context packing | `tp_dispatch.py` | inline | inline | **Same operation, reimplemented** |
 | Evaluation criteria | framing, optimal, falsifiability | risk severity, failure modes | code correctness, security | **Domain-specific — NOT shared** |
-| Findings schema | prose + evidence tags | JSON (id, severity, evidence, fix) | JSON (nearly identical to /risks) | **/risks and /review overlap; /tp is different** |
+| Findings schema | prose + evidence tags | JSON (id, severity, evidence, fix) | JSON (nearly identical to /risk) | **/risk and /review overlap; /tp is different** |
 | Findings verification | parent reads file:line | parent reads file:line | parent reads file:line | **Same operation, reimplemented** |
 | Verdict derivation | inline (any BLOCK → BLOCK) | inline (same logic) | n/a (findings only) | **Same logic, reimplemented** |
 | Persistence | `tp_critique_log.py` (JSONL) | `run_dir/*.json` | `run_dir/FINDINGS.md` | **Different consumers, different formats** |
@@ -75,7 +75,7 @@ The evaluation logic is different because the questions are different:
 - **/tp** asks "is this the right approach?" → needs framing analysis,
   counterfactuals, pre-mortem thinking. Output is dialogue-shaped (prose with
   evidence tags) because the consumer is the operator in conversation.
-- **/risks** asks "what could go wrong?" → needs risk-category scanning,
+- **/risk** asks "what could go wrong?" → needs risk-category scanning,
   severity × likelihood assessment. Output is structured JSON because the
   consumer is the escalation pipeline (critique → attack → wargame).
 - **/review** asks "is this code correct?" → needs file-level analysis,
@@ -127,7 +127,7 @@ cost is amortized across more consumers.
 **Maintenance rule:** when modifying spawn-evaluate-return logic in any of the
 three skills, check whether the change applies to the others. The pattern
 similarity means a bug fix in `/tp`'s finding verification likely applies to
-`/risks` and `/review` too — but verify, don't assume.
+`/risk` and `/review` too — but verify, don't assume.
 
 ## Falsifier
 
@@ -147,7 +147,7 @@ validated. If any occurs, extract the 3 utilities.
 ## Receipts
 
 - `tp_dispatch.py`: `~/.grok/skills/tp/__lib/tp_dispatch.py` (context packing)
-- `/risks` Phase 3: `~/.grok/skills/risks/SKILL.md` lines ~155-200 (inline critique panel)
+- `/risk` Phase 3: `~/.grok/skills/risk/SKILL.md` lines ~155-200 (inline critique panel)
 - `/review` pipeline: `~/.grok/skills/review/SKILL.md` (reviewer + findings format)
 - `pick_model.py`: `~/.grok/skills/model-quota/scripts/pick_model.py` (shared model selection)
 

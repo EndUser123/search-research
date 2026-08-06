@@ -190,7 +190,7 @@ Per the ceremony-cost analysis ([[fabrication-ceremony-tax-compounding-cost]]):
 | `/handoff` | Write file | `handoff_path`, `bytes_written` | `file_exists AND bytes > 500` | ✅ NOW (observed non-writes) |
 | `/check` | Verify claims | `claims_checked`, `claims_passed` | `claims_checked >= 1` | ✅ NOW |
 | `/wiki` | Validate | Already enforced by `wiki_state.py` | — | ✅ DONE |
-| `/risks` | Root-cause clustering | `findings_clustered` | `findings_clustered >= 1` | ⚠ Later |
+| `/risk` | Root-cause clustering | `findings_clustered` | `findings_clustered >= 1` | ⚠ Later |
 | `/close` | All gates | Already enforced by `close_accounting.py` | — | ✅ DONE |
 
 ### Cost estimate

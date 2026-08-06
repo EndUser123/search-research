@@ -4,9 +4,9 @@ created: 2026-08-04
 source: session-2026-08-04
 tags: [risk-assessment, adaptive-expansion, skill-design, single-pass-first, escalation, pre-mortem, red-team, cat-irt, bayesian-adaptive, display-reliability]
 summary: >
-  The `/risks` skill uses a single-pass-first architecture: always run a
+  The `/risk` skill uses a single-pass-first architecture: always run a
   cheap inline scan (no subagent), then conditionally escalate to deeper
-  analysis (critique via /tp, attack via /risks, wargame via /wargame)
+  analysis (critique via /tp, attack via /risk, wargame via /wargame)
   based on what the scan found — not from a pre-classification guess. This
   applies the adaptive-expansion pattern (CAT/IRT, Bayesian adaptive trials)
   to the risk/problem-finding space. The escalation ladder for problem-finding
@@ -40,9 +40,9 @@ relations:
 
 ## Decision context
 
-**Why this was needed:** the operator asked "what could go wrong?" before non-trivial actions, doing pre-mortem inline manually. The existing skills (`/tp`, `/risks`, `/wargame`) are each heavy — multi-subagent workflows that take 2-30 minutes. There was no lightweight entry point for quick risk checks, and no way to escalate from light to heavy without invoking a different skill mid-thought. The question: should this be five separate skills (one per depth level), one skill that picks a fixed depth, or one skill that adapts dynamically?
+**Why this was needed:** the operator asked "what could go wrong?" before non-trivial actions, doing pre-mortem inline manually. The existing skills (`/tp`, `/risk`, `/wargame`) are each heavy — multi-subagent workflows that take 2-30 minutes. There was no lightweight entry point for quick risk checks, and no way to escalate from light to heavy without invoking a different skill mid-thought. The question: should this be five separate skills (one per depth level), one skill that picks a fixed depth, or one skill that adapts dynamically?
 
-**The design decision:** one skill (`/risks`) with an adaptive architecture — single-pass-first (inline scan, always runs), with conditional escalation to deeper modes based on what the scan found. The five problem-finding modes (gutcheck, critique, premortem, redteam, wargame) are functions inside the skill, not separate invocations.
+**The design decision:** one skill (`/risk`) with an adaptive architecture — single-pass-first (inline scan, always runs), with conditional escalation to deeper modes based on what the scan found. The five problem-finding modes (gutcheck, critique, premortem, redteam, wargame) are functions inside the skill, not separate invocations.
 
 ## The escalation ladder
 
@@ -66,7 +66,7 @@ The fix: run the scan (the fixed core), then let the escalation decision fire on
 2. **Bayesian adaptive trials** — enroll, analyze interim data, decide whether to continue/stop/expand
 3. **Adaptive vs routine expertise** — routine handles known parts, adaptive handles novel parts; pure-either underperforms
 
-The hybrid (fixed core + adaptive expansion) is empirically supported. `/risks` applies this: the scan is always routine (runs every time, checks standard categories), and the escalation is adaptive (fires conditionally based on severity distribution).
+The hybrid (fixed core + adaptive expansion) is empirically supported. `/risk` applies this: the scan is always routine (runs every time, checks standard categories), and the escalation is adaptive (fires conditionally based on severity distribution).
 
 ## What people like vs don't like (from /www research)
 
@@ -105,9 +105,9 @@ This matches the industry trajectory:
 
 ## What this means for our workspace
 
-1. **`/risks` is the default entry point for "what could go wrong?"** — replaces manual pre-mortem and the too-heavy `/risks` for quick checks
+1. **`/risk` is the default entry point for "what could go wrong?"** — replaces manual pre-mortem and the too-heavy `/risk` for quick checks
 2. **The escalation ladder is documented** so `/ask` can route risk-related queries to the right depth
-3. **`/tp`, `/risks`, `/wargame` are unchanged** — `/risks` delegates to them when escalation fires, doesn't reimplement
+3. **`/tp`, `/risk`, `/wargame` are unchanged** — `/risk` delegates to them when escalation fires, doesn't reimplement
 4. **Display reliability pattern applies fleet-wide** — any skill with structured output should use code-based rendering, not LLM hand-formatting
 5. **The wiki learning loop** (entry query + exit write-back) is architecturally sound but depends on wiki search working — currently grep-based (lexical only), which has known keyword-mismatch limitations
 
@@ -117,7 +117,7 @@ This architecture is wrong if:
 - The inline scan consistently misses risks that the deeper modes find (scan too shallow)
 - The escalation fires too often (thresholds too sensitive — operator ignores it)
 - The escalation fires too rarely (thresholds too lax — real risks slip through)
-- The delegation to `/tp`/`/risks`/`/wargame` adds ceremony without quality gain
+- The delegation to `/tp`/`/risk`/`/wargame` adds ceremony without quality gain
 - The display reliability fix doesn't generalize to other skills (only works for `/todo`'s simple format)
 
 ## Sources
@@ -133,7 +133,7 @@ This architecture is wrong if:
 
 ## Receipts
 
-- **`/risks` skill implementation:** `C:/Users/brsth/.grok/skills/risks/SKILL.md` — Phases 0-6 (assess, scan, escalation check, critique, attack, wargame, report). The adaptive architecture is specified in the process section, not in code — the scan and escalation check are inline LLM operations, not Python functions.
+- **`/risk` skill implementation:** `C:/Users/brsth/.grok/skills/risk/SKILL.md` — Phases 0-6 (assess, scan, escalation check, critique, attack, wargame, report). The adaptive architecture is specified in the process section, not in code — the scan and escalation check are inline LLM operations, not Python functions.
 - **`format_plain_rns` implementation:** `C:/Users/brsth/.grok/skills/todo/__lib/render_rns.py` lines 97-141 — the Python renderer that guarantees display formatting. Verified working via test execution (2026-08-04).
 - **`/todo` SKILL.md Step 1:** `C:/Users/brsth/.grok/skills/todo/SKILL.md` lines 134-180 — the instruction that routes default output through `format_plain_rns` instead of LLM hand-formatting.
 - **Adaptive-expansion validation:** `P:/.data/wiki/concepts/adaptive-expansion-evidence-triggered-conditional-steps.md` — the three validating literatures (CAT/IRT, Bayesian adaptive trials, adaptive expertise) are cited from this concept's multi-source-verified research.

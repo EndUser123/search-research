@@ -122,7 +122,7 @@ consistent with that principle.
 
 ### Broader implications beyond /tp
 
-This decision sets a precedent for pool composition across other skills that use `spawn_subagent` with model pools (`/check` verifier pool, `/risks` specialist pool, future `/review` cross-model pool). The principle: **pool order should reflect reliability on real prompts, not cost tier.** A free model that fails deterministically is more expensive than a paid model that works. Other skills with nemotron in their pools should audit whether the same demotion applies. The `/check` SKILL.md and `/risks` SKILL.md are the next candidates for this audit.
+This decision sets a precedent for pool composition across other skills that use `spawn_subagent` with model pools (`/check` verifier pool, `/risk` specialist pool, future `/review` cross-model pool). The principle: **pool order should reflect reliability on real prompts, not cost tier.** A free model that fails deterministically is more expensive than a paid model that works. Other skills with nemotron in their pools should audit whether the same demotion applies. The `/check` SKILL.md and `/risk` SKILL.md are the next candidates for this audit.
 
 ## Methodology roots
 

@@ -39,7 +39,7 @@ summary: >
   because it triggers generative thinking rather than compliance-shaped enumeration.
   But prompting alone is insufficient: prompt rule decay at scale means structural
   enforcement (code gates) is the durable fix. This workspace already has the
-  infrastructure (PostToolUse_auto_verify, /grok-verify, /check, /risks) but
+  infrastructure (PostToolUse_auto_verify, /grok-verify, /check, /risk) but
   lacks a pre-implementation edge-case enumeration gate.
 relations:
   - target: wiki/concepts/code-orchestrates-model-judges-skill-scale
@@ -212,7 +212,7 @@ The research maps to a **defense-in-depth** model:
 |---|---|---|---|
 | Pre-generation | Pre-mortem + edge-case enumeration | `/go` plan phase, `/tp` Step 0.7 | Not enforced — agent can skip |
 | During generation | EGDP (cite evidence before concluding) | AGENTS.md receipt rule | Applies to claims, not edge-case handling |
-| Post-generation | Adversarial review | `/risks`, `/review`, PostToolUse auto-verify | Well-covered |
+| Post-generation | Adversarial review | `/risk`, `/review`, PostToolUse auto-verify | Well-covered |
 | Structural gate | Code-enforced edge-case checkpoint | Close-check workflow gates | **Missing** |
 
 **The single highest-leverage addition** is a pre-implementation gate in `/go` that

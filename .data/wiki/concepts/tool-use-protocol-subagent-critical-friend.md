@@ -70,7 +70,7 @@ The protocol does not prevent a subagent from "going along" with the orchestrato
 
 The `/tp` skill (Grok Build home at `~/.grok/skills/tp/SKILL.md`) implements this protocol as the default. The orchestrator spawns the subagent with an explicit "Tool access (use it — the fresh lens is grounded, not assumed)" preamble, with the five evidence-basis tags enumerated and the 0-tool-call advisory disclosure required. The verification synthesis step applies the tags to weight findings.
 
-The protocol is host-agnostic. Any two-lens critique architecture (e.g., Claude Code's `/risks` adversary mode, Grok Build's `/review` independent-verification step) can adopt it. The cost is one tool-call budget per finding — typically 5–10 additional tool calls per critique. The benefit is the structural distinction between framing-anchored and evidence-grounded claims.
+The protocol is host-agnostic. Any two-lens critique architecture (e.g., Claude Code's `/risk` adversary mode, Grok Build's `/review` independent-verification step) can adopt it. The cost is one tool-call budget per finding — typically 5–10 additional tool calls per critique. The benefit is the structural distinction between framing-anchored and evidence-grounded claims.
 
 ## EVIDENCE_GAP
 

@@ -1,11 +1,11 @@
 ---
 title: "Risks skill improvement research: validation, progressive disclosure, cold-start, pipeline gates, routing"
 created: 2026-08-05
-source: session-019fcdd2 (/www on /risks brainstorming ideas)
-tags: [skill-improvement, risk-assessment, progressive-disclosure, eval-driven-development, cold-start, pipeline-gate, skill-routing, /risks, research]
+source: session-019fcdd2 (/www on /risk brainstorming ideas)
+tags: [skill-improvement, risk-assessment, progressive-disclosure, eval-driven-development, cold-start, pipeline-gate, skill-routing, /risk, research]
 summary: >
   Five parallel cross-model research subagents (OpenRouter/ling, GLM,
-  Zen/DeepSeek, MiniMax, Cohere) investigated how to improve the /risks
+  Zen/DeepSeek, MiniMax, Cohere) investigated how to improve the /risk
   skill across 5 domains: skill validation methodology, progressive
   disclosure for SKILL.md, cold-start knowledge bootstrapping,
   pipeline-integrated risk gates, and skill routing disambiguation.
@@ -39,7 +39,7 @@ relations:
   - target: wiki/concepts/adaptive-risk-assessment-single-pass-first-architecture.md
     type: extends — the architecture this research aims to improve
   - target: wiki/concepts/multi-model-ensemble-design-patterns-for-agent-skills.md
-    type: complements — ensemble patterns already in /risks; this research covers gaps around them
+    type: complements — ensemble patterns already in /risk; this research covers gaps around them
   - target: wiki/concepts/compound-skill-improvement-patterns.md
     type: extends — adds validation methodology, cold-start, and progressive disclosure to the 7-dimension framework
   - target: wiki/concepts/agents-md-construction-best-practices.md
@@ -52,14 +52,14 @@ relations:
 
 ## Decision context
 
-**Why this was needed:** the /risks skill was iterated 4× in one session (v1→v4)
+**Why this was needed:** the /risk skill was iterated 4× in one session (v1→v4)
 based on a single run that produced inflated findings. The brainstorming
 produced 6 improvement ideas (test-run, optimize common path, bootstrap wiki,
 wire into /go, clarify routing, simplify body). This research validates or
 disconfirms each idea against external evidence before implementation.
 
 **What alternatives were explored:** we considered (a) implementing improvements
-directly from theory (the v1→v4 pattern), (b) running /risks on real targets
+directly from theory (the v1→v4 pattern), (b) running /risk on real targets
 first and fixing empirically, (c) researching each idea against external
 evidence. We chose (c) — research first — because the skill's design has never
 been validated against how other teams solve these problems.
@@ -89,7 +89,7 @@ writing the skill logic, then score against test cases iteratively.
 | Multi-grader composition | Deterministic (fast) + LLM rubric (nuance) + human (gold standard) | Anthropic |
 | Swiss Cheese layers | Automated evals + transcript review + production monitoring | Anthropic |
 
-**Applicability to /risks:** pass^k is the right metric for escalation logic —
+**Applicability to /risk:** pass^k is the right metric for escalation logic —
 an escalation that works 7/10 times is unacceptable for a risk skill. Known-bad
 test set should cover: (a) scan misses HIGH risk, (b) escalation fires when it
 shouldn't, (c) escalation fails to fire when it should, (d) threat-model
@@ -104,7 +104,7 @@ Long-Context Agents?" (He et al., Jul 2026) provides the **only controlled
 study**. Conclusion: **flat one-level disclosure is optimal**. Hierarchical
 (always-loaded child skills) actively HURTS accuracy (30% drop observed).
 
-**Concrete recommendation for /risks:**
+**Concrete recommendation for /risk:**
 
 | Content | Location | Why |
 |---|---|---|
@@ -112,7 +112,7 @@ study**. Conclusion: **flat one-level disclosure is optimal**. Hierarchical
 | Phase 4-5 (attack, wargame) | `references/attack-phase.md` | ~20% of runs — load on demand |
 | Findings JSON schema | `references/findings-schema.json` | Mechanical — load when writing |
 
-**Anti-patterns to avoid:** (a) creating separate `/risks-attack` skill with
+**Anti-patterns to avoid:** (a) creating separate `/risk-attack` skill with
 its own always-loaded metadata (proven harmful), (b) reference files pointing
 to more reference files (agents get lost), (c) stale `description` field
 (drives routing, must stay accurate).
@@ -197,7 +197,7 @@ another).
 claiming the same domain degrades routing accuracy.
 
 **Applicability caveat:** our operator self-routes effectively (/tp for
-framing, /review for code, /risks for risk). The routing improvement primarily
+framing, /review for code, /risk for risk). The routing improvement primarily
 benefits automated routing (/ask, /go), not the operator directly. This makes
 it lower priority than the other 4 confirmed ideas.
 
@@ -215,7 +215,7 @@ our specific context is weaker because our operator is sophisticated).
 | 5. Clarify routing | MEDIUM (techniques solid) | LOW (operator self-routes) | Pass | ❌ DEFER |
 | 6. Simplify body | Subsumed by #2 | — | — | Merged into #2 |
 
-## What this means for /risks
+## What this means for /risk
 
 1. **Test before trusting** — the skill has zero execution receipts. Run it
    on 2-3 real targets with known-bad test cases. Use pass^k for escalation
@@ -226,15 +226,15 @@ our specific context is weaker because our operator is sophisticated).
 3. **Mine the wiki** — one-shot pipeline over handoffs + AARs + audit outputs
    to extract ~20-40 seed risk patterns with provenance. Lower the write-back
    threshold during warm-up with a provenance gate.
-4. **Wire into /go as advisory-only** — fire `/risks scan` when
+4. **Wire into /go as advisory-only** — fire `/risk scan` when
    `reversibility ≥ 1.75`. Log to handoff. Build precision baseline over 10-20
    firings before promoting to blocking.
 
 ## Test run results (2026-08-05, session 019fcdd2)
 
-Three `/risks` runs executed cold-start (empty wiki, unmodified skill):
+Three `/risk` runs executed cold-start (empty wiki, unmodified skill):
 
-### Run 1: Trivial target (/risks-old removal) — PASS ✅
+### Run 1: Trivial target (/risk-old removal) — PASS ✅
 - **Tested:** false-positive rate, Phase 0 classification, "zero risks" re-scan logic
 - **Result:** 2 LOW risks (appropriate for a 7-file reversible change). No escalation. Correct Phase 0 classification. No false positives.
 - **Falsified:** "the scan might produce HIGH risks for trivial targets" — did not occur.
@@ -278,8 +278,8 @@ This research is wrong if:
 
 ## Receipts
 
-- **`/risks` SKILL.md:** `C:/Users/brsth/.grok/skills/risks/SKILL.md` — 500+ lines, 6 phases, all 7 ensemble patterns. The skill this research aims to improve.
-- **Multi-model ensemble patterns wiki concept:** `P:/.data/wiki/concepts/multi-model-ensemble-design-patterns-for-agent-skills.md` — documents the 7 patterns already in /risks. This research covers gaps AROUND those patterns.
+- **`/risk` SKILL.md:** `C:/Users/brsth/.grok/skills/risk/SKILL.md` — 500+ lines, 6 phases, all 7 ensemble patterns. The skill this research aims to improve.
+- **Multi-model ensemble patterns wiki concept:** `P:/.data/wiki/concepts/multi-model-ensemble-design-patterns-for-agent-skills.md` — documents the 7 patterns already in /risk. This research covers gaps AROUND those patterns.
 - **Progressive disclosure for AGENTS.md:** `P:/.data/wiki/concepts/agents-md-construction-best-practices.md` — covers progressive disclosure for AGENTS.md. This research extends the pattern to SKILL.md.
 - **arxiv controlled study:** `https://arxiv.org/abs/2607.17598` — He et al., "Is Progressive Disclosure All You Need for Long-Context Agents?" — the only controlled study comparing flat vs. hierarchical disclosure. Key result: flat is optimal, hierarchical causes 30% accuracy drop.
 - **Zalando mining pipeline:** `https://engineering.zalando.com/posts/2025/09/dead-ends-or-data-goldmines-ai-powered-postmapping.html` — production deployment of LLM-powered postmortem pattern mining. 15% hallucination rate documented.

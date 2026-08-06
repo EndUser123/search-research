@@ -72,7 +72,7 @@ For our specific environment, operator pushback is detectable via:
 **Skill-invocation signals:**
 - `/tp` invocation (operator is critiquing the model's reasoning)
 - `/tp check` (explicit diagnostic request)
-- `/risks` (adversarial review triggered)
+- `/risk` (adversarial review triggered)
 - Any `/tp <mode>` variant
 
 **Behavioral signals:**

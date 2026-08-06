@@ -72,7 +72,7 @@ Before propagation, each lane's synthesis was checked against at least one piece
 | **Volume** | ~1021 prompts over 4 days across many sessions; mean prompts/session estimated 3-8 (rough) | `prompt_history.jsonl` line count; Lane 1 report |
 | **Length** | Bimodal: many <200 char turn-taking tokens; several >50K char paste-and-ask blocks | Direct read of lines 1-3; Lane 1 |
 | **Opening pattern** | Lowercase, conversational; "can you", "i want", "what", "why", "did you", slash commands | Lane 1 grep; Lane 2 cross-sample |
-| **Slash-command dominance** | `/agy`, `/grok-sdlc`, `/review`, `/refactor`, `/go`, `/debrief`, `/risks`, `/wiki`, `/aar`, `/check`, `/tp`, `/design`, `/mo` | Lane 1; verified across Lane 2 samples |
+| **Slash-command dominance** | `/agy`, `/grok-sdlc`, `/review`, `/refactor`, `/go`, `/debrief`, `/risk`, `/wiki`, `/aar`, `/check`, `/tp`, `/design`, `/mo` | Lane 1; verified across Lane 2 samples |
 | **Affirmative glue** | Frequent single-token affirmatives: "yes please", "continue", "commit", "1.", "2.", "a)" | Lane 2 cross-sample (samples 8, 9, 12) |
 | **Typos** | Fast typing, accepts typos ("efficinet", "shoudl", "Ithink", "Wwill") — does not ask LLM to be terse | Lane 2 direct quotes |
 | **Cost awareness** | Surfaces occasionally: "Be efficinet and use code if it will help save LLM costs"; "use minimax and zai direct" | `prompt_history.jsonl` lines per Lane 2 |
@@ -83,11 +83,11 @@ The operator's collaboration style, as evidenced across 12 sampled transcripts a
 
 1. **Tight turn-taking glue.** The operator uses minimum-token affirmatives ("yes please", "continue", numbered options) as conversational steering — they don't write full sentences for "go ahead". This is a deliberate efficiency, not laziness.
 
-2. **Slash-command as primary interface.** Slash commands schedule behavior rather than request it. The operator invokes `/tp`, `/agy`, `/risks`, `/check`, `/debrief` rather than writing imperative prose. Slash commands are how the operator **binds the LLM to a contract** before giving it the task.
+2. **Slash-command as primary interface.** Slash commands schedule behavior rather than request it. The operator invokes `/tp`, `/agy`, `/risk`, `/check`, `/debrief` rather than writing imperative prose. Slash commands are how the operator **binds the LLM to a contract** before giving it the task.
 
 3. **Thought-partner framing by default.** Across 5+ direct quotes (`:5`, `:74`, `:88`, `:235`, `:330`), the operator explicitly requests "act as a thought partner" and acknowledges "I don't know what I don't know." This is a **deliberate stance request**, not a passive style.
 
-4. **Adversarial review demand.** Direct quotes: "please critically review your proposal" (`:9`, `:109`, `:110`), "friendly critic review your proposal" (`:824`), "push harder" (`:830`), "/risks your proposal" (`:910`). The operator escalates from soft to hard adversarial review when the LLM's first answer is too narrow.
+4. **Adversarial review demand.** Direct quotes: "please critically review your proposal" (`:9`, `:109`, `:110`), "friendly critic review your proposal" (`:824`), "push harder" (`:830`), "/risk your proposal" (`:910`). The operator escalates from soft to hard adversarial review when the LLM's first answer is too narrow.
 
 5. **Meta-cognition as the dominant verb.** The most common operator verb is some form of "what are we missing?" — not "do X" but "find X for me." Sessions 11 and 12 (Lane 2) show the operator iterating `/agy` 6+ times, each turn adding constraints, never resetting. The operator is constantly refining the prompt envelope, not just the task.
 
@@ -167,7 +167,7 @@ Capabilities that exist in the operator's environment but are not consistently u
 | **Plan mode** | `/plan` (plan mode rule in AGENTS.md) | Documented reference incident where it was omitted; Lane 2 shows long inline analyses that would benefit |
 | **`/aar` (After-Action Review)** | `P:\.grok\skills\aar\SKILL.md` | Not invoked at trust-loss moments in sampled window |
 | **Multi-LLM consensus (parallel review)** | Manual via `/agy` or parallel subagents | Used occasionally (yt-is handoff review, sample 3) but not a default gate for hard-to-reverse decisions |
-| **`/risks` as default gate** | `P:\packages\.claude-marketplace\plugins\red-team\commands\red-team.md` | Used reactively ("push harder", "/risks your proposal") but not proactively at decision time |
+| **`/risk` as default gate** | `P:\packages\.claude-marketplace\plugins\red-team\commands\red-team.md` | Used reactively ("push harder", "/risk your proposal") but not proactively at decision time |
 | **Cost-aware model tiering** | Documented in CLAUDE.md Cost Tiering | Only one explicit prompt in sample: "use minimax and zai direct" (`:132`) — most delegations don't specify model tier |
 | **Examples-over-rules curation** | `examples-over-rules-escape-hatch.md` | Documented pattern; no visible practice of building example corpuses for underperforming skills |
 | **Wiki pre-check** | `P:\.data\wiki\` | The prompt "I want you to look in /wiki for information that can optimize..." (`:712`) suggests sometimes forgetting to check first |
@@ -191,11 +191,11 @@ Each recommendation is paired with the bar it enforces, the gap it closes, and a
 - **Effort:** One habit change.
 - **Falsifier:** if the operator already does this consistently in sessions outside the 4-day sample, R1 is wrong.
 
-#### R2. Default-gate hard-to-reverse decisions through `/risks` or `/tp` proactively (not reactively)
+#### R2. Default-gate hard-to-reverse decisions through `/risk` or `/tp` proactively (not reactively)
 
-- **Closes:** §3 (under-use of `/risks` as default gate) and §2.4 (plan mode omission)
+- **Closes:** §3 (under-use of `/risk` as default gate) and §2.4 (plan mode omission)
 - **Bar enforced:** `~/.grok/AGENTS.md` Recommendation Rule — "≥2 viable options + selection criterion"
-- **Mechanism:** any decision involving architectural commitment, file moves, hook changes, or plugin mutations triggers a `/tp` or `/risks` review **before** the operator approves. Currently the operator uses these reactively after a bad answer.
+- **Mechanism:** any decision involving architectural commitment, file moves, hook changes, or plugin mutations triggers a `/tp` or `/risk` review **before** the operator approves. Currently the operator uses these reactively after a bad answer.
 - **Effort:** One slash-command invocation per significant decision.
 - **Falsifier:** if the operator's reactive pattern already catches every case that proactive gating would, R2 adds latency without value.
 
@@ -297,7 +297,7 @@ These are strengths visible in the data that align with both the documented bar 
 ## 8. Open questions for follow-up
 
 1. **Does the 4-day sample generalize?** A follow-up could analyze prompts from a wider window once available. Pre-Grok-Build-adoption prompts are in a different store.
-2. **Is the operator's reactive `/risks` use actually catching every case proactive gating would?** Quantitative analysis of decisions made without red-team review vs decisions that later regressed.
+2. **Is the operator's reactive `/risk` use actually catching every case proactive gating would?** Quantitative analysis of decisions made without red-team review vs decisions that later regressed.
 3. **What's the assistant-side acceptance/rejection rate?** This page documents the operator's prompts; the assistant's response quality and the operator's reaction rate are a separate study.
 4. **Does the examples-over-rules pattern actually produce better skill output in this codebase?** No A/B data exists; the wiki documents the pattern but not a measured outcome.
 ## Falsifier

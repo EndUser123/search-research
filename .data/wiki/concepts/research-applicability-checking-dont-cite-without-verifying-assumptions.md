@@ -90,7 +90,7 @@ The pattern across all five: the research's conditions (the scope of validity) a
 - **/www** — after Phase 2 research, before Phase 3 persistence. Every cited finding gets an applicability row.
 - **/why** — when Step 0.5 (pattern library query) returns external research, or when Step 5 (Ishikawa) cites external findings.
 - **/design** — when citing research to justify a design choice.
-- **/risks** — when specialists cite research in their findings.
+- **/risk** — when specialists cite research in their findings.
 - **Any skill that cites external sources** — the applicability check is universal.
 
 ## How to implement

@@ -112,10 +112,10 @@ After decomposing into parallel groups, verify:
 ### The checklist as code
 
 Our `design_lint.py` already implements #1 (required sections present) and #6 (naming consistency detects duplicates). The remaining checks are:
-- #2-3: the orchestrator's dispatch manifest (which we saw in `/risks`)
+- #2-3: the orchestrator's dispatch manifest (which we saw in `/risk`)
 - #4: the critic's consolidation step
 - #5: the final report
-- #7: the "DEFERRED" pattern from `/risks`
+- #7: the "DEFERRED" pattern from `/risk`
 
 ## Should we implement this in our skills?
 
@@ -156,7 +156,7 @@ def verify_workflow_completeness(workflow_type, dispatched_tasks, required_steps
 
 For `/design`: required_steps = {write, lint, review, revise, consistency_sweep, re_review, critical_friend}
 For `/go`: required_steps = {safe_git, route, discover, plan, implement, verify}
-For `/risks`: required_steps = {planner, claim_refuter, gate_reviewer, workflow_reviewer, critic}
+For `/risk`: required_steps = {planner, claim_refuter, gate_reviewer, workflow_reviewer, critic}
 
 Each skill defines its required steps; the check runs before the merge point. If a step is missing, the orchestrator is warned — not blocked (the LLM may have intentionally skipped it), but warned.
 

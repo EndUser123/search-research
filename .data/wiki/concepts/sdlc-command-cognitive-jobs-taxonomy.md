@@ -8,7 +8,7 @@ summary: >
   what kind of ambiguity it reduces. /research → reduce uncertainty (what is
   true?). /design → reduce decision ambiguity (what should we do?). /plan →
   reduce execution ambiguity (how do we do it?). /go → reduce implementation
-  risk (do it safely). /review → evaluate the implementation. /risks →
+  risk (do it safely). /review → evaluate the implementation. /risk →
   challenge trust and assumptions. The test: "I want to [command] X" must read
   as a natural sentence. Commands that answer "how does the system work" rather
   than "what do I want to accomplish" are misplaced in the user-facing surface.
@@ -47,7 +47,7 @@ relations:
 | `/plan` | Reduce execution ambiguity | "Decision made, how do we do it?" | Decision | Ordered implementation path |
 | `/go` | Reduce implementation risk | "Plan ready, execute safely" | Plan | Validated change |
 | `/review` | Evaluate the implementation | "Is this code/diff correct?" | Code or diff | File/line findings |
-| `/risks` | Challenge trust and assumptions | "Should we trust this?" | Proposal or implementation | PROCEED/REVISE/BLOCK verdict |
+| `/risk` | Challenge trust and assumptions | "Should we trust this?" | Proposal or implementation | PROCEED/REVISE/BLOCK verdict |
 
 ## The "I want to [command]" test
 
@@ -77,15 +77,15 @@ But the bounded part matters. `/design` should only pull `/research` back in for
 
 Otherwise `/design` becomes `/research` with extra steps.
 
-## /risks insertion points
+## /risk insertion points
 
-`/risks` is most valuable **before commitment**, not after implementation:
-- `/research` → `/risks` (challenge the evidence)
-- `/design` → `/risks` (challenge the decision before it's recorded)
-- `/plan` → `/risks` (challenge the approach before execution)
+`/risk` is most valuable **before commitment**, not after implementation:
+- `/research` → `/risk` (challenge the evidence)
+- `/design` → `/risk` (challenge the decision before it's recorded)
+- `/plan` → `/risk` (challenge the approach before execution)
 - `/go` → `/review` (evaluate the implementation)
 
-`/review` is post-hoc evaluation. `/risks` is pre-commitment challenge. They're not the same phase.
+`/review` is post-hoc evaluation. `/risk` is pre-commitment challenge. They're not the same phase.
 
 ## /research scope: local evidence not just external
 

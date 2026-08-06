@@ -124,7 +124,7 @@ From crew.ai, AutoGen, and LangGraph practitioner reports:
 | **/www** | 1 research question per agent; cap 3-5 searches | DDG for search; minimax-m3 for synthesis; parent for final wiki write | Wait-all-before-conclude gate |
 | **/design** | Chunk revisions by severity (critical → majors → minors) | Cheap model for pre-write steps; frontier for writer + critical friend | Write→review loop with resume_from |
 | **/go** | 1 implementation unit per worker; worktree isolation | Parent-inherited for implementation; cheap model for mechanical checks | Git-based coordination (commit after each unit) |
-| **/risks** | 1 attack surface per specialist | Parent for code-reading specialists; cross-model for blind-spot detection | Root-cause clustering after all return |
+| **/risk** | 1 attack surface per specialist | Parent for code-reading specialists; cross-model for blind-spot detection | Root-cause clustering after all return |
 | **/review** | 1 lens per reviewer | Parent for all reviewers (consistency) | JSON findings files, merged by orchestrator |
 | **/tp** | 1 critique per subagent | Different model family for fresh lens | Two-lens: critique then verify |
 
@@ -163,7 +163,7 @@ Per [[research-applicability-checking-dont-cite-without-verifying-assumptions]],
 
 ## What this means for our workspace
 
-1. **Skills that dispatch parallel subagents** (/www, /design, /go, /risks, /review, /tp) should follow the 3 delegation rules: 1 question per agent, structured findings output, DDG-first for search. These are already in the /www SKILL.md's parallel-dispatch section.
+1. **Skills that dispatch parallel subagents** (/www, /design, /go, /risk, /review, /tp) should follow the 3 delegation rules: 1 question per agent, structured findings output, DDG-first for search. These are already in the /www SKILL.md's parallel-dispatch section.
 2. **Model routing should be task-type aware** — mechanical tasks (extraction, search, formatting) to cheap models; reasoning tasks to frontier; adversarial tasks to different model families. The existing [[model-pool-selection-policy-speed-quota-diversity]] already implements this; the task-type mapping table in this concept adds specificity.
 3. **Don't spawn more agents than the work requires** — coordination cost is quadratic. The practical limit is ~6-8 agents before overhead exceeds parallelism benefit. For reasoning tasks, a single strong agent may outperform a multi-agent team (Nature 2025).
 4. **Cascade routing is viable for mechanical tasks only** — the break-even math (escalation rate × verifier cost) makes cascading unsafe for reasoning tasks where cheap-model failure is undetectable (Huang et al.).

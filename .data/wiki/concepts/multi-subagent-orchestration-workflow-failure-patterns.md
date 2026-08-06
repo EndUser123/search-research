@@ -94,7 +94,7 @@ These fixes are wrong if, within 3 months:
 
 ## What this means for skill design
 
-These five patterns are not specific to `/design` — they apply to any skill that orchestrates multiple subagents across rounds (`/review`, `/debrief`, `/risks`, `/aar`). The common thread: orchestration skills assume their subagents behave as instructed, but the harness layer (capability modes, resume mechanics, model catalogs) can silently violate those assumptions.
+These five patterns are not specific to `/design` — they apply to any skill that orchestrates multiple subagents across rounds (`/review`, `/debrief`, `/risk`, `/aar`). The common thread: orchestration skills assume their subagents behave as instructed, but the harness layer (capability modes, resume mechanics, model catalogs) can silently violate those assumptions.
 
 **Skill authoring checklist (from this incident):**
 

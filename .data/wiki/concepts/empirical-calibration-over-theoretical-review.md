@@ -2,7 +2,7 @@
 created: '2026-07-21'
 sources:
 - Session 019f8155-f901-79a2-9ba1-ac4614db5225 (2026-07-20/21)
-- /risks run on proposal-grounding-monitor (critic.json at P:\.claude\.artifacts\...)
+- /risk run on proposal-grounding-monitor (critic.json at P:\.claude\.artifacts\...)
 summary: 'When a review flags a calibration concern (regex too broad, pattern too narrow), verify against real corpus data before acting. Theoretical concerns often produce 0 empirical FPs/FNs.'
 tags:
 - calibration
@@ -21,13 +21,13 @@ agent: grok
 
 ## The lesson
 
-When a review (e.g., `/risks`, `/review`) flags a calibration concern — "this regex is too broad," "this hedge suppresses real proposals," "this pattern produces false positives" — **verify the concern against real corpus data before acting on it**. Theoretical analysis identifies potential failure modes; only empirical testing tells you whether they actually fire.
+When a review (e.g., `/risk`, `/review`) flags a calibration concern — "this regex is too broad," "this hedge suppresses real proposals," "this pattern produces false positives" — **verify the concern against real corpus data before acting on it**. Theoretical analysis identifies potential failure modes; only empirical testing tells you whether they actually fire.
 
 ## The incident
 
-The `/risks` run on `proposal-grounding-monitor` flagged two calibration items as REVISE:
+The `/risk` run on `proposal-grounding-monitor` flagged two calibration items as REVISE:
 
-1. **IA-004**: "PROVISIONAL_HEDGE_RE includes common words 'likely' and 'probably' — false-negative risk." The /risks verified that `'It is likely that I recommend building an MCP server'` is suppressed by `'likely'` even though it contains a real proposal.
+1. **IA-004**: "PROVISIONAL_HEDGE_RE includes common words 'likely' and 'probably' — false-negative risk." The /risk verified that `'It is likely that I recommend building an MCP server'` is suppressed by `'likely'` even though it contains a real proposal.
 2. **GR-2**: "Proposal-detection regex fires on four classes of analytical/generic-procedural statements."
 
 Both findings were **correct in theory** — the regex does over-match those patterns in isolation.

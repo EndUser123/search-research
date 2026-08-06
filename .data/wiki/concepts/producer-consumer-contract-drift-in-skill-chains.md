@@ -1,10 +1,10 @@
 ---
 title: "Producer-consumer contract drift in skill chains"
 created: 2026-07-25
-source: session-2026-07-25 (/risks on /refine + readiness gates)
+source: session-2026-07-25 (/risk on /refine + readiness gates)
 sources:
-  - P:/.artifacts/risks/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/scope-gap.json (SCOPE-2)
-  - P:/.artifacts/risks/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/workflow.json (WF-4, WF-5)
+  - P:/.artifacts/risk/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/scope-gap.json (SCOPE-2)
+  - P:/.artifacts/risk/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/workflow.json (WF-4, WF-5)
 tags: [skill-design, contract-drift, producer-consumer, handoff, inter-skill-contract, anti-pattern, red-team-finding]
 summary: >
   When a new skill is added as a producer (writes an artifact that other skills
@@ -12,7 +12,7 @@ summary: >
   explicitly. Designing the producer in isolation — inventing field names,
   adding fields the consumers don't read, assuming the consumer's schema —
   produces a "write-only contract": the producer writes; nobody reads; the
-  fields are documentation, not enforcement. Detected via /risks on the
+  fields are documentation, not enforcement. Detected via /risk on the
   /refine skill, which invented "Original task (verbatim)" (handoff's actual
   field is "Last user message (verbatim)") and wrote three structured fields
   ([NEEDS CLARIFICATION], [DO NOT CHANGE], rollback plan) that no downstream
@@ -38,7 +38,7 @@ relations:
 
 ## Decision context
 
-**Why this knowledge was needed:** a `/risks quick` run on the new `/refine
+**Why this knowledge was needed:** a `/risk quick` run on the new `/refine
 skill and its readiness gates surfaced a BLOCK-severity cluster: `/refine`
 writes three structured handoff fields (`[NEEDS CLARIFICATION]`, `[DO NOT
 CHANGE]`, rollback plan) that no downstream skill reads, and invented a field
@@ -183,9 +183,9 @@ validator pattern (`validate_refinement_markers` added to `/handoff/__lib/valida
 
 ## Source
 
-- `/risks quick` run on `/refine` + readiness gates, 2026-07-25
-- Findings file: `P:/.artifacts/risks/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/scope-gap.json` (SCOPE-2)
-- Findings file: `P:/.artifacts/risks/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/workflow.json` (WF-4, WF-5)
+- `/risk quick` run on `/refine` + readiness gates, 2026-07-25
+- Findings file: `P:/.artifacts/risk/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/scope-gap.json` (SCOPE-2)
+- Findings file: `P:/.artifacts/risk/019f9b6f-98fc-7883-9d5f-cf570a0b3812/20260725-182300/workflow.json` (WF-4, WF-5)
 - Cluster: RC-1 (BLOCK severity, 2-specialist amplification)
 ## What this means for our workspace
 

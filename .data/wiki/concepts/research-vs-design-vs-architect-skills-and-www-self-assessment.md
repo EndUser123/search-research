@@ -48,14 +48,14 @@ relations:
 ## Key Findings
 
 1. **The field recognizes a 4-stage separation**: Research → Architecture → Design → Implementation. Anthropic's "Building Effective Agents" is the lone exception (structural taxonomy, not domain-bound). See Part 1.
-2. **/www is a research skill by every measurable criterion** — 585 lines, 9 mandatory rules, 3 enhancement batches in 4 days, Round 2.5 alone bigger than /risks. See Part 2.
+2. **/www is a research skill by every measurable criterion** — 585 lines, 9 mandatory rules, 3 enhancement batches in 4 days, Round 2.5 alone bigger than /risk. See Part 2.
 3. **The bloat pattern is canonical and named five different ways** — Brooks' second-system effect, MindStudio inverted-U, ToolBench tool-count-decay, arxiv input-length-degrades-performance, "Avoid feature creep" as a published skill. See Part 3.
 4. **/www is past the inflection point.** Recommendation: keep the disconfirmation pass + ledger + wait-all gate + decision-context capture; pare Round 2.5 ingestion, mid-research contradiction check, example invocation. Estimated savings ~1800-2200 words back to ~350-400 lines. See Part 4.
 5. **/design (1015 lines) has the same pattern worse.** Treat /www as the warning for the fleet, not the only instance.
 
 ## What this means for our workspace
 
-- **Skill boundaries matter.** /www (research), /design (architecture+design), /risks (adversarial review), /aar (retrospective), /plan-writer (planning) occupy distinct stages of the 4-stage separation. Overlap is the warning sign — when /www starts producing design outputs, or /design does its own research, the boundary has blurred.
+- **Skill boundaries matter.** /www (research), /design (architecture+design), /risk (adversarial review), /aar (retrospective), /plan-writer (planning) occupy distinct stages of the 4-stage separation. Overlap is the warning sign — when /www starts producing design outputs, or /design does its own research, the boundary has blurred.
 - **Enhancement batches need an offsetting retirement.** Adding a section without retiring one is technical debt. /www's 3 batches in 4 days added ~2000 words and removed zero.
 - **The wait-all-before-conclude gate (added 2026-07-26) caught its own failure twice in the session that created it.** Structural rules pay for themselves; ceremonial rules do not. The pare-list in Part 4 keeps the structural rules and cuts the ceremonial ones.
 
@@ -83,7 +83,7 @@ All three converge.
 | **Design** | How do components interact? Detailed local decisions? | Classic SE; software-design vs software-architecture literature |
 | **Implementation / coding** | Build it | SDLC; all coding-agent tools |
 
-**The notable exception: Anthropic's "Building Effective Agents"** taxonomizes by execution topology (chaining / routing / parallel / orchestrator-workers / evaluator-optimizer), NOT by domain. This is why /www, /design, /risks, /aar all look structurally similar — they're all "orchestrator-workers" patterns — but they serve different phases of the 4-stage separation. The two taxonomies are orthogonal.
+**The notable exception: Anthropic's "Building Effective Agents"** taxonomizes by execution topology (chaining / routing / parallel / orchestrator-workers / evaluator-optimizer), NOT by domain. This is why /www, /design, /risk, /aar all look structurally similar — they're all "orchestrator-workers" patterns — but they serve different phases of the 4-stage separation. The two taxonomies are orthogonal.
 
 **Every major AI coding tool treats the stages as distinct:**
 
@@ -95,7 +95,7 @@ All three converge.
 | Claude Code community (Marie Claire Dean) | 63 design skills across 8 plugins including "research" as a peer category |
 | LangChain | Deep Agents (extended reasoning) vs agentic AI (orchestration) |
 
-**Implication for our skill fleet:** /www, /design, /risks, /aar, /plan-writer all occupy distinct stages. They overlap structurally (all orchestrator-workers) but should not overlap functionally. When /www starts producing design-doc-shaped outputs, or /design starts doing its own web research, the boundary has blurred — and that's the warning sign.
+**Implication for our skill fleet:** /www, /design, /risk, /aar, /plan-writer all occupy distinct stages. They overlap structurally (all orchestrator-workers) but should not overlap functionally. When /www starts producing design-doc-shaped outputs, or /design starts doing its own web research, the boundary has blurred — and that's the warning sign.
 
 ## Part 2 — Is /www turning into a research skill?
 
@@ -105,11 +105,11 @@ Yes — by every measurable criterion.
 
 | Metric | Value | Context |
 |---|---|---|
-| SKILL.md line count | 585 | Bigger than /web (367), /risks (227), /wiki (197); approaching /design (1015) |
+| SKILL.md line count | 585 | Bigger than /web (367), /risk (227), /wiki (197); approaching /design (1015) |
 | Enhancement batches | 3 | All added in 4 days (2026-07-23, 24, 24b) |
 | Mandatory rules | 9 | Each is a contract the model has to disambiguate |
 | "Round N" references in Phase 2 | 27 | Multi-round structure is the dominant cost |
-| Round 2.5 section word count | 1181 | Bigger than several entire skills (/risks = 227 lines) |
+| Round 2.5 section word count | 1181 | Bigger than several entire skills (/risk = 227 lines) |
 | Ledger entries (last 7 days) | 47 | Heavy daily use — but use frequency ≠ efficiency |
 | Wait-all-before-conclude gate | added 2026-07-26 | Catching real failures (this session: twice) |
 
@@ -167,7 +167,7 @@ The pattern is named in five independent research streams:
 - Don't retire /www. It produces high-value wiki concepts (47 in a week, several of them foundational).
 - Don't replace /www with /web + manual persistence. The Phase 1 wiki grounding and Round 3 disconfirmation are real value-adds.
 - Do pare /www back to its structural core. The ceremony was added for good reasons but is now past the point of positive marginal value.
-- Do treat this as the warning for the rest of the skill fleet: /aar, /close, /dream, /risks are all candidates for the same pattern. /design at 1015 lines is more bloated than /www.
+- Do treat this as the warning for the rest of the skill fleet: /aar, /close, /dream, /risk are all candidates for the same pattern. /design at 1015 lines is more bloated than /www.
 
 ## Honest trade-offs
 
@@ -210,7 +210,7 @@ This concept is wrong if, within 6 months:
 ## Receipts (mechanism claims)
 
 - **"/www is 585 lines":** receipt — `Get-Content $www.FullName).Count` this session, output shown above
-- **"/web is 367 lines, /risks is 227, /design is 1015":** receipt — same measurement command, same session
+- **"/web is 367 lines, /risk is 227, /design is 1015":** receipt — same measurement command, same session
 - **"3 enhancement batches added in 4 days":** receipt — `Select-String -Pattern "Enhancement batch" $www` returned count=3; provenance section dates them 2026-07-23, 24, 24b
 - **"9 mandatory rules":** receipt — `Select-String -Pattern "mandatory|MANDATORY" $www` returned count=9
 - **"27 Round N references in Phase 2":** receipt — `Select-String -Pattern "Round \d" $www` returned count=27

@@ -151,7 +151,7 @@ These patterns appear across multiple skill families:
 7. **Honest refusal over coerced verdict** — `/skillopt`, `/review-packet-runner`, `/evidence-driven-experiment-loop`, `/diagnose`
 8. **E1/E4/E5 evidence-first triad** — shared verbatim across `/brainstorming`, `/diagnose`, `/improve-codebase-architecture`, `/zoom-out`
 9. **Deprecation-stub pattern** — `/retro`, `/top-problems`, `/pre-mortem`, `/av`
-10. **Layering model: advisory skills as source-of-truth; runtime enforcement in hooks** — cc-skills-analysis family is advisory; enforcement lives in `/risks` (BLOCK authority), `Stop_fake_done_detector.py` (WARN mode), `/ask` (canonical vocabulary)
+10. **Layering model: advisory skills as source-of-truth; runtime enforcement in hooks** — cc-skills-analysis family is advisory; enforcement lives in `/risk` (BLOCK authority), `Stop_fake_done_detector.py` (WARN mode), `/ask` (canonical vocabulary)
 
 ## Layering model (important structural insight)
 
@@ -159,7 +159,7 @@ The cc-skills-analysis family is explicitly **advisory** — it owns the static 
 
 | Discipline source (advisory) | Runtime enforcer |
 |---|---|
-| `/debrief`, `/skill-audit`, `/claude-audit` | `/risks` Pre-check 0 (BLOCK authority for CEC) |
+| `/debrief`, `/skill-audit`, `/claude-audit` | `/risk` Pre-check 0 (BLOCK authority for CEC) |
 | `/epistemic-check` | `Stop_epistemic_contract` hook |
 | `/rca` investigation completeness rule | `PostToolUse_rca_*`, `StopHook_rca_*` hooks |
 | `/diagnose` violation table | Stop hook checks for violations |

@@ -74,7 +74,7 @@ The unifying pattern: **under closure pressure, the model reaches for the rule r
 | `/tp` | ❌ | ✅ | ❌ prompt-only | Observe-then-refactor (or cross-skill observer) |
 | `/wargame` | ❌ | ✅ | ❌ prompt-only | Observe-then-refactor (or cross-skill observer) |
 | `/review` | ❌ | ✅ | ❌ prompt-only | Observe-then-refactor (or cross-skill observer) |
-| `/risks` | ❌ | ✅ | ❌ prompt-only | Observe-then-refactor (or cross-skill observer) |
+| `/risk` | ❌ | ✅ | ❌ prompt-only | Observe-then-refactor (or cross-skill observer) |
 
 **The split:** 3 enforce now, 5 observe-then-refactor (4 of which can alternatively be enforced via cross-skill observers like `/check` and `/aar`).
 

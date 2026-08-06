@@ -21,7 +21,7 @@ evidence_gaps:
 
 ## Summary
 
-The reason to run multiple agents on one task is **uncorrelated errors**: if N agents each independently catch 70% of flaws, their union catches ~97%; if their errors are correlated, N=3 catches barely more than N=1. Most council/risks implementations pay 3× tokens for persona diversity (strategist/skeptic/operator) — which is **weak diversity**, because all members still inherit the same brief and the same model family's blind spots. The levers that actually decorrelate errors are frame mutations on the input side, falsifier-gating on the output side, and cross-family critique for irreversible decisions.
+The reason to run multiple agents on one task is **uncorrelated errors**: if N agents each independently catch 70% of flaws, their union catches ~97%; if their errors are correlated, N=3 catches barely more than N=1. Most council/risk implementations pay 3× tokens for persona diversity (strategist/skeptic/operator) — which is **weak diversity**, because all members still inherit the same brief and the same model family's blind spots. The levers that actually decorrelate errors are frame mutations on the input side, falsifier-gating on the output side, and cross-family critique for irreversible decisions.
 
 ## Key Findings
 
@@ -33,7 +33,7 @@ Triggered by a YouTube video framing "Anthropic engineers' tournament prompting"
 - Tournament got a post-judging revision cycle the control didn't — confounds "tournament helps" with "two passes beat one pass."
 - Provenance loose ("Angela Jen, head of product" — no such person; lead-gen for a paid community).
 
-**Implication:** don't build a `compete-mode` skill. The pattern is one paragraph of prompt, not a skill. `cc-council`, `/risks`, `/go`, `grok-parallel` already cover it.
+**Implication:** don't build a `compete-mode` skill. The pattern is one paragraph of prompt, not a skill. `cc-council`, `/risk`, `/go`, `grok-parallel` already cover it.
 
 ### Persona diversity is weak; frame diversity is strong
 
@@ -60,26 +60,26 @@ Same-family judges scoring same-family candidates produce correlated scores with
 
 ### Orthogonal-model critic is the only true error-decorrelation
 
-Same-family critics agree on *what kind* of issue matters. A cross-family critic (Gemini via `agy`, perplexity-backed synthesis, codex) will flag different categories — different token boundaries, safety training, length/structure preferences. The `/risks` skill already gestures at this: `adversarial (external-LLM harness divergence … PENDING: runner unbuilt, see #872/#873/#874)`. Funding that ticket is the structurally correct fix. Use cross-family critique when the decision is hard to reverse; skip it for reversible work.
+Same-family critics agree on *what kind* of issue matters. A cross-family critic (Gemini via `agy`, perplexity-backed synthesis, codex) will flag different categories — different token boundaries, safety training, length/structure preferences. The `/risk` skill already gestures at this: `adversarial (external-LLM harness divergence … PENDING: runner unbuilt, see #872/#873/#874)`. Funding that ticket is the structurally correct fix. Use cross-family critique when the decision is hard to reverse; skip it for reversible work.
 
 ### Skill-specific mappings — VERIFIED 2026-07-19
 
-Read this session: `cc-council/ARCHITECTURE.md`, `cc-council/README.md`, all 6 `cc-council/agents/*.md`, `red-team/commands/risks.md`.
+Read this session: `cc-council/ARCHITECTURE.md`, `cc-council/README.md`, all 6 `cc-council/agents/*.md`, `red-team/commands/risk.md`.
 
 **cc-council already implements cross-model diversity (the stronger pattern).** ARCHITECTURE.md §Stage 2: "3 models generate independent responses" — diversity comes from different model families (glm-5.2, m3, kimi-k2.7 via cc-skills-ai-api transport), not from persona prompts. The 6 persona files in `agents/` are not referenced by the documented engine flow (evidence gap: may be wired in `engine.py` but untraced). This means **Pattern B (orthogonal-model critic) is already the default for cc-council** — it's not a recommendation, it's an existing capability. The actual remaining gaps for cc-council:
 - Synthesizer instruction is "resolve + surface," which still tends toward unification. Could be sharpened to require falsifiers and preserve unresolved dissent explicitly.
 - No frame-mutation layer on top of the model-diversity layer (would be additive, not replacement).
 - Single-round deliberation only (v1 limitation per ARCHITECTURE.md §Known Limitations).
 
-**/risks specialists share the brief; diversity is role-based, not frame-based.** red-team.md §2: each specialist gets "the proposal under review (or pointer to it)" — same brief. Diversity comes from distinct attack patterns per role (security/logic/state/...). **But** §1.5 Claim-refute pass adds input-side diversity at the claim layer: claims are tagged `claim_type` (existence/static-shape/behavior/non-code/scope-completeness) and routed to different verification branches. That's frame-diversity at the claim level, not the specialist level. Remaining gap for /risks:
+**/risk specialists share the brief; diversity is role-based, not frame-based.** red-team.md §2: each specialist gets "the proposal under review (or pointer to it)" — same brief. Diversity comes from distinct attack patterns per role (security/logic/state/...). **But** §1.5 Claim-refute pass adds input-side diversity at the claim layer: claims are tagged `claim_type` (existence/static-shape/behavior/non-code/scope-completeness) and routed to different verification branches. That's frame-diversity at the claim level, not the specialist level. Remaining gap for /risk:
 - Specialists could receive frame-mutated briefs (one assumes adversarial deployment, one assumes scale failure, ...) in addition to role-based attack patterns. Additive.
 - The cross-family adversarial mode (#872–874) is the unbuilt orthogonal-critic path for trust verdicts — distinct from cc-council's cross-family path for opinions. Funding it closes the gap for the trust-decision use case specifically.
 
-**Net correction to the original recommendation:** "Fund the cross-family critic" was framed as if the stack lacked it. The stack has it for opinion/consensus (cc-council default). The gap is narrower: cross-family critique for **trust verdicts** (/risks adversarial mode). Frame-diversity and falsifier-gating remain valid as additive improvements on top of existing model-diversity.
+**Net correction to the original recommendation:** "Fund the cross-family critic" was framed as if the stack lacked it. The stack has it for opinion/consensus (cc-council default). The gap is narrower: cross-family critique for **trust verdicts** (/risk adversarial mode). Frame-diversity and falsifier-gating remain valid as additive improvements on top of existing model-diversity.
 
 ## What would falsify this
 
-- ~~If `cc-council` or `/risks` already implement frame mutations and falsifier-gating, the "typical implementation" prior is wrong for this stack and the recommendation collapses to "fund the cross-family critic (#872)."~~ **Resolved 2026-07-19:** cc-council implements cross-model diversity (stronger than frame diversity) as default. /risks has claim-type routing at the claim-refute layer. Falsifier-gating is absent from both. The narrowed recommendation is now: frame-mutation as additive layer + falsifier-gating at synthesis + fund /risks adversarial mode for trust verdicts.
+- ~~If `cc-council` or `/risk` already implement frame mutations and falsifier-gating, the "typical implementation" prior is wrong for this stack and the recommendation collapses to "fund the cross-family critic (#872)."~~ **Resolved 2026-07-19:** cc-council implements cross-model diversity (stronger than frame diversity) as default. /risk has claim-type routing at the claim-refute layer. Falsifier-gating is absent from both. The narrowed recommendation is now: frame-mutation as additive layer + falsifier-gating at synthesis + fund /risk adversarial mode for trust verdicts.
 - If an A/B test on this stack showed council beating well-context-loaded single-agent by a wide margin, correlated errors aren't the bottleneck. **Still untested.**
 - If same-family critics on this stack are already calibrated against past verdicts, orthogonal-model critique adds less. **Still untested — and partially moot since cc-council's default already uses different families.**
 
@@ -101,7 +101,7 @@ Read this session: `cc-council/ARCHITECTURE.md`, `cc-council/README.md`, all 6 `
 - Trigger: YouTube video transcription `Anthropic Engineers Are Using A New Claude Code Prompting Trick` (downloaded to `~/Downloads/`); analyzed in session-2026-07-19.
 - Pattern justification: best-of-N sampling, ensemble methods, RLAIF judge literature (prior knowledge, not fetched this session).
 - LLM-as-judge bias thresholds: prior knowledge of position/length/self-preference studies; not re-measured against this host's rubrics.
-- Skill claims: **VERIFIED 2026-07-19** by reading `cc-council/ARCHITECTURE.md`, `cc-council/README.md`, all 6 `cc-council/agents/*.md`, and `red-team/commands/risks.md`.
+- Skill claims: **VERIFIED 2026-07-19** by reading `cc-council/ARCHITECTURE.md`, `cc-council/README.md`, all 6 `cc-council/agents/*.md`, and `red-team/commands/risk.md`.
 ## What this means for our workspace
 
 TODO (auto-generated by wiki_validator_sweep 2026-07-30): This concept predates the

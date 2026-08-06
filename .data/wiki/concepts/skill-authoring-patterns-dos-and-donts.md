@@ -20,7 +20,7 @@ summary: "Do's and don'ts for authoring AI-agent skills (SKILL.md), synthesized 
 
 # Skill authoring patterns: do's and don'ts for AI-agent skills
 
-Synthesized from four web sources researched via `/www` on 2026-07-21. Focuses on what's unique and non-obvious relative to our existing concepts. Our skill portfolio (`/tp`, `/aar`, `/handoff`, `/www`, `/design`, `/go`, `/review`, `/risks`) is the implicit test surface — patterns here either confirm what those skills already do or flag what they miss.
+Synthesized from four web sources researched via `/www` on 2026-07-21. Focuses on what's unique and non-obvious relative to our existing concepts. Our skill portfolio (`/tp`, `/aar`, `/handoff`, `/www`, `/design`, `/go`, `/review`, `/risk`) is the implicit test surface — patterns here either confirm what those skills already do or flag what they miss.
 
 ## Do's
 
@@ -217,7 +217,7 @@ Source: anthonytd.com.
 
 If two workflows share state and have the same failure modes, they belong in one skill. If they have different failure modes, they belong in separate skills.
 
-**Our application:** `/tp` and `/risks` have different failure modes (collaborative critique vs adversarial review) — correctly separate. `/aar` and `/debrief` have overlapping failure modes (retrospective analysis) — **candidate for consolidation review**.
+**Our application:** `/tp` and `/risk` have different failure modes (collaborative critique vs adversarial review) — correctly separate. `/aar` and `/debrief` have overlapping failure modes (retrospective analysis) — **candidate for consolidation review**.
 
 ### 9. Don't over-optimize skills that aren't frequently used
 
@@ -260,7 +260,7 @@ Source: anthonytd.com, Anthropic best practices.
 | `/design` | Context firewall (Step 0.5); writer/reviewer loop | Not assessed in this research pass |
 | `/go` | Not assessed | Not assessed in this research pass |
 | `/review` | Not assessed | Not assessed in this research pass |
-| `/risks` | Not assessed | Not assessed in this research pass |
+| `/risk` | Not assessed | Not assessed in this research pass |
 
 ## Open questions
 

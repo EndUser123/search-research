@@ -9,7 +9,7 @@ summary: >
   each producing a complete proposal from the same shared inputs, then a
   single synthesizer integrates with per-finding verification (verification,
   novelty, integration checks). Distinct from /tp's two-lens critique (1
-  producer + 1 synthesizer) and from /risks's adversarial panel — this is
+  producer + 1 synthesizer) and from /risk's adversarial panel — this is
   PRODUCER diversity for the deliverable itself, not critique-of-deliverable.
   Worked example: /why skill enhancement produced 4 independent optimization
   proposals; synthesizer resolved 2 live disagreements (dispatch vs inline,
@@ -144,7 +144,7 @@ This methodology is wrong if, within 6 months:
 ## Methodology roots
 
 - `/tp` two-lens architecture (Costa & Kallick 1993; /tp SKILL.md) — extended from 2 lenses to N producers
-- `/risks` adversarial panel — different goal (adversarial find vs. independent produce) but same fan-out shape
+- `/risk` adversarial panel — different goal (adversarial find vs. independent produce) but same fan-out shape
 - AGENTS.md `Recommendation Rule` — `≥2 viable options` requirement extended to `≥N cross-family producers` for high-stakes production tasks
 - Anthropic multi-agent research system (multi-agent research lead + subagents) — same shape, different goal (research vs. production)
 

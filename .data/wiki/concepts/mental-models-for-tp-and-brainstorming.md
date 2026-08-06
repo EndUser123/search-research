@@ -34,22 +34,22 @@ Our `/tp` and `/brainstorming` skills are built on several established mental mo
 **Where we use it:**
 - `/tp` SKILL.md: the entire skill is framed as "critical friend dialogue"
 - `/design` Step 5.5: the critical friend step challenges premises, not implementation
-- `/risks`: the adversarial variant — same posture, more aggressive
+- `/risk`: the adversarial variant — same posture, more aggressive
 
 **Quality:** Strong. The `/tp` skill cites Costa & Kallick (1993), the originators of the concept. The two-lens architecture (fresh subagent + same-agent synthesis) structurally implements the "you cannot refocus your own glasses" insight.
 
 **Source:** Costa, A. L., & Kallick, B. (1993). "Through the Lens of a Critical Friend." ASCD Educational Leadership.
 
-### 2. Steelman / Devil's Advocate (explicit — /tp + /risks)
+### 2. Steelman / Devil's Advocate (explicit — /tp + /risk)
 
 **What it is:** Deliberately arguing the strongest version of the opposing position (steelman) or against the current consensus (devil's advocate). Counteracts confirmation bias.
 
 **Where we use it:**
 - `/tp` core domain 4 (anchoring): "What premise did the writer bring in that wasn't examined?"
-- `/risks`: entire skill is adversarial multi-agent review
+- `/risk`: entire skill is adversarial multi-agent review
 - `/design` Step 5.5: the critical friend checks for "unexamined anchor"
 
-**Quality:** Moderate. `/tp` challenges the anchor but doesn't systematically construct the steelman. The user has to prompt for it explicitly. `/risks` does this better — it dispatches specialists who independently verify claims.
+**Quality:** Moderate. `/tp` challenges the anchor but doesn't systematically construct the steelman. The user has to prompt for it explicitly. `/risk` does this better — it dispatches specialists who independently verify claims.
 
 **Research validation:** Chiang et al. (IUI 2024, 195 citations): LLM-powered devil's advocate reduces confirmation bias in group decision-making. The key finding: the devil's advocate must argue from a genuinely different position, not from a superficially oppositional stance. Our `/tp` sometimes falls into the latter — it agrees too quickly when the user pushes back.
 
@@ -102,7 +102,7 @@ Our `/tp` and `/brainstorming` skills are built on several established mental mo
 **Where we DON'T use it systematically:**
 - `/tp` touches this in core domain 3 (falsifiability): "What would make this design wrong?" But it's a single question, not a systematic exercise.
 - `/wargame` implements this for hard-to-reverse decisions (the move schema with failure signals and countermoves). But `/wargame` is only invoked for trigger 5/6 in `/plan`.
-- `/risks pre-mortem` mode exists but is rarely invoked.
+- `/risk pre-mortem` mode exists but is rarely invoked.
 
 **What it would look like in `/tp`:** Add a "pre-mortem" block to core domain 3:
 

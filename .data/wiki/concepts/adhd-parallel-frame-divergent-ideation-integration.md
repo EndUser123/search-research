@@ -39,7 +39,7 @@ relations:
 via `/crawl4ai` and asked whether its techniques should be integrated into `/design`, `/tp`,
 the `brainstorming` skill, or other skills. This is a real design question, not academic: the
 workspace already has multiple divergent-thinking mechanisms (fresh-lens subagents in `/tp`,
-critical-friend review in `/design` Step 5.5, multi-agent adversarial review in `/risks`).
+critical-friend review in `/design` Step 5.5, multi-agent adversarial review in `/risk`).
 Adding ADHD's mechanism without understanding the overlap risks parallel paths — the exact
 anti-pattern the "Search before proposing" rule exists to prevent.
 
@@ -69,11 +69,11 @@ Before proposing integration, the existing patterns — this is the "observe" st
 
 - **`/tp` (default mode):** spawns 1 fresh subagent for critique, then the same agent verifies and integrates. Different lens, no shared framing anchor. This is ADHD with N=1 and frame="critical friend."
 - **`/design` Step 5.5 (critical friend):** spawns 1 fresh subagent to challenge premises across core + context-derived domains. Different posture, no shared reviewer framing. Again, ADHD with N=1.
-- **`/risks`:** multi-agent adversarial review with specialists (failure-modes, security, logic, testing, etc.). This is closer to ADHD's N-frame model — each specialist IS a distorted frame. But `/risks` tests a *proposal*; ADHD generates *options*.
+- **`/risk`:** multi-agent adversarial review with specialists (failure-modes, security, logic, testing, etc.). This is closer to ADHD's N-frame model — each specialist IS a distorted frame. But `/risk` tests a *proposal*; ADHD generates *options*.
 - **`brainstorming` skill (superpowers):** explores user intent, requirements, and design before implementation. Decomposition-focused, not divergence-focused.
 - **`/go` grok-parallel:** fans out independent implementation tasks across subagents. Parallel execution, not parallel ideation.
 
-The key gap: **no existing skill does N-frame divergent *generation* with deliberately distorted frames.** `/tp` and `/design` do 1-frame critique. `/risks` does N-frame adversarial *testing* of one artifact. ADHD does N-frame *generation* of multiple artifacts, then convergence.
+The key gap: **no existing skill does N-frame divergent *generation* with deliberately distorted frames.** `/tp` and `/design` do 1-frame critique. `/risk` does N-frame adversarial *testing* of one artifact. ADHD does N-frame *generation* of multiple artifacts, then convergence.
 
 ## Where ADHD techniques fit (ranked by ROI)
 
@@ -103,9 +103,9 @@ ADHD diverges on solutions. They're sequential, not competing: brainstorm to dec
 ADHD to generate diverse options → converge. A `/brainstorm --adhd` flag or a composed
 workflow (`/brainstorm` → `/tp --adhd`) would capture both phases.
 
-### 3. `/risks` — enhance specialist diversity
+### 3. `/risk` — enhance specialist diversity
 
-`/risks` already spawns specialists (failure-modes, security, logic, etc.). ADHD's
+`/risk` already spawns specialists (failure-modes, security, logic, etc.). ADHD's
 contribution here is the deliberate *distortion* of frames — not just "review from the
 security lens" but "review assuming the proposal's security assumptions are deliberately
 wrong." This is a sharpening of existing specialist prompts, not a structural change.
@@ -137,7 +137,7 @@ Not all of ADHD needs to be integrated as a unit. Three techniques are independe
 **What NOT to do:**
 - Don't add ADHD wholesale to `/design` (cost too high for routine designs)
 - Don't create a standalone `/adhd` skill yet (overlaps with `/tp` — would create parallel paths)
-- Don't replace `/risks`'s specialists with ADHD frames (different purpose: testing vs generating)
+- Don't replace `/risk`'s specialists with ADHD frames (different purpose: testing vs generating)
 
 ## Receipts
 
@@ -145,7 +145,7 @@ Claims about local skill mechanisms, labeled by inspection status:
 
 - **`/design` Step 5.5 critical friend spawns 1 fresh subagent** — [OBSERVED] `~/.grok/skills/design/SKILL.md` Step 5.5 (lines ~720-830), specifically: "Do NOT pass `resume_from` — launch fresh so no reviewer framing contaminates the critique." Directly inspected and edited this session (commit `b39d97b`).
 - **`/tp` default mode spawns 1 fresh subagent for critique** — [INFERENCE] from the skill catalog description ("Two-lens critique: a fresh subagent generates the critique... then the same agent verifies"). Not directly inspected this session; the `/tp` SKILL.md path is `~/.grok/skills/tp/SKILL.md`.
-- **`/risks` spawns specialist subagents (failure-modes, security, logic, testing)** — [INFERENCE] from the skill catalog description ("Planner → specialists → critic → root-cause clustering"). Not directly inspected this session; the `/risks` SKILL.md path is `~/.grok/skills/risks/SKILL.md`.
+- **`/risk` spawns specialist subagents (failure-modes, security, logic, testing)** — [INFERENCE] from the skill catalog description ("Planner → specialists → critic → root-cause clustering"). Not directly inspected this session; the `/risk` SKILL.md path is `~/.grok/skills/risk/SKILL.md`.
 - **`brainstorming` skill decomposes via MECE/morphological analysis** — [INFERENCE] from `[[brainstorming-ideation-with-llms]]` wiki concept (read via qmd search this session), which documents the operator's natural brainstorming process mapping to those frameworks. The `brainstorming` SKILL.md itself (`~/.grok/installed-plugins/superpowers-21e2a56d/skills/brainstorming/SKILL.md`) was not directly inspected.
 - **ADHD mechanism (N isolated processes, distorted frames, cluster/prune/deepen critic)** — [OBSERVED] from the ingested README at `wiki/sources/github.com/000-UditAkhourii-adhd.md` (read this session).
 

@@ -46,7 +46,7 @@ relations:
 
 This extends the [[thought-partner-standard]] Honesty principle: withholding information the operator asked for is a form of dishonesty, not helpfulness. The [[overclaiming-under-exploration-to-recommendation-pressure]] concept covers the opposite failure (recommending too early); this concept covers the failure of recommending too few after finding many. The [[no-question-theater]] rule is adjacent: both are about giving the operator the information they need to make decisions.
 
-Every skill that outputs recommendation lists (/tp, /www, /review, /risks, /todo, /capture, /aar, /skill-prune, /harvest, /friction) should include a one-line pointer to this rule in their output format section.
+Every skill that outputs recommendation lists (/tp, /www, /review, /risk, /todo, /capture, /aar, /skill-prune, /harvest, /friction) should include a one-line pointer to this rule in their output format section.
 
 **Implementation status:** Rule added to AGENTS.md § Recommendations (line 561, commit `e881e91`). Drift signal added to `/slc` Step 1 Honesty mapping (commit `e881e91`). The `/tp` critique skill is the highest-risk skill for this failure mode — its output is findings tables where the temptation to present only the "most important" is strongest.
 
