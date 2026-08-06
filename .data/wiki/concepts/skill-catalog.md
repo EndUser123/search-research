@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-06
 cognitive_load: 3
-summary: Auto-generated index of 717 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 718 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-06 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 717 across 21 scopes.
+**Total skills:** 718 across 21 scopes.
 
 ## How to use this catalog
 
@@ -28,7 +28,7 @@ Auto-generated on 2026-08-06 by `python P:/.data/wiki/scripts/index_skills.py`. 
 - `✗` = plugin is on disk but disabled in that host's config
 - `—` = scope is not loaded by that host (e.g. Claude cache scoped skills are `—` for Grok)
 
-## grok-user (72 skills)
+## grok-user (73 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -63,6 +63,7 @@ Auto-generated on 2026-08-06 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **help** | ✓ | — | Grok documentation and configuration help. Use when users ask about setup, configuration, MCP servers, authentication, s... | — | `~/.grok/skills/help/SKILL.md` |
 | **imagine** | ✓ | — | How to use the image_gen and image_edit tool calls in Grok Build: when to build a visual with code instead of generating... | — | `~/.grok/skills/imagine/SKILL.md` |
 | **improve-codebase-architecture** | ✓ | — | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you ... | — | `~/.grok/skills/improve-codebase-architecture/SKILL.md` |
+| **insight** | ✓ | — | Unified improvement-finding skill. Scans at multiple time scales: (1) default — session transcript for 9 categories of o... | — | `~/.grok/skills/insight/SKILL.md` |
 | **maintain** | ✓ | — | Fleet maintenance orchestrator for Grok Build. Three layers: DIAGNOSE (workspace health), ACT (cleanup/rotation/repair),... | — | `~/.grok/skills/maintain/SKILL.md` |
 | **marketplace-bridge** | ✓ | — | Pulls AI-skill listings from four public marketplaces (SkillsMP, SkillHub, ClawHub, skills.sh), fetches each skill's SKI... | — | `~/.grok/skills/marketplace-bridge/SKILL.md` |
 | **mmx** | ✓ | — | Run MiniMax CLI (mmx) for cross-model second opinions, web search, and multimodal generation (images, video, speech, mus... | — | `~/.grok/skills/mmx/SKILL.md` |
