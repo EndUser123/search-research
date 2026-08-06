@@ -1,5 +1,11 @@
 # Vault Log
 
+## Fleet health patterns
+Source: session-20260806
+Agent: grok
+Notes: Research on skill bloat, sibling conflicts, fabricated decisions
+Page: P:/.data/wiki/concepts/fleet-health-patterns-skill-bloat-sibling-conflicts-fabricated-decisions.md
+
 ## Wiki concept fragmentation
 Source: session-20260806
 Agent: grok
