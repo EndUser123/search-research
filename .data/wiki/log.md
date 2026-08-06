@@ -1,5 +1,11 @@
 # Vault Log
 
+## go-structural-transformation-code-orchestration-2026
+Source: session-20260806
+Agent: grok
+Notes: /go code orchestration + tool landscape
+Page: P:/.data/wiki/concepts/go-structural-transformation-code-orchestration-2026.md
+
 ## skill-bloat-research-thresholds-and-techniques-2026
 Source: session-20260806
 Agent: grok
