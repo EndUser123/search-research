@@ -68,6 +68,7 @@ Installed at `~/.grok/skills/adhd/SKILL.md`. Invocable as `/adhd`. Opt-in — of
 - H1 heading fixed from `# i-have-adhd` to `# adhd` to match frontmatter
 - Rule 9 workspace override added inline: "AGENTS.md completeness-over-curation wins; chunk instead of capping"
 - Handoff stance bullet de-bolded for consistency
+- Hook inline `python -c` extracted to `hooks/scripts/adhd_skill_reminder.py` (Class C quoting hazard eliminated)
 
 **Upstream-skill + workspace-override pattern:** when installing a third-party skill that partially conflicts with workspace rules, keep the upstream content clean and add an inline override note at the conflict point. This preserves update-ability (git pull from upstream) while resolving the conflict at runtime.
 
