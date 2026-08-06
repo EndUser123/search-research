@@ -142,6 +142,7 @@ just the model.
 - **PreToolUse output contract (allow/deny only):** `~/.grok/docs/user-guide/10-hooks.md` lines 238-249.
   Output vocabulary: `{"decision": "allow"}` or `{"decision": "deny", "reason": "..."}`. No `updatedInput` field.
 - **Claude Code supports updatedInput:** `code.claude.com/docs/en/hooks` — confirmed via web research, not local inspection.
+- **Grok Build does NOT support updatedInput (re-verified 2026-08-06):** Falsifier test in session 019fd8dc. Hook fired (confirmed via log), hook emitted valid JSON with `hookSpecificOutput.updatedInput` swapping `model: minimax-m3` → `model: nim-openai-gpt-oss-20b`, Grok Build ignored the modification — subagent ran on original model, no swap marker in prompt. The documented limitation still holds as of 2026-08-06.
 - **serde-broken model set:** `~/.grok/skills/model-quota/scripts/fleet-models.json` → `serde_broken` array.
   Source: `PreToolUse_spawn_model_gate.py` function `get_serde_broken()`.
 - **spawn gate implementation:** `~/.grok/hooks/PreToolUse_spawn_model_gate.py` — reads registry, checks serde-broken + quota cache, returns deny with lane-aware fallback.
