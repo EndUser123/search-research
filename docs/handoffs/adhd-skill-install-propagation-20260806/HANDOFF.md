@@ -81,10 +81,43 @@ OPEN — skill installed and 3 skills patched. Testing across live sessions is t
 ## Commits
 
 - `~/.grok`: `f7c57bd` — feat: install /adhd skill + add 'make wins visible'
+- `~/.grok`: `571b8c5` — fix: 4 review findings (hook matcher, H1, Rule 9 override, bold)
 - `P:/`: `c683e9f` — wiki: update /adhd implementation decision
+- `P:/`: `6f0fe1a` — wiki: document clone space convention
+- `P:/`: `f8528c7` — docs: dream + handoff
+- `P:/`: `9806912` — wiki: add review fixes + upstream-override pattern to /adhd concept
 
 ## Suggested skills
 
 - `/check` after next `/adhd` invocation to verify rule compliance
 - `/tp` after testing to challenge which rules actually helped
+
+---
+
+## Revision 1 — 2026-08-06T20:00Z (session 019fd81d)
+
+**Trigger:** auto-update — review fixes shipped after original handoff was written.
+
+**What changed since the original:**
+- `/review` ran (subagent, 33 tool calls). 6 findings: 3 gaps, 3 suggestions, 0 bugs.
+- 4 of 6 findings fixed:
+  - Hook matcher `startup` → `startup|resume` (F-01: resumed sessions now get the reminder)
+  - SKILL.md H1 `# i-have-adhd` → `# adhd` (F-02: matches frontmatter name)
+  - Rule 9 workspace override added inline (F-03: AGENTS.md completeness wins over cap-at-5)
+  - Handoff stance bullet de-bolded (F-06: consistency with neighbors)
+- 2 suggestions deferred:
+  - F-04: hook uses inline `python -c` (works, brittle — extract to script later)
+  - F-05: Go phase placeholders could leak literally (low risk)
+- Wiki concept updated with review fixes + upstream-override pattern
+- `/check` passed: 15/15 items verified
+
+**Updated evidence:**
+- Review artifact: `P:/.artifacts/grok-review/019fd81d-adhd-session/findings.md`
+- Check state: `P:/.artifacts/grok-check/019fd81d-3012-7762-ab3f-71ac0c992a8b/check-state.md`
+
+**Status update:** unchanged — OPEN. Skill installed, review fixes shipped, testing across sessions is still the remaining work.
+
+**New open items:**
+- F-04 (hook quoting): extract `python -c` to `~/.grok/hooks/scripts/adhd_skill_reminder.py` when touching hooks next
+- F-05 (go placeholders): shorten `<one line: ...>` to `<findings>` style when editing `/go` next
 - `/wiki` to update the implementation concept after testing results come in
