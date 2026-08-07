@@ -72,6 +72,25 @@ Installed at `~/.grok/skills/adhd/SKILL.md`. Invocable as `/adhd`. Opt-in — of
 
 **Upstream-skill + workspace-override pattern:** when installing a third-party skill that partially conflicts with workspace rules, keep the upstream content clean and add an inline override note at the conflict point. This preserves update-ability (git pull from upstream) while resolving the conflict at runtime.
 
+**Testing results (2026-08-06, session 019fd8dc — live session evaluation):**
+
+Tested across a long session covering execution, research, planning, and hook development. Results:
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| 1 (lead with action) | **Helped** | First lines were commands or direct edits, not preamble |
+| 2 (number multi-step) | **Helped** | Numbered steps + todo_write kept multi-file builds trackable |
+| 3 (end with next action) | **Felt forced** | "Want me to X?" adds a turn; should just do reversible actions |
+| 4 (suppress tangents) | **Conflict → override added** | Workspace "thought partner first" + "completeness over curation" pulls hard against this. Override note added to SKILL.md. |
+| 5 (restate state) | **Helped** | Phase lines prevented context loss across long turns |
+| 6 (time estimates) | **Helped** | S/M/L accounting table was the most useful planning artifact |
+| 7 (make wins visible) | **Helped** | "FTS5 index built: 990 concepts, 150ms" — concrete wins kept momentum |
+| 8 (matter-of-fact errors) | **Helped** | Falsifier results, model 404s, Stop hook loop — stated cause+fix, no panic |
+| 9 (cap at 5) | **N/A** | Override applies — AGENTS.md completeness wins |
+| 10 (no closers) | **Conflict → override added** | Operator expects a next-step suggestion. Override: "Next: <action>" is actionable, not a pleasantry. |
+
+**Bottom line:** 5 rules genuinely helped (1, 2, 5, 6, 7, 8). 2 rules conflicted with workspace norms and got override notes (4, 10). The skill is worth keeping — the rules that helped are high-value and not the default output shape.
+
 **Rejected alternatives and why:**
 
 | Option | Rejected because | Evidence |
