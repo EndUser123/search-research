@@ -7,7 +7,7 @@ current_terminal_id: noterm
 produced_at: 2026-08-06T00:30:00Z
 last_updated_by: 019fcd47-0d6d-7dc0-bb6d-acd9c0bf5f45
 last_updated_at: 2026-08-06T00:30:00Z
-status: open
+status: resolved
 handoff_type: investigation
 accurate_as_of_head: 34e15a811390441a5d940c40c2fe33560c6d9ce8
 ---
@@ -20,7 +20,7 @@ Add a state-machine gate to `ship_orchestrator.py` so the `verdict` phase refuse
 
 ## 2. Status
 
-OPEN — investigation complete, implementation not started.
+RESOLVED — both TP-01 and TP-02 implemented in session 019fd9ae (commits d1fd2ac, a9ac479, 355cd43 in ~/.grok). The verdict gate blocks SHIP DONE when review_findings missing on non-health-check runs. cmd_fix and cmd_merge were also added in the same session (closing the missing-phases gap from ship-py-hardening-20260805). 18 tests pass.
 
 ## 3. Producing context
 
