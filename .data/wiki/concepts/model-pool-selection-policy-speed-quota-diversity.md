@@ -27,11 +27,11 @@ relations:
 
 # Model pool selection policy: speed + quota over free, except diversity
 
-## HARD CONSTRAINT: no paid models from OpenRouter or OpenCode/Zen
+## HARD CONSTRAINT: no pay-per-use models from OpenRouter
 
-**Operator directive (2026-08-07, standing):** NEVER use paid models from
-OpenRouter or OpenCode/Zen. Only free, $0, or stealth models from those
-providers are allowed. These are three distinct categories:
+**Operator directive (2026-08-07, standing):** NEVER use pay-per-use models
+from OpenRouter. Each call costs real money. Only free / $0 / stealth models
+from OpenRouter are allowed. These are three distinct categories:
 
 1. **`:free` tier** — OpenRouter rate-limited free routing (20 RPM, 50-1000 RPD).
    Identified by `:free` suffix (e.g., `nvidia/nemotron-3-nano-30b-a3b:free`).
@@ -43,13 +43,52 @@ providers are allowed. These are three distinct categories:
    (e.g., `big-pickle`, `nemotron-3-ultra-free`). Free but hidden.
    Verified by probe — if it returns `CreditsError`, it's paid, not stealth.
 
-All other OpenRouter/Zen models (e.g., `anthropic/claude-sonnet-4`,
-`openai/gpt-4o`, `gpt-5.6-sol`, `claude-opus-5`) are **paid** — they cost real
-money per call and are **forbidden**.
+All other OpenRouter models (e.g., `anthropic/claude-sonnet-4`,
+`openai/gpt-4o`) are **pay-per-use** and **forbidden** — they cost real money
+per call.
 
 Enforced mechanically by `discover.py`'s `is_model_free()` function, which
 checks actual pricing data from the catalog response, not just the `:free`
 suffix. No `--include-paid` override flag exists.
+
+## OpenCode Go usage policy (flat-rate subscription)
+
+OpenCode Go is a **flat-rate subscription** — the operator pays the same
+regardless of usage. Marginal cost per call is $0. This is fundamentally
+different from OpenRouter pay-per-use. Go models are allowed per the
+policy below.
+
+**Estimated monthly quota (operator-provided, 2026-08-07):**
+
+| Model | Monthly | Disposition |
+|-------|---------|-------------|
+| DeepSeek V4 Flash | 158,150 | **Use freely** — very capable, massive quota |
+| MiMo V2.5 | 150,400 | **Use freely** — massive quota |
+| Hy3 | 21,500 | Reasoning (subject to quality calibration) |
+| Qwen3.7 Plus | 21,600 | Reasoning |
+| Qwen3.6 Plus | 16,300 | Reasoning |
+| MiMo V2.5 Pro | 16,300 | Reasoning |
+| DeepSeek V4 Pro | 17,150 | Reasoning |
+| Kimi K2.7 Code | 6,750 | **Explicit approval only** (currently broken: upstream error) |
+| Kimi K2.6 | 5,750 | Explicit approval only |
+| Kimi K3 | 490 | Explicit approval only |
+| Qwen3.7 Max | 1,690 | Explicit approval only |
+| Qwen3.8 Max | 810 | Explicit approval only |
+| MiniMax M3/M2.7 | 16-17K | **EXCLUDED** — have MiniMax direct subscription |
+| GLM-5.2/5.1 | 4,300 | **EXCLUDED** — have GLM direct subscription |
+| GPT 5.6 Luna | 10,250 | **EXCLUDED** — have OpenAI Luna subscription |
+| Grok 4.5 | 600 | **EXCLUDED** — have Grok |
+
+**Rules:**
+1. DeepSeek V4 Flash and MiMo V2.5 can be used at any time without restriction.
+2. Models over 10K/month are reasoning candidates, but quality must be
+   calibrated before routing reasoning work to them. Prefer DeepSeek V4 Flash
+   for reasoning first; escalate to the Pro/reasoning tier only when Flash
+   isn't sufficient.
+3. Models under 10K/month require explicit operator approval before each use.
+4. No overflow to Go for GLM, MiniMax, Luna, or Grok — those have dedicated
+   subscriptions. If a direct subscription saturates, switch to a different
+   model family rather than paying for the same model via Go.
 
 ## What this corrects
 
