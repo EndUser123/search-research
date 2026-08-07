@@ -35,6 +35,8 @@ export function compilePacket(input = {}) {
     task_id: input.task_id || invocationId,
     role: classification.role,
     selected_lane: classification.lane,
+    task_type: input.task_type || classification.role || null,
+    task_class: input.task_class || classification.lane || null,
     requested_worker: selectedWorker,
     requested_provider: selectedProvider,
     requested_model: selectedModel,

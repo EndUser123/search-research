@@ -8,6 +8,7 @@ import { compilePacket } from "../src/packet.mjs";
 import { classifyTask } from "../src/policy.mjs";
 import { getLane } from "../src/registry.mjs";
 import { batchExitCode, routeBatch, runBatch } from "../src/batch.mjs";
+import { readHistory, summarizeHistory } from "../src/memory.mjs";
 
 function option(args, name) {
   const index = args.indexOf(name);
@@ -47,6 +48,7 @@ async function main(argv = process.argv.slice(2)) {
         route: "route --input <path|->",
         batch: "batch <route|run> --manifest <path> [--dry-run]",
         check: "check --worker <pi|opencode|all>",
+        history: "history [--root <history-directory>]",
       },
     });
     return 0;
@@ -78,6 +80,18 @@ async function main(argv = process.argv.slice(2)) {
     });
     print({ status: checks.every((item) => item.available) ? "ok" : "failed", checks });
     return checks.every((item) => item.available) ? 0 : 20;
+  }
+
+  if (command === "history") {
+    const root = option(args, "--root") || `${process.cwd()}/.codex/state/external-delegation/history`;
+    try {
+      const history = await readHistory(root);
+      print({ status: "ok", history_root: root, entries: history.entries.length, skipped: history.skipped, groups: summarizeHistory(history.entries) });
+      return 0;
+    } catch (error) {
+      print({ status: "failed", failure_class: "history_read_error", history_root: root, message: error.message });
+      return 20;
+    }
   }
 
   if (command === "batch") {

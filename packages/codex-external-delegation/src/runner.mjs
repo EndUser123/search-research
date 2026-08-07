@@ -6,6 +6,7 @@ import { buildCommand, spawnSpec } from "./commands.mjs";
 import { classifyFailure } from "./failures.mjs";
 import { extractJsonEventText, extractResultPayload, renderPrompt } from "./prompt.mjs";
 import { hashPacket } from "./packet.mjs";
+import { buildHistoryEntry, historyRootForArtifact, writeHistoryEntry } from "./memory.mjs";
 import { changedPaths, cleanupEmptyWorktree, pathsRelativeToCwd, pathsWithinScope, preserveWorktree, provisionWorktree, validateWorktree } from "./worktree.mjs";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -221,15 +222,27 @@ async function runAttempt(packet, attempt, artifactDir, spawnImpl) {
   return createResult(packet, attempt, details);
 }
 
-export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn } = {}) {
+async function finalizeResult(packet, result, { startedAt, artifactDir, historyDir, memoryWriter = writeHistoryEntry } = {}) {
+  try {
+    const entry = buildHistoryEntry(packet, result, { startedAt, endedAt: Date.now(), artifactDir });
+    const receipt = await memoryWriter(entry, historyDir || historyRootForArtifact(artifactDir));
+    result.telemetry = { status: "recorded", entry_id: entry.entry_id, path: receipt.path };
+  } catch (error) {
+    result.telemetry = { status: "failed", failure_class: "telemetry_error", message: error.message };
+  }
+  await writeFile(join(artifactDir, "result.json"), JSON.stringify(result, null, 2), "utf8");
+  return result;
+}
+
+export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn, historyDir, memoryWriter = writeHistoryEntry } = {}) {
   let inputPacket = packet && typeof packet === "object" ? packet : {};
   const resolvedArtifactDir = artifactDir || join(inputPacket.cwd || process.cwd(), ".codex", "state", "external-delegation", inputPacket.task_id || "invalid-packet");
+  const startedAt = Date.now();
   await mkdir(resolvedArtifactDir, { recursive: true });
 
   if (inputPacket.model_selection?.confidence === "unverified") {
     const result = { schema_version: "2", task_id: inputPacket.task_id, status: "blocked", failure_class: "unverified_model_selection", worker: inputPacket.worker, provider: inputPacket.requested_provider || null, model: inputPacket.model, attempt: 0, exit_code: null, timed_out: false, result_payload: null, artifact_dir: resolvedArtifactDir };
-    await writeFile(join(resolvedArtifactDir, "result.json"), JSON.stringify(result, null, 2), "utf8");
-    return result;
+    return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
   }
 
   let worktree = null;
@@ -245,8 +258,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn 
       inputPacket.packet_hash = hashPacket(inputPacket);
     } catch (error) {
       const result = { schema_version: "2", task_id: inputPacket.task_id || "unknown", status: "blocked", failure_class: "worktree_error", worker: inputPacket.worker || null, provider: inputPacket.requested_provider || null, model: inputPacket.model || null, attempt: 0, exit_code: null, timed_out: false, result_payload: null, message: error.message, artifact_dir: resolvedArtifactDir };
-      await writeFile(join(resolvedArtifactDir, "result.json"), JSON.stringify(result, null, 2), "utf8");
-      return result;
+      return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
     }
   }
 
@@ -284,8 +296,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn 
         result.worktree_lifecycle = { status: "error", disposition: "lifecycle_record_failed", reason: error.message };
       }
     }
-    await writeFile(join(resolvedArtifactDir, "result.json"), JSON.stringify(result, null, 2), "utf8");
-    return result;
+    return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
   }
 
   if (inputPacket.mode === "write") {
@@ -308,8 +319,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn 
           result.worktree_lifecycle = { status: "error", disposition: "lifecycle_record_failed", reason: error.message };
         }
       }
-      await writeFile(join(resolvedArtifactDir, "result.json"), JSON.stringify(result, null, 2), "utf8");
-      return result;
+      return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
     }
   }
 
@@ -388,8 +398,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn 
 
   await writeFile(join(resolvedArtifactDir, "stdout.log"), await readFile(join(resolvedArtifactDir, `attempt-${result.attempt}.stdout.log`)), "utf8");
   await writeFile(join(resolvedArtifactDir, "stderr.log"), await readFile(join(resolvedArtifactDir, `attempt-${result.attempt}.stderr.log`)), "utf8");
-  await writeFile(join(resolvedArtifactDir, "result.json"), JSON.stringify(result, null, 2), "utf8");
-  return result;
+  return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
 }
 
 export { redactText };
