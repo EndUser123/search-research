@@ -31,17 +31,25 @@ relations:
 
 **Operator directive (2026-08-07, standing):** NEVER use paid models from
 OpenRouter or OpenCode/Zen. Only free, $0, or stealth models from those
-providers are allowed.
+providers are allowed. These are three distinct categories:
 
-- **OpenRouter:** only `:free` suffix models (e.g., `nvidia/nemotron-3-nano-30b-a3b:free`).
-  All non-`:free` models (e.g., `anthropic/claude-sonnet-4`, `openai/gpt-4o`)
-  are **forbidden** — they cost real money per call.
-- **OpenCode/Zen:** only models ending in `-free` or explicitly confirmed free.
-  Models returning `CreditsError` at inference are paid — do not use them.
+1. **`:free` tier** — OpenRouter rate-limited free routing (20 RPM, 50-1000 RPD).
+   Identified by `:free` suffix (e.g., `nvidia/nemotron-3-nano-30b-a3b:free`).
+   14 models on OpenRouter as of 2026-08-07.
+2. **Zero-cost** — models priced at `prompt="0" AND completion="0"` on OpenRouter
+   WITHOUT the `:free` suffix (e.g., `openrouter/free`). No rate-limit cap.
+   3 models as of 2026-08-07.
+3. **Stealth** — OpenCode/Zen models that work but aren't officially documented
+   (e.g., `big-pickle`, `nemotron-3-ultra-free`). Free but hidden.
+   Verified by probe — if it returns `CreditsError`, it's paid, not stealth.
 
-This is enforced mechanically by `discover.py`'s `is_model_free()` function,
-which filters auto-apply candidates per-model (not per-provider). There is no
-`--include-paid` override flag — it was removed because it was a footgun.
+All other OpenRouter/Zen models (e.g., `anthropic/claude-sonnet-4`,
+`openai/gpt-4o`, `gpt-5.6-sol`, `claude-opus-5`) are **paid** — they cost real
+money per call and are **forbidden**.
+
+Enforced mechanically by `discover.py`'s `is_model_free()` function, which
+checks actual pricing data from the catalog response, not just the `:free`
+suffix. No `--include-paid` override flag exists.
 
 ## What this corrects
 
