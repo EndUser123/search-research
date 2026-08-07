@@ -69,6 +69,7 @@ These models are **excluded from all auto-pools and spawn_subagent dispatch**. T
 | **zen-nemotron-3-ultra-free** (OpenCode Zen) | Serde error: `missing field id`. Same class as NVIDIA direct. | **Never spawn.** Same routing as above. | Same as above |
 | **or-nemotron-ultra-free** (OpenRouter) | Works but slow (19.2s). | **Explicit-only spawn** — only when opencode/PI unavailable AND operator approves OpenRouter. | Same as above |
 | `gemini-2` | HTTP 404 "model does not exist or your team does not have access." Listed in catalog but 404 on actual call. | Use `grok-4.5` for critical-friend spawns. Probe before committing. | (this table only — no wiki concept yet) |
+| **or-ling-3-flash-free** | HTTP 404 "This model is unavailable for free. The paid version is available now - use this slug instead: inclusionai/ling-3.0-flash" (verified 2026-08-07; was the `/go` spawn lane default). | **NOT IN ANY POOL.** Use `zen-deepseek-v4-flash-free` or `nim-deepseek-ai-deepseek-v4-flash` for spawn lanes. Paid slug `or-ling-3-flash` (no `-free`) available if budget allows. | [[coding-model-pool-tier-1-tier-2]] — update pool file to remove `or-ling-3-flash-free` |
 | **mistral-medium-latest** | HTTP 422 context-too-large on spawn_subagent. | **NOT IN ANY POOL.** Direct API only. | (fleet-models.json spawn_broken) |
 
 ### spawn_subagent limitations (model spawns but has constraints)
