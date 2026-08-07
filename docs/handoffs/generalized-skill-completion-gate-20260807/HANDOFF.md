@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019fd9ae-d977-70a2-803c-9b4d139d1303
 current_terminal_id: noterm
 produced_at: 2026-08-07T13:00:00Z
-status: open
+status: closed
 handoff_type: implementation
 accurate_as_of_head: see git log
 ---
@@ -311,3 +311,60 @@ P:/docs/handoffs/generalized-skill-completion-gate-20260807/HANDOFF.md
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-07T13:00 | 019fd9ae... | created — investigation complete from /www research + /tp critique + operator design discussion |
+| 2026-08-07 | 019fd9ae... | implemented TP-01, TP-02, TP-03, TP-05; TP-04 marked RESOLVED-DIFFERENTLY (see Execution Status) |
+
+## Execution Status
+
+Updated: 2026-08-07T14:30:00Z
+Session: 019fd9ae-d977-70a2-803c-9b4d139d1303
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| TP-01 | Engine + condition support | ✅ DONE | quality_gates_frontmatter.py gains condition field, condition functions, evaluate_condition(); commit 08a69be |
+| TP-02 | Skill declarations | ✅ DONE | /check (c62f385), /review + /wiki + /handoff (56730a3) |
+| TP-03 | Hook registration | ✅ DONE (pre-existing) | quality-gate.json already registered quality_gate.py which calls _quality_gate_check → check_quality_gates at 4 exit points |
+| TP-04 | Deprecate hardcoded checks | ✅ RESOLVED-DIFFERENTLY | See Key findings below — hardcoded check serves a different concern; NOT removed |
+| TP-05 | Tests | ✅ DONE | 47/47 tests pass; 12 new tests for conditional gates + real skill declarations |
+
+### Key findings during execution
+
+**Major discovery: the engine already existed.** The handoff was written at
+design time without re-reading the actual codebase. `quality_gates_frontmatter.py`
+(636 lines) already implemented the full engine: frontmatter parsing, skill
+discovery, evidence checking (session-scoped), transcript scanning, waiver
+handling, and `check_quality_gates()`. It was already wired into the registered
+Stop hook (`quality_gate.py` line 1206) at 4 exit points. The actual work was:
+1. Add `condition` field support (TP-01 revised)
+2. Add skill declarations (TP-02)
+3. Add tests for conditional gates (TP-05)
+
+**TP-04 finding: hardcoded ship-py checks serve a DIFFERENT concern.** The
+handoff assumed the generalized gate would replace the hardcoded ship-py
+phase check (`_check_ship_py_state` in quality_gate.py). It does not.
+- **Generalized gate** (quality_gates frontmatter): checks evidence artifacts
+  exist (check-run.json, FINDINGS.md) → "did the skill produce its receipt?"
+- **Hardcoded ship-py check**: checks pipeline phase state (detect → review →
+  verify → verdict) → "did the pipeline complete all phases?"
+
+These are complementary. Removing the hardcoded check would lose phase-ordering
+enforcement (catching "SHIP DONE claimed but pipeline only ran detect"). The
+generalized gate cannot replace this because it doesn't know about pipeline
+phases — it only knows about evidence files. **Decision: do NOT remove the
+hardcoded check.** Both enforcement layers are needed.
+
+**Pre-existing test bug fixed:** `test_real_ship_gates_parse` looked for skill
+name "ship" but the skill was renamed to "ship-py" (session 2026-08-06). Fixed
+to use the correct name.
+
+### Condition function design notes
+
+`session_has_durable_findings`: returns True when the session modified code
+files (.py, .ps1, etc.) OR review FINDINGS.md exists in artifacts. Uses
+hunk_records.jsonl for session-scoped file detection.
+
+`session_has_open_work`: returns True when git has uncommitted changes OR the
+session modified any files (hunk_records). Uses `git status --porcelain`.
+
+Both functions default to True on failure (conservative — gate fires rather
+than silently passing). Unknown condition names also default to True.
