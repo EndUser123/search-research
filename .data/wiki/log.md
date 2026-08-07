@@ -1,5 +1,11 @@
 # Vault Log
 
+## agent-fabricated-architectural-decisions
+Source: session-20260806
+Agent: grok
+Notes: Fabricated architectural decisions pattern (4 instances)
+Page: P:/.data/wiki/concepts/agent-fabricated-architectural-decisions.md
+
 ## historical-session-transcripts-as-test-corpus
 Source: session-20260806
 Agent: grok
