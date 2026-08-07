@@ -202,6 +202,26 @@ This survey is wrong if:
   sufficient at >80% compliance after reinforcement (would mean no mechanical
   Layer 3 is needed)
 
+**Update (2026-08-07, follow-up /www):** the first falsifier condition is
+**partially disconfirmed.** Microsoft Research's Claimify (ACL 2025) achieves
+99% claim entailment using a 4-stage pipeline (selection → disambiguation →
+decomposition → verification). The key structural difference: claim extraction
+is **decompositional** (splitting text into atomic propositions) with an
+objective ground truth ("is this sentence fully supported by the source?"),
+while recommendation detection is **classificatory** ("is this a recommendation
+or a discussion?") with no objective ground truth. Decomposition has a higher
+precision ceiling.
+
+However, LLM-as-judge faithfulness scoring has a measured ~78% accuracy ceiling
+(EMNLP 2025). And the production solution (Breeden 2026) avoids LLM-as-judge
+entirely for the scoring step, using deterministic entity extraction instead
+(350 lines, zero LLM calls, per-kind breakdown).
+
+**Revised assessment:** Layer 3 is more tractable than the original falsifier
+assumed. The precision bottleneck is verification (Layer 3b), not extraction
+(Layer 3a). And deterministic entity-matching sidesteps the LLM precision
+problem for structured claims (case numbers, APIs, file paths, percentages).
+
 ## Sources
 
 - [Citation Grounding DPO](https://arxiv.org/abs/2606.00898) (arxiv, 2026) — training-time hallucination reduction via preference optimization
@@ -212,6 +232,8 @@ This survey is wrong if:
 - [Isonomai touchstone](https://www.isonomai.com/) (Isonomai, 2026) — deterministic claim verification pipeline
 - [Hallucination Mitigation Survey](https://arxiv.org/html/2510.24476v1) (arxiv, 2026) — comprehensive survey of approaches
 - [RAG Anti-Patterns](https://www.digitalapplied.com/blog/rag-anti-patterns-7-failure-modes-2026-engineering-guide) (Digital Applied, 2026) — when grounding fails
+- [Claimify: Extracting high-quality claims](https://www.microsoft.com/en-us/research/blog/claimify-extracting-high-quality-claims-from-language-model-outputs/) (Microsoft Research / ACL 2025) — 99% claim entailment via 4-stage pipeline; claim extraction is decompositional, not classificatory
+- [Runtime Faithfulness Scoring in Production](https://www.seanbreeden.com/blog/runtime-faithfulness-scoring-production-llm-agent/) (Breeden, 2026) — deterministic entity extraction, 350 lines, zero LLM calls, per-kind breakdown; EMNLP 2025 shows LLM-as-judge ceiling at 78% balanced accuracy
 
 ## Receipts
 
