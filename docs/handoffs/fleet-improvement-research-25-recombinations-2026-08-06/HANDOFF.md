@@ -108,6 +108,30 @@ Triage and select from 25 cross-domain recombination ideas (produced via combina
 - **verification level required:** LIVE_BEHAVIOR
 - **depends_on:** FLEET-TRIAGE-01
 
+### TASK-4: Build LLM-as-judge Stop hook for ungrounded claim detection (Layer 3)
+- **id:** CLAIM-JUDGE-01
+- **goal:** Build a Stop hook that uses a custom LLM-as-judge (Groq llama-3.3-70b, free tier) to detect ungrounded state/prediction claims in agent prose. Deploy as advisory first (exit 0), measure for 5 sessions, then switch to blocking.
+- **in scope:** `~/.grok/hooks/scripts/Stop_claim_judge.py` — extracts claims from lastAssistantMessage, checks each against captured tool-call outputs, blocks if claim terms don't appear in evidence
+- **out of scope:** behavioral_check.py changes (Layer 1 regex already shipped)
+- **files / anchors:** New file `~/.grok/hooks/scripts/Stop_claim_judge.py` + new hook JSON registration
+- **acceptance:** Custom LLM-as-judge prompt achieves ≥80% accuracy on the 8 test cases from `P:/tmp/test_deepeval_groq.py` (distinguishing assertion from discussion). Hook fires as advisory for 5 sessions, then switches to blocking.
+- **falsifier:** Accuracy <80% after prompt tuning, OR inference latency >5s per turn makes the hook impractical, OR false-positive rate >30% on live sessions makes the hook too noisy to use
+- **verification level required:** LIVE_BEHAVIOR (run the hook, measure accuracy + latency + FP rate)
+- **evidence justifying this task:**
+  - 96 ungrounded state/prediction claims across 300 historical sessions (32% session-level hit rate) — NOT rare
+  - DeepEval default FaithfulnessMetric scored 50% — wrong tool (catches contradictions, not unsupported inferences)
+  - The gap is the prompt instruction: "correct-but-absent-from-evidence counts as NOT supported"
+  - Groq llama-3.3-70b verified compatible (25s for 8 test cases)
+  - Custom prompt needed, not DeepEval off-the-shelf
+- **build steps:**
+  1. Write the custom judge prompt (sentence-split → extract state/prediction claims → check each against tool-call evidence → label supported/unsupported)
+  2. Build the Stop hook (~100 lines Python: read lastAssistantMessage + tool outputs from transcript, call Groq API, emit advisory/blocking)
+  3. Test against the 8 cases from test_deepeval_groq.py
+  4. Tune prompt until ≥80% accuracy
+  5. Deploy as advisory (exit 0 with context), measure for 5 sessions
+  6. If FP rate <30%, switch to blocking (exit 2)
+- **depends_on:** none (independent of TASK-1/2/3)
+
 ## 8. Open decisions
 
 ### Decision 1: Which recombinations to build first?
