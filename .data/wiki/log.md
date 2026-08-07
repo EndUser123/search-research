@@ -1,5 +1,11 @@
 # Vault Log
 
+## Pre-packed context + inlined protocol = resource burn
+Source: session 019fdc45 /tp panel finding
+Agent: grok
+Notes: agy made 36 tool calls re-reading pre-packed files; structural fix replaces the tool section for CLI dispatch
+Page: P:/.data/wiki/concepts/pre-packed-context-protocol-contradiction.md
+
 ## keyword-detection-recommendations-falsified-67percent-fp
 Source: session-019fdc43
 Agent: grok
