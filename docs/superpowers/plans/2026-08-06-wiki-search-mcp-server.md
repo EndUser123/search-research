@@ -99,7 +99,7 @@ from `wiki_context_injector.py` into a standalone, importable module.
 python ~/.grok/hooks/scripts/wiki_search.py "model routing hook"
 ```
 
-- [ ] Task 1 complete
+- [x] Task 1 complete
 
 ### Task 2: Build MCP stdio server
 
@@ -144,7 +144,7 @@ Create `~/.grok/hooks/scripts/wiki_search_server.py`.
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | python wiki_search_server.py
 ```
 
-- [ ] Task 2 complete
+- [x] Task 2 complete
 
 ### Task 3: Register MCP server in config.toml
 
@@ -161,7 +161,7 @@ startup_timeout_sec = 10
 **Verify:** after editing config, check `/mcp` in the TUI or verify the
 tool appears in the model's tool list.
 
-- [ ] Task 3 complete
+- [x] Task 3 complete
 
 ### Task 4: Integration test
 
@@ -172,7 +172,7 @@ After registering the MCP server:
 4. Verify: results include clickable file:/// links
 5. Verify: the tool appears in the session tool list
 
-- [ ] Task 4 complete
+- [ ] Task 4 complete (requires restart)
 
 ## Acceptance criteria
 
