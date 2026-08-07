@@ -27,6 +27,22 @@ relations:
 
 # Model pool selection policy: speed + quota over free, except diversity
 
+## HARD CONSTRAINT: no paid models from OpenRouter or OpenCode/Zen
+
+**Operator directive (2026-08-07, standing):** NEVER use paid models from
+OpenRouter or OpenCode/Zen. Only free, $0, or stealth models from those
+providers are allowed.
+
+- **OpenRouter:** only `:free` suffix models (e.g., `nvidia/nemotron-3-nano-30b-a3b:free`).
+  All non-`:free` models (e.g., `anthropic/claude-sonnet-4`, `openai/gpt-4o`)
+  are **forbidden** — they cost real money per call.
+- **OpenCode/Zen:** only models ending in `-free` or explicitly confirmed free.
+  Models returning `CreditsError` at inference are paid — do not use them.
+
+This is enforced mechanically by `discover.py`'s `is_model_free()` function,
+which filters auto-apply candidates per-model (not per-provider). There is no
+`--include-paid` override flag — it was removed because it was a footgun.
+
 ## What this corrects
 
 [[model-fleet-provider-pools]] section "Selection flow" step 2 states "Which TIER?
