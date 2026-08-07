@@ -82,7 +82,7 @@ the structural fix path.
 | 0b | Value retrodiction (/www on true positives from 0a) | **DONE** — 2 cases changed | PASS |
 | 1 | `needs_external_validation.py` shared library | **DONE** — 7/7 tests pass | — |
 | 2 | /tp auto-fire gate (Step 5.1 in SKILL.md) | DEFERRED | Layer 2 is convenience, not enforcement |
-| 3 | Stop hook backstop (`Stop_validate_recommendations.py`) | **DONE** — 9/9 tests pass | — |
+| 3 | Stop hook backstop (`Stop_validate_recommendations.py`) | **DONE — ADVISORY MODE** — 10/10 tests pass | Promote to blocking after measurement gate (see Rollout) |
 | 4-7 | Consumer skill wiring (/go, /design, /refine, /plan-writer) | DEFERRED | One skill at a time |
 | 8 | `check_wiki_before_claim.py` pre-claim wiki check | HANDOFF | Addresses broader "claim without checking" pattern |
 | 9 | Stop hook extension for unsupported negative claims | DEFERRED | Extends Unit 3 |
@@ -90,13 +90,21 @@ the structural fix path.
 ## 6. Next steps (for a fresh session)
 
 1. **Units 0a, 0b, 1, 3 are DONE.** The shared library and Stop hook are
-   implemented, tested, and committed.
-2. **Monitor the Stop hook** for false-positive rate on real sessions. Tune
-   keyword lists in `external_validation_signals.json` based on observed hits.
-3. **Unit 2** (/tp auto-fire gate): add Step 5.1 to `/tp` SKILL.md when ready.
-4. **Units 4-7** (consumer wiring): wire `needs_external_validation()` into
+   implemented, tested, and committed. **The hook runs in ADVISORY mode**
+   (surfaces findings without blocking), per the
+   `advisory-vs-blocking-enforcement-decision-2026` decision.
+2. **Measurement phase (promotion gate for blocking):** collect ≥50 natural-use
+   detections across real sessions. Label a subset. Compute Wilson 95% CI on
+   the FP rate. Promote to blocking only if upper bound ≤30% FP.
+3. **Deferred risk Cluster B (model-name FP):** bare model names ("deepseek",
+   "nvidia", "mimo") in `external_tools` trigger on routine fleet-routing
+   recommendations. Needs suppression logic: if model name appears alongside
+   fleet-routing vocabulary ("lane", "pool", "quota", "routing", "spawn"),
+   suppress. Design and implement after the measurement phase has data.
+4. **Unit 2** (/tp auto-fire gate): add Step 5.1 to `/tp` SKILL.md when ready.
+5. **Units 4-7** (consumer wiring): wire `needs_external_validation()` into
    `/go`, `/design`, `/refine`, `/plan-writer` — one skill at a time.
-5. **Unit 8** (`check_wiki_before_claim.py`): implement the pre-claim wiki
+6. **Unit 8** (`check_wiki_before_claim.py`): implement the pre-claim wiki
    grep function for the broader "claim without checking" pattern.
 
 ## 7. Read first (for a fresh session)
