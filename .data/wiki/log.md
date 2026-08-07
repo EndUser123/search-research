@@ -1,5 +1,11 @@
 # Vault Log
 
+## [2026-08-07] ingest | Codex-Pi and Grok fleet integration requires a strict schema-v5 adapter
+Source: session-2026-08-07
+Agent: grok
+Notes: Recorded schema-v5 Codex/Pi registry integration, identity separation, and public orchestration-repo research.
+Page: wiki/concepts/codex-pi-grok-schema-v5-registry-integration.md
+
 ## claim-without-checking-industry-approaches-2026
 Source: session-019fdc43
 Agent: grok
