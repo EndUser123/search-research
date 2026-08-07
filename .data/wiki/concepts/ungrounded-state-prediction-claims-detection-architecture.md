@@ -75,16 +75,20 @@ Claude Code has no `PreResponseEmit` hook — it cannot see agent output text be
 - Require `[INFERENCE]` label on bare predictions
 - Block predictions stated as fact without uncertainty label
 
-**Layer 3 (LLM-judge, only for synthesis, 1 inference call):**
-- For claims that pass Layers 1-2 but may be unsupported conclusions
-- Use DeepEval FaithfulnessMetric with custom template: "absent-from-evidence = unfaithful"
-- Cost: 1 inference call per turn with claims
+**Layer 3 (LLM-judge, only for turns passing Layer 1 pre-filter, ~0.8s per call):**
+- BUILT AND DEPLOYED (2026-08-07): `~/.grok/hooks/scripts/Stop_claim_judge.py`
+- Uses Groq llama-3.3-70b (free tier) with a custom judge prompt
+- DeepEval's FaithfulnessMetric scored 50% — it catches contradictions but NOT unsupported inferences ("14 skills are dead" doesn't contradict "717 skills total")
+- Custom prompt innovation: "absent-from-evidence = unsupported" instruction closes the gap
+- EMBEDDED CLAIM RULE: when a state/prediction phrase appears inside a sentence with distancing verbs (fabricated, claimed, detects, measures), the entire sentence is DISCUSSION — prevents extracting quoted claims from discussion text and evaluating them as standalone assertions
+- Test results: 8/8 (100%) on test corpus, 4/4 on e2e hook test, 0.7s avg latency
+- Deployed as advisory (exit 0); switch to blocking after 5 sessions with FP <30%
 
 ## External tools evaluated
 
 | Tool | What it does | Applicability |
 |---|---|---|
-| **DeepEval FaithfulnessMetric** (⭐17K) | LLM-judge: extract claims, check against evidence | HIGH — Python, standalone, custom templates |
+| **DeepEval FaithfulnessMetric** (⭐17K) | LLM-judge: extract claims, check against evidence | EVALUATED & REJECTED (2026-08-07): 50% accuracy — catches contradictions but NOT unsupported inferences |
 | **agent-grounding** (github) | Runtime-reality-checker + claim-gate MCP | MEDIUM — TypeScript, needs adaptation |
 | **GroundGuard** (`pip install`) | Deterministic BM25 grounding check | MEDIUM — catches contradictions, not missing checks |
 | **Claimify** (Microsoft, ACL 2025) | Claim extraction: drop opinions, flag ambiguity | HIGH as design — no public code |
@@ -102,7 +106,7 @@ Claude Code has no `PreResponseEmit` hook — it cannot see agent output text be
 
 2. **Layer 2 (prediction labeling)** can be regex — "will never", "can't be", "impossible" without `[INFERENCE]` label → flag.
 
-3. **Layer 3 (DeepEval)** is the mature tool for the synthesis case but requires Python dependency and an inference call per turn with claims. Defer until Layers 1-2 prove the problem is frequent enough to justify the cost.
+3. **Layer 3 (custom LLM-as-judge)** is BUILT and DEPLOYED as advisory. DeepEval was evaluated and rejected (50% accuracy — catches contradictions, not unsupported inferences). A custom prompt with Groq llama-3.3-70b scored 100% on the 8-case test corpus. The key prompt innovation is the EMBEDDED CLAIM RULE (distancing verbs make sentences DISCUSSION, not ASSERTION). Layer 1 regex serves as the pre-filter to gate API calls (~70% of turns skip the API call entirely).
 
 ## Falsifier
 
