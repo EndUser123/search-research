@@ -1,8 +1,8 @@
 ---
 title: "Fix agy headless permission denial (jetski auto-deny)"
 created: 2026-08-07
-status: ready-to-implement
-assigned_to: unassigned
+status: resolved
+assigned_to: grok
 assigned_at: ""
 assigned_by: ""
 priority: high
@@ -76,3 +76,21 @@ The agy lens is 1/3 of the `/tp` parallel panel. Without it, every `/tp` critiqu
 - Session 019fd9c9 terminal log: `call_955ca37d37704552b9f7c09a.log` — the jetski auto-deny output
 - Wiki: `[[gemini-api-vs-agy-cli]]` line 80 — documented fix, unapplied
 - Config: `C:\Users\brsth\.gemini\settings.json` — exists, lacks `permissions.allow`
+
+## Execution Status
+
+Updated: 2026-08-07T00:00:00Z
+Session: 019fdc45-15b9-71c0-8c0c-58d000ecd1c8
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | `permissions.allow` in `~/.gemini/settings.json` | ✅ DONE (pre-existing) | Config already contained the section (richer than spec): `read_file`, `list_directory`, `run_shell_command(read_file)` + `cat`/`ls`/`dir`/`grep`/`type`/`Get-Content`/`python`. No edit needed. |
+| 2 | agy headless produces non-empty output (no jetski auto-deny) | ✅ DONE | Smoke test: `status: SUCCESS`, `response: SMOKE_OK`, 2.4s. File-read test: `status: SUCCESS`, `response: ZX9Q7` (correct), 2.0s, 16K cache-read tokens. |
+| 3 | `[[tool-fallbacks]]` + `[[gemini-api-vs-agy-cli]]` updated | ✅ DONE | `gemini-api-vs-agy-cli.md:80` — "pending live verification" → "Verified fixed 2026-08-07". `tool-fallbacks.md:112` — new row for "command permission auto-deny (jetski)". |
+
+### Key findings during execution
+
+- **Handoff's core premise was already satisfied.** The `permissions.allow` section was already present in `~/.gemini/settings.json` when execution began — applied by a prior session, with 7 more entries than the handoff specified. Verifying the claim before acting avoided overwriting the richer config with the handoff's minimal version.
+- **The handoff's verification command was malformed.** It placed `-p` immediately before `--dangerously-skip-permissions`; since `-p` consumes the next argument, that would have treated the flag as the prompt. Used the documented form `agy -p "<prompt>" --dangerously-skip-permissions ...` instead.
+- **agy 1.1.11 confirmed working headless with file reads.** OAuth token cached (no 5-min hang); ~18-21K token baseline overhead per request (consistent with wiki Discussion #27307 note).
