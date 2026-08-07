@@ -1,5 +1,11 @@
 # Vault Log
 
+## keyword-detection-recommendations-falsified-67percent-fp
+Source: session-019fdc43
+Agent: grok
+Notes: Keyword classifier hits 67% FP on real data. Assertion-vs-discussion confusion is structural. Retrodiction technique documented.
+Page: P:/.data/wiki/concepts/keyword-detection-recommendations-falsified-67percent-fp.md
+
 ## reasoning-first-search-never-claim-without-checking
 Source: session-20260806
 Agent: grok

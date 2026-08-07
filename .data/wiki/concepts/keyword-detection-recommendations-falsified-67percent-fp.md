@@ -192,3 +192,42 @@ This finding is wrong if:
 - `[[advisory-vs-blocking-enforcement-decision-2026]]` — the enforcement-strategy decision whose falsifier fired
 - `[[reasoning-first-search-never-claim-without-checking]]` — the 5 instances that motivated the design (only 1/5 was an external recommendation)
 - `[[self-clearing-enforcement-hooks-design-pattern]]` — the hook pattern this was evaluated against
+
+## Receipts
+
+The code is deleted (commit `a20e6bb`), but the findings are grounded in
+tool output from session 019fdc43. The evidence artifacts:
+
+- **67% FP rate:** retrodiction output captured at `P:/tmp/retrodiction_v2.txt`
+  (9 fires, 3 TP, 6 FP, across 1385 turns). The retrodiction was produced by
+  `P:/.agents/scripts/retrodiction_hook_measure.py` (surviving harness) which
+  imported the deleted `scan_message()` function from
+  `Stop_validate_recommendations.py`.
+- **0% FP on synthetic corpus:** Unit 0a run output, this session turn 1.
+  Corpus was `validation_corpus.json` (20 items, deleted with the code).
+- **67% > 50% falsifier threshold:** `advisory-vs-blocking-enforcement-decision-2026.md`
+  line 35 (the falsifier statement).
+- **3-lens critique findings:** subagent outputs from session 019fdc43:
+  MiniMax (019fdd8a-6ac9), DeepSeek (019fdd87-e2ef), GLM-5.2 (019fdd8a-6acb).
+- **1/5 incident coverage:** `reasoning-first-search-never-claim-without-checking.md`
+  § "The five instances" — Instances 1-4 are internal-knowledge assertions;
+  Instance 5 is the only external-recommendation case.
+- **`/maintain` risk scan reaching the same conclusion independently:**
+  session 019fcdd2, documented in that session's transcript.
+
+The deleted implementation files (for git-history recovery if needed):
+- `needs_external_validation.py` — the keyword classifier (commit `fc21996`)
+- `Stop_validate_recommendations.py` — the Stop hook (commit `fc21996`)
+- `classifier_prototype.py` — the Unit 0a prototype (commit `fc21996`)
+- `external_validation_signals.json` — keyword config (commit `fc21996`)
+- `validation_corpus.json` — 20-item test corpus (commit `fc21996`)
+- `test_needs_external_validation.py` — test suite (commit `fc21996`)
+
+## Auto-related
+
+- [[skill-graph]]
+- [[refactor-verification-gap-keyword-checks-form-not-content]]
+- [[predictable-code-problems-detection-python-314-ai-generated]]
+- [[model-fit-and-post-hoc-behavioral-detection]]
+- [[run-all-lifecycle-skills-unconditionally-conditional-detection-is-the-gap]]
+
