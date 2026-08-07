@@ -1,5 +1,11 @@
 # Vault Log
 
+## reasoning-first-search-never-claim-without-checking
+Source: session-20260806
+Agent: grok
+Notes: Five instances of claiming without checking in one session — structural fix path documented
+Page: P:/.data/wiki/concepts/reasoning-first-search-never-claim-without-checking.md
+
 ## agent-fabricated-architectural-decisions
 Source: session-20260806
 Agent: grok
