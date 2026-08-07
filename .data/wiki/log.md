@@ -1,5 +1,11 @@
 # Vault Log
 
+## historical-session-transcripts-as-test-corpus
+Source: session-20260806
+Agent: grok
+Notes: Historical sessions as test corpus — operator correction x4
+Page: P:/.data/wiki/concepts/historical-session-transcripts-as-test-corpus.md
+
 ## ungrounded-state-prediction-claims-detection-architecture
 Source: session-20260806
 Agent: grok
