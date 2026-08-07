@@ -172,7 +172,7 @@ After registering the MCP server:
 4. Verify: results include clickable file:/// links
 5. Verify: the tool appears in the session tool list
 
-- [ ] Task 4 complete (requires restart)
+- [x] Task 4 complete (requires restart)
 
 ## Acceptance criteria
 
