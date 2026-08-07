@@ -2,7 +2,9 @@
 
 **Created:** 2026-08-07
 **Revised:** 2026-08-07 (Codex plan review — 9 corrections applied)
-**Status:** draft-revised (pending execution authorization)
+**Status:** EXECUTED — all 11 tasks complete (2026-08-07)
+**Execution:** parent-led delegation with M3 subagents, 4 parallel waves
+**Test results:** 390 passed, 3 skipped
 **Reversibility:** ≥1.5 (fleet-wide schema migration, 21+ skill callers)
 **Plan type:** HARD
 
