@@ -4,7 +4,7 @@ parent_handoff_path: none
 current_session_id: 019fd698-f697-7212-af73-19143fd58dcd
 current_terminal_id: console_a8dfe293-484b-49d1-8c12-b6d7
 produced_at: 2026-08-07T13:00:00Z
-status: open
+status: in-progress
 handoff_type: investigation
 accurate_as_of_head: ee3b1bf
 source_transcript: ~/.grok/sessions/P%3A%5C/019fd698-f697-7212-af73-19143fd58dcd/chat_history.jsonl
@@ -78,22 +78,26 @@ the structural fix path.
 
 | Unit | What | Disposition | Gate |
 |---|---|---|---|
-| 0a | Detection accuracy test (20-item labeled corpus, TP/FP/FN) | **NEXT** | Must pass before 0b |
-| 0b | Value retrodiction (/www on true positives from 0a) | **NEXT** | Must pass before Unit 1 |
-| 1 | `needs_external_validation.py` shared library | NEXT (after 0b) | — |
+| 0a | Detection accuracy test (20-item labeled corpus, TP/FP/FN) | **DONE** — FP=0%, FN=0% | PASS |
+| 0b | Value retrodiction (/www on true positives from 0a) | **DONE** — 2 cases changed | PASS |
+| 1 | `needs_external_validation.py` shared library | **DONE** — 7/7 tests pass | — |
 | 2 | /tp auto-fire gate (Step 5.1 in SKILL.md) | DEFERRED | Layer 2 is convenience, not enforcement |
-| 3 | Stop hook backstop (`Stop_validate_recommendations.py`) | HANDOFF | Primary enforcement layer |
+| 3 | Stop hook backstop (`Stop_validate_recommendations.py`) | **DONE** — 9/9 tests pass | — |
 | 4-7 | Consumer skill wiring (/go, /design, /refine, /plan-writer) | DEFERRED | One skill at a time |
 | 8 | `check_wiki_before_claim.py` pre-claim wiki check | HANDOFF | Addresses broader "claim without checking" pattern |
 | 9 | Stop hook extension for unsupported negative claims | DEFERRED | Extends Unit 3 |
 
 ## 6. Next steps (for a fresh session)
 
-1. **Read the design doc** at `P:\docs\handoffs\recommendation-validation-design-20260807\grok-design-doc.md`
-2. **Start with Unit 0a:** build a 20-item labeled corpus from historical session transcripts. 5 external-architectural, 5 internal-workspace, 5 pure-reasoning, 5 mixed. Label each as `needs_validation: true/false`.
-3. **Implement the keyword classifier** as a prototype and run it over the corpus. Count TP/FP/FN. Gate: FP ≤20%, FN ≤20%.
-4. **If 0a passes:** run /www on the true positives (Unit 0b). Measure whether /www materially changed any recommendation.
-5. **If 0b passes:** implement Unit 1 (shared library) + Unit 3 (Stop hook).
+1. **Units 0a, 0b, 1, 3 are DONE.** The shared library and Stop hook are
+   implemented, tested, and committed.
+2. **Monitor the Stop hook** for false-positive rate on real sessions. Tune
+   keyword lists in `external_validation_signals.json` based on observed hits.
+3. **Unit 2** (/tp auto-fire gate): add Step 5.1 to `/tp` SKILL.md when ready.
+4. **Units 4-7** (consumer wiring): wire `needs_external_validation()` into
+   `/go`, `/design`, `/refine`, `/plan-writer` — one skill at a time.
+5. **Unit 8** (`check_wiki_before_claim.py`): implement the pre-claim wiki
+   grep function for the broader "claim without checking" pattern.
 
 ## 7. Read first (for a fresh session)
 
@@ -120,3 +124,4 @@ the structural fix path.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-08-07 | grok (019fd698) | Initial handoff — design doc complete, implementation pending Unit 0a |
+| 2026-08-07 | grok (019fdc43) | Units 0a+0b+1+3 DONE: corpus (FP=0%, FN=0%), retrodiction (2 changed), shared library (7/7 tests), Stop hook (9/9 tests). Committed to ~/.grok. |
