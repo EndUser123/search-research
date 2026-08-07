@@ -4,6 +4,10 @@ description: "Multi-concern session verification with PASS/FAIL verdict"
 effort: high
 provides: [session-verification, subagent-dispatch]
 domain: testing
+quality_gates:
+  - evidence: "P:/.artifacts/**/check-run.json"
+    message: "/check receipt missing — run /check before claiming done"
+    session_field: "session_id"
 ---
 
 # /check -- Multi-concern session verification
