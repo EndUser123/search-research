@@ -6,10 +6,10 @@ parent_session: none
 current_terminal_id: console_019fcdd2
 produced_at: 2026-08-06T20:00:00Z
 last_updated_by: 019fcdd2-e190-7323-9b77-57a1c73dada5
-last_updated_at: 2026-08-06T20:00:00Z
+last_updated_at: 2026-08-07T00:30:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 0f021e1
+accurate_as_of_head: 6c3bff8
 ---
 
 # HANDOFF: Fleet improvement research — 25 recombinations + implementation decision
@@ -23,6 +23,17 @@ Triage and select from 25 cross-domain recombination ideas (produced via combina
 ## 2. Status
 
 **OPEN** — Research complete (3 /www runs + combinatorial synthesis + 5-subagent verification). All 25 ideas rated for feasibility and impact. Ready for operator triage.
+
+**Session update (2026-08-07):** significant additional work completed since handoff creation:
+- Creative-technique infrastructure built: `/brain recombine` mode + 3 reference files (combinatorial-ideation, ideation-heuristics, creative-techniques) + wiki concept for skill-graph reuse
+- Creative-nudge Stop hook built: detects 5 behavioral signals, injects specific technique suggestions (fires 100%, advisory)
+- Ungrounded-state-claim detection built: `behavioral_check.py` updated with BLOCKING UNGROUNDED_STATE_CLAIM pattern (code blocks/tables stripped to avoid FPs)
+- Agent output verification research completed: 3 failure modes (parametric leakage, fabricated grounding, unsupported synthesis), DeepEval as Layer 3 candidate, data shows regex Layer 1 has 95% false-positive rate on assertion-vs-discussion distinction — Layer 3 (semantic) needed for reliable detection
+- `/notice` diagnosed: 430-line skill that never fires because it's a skill not a hook; 45% advisory effectiveness; hooks fire 100%
+- MCP servers fixed: Node.js reinstalled, config.toml paths corrected for context7/reddit
+- `/maintain` run: 42 stale artifact dirs purged, 2534 temp files cleaned, 29.6MB recovered
+- AGENTS.md rule added: historical session transcripts available for testing (operator correction x4)
+- 13 wiki concepts written this session (all committed)
 
 ## 3. Producing context
 
