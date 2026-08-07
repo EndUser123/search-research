@@ -1,5 +1,11 @@
 # Vault Log
 
+## ungrounded-state-prediction-claims-detection-architecture
+Source: session-20260806
+Agent: grok
+Notes: Ungrounded state/prediction claims detection architecture
+Page: P:/.data/wiki/concepts/ungrounded-state-prediction-claims-detection-architecture.md
+
 ## Guard-at-wrong-branch anti-pattern
 Source: session-019fc927
 Agent: grok
