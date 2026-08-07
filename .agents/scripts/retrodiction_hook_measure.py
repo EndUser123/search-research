@@ -19,7 +19,6 @@ your hook's scan function. The function must take (text: str) and return a
 list of findings (each a dict with at least a 'sentence' key).
 """
 import json
-import re
 import sys
 import textwrap
 from pathlib import Path
