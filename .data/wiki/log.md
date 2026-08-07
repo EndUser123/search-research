@@ -1,5 +1,11 @@
 # Vault Log
 
+## claim-without-checking-industry-approaches-2026
+Source: session-019fdc43
+Agent: grok
+Notes: Survey of 5 industry approaches to LLM agent hallucination prevention. Key gap: workspace missing Layer 3 (faithfulness checking).
+Page: P:/.data/wiki/concepts/claim-without-checking-industry-approaches-2026.md
+
 ## Pre-packed context + inlined protocol = resource burn
 Source: session 019fdc45 /tp panel finding
 Agent: grok
