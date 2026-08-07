@@ -32,7 +32,7 @@ relations:
 - [[self-reflection-in-llms-fails-without-external-evidence]] — why intrinsic correction fails; only external verification works
 - [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — the receipt rule that this concept extends from action claims to state/prediction claims
 - [[mechanical-enforcement-over-behavioral-reminder]] — why prose rules have a ~50% compliance ceiling and hooks are the structural fix
-- [[narrative-sufficiency]] — the broader failure pattern this is a specific instance of
+- [[premature-closure-narrative-sufficiency-external-approaches]] — the broader failure pattern this is a specific instance of
 
 ## Decision context
 
