@@ -23,9 +23,26 @@ When a skill gives a specific instruction, follow it exactly. If a general rule 
 
 Never claim a file "does not exist" until you've searched both live roots:
 ```
-rg --files -g "*<name>*" P:/.claude/hooks P:/.claude/scripts P:/packages/.claude-marketplace/plugins
+rg.exe --files -g "*<name>*" P:/.claude/hooks P:/.claude/scripts P:/packages/.claude-marketplace/plugins
 ```
 For hook ground truth: `python P:/.claude/scripts/hooks_audit.py --packages P:/packages/.claude-marketplace/plugins`
+
+### PowerShell search command resolution
+
+The PowerShell profile defines a convenience function named `rg` that selects
+the preferred ripgrep binary. Bare `rg` is therefore not guaranteed to be the
+executable, and short flags such as `-i` can bind to PowerShell parameters
+instead of being forwarded to ripgrep. In agent commands, always invoke
+`rg.exe`, use long-form flags, and put options before the pattern:
+
+```powershell
+rg.exe --ignore-case --line-number -- "pattern" P:/path
+```
+
+If a search behaves unexpectedly, diagnose command resolution with
+`Get-Command rg -All`; do not reinterpret the search result until the command
+path and exit code are known. This rule applies to all workspace searches,
+including commands copied into package-local handoffs.
 
 ## Host runtime: Grok Build (not Claude Code)
 
@@ -44,8 +61,6 @@ Before assuming a Claude Code feature works identically here, verify against `~/
 
 **Session start — surface open work:** after reading the active-surface
 snapshot, run:
-- `harvest show --top 5` (with `HARVEST_HOME=P:/.data/harvest`) — shows
-  open obligations from this and prior sessions
 - `python P:/.agents/scripts/workspace_opportunity_scan.py` — surfaces
   gaps, pending suggestions, and untested changes
 
@@ -81,7 +96,7 @@ time. One line at end of turn. Do not auto-invoke; recommend.
 - **`/handoff`** when: work spans sessions, open workstreams exist, or session is ending with unfinished threads.
 
 **Improvement and learning skills:**
-- **`/harvest`** when: root causes diagnosed, error patterns identified, or unrealized obligations exist (the standing question in /tp, /aar, /harvest fires this).
+- **`/insight`** when: root causes diagnosed, error patterns identified, or unrealized obligations exist (replaces the old `/harvest` reference — `/insight` consolidates capture + friction + harvest into one skill).
 - **`/aar`** when: ≥2 operator corrections happened (behavioral pattern signal), or session had material failures with recoverable lessons.
 
 **Skip when:** trivial work, already ran the skill, or user said "quick."
