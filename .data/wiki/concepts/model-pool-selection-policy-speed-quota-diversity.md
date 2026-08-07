@@ -81,10 +81,12 @@ policy below.
 
 **Rules:**
 1. DeepSeek V4 Flash and MiMo V2.5 can be used at any time without restriction.
-2. Models over 10K/month are reasoning candidates, but quality must be
-   calibrated before routing reasoning work to them. Prefer DeepSeek V4 Flash
-   for reasoning first; escalate to the Pro/reasoning tier only when Flash
-   isn't sufficient.
+2. Models over 10K/month form a **reasoning pool** — selected by weighted random,
+   not a ranked chain. Weights are determined by benchmarked quality and speed:
+   a model that tests better AND is faster gets a heavier weight; one that tests
+   worse or is slower gets a lighter weight. Until benchmarks exist, all members
+   get equal weight. This follows the [[model-pool-not-chain]] philosophy — pool
+   members are peers, not a fallback sequence.
 3. Models under 10K/month require explicit operator approval before each use.
 4. No overflow to Go for GLM, MiniMax, Luna, or Grok — those have dedicated
    subscriptions. If a direct subscription saturates, switch to a different
