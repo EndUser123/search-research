@@ -143,7 +143,7 @@ Built and tested:
 
 Test results:
 - **8-case corpus: 8/8 (100%)** — up from DeepEval's 50%. All 4 genuine assertions flagged, all 4 discussion cases passed.
-- **E2E hook test: 4/4 (100%)** — genuine ungrounded claim flagged, discussion not flagged, short message skipped, no-state-language skipped.
+- **E2E hook test: 3/4 reproducible (4/4 at build time)** — genuine ungrounded claim flagged, short message skipped, no-state-language skipped. The "Discussion" case drifted to false positive after build because the e2e test reads the live transcript tail (non-hermetic evidence). This is within the advisory-mode operating envelope (the 5-session measurement period is designed to catch exactly this FP class), but the 100% claim applies only to the 8-case corpus, not the e2e test in its current non-hermetic form. Fix: pin deterministic evidence for the e2e test (deferred bug from /ship-py review).
 - **Avg latency: 0.7s per call** — well under 5s falsifier threshold.
 - **Key prompt innovation:** EMBEDDED CLAIM RULE — when a state/prediction phrase appears inside a sentence with distancing verbs (fabricated, claimed, detects, measures), the entire sentence is DISCUSSION, not ASSERTION. This prevents extracting quoted claims from discussion text and evaluating them as standalone assertions.
 
