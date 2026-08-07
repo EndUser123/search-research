@@ -122,3 +122,11 @@ None for this work.
 ## Status
 
 OPEN — ready for `/maintain` dispatch. Defect counts updated 2026-08-06.
+
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-05T06:00 | 019fce56... | created — backlog-to-handoff bridge |
+| 2026-08-06T19:40 | 019fd81d... | updated counts via /todo: now 149 defects across 10 skills |
+| 2026-08-06T22:00 | 019fd8dc... | **149→14 findings (90.6% reduction).** Scanner improvements eliminated false positives (COLLECTED-BUT-UNUSED dynamic access, LLM-FILLABLE output templates). Close skill subagent (M3) fixed 6 findings. 4 skills at 0: aar, handoff, ship-rhai. Remaining 13 across ship-py(1), model-web(2), tp(1), packet(1), skill-dev(3), todo(5). |
