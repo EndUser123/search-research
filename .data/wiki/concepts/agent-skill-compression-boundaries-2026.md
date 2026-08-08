@@ -255,4 +255,3 @@ as evidence, not as proof of details absent from the snippets.
 - [[skill-catalog]]
 - [[codebase-knowledge-graph-mapping]]
 - [[claude-code-hooks]]
-

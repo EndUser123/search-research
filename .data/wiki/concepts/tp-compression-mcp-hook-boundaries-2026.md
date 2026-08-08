@@ -258,4 +258,3 @@ measured outcome contract.
 - [[hook-failure-mode-taxonomy]]
 - [[I'm-going-to-create-a-hook-to-enforce-discovery-be]]
 - [[skill-step-enforcement-architecture-grok-build]]
-
