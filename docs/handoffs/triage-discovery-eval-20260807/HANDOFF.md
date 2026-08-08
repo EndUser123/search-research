@@ -89,7 +89,7 @@ Run the A/B on n=4 first. A directional signal is enough to decide whether the p
 _(none — all resolved)_
 
 ## Recommended next (after decisions resolved)
-`/plan-writer P:\docs\handoffs\triage-discovery-eval-20260807\HANDOFF.md` — this is a single cohesive experiment, not multi-task, but a plan tightens the prompt-wording control and the wrapper script structure. Alternatively `/go execute` directly if the implementer is confident on the controls.
+~~`/plan-writer` or `/go execute`~~ — **EVAL COMPLETE.** See Execution Status below for results and implications. The directional result (equivalent recall) means: (1) the architecture document's discover-first claim is not proven by this workspace's data, (2) replacing the broken `/triage` stub can proceed with EITHER design since neither outperforms, (3) expanding to n=20-30 would be needed for a definitive answer but may not be worth the effort given the tie.
 
 ##changlog
 - 2026-08-07 created via /refine (session 019fdf47)
