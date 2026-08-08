@@ -1,6 +1,7 @@
 ---
 name: codex-pi
 description: Delegate bounded low-ambiguity work from Codex through Pi using subscription-backed or local models, with generated packets, timeouts, artifacts, worktree isolation for writes, and parent verification. OpenCode remains available only through a separate explicit invocation.
+host: both
 ---
 
 # External Delegation
@@ -52,7 +53,7 @@ objective, hide planning, or let workers coordinate with one another.
    provider and model. Parent Codex remains responsible for the task packet,
    scope, restrictions, and verification commands.
 3. Run `batch route --manifest <path>` first. Inspect every repetition and its
-   selected `(model, provider, dispatch path)` or blocking reason before using
+   selected `(provider, model, invocation method, orchestrator)` or blocking reason before using
    worker quota. `batch run --manifest <path> --dry-run` is the zero-worker
    alternative when only command planning is needed.
 4. Run `batch run --manifest <path>` only after the route is acceptable. Each
@@ -97,8 +98,12 @@ still an explicit new invocation, never an automatic batch fallback.
 ```json
 {
   "schema_version": "2",
+  "session_id": "controller-session-id",
+  "run_id": "controller-run-id",
   "task_id": "unique-task-id",
   "worker": "pi",
+  "invocation_method": "pi",
+  "orchestrator": "codex",
   "task_domain": "mechanical",
   "objective": "List all callers of the parser and return file paths with line numbers.",
   "cwd": "P:/repo",
@@ -114,7 +119,11 @@ The parent must treat the worker response as candidate evidence, not truth.
 
 ## Provider-aware selection
 
-The candidate identity is the complete tuple `(model, provider, dispatch path)`.
+The candidate identity is the complete tuple
+`(provider, model, invocation_method, orchestrator)`. For Codex's automatic Pi
+route, `invocation_method` is `pi` and `orchestrator` is `codex`; Grok's native
+spawn and direct benchmark records are separate evidence even when they use the
+same provider/model.
 MiniMax M3 through MiniMax, GLM-5.2 through Z.ai, Nemotron 3 Ultra through
 NVIDIA, DeepSeek through OpenCode Go, DeepSeek through NVIDIA, and DeepSeek
 through Zen are separate candidates with different quota pools, latency,
