@@ -1,0 +1,12 @@
+{
+  "status": "completed",
+  "started_at": "2026-08-08T14:56:51.310768",
+  "skill": "aar",
+  "terminal_id": "d53a36e5-6f22-47ce-a5f2-001c67c48d8e",
+  "session_id": "019fdf3d-a0bd-7062-abc4-24dcf064ae49",
+  "head": "session-AAR",
+  "completed_at": "2026-08-08T21:04:42.067980+00:00",
+  "report_path": "P:\\.artifacts\\grok-aar\\console_d53a36e5-6f22-47ce-a5f2-001c67c48d8e\\2026-08-08-019fdf3d\\aar-report.md",
+  "report_sha256": "7d5c4072a7f45cd20bc22c5054c323cb03d2807b522572a945ef4b7858a5b6eb",
+  "packet_path": "P:\\.artifacts\\grok-aar\\console_d53a36e5-6f22-47ce-a5f2-001c67c48d8e\\2026-08-08-019fdf3d\\preprocess"
+}
