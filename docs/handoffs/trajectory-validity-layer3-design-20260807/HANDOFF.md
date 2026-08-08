@@ -153,3 +153,27 @@ searched in the turn's tool trace. If not → advisory.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-08-07 | grok (019fde3e) | Initial handoff — prior direction falsified, trajectory-validity direction identified from /www research |
+| 2026-08-07 | grok (019fde3e) | Design completed + measurement-validated over 50 sessions. See `DESIGN.md` in this directory. Instance 2 confirmed as true SILENT catch. |
+
+## Execution Status
+
+Updated: 2026-08-08T00:30:00Z
+Session: 019fde3e
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | Discovery: transcript format, tool-trace access, Stop hook infrastructure | ✅ DONE | `P:/tmp/probe_transcript_format.py`, `P:/tmp/probe_transcript_detail.py` — confirmed `tool_calls` field in Grok transcripts |
+| 2 | Measure-first: retrodiction over 50 sessions with candidate patterns | ✅ DONE | `P:/tmp/trajectory_measure.py` → 54 detections; `P:/tmp/refined_analysis.py` → refined precision analysis |
+| 3 | Alternatives gate (architectural profile) | ✅ DONE | DESIGN.md § "ALTERNATIVES GATE" — 3 options evaluated, Option 1 (regex + deterministic) chosen |
+| 4 | Design document | ✅ DONE | `DESIGN.md` in this directory — all 6 acceptance criteria addressed |
+| 5 | Instance 2 validation | ✅ DONE | Detection at `019fd698:43` "we cannot verify Cohere's monthly quota" — SILENT, confirmed as the exact documented failure |
+| 6 | Implementation (Tasks 1-4) | ❌ NOT STARTED | DESIGN.md § "Implementation plan" — 4 tasks, dependency order: parser → detection → hook → deploy |
+
+### Key findings during execution
+
+- **The Grok transcript records tool calls** in `assistant.tool_calls` (top-level field, not nested in `content` blocks like Claude format). The existing `build_turn_tool_events.py` parser is Claude-format and dormant under Grok — a format adapter is the implementation work.
+- **The broad NEGATIVE_EXISTENCE pattern is too noisy** (14% precision): 68% of detections are file/code claims where the evidence space is the file system, not the wiki. The refined capability pattern (`we/I + can't + verify/check/do`) raises precision to 69% and reduces volume by 68%.
+- **Instance 2 (Cohere quota) was the only true SILENT catch** in 50 sessions — but it was a high-value catch that cascaded into the entire Layer 3 investigation.
+- **SESSION_STATE detection missed Instance 4** because the fabricated claim was phrased as "too deep" not as a percentage. The refined pattern now includes the "too deep/approaching limit" variant.
+- **Stop_claim_judge.py already exists** for state/prediction claims (LLM-based). The trajectory gate targets a DIFFERENT claim class (capability claims) using a DIFFERENT method (deterministic trajectory check). Complementary, not overlapping.
