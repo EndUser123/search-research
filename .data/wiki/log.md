@@ -1,5 +1,11 @@
 # Vault Log
 
+## agent-fabricated-architectural-decisions
+Source: dream 2026-08-07 Pass 1 Candidate 1
+Agent: grok
+Notes: 4 cross-session instances of agents writing ## Decision as established fact without operator decision. Promoted from dream proposal.
+Page: P:/.data/wiki/concepts/agent-fabricated-architectural-decisions-in-wiki-concepts.md
+
 ## automatic-logical-fallacy-detection-in-hooks-2026
 Source: session-019fe25d
 Agent: grok
