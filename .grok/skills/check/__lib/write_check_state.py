@@ -206,6 +206,22 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(f"check-state written: {target}")
+
+    # Register hash-bound verification receipt for /todo finding_coverage
+    # (suppresses stale "hasn't run" suggestions when verification is current)
+    try:
+        receipt_script = Path.home() / ".grok" / "scripts" / "verification_receipt.py"
+        if receipt_script.exists() and session_id:
+            import subprocess
+            subprocess.run(
+                [sys.executable, str(receipt_script), "register",
+                 "--skill", "/check", "--session", session_id,
+                 "--verdict", verdict],
+                capture_output=True, timeout=30,
+            )
+    except (OSError, subprocess.TimeoutExpired):
+        pass  # fail-open — receipt registration is best-effort
+
     return 0
 
 
