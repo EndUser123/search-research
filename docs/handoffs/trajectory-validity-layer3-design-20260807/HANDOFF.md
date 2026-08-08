@@ -168,7 +168,8 @@ Agent: grok
 | 3 | Alternatives gate (architectural profile) | ✅ DONE | DESIGN.md § "ALTERNATIVES GATE" — 3 options evaluated, Option 1 (regex + deterministic) chosen |
 | 4 | Design document | ✅ DONE | `DESIGN.md` in this directory — all 6 acceptance criteria addressed |
 | 5 | Instance 2 validation | ✅ DONE | Detection at `019fd698:43` "we cannot verify Cohere's monthly quota" — SILENT, confirmed as the exact documented failure |
-| 6 | Implementation (Tasks 1-4) | ❌ NOT STARTED | DESIGN.md § "Implementation plan" — 4 tasks, dependency order: parser → detection → hook → deploy |
+| 6 | Implementation (Tasks 1-3) | ✅ DONE | Parser: `~/.grok/hooks/scripts/trajectory_tool_parser.py`; Detection: `trajectory_detection.py`; Stop hook: `Stop_trajectory_validity.py`; Registration: `~/.grok/hooks/trajectory-validity.json`. 18/18 unit tests pass. Test-fire catches Instance 2. Commit `5edc33a`. |
+| 7 | Implementation (Task 4: advisory deploy + telemetry) | ⏳ DEPLOYED-ADVISORY | Hook registered in advisory mode. Telemetry logs to `P:/.claude/hooks/.evidence/trajectory-gate.jsonl`. Awaiting ≥50 live detections before Wilson CI promotion evaluation. |
 
 ### Key findings during execution
 
