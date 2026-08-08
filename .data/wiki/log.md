@@ -1,5 +1,11 @@
 # Vault Log
 
+## triage-discovery-architecture-evaluation-convergent-validity-2026
+Source: session-2026-08-07-www
+Agent: grok
+Notes: Triage/discovery architecture evaluation: ChatGPT proposal convergent with workspace-validated principles. Both arxiv citations verified real. 3 workspace refinements.
+Page: wiki/concepts/triage-discovery-architecture-evaluation-convergent-validity-2026.md
+
 ## --concept
 Source: no-question-theater
 Agent: --action
