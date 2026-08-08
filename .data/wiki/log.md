@@ -1,5 +1,11 @@
 # Vault Log
 
+## Telemetry logging standard
+Source: session-20260807
+Agent: grok
+Notes: JSONL append pattern for Stop hook FP/FN measurement
+Page: wiki/concepts/telemetry-logging-standard-for-stop-hooks.md
+
 ## [2026-08-07] ingest | Grok /tp compression, MCP, and hook boundaries
 Source: session-2026-08-07
 Agent: grok

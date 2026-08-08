@@ -120,3 +120,21 @@ This pattern is wrong if:
 - `/review` finding S3: "Telemetry log persists claim text without scrubbing" — confirmed the need for redaction before logging
 - `/aar` opportunity O4: "Telemetry logging as Stop-hook standard — PRESERVE"
 - [[silently-dead-hooks-pgm-payload-bug-fleet-monitoring-gap]] — prior incident where telemetry existed but no consumer validated it
+- [[ungrounded-state-prediction-claims-detection-architecture]] — the hook that motivated this standard
+- [[tool-failure-lifecycle-llm-agent-fleets]] — passive telemetry as fleet observability
+- [[stop-hook-lastassistantmessage-payload-field-2026]] — Stop hook payload mechanics
+
+## Receipts
+
+- `C:/Users/brsth/.grok/hooks/scripts/Stop_claim_judge.py` lines 165-176 (`log_telemetry` function), lines 285-291 (telemetry call in main), lines 310-316 (unsupported claims logged with redaction)
+- `C:/Users/brsth/.grok/hooks/scripts/behavioral_check.py` — prior art: writes to `behavioral-check-log.jsonl`
+- `C:/Users/brsth/.grok/hooks/state/behavioral-check-log.jsonl` — existing telemetry file with real entries
+
+## Auto-related
+
+- [[opentelemetry-logging-patterns]]
+- [[opentelemetry-structured-logging-patterns]]
+- [[opentelemetry-logging]]
+- [[Are-there-repos-or-solutions-to-claude-code-gettin]]
+- [[I'm-going-to-create-a-hook-to-enforce-discovery-be]]
+
