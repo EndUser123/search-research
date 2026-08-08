@@ -1,5 +1,11 @@
 # Vault Log
 
+## Skill pipeline integration testing
+Source: session-019fd9ae
+Agent: grok
+Notes: Integration testing for orchestrator skills — root causes from ship-py v2.0 break points
+Page: skill-pipeline-integration-testing.md
+
 ## [2026-08-07] ingest | Codex-Pi and Grok fleet integration requires a strict schema-v5 adapter
 Source: session-2026-08-07
 Agent: grok
