@@ -59,7 +59,7 @@ corrected, comprehensive inventory + routing strategy.
 
 | Provider | Mode flag | Env key | Status |
 |----------|-----------|---------|--------|
-| **Tavily** | `--mode tavily` | `TAVILY_API_KEY` | **EMPTY** — not usable until key set |
+| **Tavily** | `--mode tavily` | `TAVILY_API_KEY` | **SET** — works via MCP (connected), CLI, and direct Python SDK (`tavily.TavilyClient`) |
 | **Serper** (Google-powered) | `--mode serper` | `SERPER_API_KEY` | SET — works |
 | **Exa** | `--mode exa` | `EXA_API_KEY` | SET — works |
 | **Perplexity** | `--mode perplexity` | (login) | Disabled as MCP; CLI mode may still work via `pwm` |
@@ -90,22 +90,39 @@ corrected, comprehensive inventory + routing strategy.
 
 ### Disabled / unwired backends
 
-| Backend | State | Why |
-|---------|-------|-----|
-| **`perplexity` MCP** | `disabled_mcp_servers = ["perplexity"]` in config.toml | Operator disabled: **expensive** |
-| **`exa-mcp-server@3.1.9`** | npm-installed globally, not in active MCP list | Install exists; wiring requires MCP config entry + restart |
-| **`tavily-mcp@0.2.18`** | npm-installed globally, not active | `TAVILY_API_KEY` is **EMPTY** — can't auth |
+**None currently disabled due to missing keys.** As of 2026-08-08, all search
+backends with keys in `.env` are active. MCP servers for exa, tavily, and
+perplexity are all connected at session start. Direct Python SDK access is
+also available for Exa (`exa_py`) and Tavily (`tavily`) — MCP is a convenience
+layer, not a requirement. The `/web` skill calls these backends programmatically.
+
+**Key distinction (2026-08-08 correction):** "MCP server connected" and "backend
+usable" are orthogonal. Backends are usable when their API key exists in `.env`.
+MCP is one access path among several (MCP, direct Python SDK, CLI). The keys are
+the activation gate, not the MCP registration.
+
+| Backend | MCP | Direct SDK | CLI | Key status |
+|---------|-----|-----------|-----|-----------|
+| **Exa** | ✅ connected | ✅ `exa_py` | ✅ `search-research --mode exa` | SET |
+| **Tavily** | ✅ connected | ✅ `tavily` | ✅ `search-research --mode tavily` | SET |
+| **Perplexity** | ✅ connected | — | ✅ `pwm` CLI | subscription |
+| **Brave** | — | ✅ via CLI | ✅ `search-research --mode brave` | SET |
+| **Firecrawl** | ⚠️ may disconnect | — | — | SET (OAuth MCP or API key) |
+| **Serper** | — | — | ✅ `search-research --mode serper` | SET |
+| **SerpAPI** | — | ✅ serpapi pkg | — | SET |
 
 ### Env keys in `P:/.env` (search-related)
 
 | Key | Status | Wired to |
 |-----|--------|----------|
-| `BRAVE_API_KEY` | SET | search-research `brave.py` (not MCP) |
-| `EXA_API_KEY` | SET | search-research `exa.py`; exa-py SDK |
+| `BRAVE_API_KEY` | SET | search-research `brave.py`; Brave MCP |
+| `EXA_API_KEY` | SET | Exa MCP; exa-py SDK; search-research `exa.py` |
 | `SERPAPI_API_KEY` | SET | serpapi Python package |
 | `SERPER_API_KEY` | SET | search-research `serper.py` |
-| `TAVILY_API_KEY` | **EMPTY** | Nothing until set |
-| `FIRECRAWL_API_KEY` | EMPTY | Firecrawl uses OAuth MCP instead |
+| `TAVILY_API_KEY` | **SET** | Tavily MCP; tavily Python SDK; search-research `tavily.py` |
+| `FIRECRAWL_API_KEY` | **SET** | Firecrawl MCP (OAuth); also direct API key available |
+| `CONTEXT7_API_KEY` | SET | Context7 MCP (library docs) |
+| `RECALL_API_KEY` | SET | Recall MCP |
 | `MINIMAX_API_KEY` | SET | mmx CLI (not MCP — minimax-search MCP removed 2026-07-28) |
 | `ZHIPU_API_KEY` | SET | search-research `glm` mode |
 | `GEMINI_API_KEY` (×3) | SET | Gemini API, agy (different pool) |
