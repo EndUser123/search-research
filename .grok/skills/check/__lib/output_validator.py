@@ -103,7 +103,11 @@ class PacketErrors:
         return {"errors": list(self.errors), "warnings": list(self.warnings)}
 
     def __repr__(self) -> str:
-        return f"PacketErrors(ok={self.ok}, errors={len(self.errors)}, warnings={len(self.warnings)})"
+        return (
+            f"PacketErrors(ok={self.ok}, "
+            f"errors={len(self.errors)}, "
+            f"warnings={len(self.warnings)})"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -159,9 +163,7 @@ def validate_packet(packet: dict[str, Any]) -> PacketErrors:
         status = source.get("status")
         allowed_status = {s.value for s in SourceStatus}
         if status not in allowed_status:
-            errs.error(
-                f"source.status {status!r} not in {sorted(allowed_status)}"
-            )
+            errs.error(f"source.status {status!r} not in {sorted(allowed_status)}")
         lc = source.get("line_count")
         if not isinstance(lc, int) or lc < 0:
             errs.error(f"source.line_count not a non-negative int: {lc!r}")
@@ -181,7 +183,8 @@ def validate_packet(packet: dict[str, Any]) -> PacketErrors:
             errs.error("parse_stats count fields must be ints")
         elif parsed + malformed != total - blank:
             errs.error(
-                f"parse_stats does not reconcile: parsed({parsed}) + malformed({malformed}) "
+                f"parse_stats does not reconcile: "
+                f"parsed({parsed}) + malformed({malformed}) "
                 f"!= total({total}) - blank({blank})"
             )
 
@@ -221,7 +224,8 @@ def validate_packet(packet: dict[str, Any]) -> PacketErrors:
                 # kind matches bucket
                 if sig.get("kind") != name:
                     errs.error(
-                        f"signals[{name}][{i}].kind={sig.get('kind')!r} != bucket {name!r}"
+                        f"signals[{name}][{i}].kind={sig.get('kind')!r} "
+                        f"!= bucket {name!r}"
                     )
                 # event_indices non-empty and in range
                 ei = sig.get("event_indices")
@@ -231,7 +235,8 @@ def validate_packet(packet: dict[str, Any]) -> PacketErrors:
                     )
                 elif not all(isinstance(x, int) and x >= 0 for x in ei):
                     errs.error(
-                        f"signals[{name}][{i}].event_indices has non-int/negative: {ei!r}"
+                        f"signals[{name}][{i}].event_indices "
+                        f"has non-int/negative: {ei!r}"
                     )
                 elif parsed_events and any(x >= parsed_events for x in ei):
                     errs.error(
@@ -248,7 +253,9 @@ def validate_packet(packet: dict[str, Any]) -> PacketErrors:
         # Unknown detector buckets
         unknown = set(signals.keys()) - set(DETECTOR_NAMES)
         if unknown:
-            errs.warn(f"signals has unknown detector buckets (ignored): {sorted(unknown)}")
+            errs.warn(
+                f"signals has unknown detector buckets (ignored): {sorted(unknown)}"
+            )
 
     return errs
 
@@ -325,8 +332,6 @@ def validate_verifier_output(output: dict[str, Any]) -> PacketErrors:
             )
         # PASS + bug/regression is contradictory
         if verdict == "PASS" and sev in {"bug", "regression"}:
-            errs.error(
-                f"issues[{i}].severity={sev!r} contradicts PASS verdict"
-            )
+            errs.error(f"issues[{i}].severity={sev!r} contradicts PASS verdict")
 
     return errs

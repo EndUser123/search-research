@@ -80,6 +80,7 @@ def _atomic_write_text(path: Path, text: str) -> None:
 # 1. Start run — manifest creation
 # ---------------------------------------------------------------------------
 
+
 def start_run(session_id: str, run_dir: str | Path) -> Path:
     """Create the run manifest immediately after runDir creation.
 
@@ -119,6 +120,7 @@ def start_run(session_id: str, run_dir: str | Path) -> Path:
 # ---------------------------------------------------------------------------
 # 2. Write verifier result — structured per-verifier evidence
 # ---------------------------------------------------------------------------
+
 
 def write_verifier_result(
     run_dir: str | Path,
@@ -171,6 +173,7 @@ def write_verifier_result(
 # 3. Finalize run — derive verdict, write receipt, update manifest
 # ---------------------------------------------------------------------------
 
+
 def _read_verifier_results(run_dir: Path) -> tuple[list[dict], list[str]]:
     """Read all verifier-*.json result files.
 
@@ -190,7 +193,10 @@ def _read_verifier_results(run_dir: Path) -> tuple[list[dict], list[str]]:
                 errors.append(f"{path.name}: not a JSON object")
                 continue
             if "verdict" not in data or data["verdict"] not in VALID_VERIFIER_VERDICTS:
-                errors.append(f"{path.name}: verdict missing or invalid ({data.get('verdict', '?')})")
+                errors.append(
+                    f"{path.name}: verdict missing/invalid "
+                    f"({data.get('verdict', '?')})"
+                )
                 continue
             results.append(data)
         except (json.JSONDecodeError, OSError) as exc:
@@ -345,9 +351,13 @@ def finalize_run(run_dir: str | Path) -> dict:
 
     # Combine errors with INCOMPLETE reason
     if verdict == "INCOMPLETE" and result_errors and incomplete_reason:
-        incomplete_reason = f"{incomplete_reason}; read errors: {'; '.join(result_errors[:3])}"
+        incomplete_reason = (
+            f"{incomplete_reason}; read errors: {'; '.join(result_errors[:3])}"
+        )
     elif verdict == "INCOMPLETE" and result_errors:
-        incomplete_reason = f"{incomplete_reason}; read errors: {'; '.join(result_errors[:3])}"
+        incomplete_reason = (
+            f"{incomplete_reason}; read errors: {'; '.join(result_errors[:3])}"
+        )
 
     # Collect all issues for the receipt
     all_issues = []
@@ -432,6 +442,7 @@ def read_manifest(run_dir: str | Path) -> dict | None:
 # CLI entry points (for SKILL.md invocation)
 # ---------------------------------------------------------------------------
 
+
 def _cmd_start(args):
     manifest_path = start_run(args.session, args.run_dir)
     print(f"manifest written: {manifest_path}")
@@ -440,15 +451,19 @@ def _cmd_start(args):
 
 def _cmd_verifier_result(args):
     issues = json.loads(args.issues) if args.issues else []
-    path = write_verifier_result(args.run_dir, args.index, args.concern, args.verdict, issues)
+    path = write_verifier_result(
+        args.run_dir, args.index, args.concern, args.verdict, issues
+    )
     print(f"verifier result written: {path}")
     return 0
 
 
 def _cmd_finalize(args):
     result = finalize_run(args.run_dir)
-    print(f"finalized: verdict={result['verdict']} status={result['status']} "
-          f"passed={result['passed']}/{result['total']}")
+    print(
+        f"finalized: verdict={result['verdict']} status={result['status']} "
+        f"passed={result['passed']}/{result['total']}"
+    )
     if result.get("receipt_path"):
         print(f"receipt: {result['receipt_path']}")
     if result.get("failure_reason"):
@@ -462,6 +477,7 @@ def _cmd_finalize(args):
 
 def main(argv: list[str] | None = None) -> int:
     import argparse
+
     parser = argparse.ArgumentParser(
         description="Durable /check run lifecycle manager."
     )
@@ -480,7 +496,9 @@ def main(argv: list[str] | None = None) -> int:
     p_vr.add_argument("--issues", default="", help="JSON array of issue dicts")
     p_vr.set_defaults(func=_cmd_verifier_result)
 
-    p_fin = sub.add_parser("finalize", help="Derive verdict and write receipt + update manifest")
+    p_fin = sub.add_parser(
+        "finalize", help="Derive verdict and write receipt + update manifest"
+    )
     p_fin.add_argument("--run-dir", required=True)
     p_fin.set_defaults(func=_cmd_finalize)
 

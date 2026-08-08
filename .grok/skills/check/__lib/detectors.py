@@ -169,7 +169,13 @@ WRITE_PATH_KEYS: tuple[str, ...] = (
     "filepath",
 )
 COMMAND_ARG_KEYS: tuple[str, ...] = ("command", "cmd", "script")
-READ_PATH_KEYS: tuple[str, ...] = ("target_file", "file_path", "path", "pattern", "target_directory")
+READ_PATH_KEYS: tuple[str, ...] = (
+    "target_file",
+    "file_path",
+    "path",
+    "pattern",
+    "target_directory",
+)
 SUBAGENT_ARG_KEYS: tuple[str, ...] = ("subagent_type", "type", "description", "prompt")
 
 
@@ -206,15 +212,56 @@ TEST_FRAMEWORK_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 #: (missing real claims) are worse for /check, whose job is "did the session
 #: actually do what it claims?".
 CLAIM_VERB_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\bI(?:'ve| have)? (?:fixed|resolved|patched|repaired)\b", re.IGNORECASE), "fixed"),
-    (re.compile(r"\bI(?:'ve| have)? verified\b|\bverification (?:passed|succeeded)\b", re.IGNORECASE), "verified"),
-    (re.compile(r"\bI(?:'ve| have)? (?:implemented|added|created|built|introduced)\b", re.IGNORECASE), "implemented"),
+    (
+        re.compile(
+            r"\bI(?:'ve| have)? (?:fixed|resolved|patched|repaired)\b", re.IGNORECASE
+        ),
+        "fixed",
+    ),
+    (
+        re.compile(
+            r"\bI(?:'ve| have)? verified\b|\bverification (?:passed|succeeded)\b",
+            re.IGNORECASE,
+        ),
+        "verified",
+    ),
+    (
+        re.compile(
+            r"\bI(?:'ve| have)? (?:implemented|added|created|built|introduced)\b",
+            re.IGNORECASE,
+        ),
+        "implemented",
+    ),
     # "done" as a standalone sentence end OR with a be-verb prefix.
-    (re.compile(r"\b(?:is|are|was|were) done\b|\bI(?:'ve| have) (?:finished|completed)\b|\bDone[\.\!\)]", re.IGNORECASE), "done"),
-    (re.compile(r"\btests? (?:pass(?:ed)?|succeed(?:ed)?)\b|\ball green\b", re.IGNORECASE), "tests_pass"),
+    (
+        re.compile(
+            r"\b(?:is|are|was|were) done\b"
+            r"|\bI(?:'ve| have) (?:finished|completed)\b"
+            r"|\bDone[\.\!\)]",
+            re.IGNORECASE,
+        ),
+        "done",
+    ),
+    (
+        re.compile(
+            r"\btests? (?:pass(?:ed)?|succeed(?:ed)?)\b|\ball green\b", re.IGNORECASE
+        ),
+        "tests_pass",
+    ),
     (re.compile(r"\bconfirmed\b", re.IGNORECASE), "confirmed"),
-    (re.compile(r"\bI(?:'ve| have)? (?:written|wrote|updated|refactored|migrated)\b", re.IGNORECASE), "wrote_or_changed"),
-    (re.compile(r"\bbuild(?:s|ing)? (?:succeed(?:ed|s)?|pass(?:ed|es)?)\b", re.IGNORECASE), "build_pass"),
+    (
+        re.compile(
+            r"\bI(?:'ve| have)? (?:written|wrote|updated|refactored|migrated)\b",
+            re.IGNORECASE,
+        ),
+        "wrote_or_changed",
+    ),
+    (
+        re.compile(
+            r"\bbuild(?:s|ing)? (?:succeed(?:ed|s)?|pass(?:ed|es)?)\b", re.IGNORECASE
+        ),
+        "build_pass",
+    ),
 )
 
 
@@ -315,7 +362,9 @@ def _assistant_text_events(transcript: Transcript) -> list[tuple[int, Event]]:
     return out
 
 
-def _find_tool_result_for_call(transcript: Transcript, tool_call_id: str) -> tuple[int, Event] | None:
+def _find_tool_result_for_call(
+    transcript: Transcript, tool_call_id: str
+) -> tuple[int, Event] | None:
     """Resolve the tool_result event for a given tool_call.id, or None.
 
     O(log n) is possible with an index, but transcripts are small (max few
@@ -349,7 +398,11 @@ def detect_file_edits(transcript: Transcript) -> list[Signal]:
                 continue
             target = _first_present(tc.arguments, WRITE_PATH_KEYS)
             target_norm = _normalize_path(target) if target else None
-            op = "create" if tc.name in {"create_file", "Write", "write", "create_file_or_dir"} else "edit"
+            op = (
+                "create"
+                if tc.name in {"create_file", "Write", "write", "create_file_or_dir"}
+                else "edit"
+            )
             signals.append(
                 Signal(
                     kind="file_edits",
@@ -401,7 +454,8 @@ def detect_command_executions(transcript: Transcript) -> list[Signal]:
             signals.append(
                 Signal(
                     kind="command_executions",
-                    event_indices=(i,) + ((result_idx,) if result_idx is not None else ()),
+                    event_indices=(i,)
+                    + ((result_idx,) if result_idx is not None else ()),
                     summary=_snippet(command or "<no command in args>", 120),
                     detail={
                         "tool": tc.name,
@@ -459,7 +513,8 @@ def detect_test_runs(transcript: Transcript) -> list[Signal]:
             signals.append(
                 Signal(
                     kind="test_runs",
-                    event_indices=(i,) + ((result_idx,) if result_idx is not None else ()),
+                    event_indices=(i,)
+                    + ((result_idx,) if result_idx is not None else ()),
                     summary=f"{framework}: {_snippet(command, 100)}",
                     detail={
                         "framework": framework,
@@ -762,9 +817,14 @@ def detect_subagent_spawns(transcript: Transcript) -> list[Signal]:
                 Signal(
                     kind="subagent_spawns",
                     event_indices=(i,),
-                    summary=f"spawn {sub_type or '<no type>'}: {desc or '<no description>'}",
+                    summary=(
+                        f"spawn {sub_type or '<no type>'}: "
+                        f"{desc or '<no description>'}"
+                    ),
                     detail={
-                        "subagent_type": sub_type if isinstance(sub_type, str) else None,
+                        "subagent_type": sub_type
+                        if isinstance(sub_type, str)
+                        else None,
                         "description": desc if isinstance(desc, str) else None,
                         "prompt_present": prompt_present,
                     },
@@ -824,7 +884,10 @@ def detect_unverified_claim_candidates(transcript: Transcript) -> list[Signal]:
             Signal(
                 kind="unverified_claim_candidates",
                 event_indices=claim.event_indices,
-                summary=f"unverified {claim.detail.get('verb')}: {claim.detail.get('snippet', '')[:80]}",
+                summary=(
+                    f"unverified {claim.detail.get('verb')}: "
+                    f"{claim.detail.get('snippet', '')[:80]}"
+                ),
                 detail={
                     "verb": claim.detail.get("verb"),
                     "snippet": claim.detail.get("snippet"),

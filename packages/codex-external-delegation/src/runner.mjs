@@ -53,12 +53,21 @@ function runtimeIdentities(text) {
   return identities;
 }
 
+function modelMatches(provider, requestedModel, runtimeModel) {
+  if (requestedModel === runtimeModel) return true;
+  const qualifiedPrefix = provider ? `${provider}/` : null;
+  return Boolean(qualifiedPrefix
+    && requestedModel.startsWith(qualifiedPrefix)
+    && requestedModel.slice(qualifiedPrefix.length) === runtimeModel);
+}
+
 function identityMismatch(packet, stdout) {
   if (packet.worker !== "pi") return null;
   const identities = runtimeIdentities(stdout);
   if (!identities.length) return "runtime_identity_missing";
   const expected = { provider: packet.requested_provider, model: packet.model };
-  return identities.some((identity) => identity.provider !== expected.provider || identity.model !== expected.model)
+  return identities.some((identity) => identity.provider !== expected.provider
+    || !modelMatches(expected.provider, expected.model, identity.model))
     ? "runtime_identity_mismatch"
     : null;
 }
@@ -241,7 +250,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn,
   await mkdir(resolvedArtifactDir, { recursive: true });
 
   if (inputPacket.model_selection?.confidence === "unverified") {
-    const result = { schema_version: "2", task_id: inputPacket.task_id, status: "blocked", failure_class: "unverified_model_selection", worker: inputPacket.worker, provider: inputPacket.requested_provider || null, model: inputPacket.model, attempt: 0, exit_code: null, timed_out: false, result_payload: null, artifact_dir: resolvedArtifactDir };
+    const result = { schema_version: "2", task_id: inputPacket.task_id, session_id: inputPacket.session_id || null, run_id: inputPacket.run_id || null, request_id: inputPacket.request_id || null, invocation_id: inputPacket.invocation_id || null, status: "blocked", failure_class: "unverified_model_selection", worker: inputPacket.worker, provider: inputPacket.requested_provider || null, model: inputPacket.model, attempt: 0, exit_code: null, timed_out: false, result_payload: null, artifact_dir: resolvedArtifactDir };
     return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
   }
 
@@ -253,11 +262,15 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn,
         taskId: inputPacket.task_id,
         repoRoot: inputPacket.cwd,
         stateDir: join(resolvedArtifactDir, "lifecycle"),
+        ownerSession: inputPacket.session_id
+          || inputPacket.worktree_request.ownerSession
+          || inputPacket.worktree_request.owner_session
+          || "codex",
       });
       inputPacket = { ...inputPacket, isolated_cwd: worktree.isolated_cwd, worktree, packet_hash: undefined };
       inputPacket.packet_hash = hashPacket(inputPacket);
     } catch (error) {
-      const result = { schema_version: "2", task_id: inputPacket.task_id || "unknown", status: "blocked", failure_class: "worktree_error", worker: inputPacket.worker || null, provider: inputPacket.requested_provider || null, model: inputPacket.model || null, attempt: 0, exit_code: null, timed_out: false, result_payload: null, message: error.message, artifact_dir: resolvedArtifactDir };
+      const result = { schema_version: "2", task_id: inputPacket.task_id || "unknown", session_id: inputPacket.session_id || null, run_id: inputPacket.run_id || null, request_id: inputPacket.request_id || null, invocation_id: inputPacket.invocation_id || null, status: "blocked", failure_class: "worktree_error", worker: inputPacket.worker || null, provider: inputPacket.requested_provider || null, model: inputPacket.model || null, attempt: 0, exit_code: null, timed_out: false, result_payload: null, message: error.message, artifact_dir: resolvedArtifactDir };
       return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
     }
   }
@@ -269,6 +282,10 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn,
     const result = {
       schema_version: "2",
       task_id: inputPacket.task_id || "unknown",
+      session_id: inputPacket.session_id || null,
+      run_id: inputPacket.run_id || null,
+      request_id: inputPacket.request_id || null,
+      invocation_id: inputPacket.invocation_id || null,
       status: "blocked",
       failure_class: "contract_error",
       worker: inputPacket.worker || null,
@@ -303,7 +320,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn,
     const stateDir = worktree?.metadata_file ? dirname(dirname(worktree.metadata_file)) : join(resolvedArtifactDir, "lifecycle");
     const identity = await validateWorktree({ isolatedCwd: inputPacket.isolated_cwd, repoRoot: inputPacket.cwd, taskId: inputPacket.task_id, stateDir });
     if (!identity.ok) {
-      const result = { schema_version: "2", task_id: inputPacket.task_id, status: "blocked", failure_class: "worktree_error", worker: inputPacket.worker, provider: inputPacket.requested_provider || null, model: inputPacket.model, attempt: 0, exit_code: null, timed_out: false, result_payload: null, message: identity.reason, artifact_dir: resolvedArtifactDir };
+      const result = { schema_version: "2", task_id: inputPacket.task_id, session_id: inputPacket.session_id || null, run_id: inputPacket.run_id || null, request_id: inputPacket.request_id || null, invocation_id: inputPacket.invocation_id || null, status: "blocked", failure_class: "worktree_error", worker: inputPacket.worker, provider: inputPacket.requested_provider || null, model: inputPacket.model, attempt: 0, exit_code: null, timed_out: false, result_payload: null, message: identity.reason, artifact_dir: resolvedArtifactDir };
       if (worktree) {
         try {
           const changed = await changedPaths(worktree.worktree_path);

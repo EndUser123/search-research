@@ -50,7 +50,9 @@ class EvidencePacket:
     ) -> None:
         self._transcript = transcript
         self._signals = {k: list(v) for k, v in signals_by_kind.items()}
-        self._produced_at = produced_at or datetime.now(timezone.utc).isoformat(timespec="seconds")
+        self._produced_at = produced_at or datetime.now(timezone.utc).isoformat(
+            timespec="seconds"
+        )
         self._producer = producer
 
     # --- accessors ---
@@ -140,7 +142,9 @@ class EvidencePacket:
         }
 
     def to_json(self, *, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False, default=str)
+        return json.dumps(
+            self.to_dict(), indent=indent, ensure_ascii=False, default=str
+        )
 
     def write(self, path: str) -> str:
         """Write the packet as JSON to ``path``. Returns the path written.
@@ -170,7 +174,11 @@ def build_packet(
     explicitly only in tests that want to exercise the assembler with
     synthetic signals.
     """
-    sigs = signals_by_kind if signals_by_kind is not None else run_all_detectors(transcript)
+    sigs = (
+        signals_by_kind
+        if signals_by_kind is not None
+        else run_all_detectors(transcript)
+    )
     # Ensure every detector key is present even if empty.
     for name in DETECTOR_NAMES:
         sigs.setdefault(name, [])

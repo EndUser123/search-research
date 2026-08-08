@@ -39,7 +39,7 @@ surfaces infrastructure problems before they cause silent failures.
 | **plugin_consistency** | `[plugins].disabled` (Grok) vs `enabledPlugins` (Claude) don't conflict | Cross-check both config files |
 | **qmd_index** | QMD collection is healthy, no corrupted embeddings | `qmd collection info --collection wiki` |
 | **handoff_drift** | Open handoffs with `head:DRIFT` (stale `accurate_as_of_head`) | `python ~/.grok/skills/handoff/__lib/list_handoffs.py --head $(git rev-parse HEAD)` |
-| **nlm_auth** | NotebookLM auth is valid (probe, not `--check` which lies) | `nlm notebook list --profile codex --quiet` (exit 0 = healthy) |
+| **nlm_auth** | Canonical yt-is account sessions are valid (read-only probe) | `python -m csf.nlm_keepalive --dry-run` from `P:/packages/yt-is` (exit 0 = all mapped identities healthy) |
 | **disk_space** | P:\ and ~/.grok have reasonable free space | `Get-PSDrive P`, `Get-PSDrive C` |
 
 ## Output format
@@ -55,7 +55,7 @@ config_toml:       ✓ parses cleanly
 plugin_consistency: ⚠ cc-skills-media disabled in Grok, enabled in Claude
 qmd_index:         ✓ wiki collection healthy
 handoff_drift:     ⚠ 3 handoffs with head:DRIFT
-nlm_auth:          ✓ profile codex valid
+nlm_auth:          ✓ canonical account probes valid
 disk_space:        ✓ P: 245GB free, C: 89GB free
 
 === RECOMMENDATIONS ===

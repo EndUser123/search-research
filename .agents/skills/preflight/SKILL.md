@@ -84,6 +84,24 @@ state format, lifecycle, worktree, or orchestration path.
 9. Re-run the audit at implementation start and before completion. Compare
    the source, active-plan, worktree, and cache findings with the first report.
 
+## Runtime and worktree activation gate
+
+Before any write or external action, add a small activation check to the
+discovery receipt:
+
+- `git status --short`, current revision, branch, and `git worktree list`;
+- the actual executable/module path from `Get-Command`, import inspection, or
+  an exact `--help` invocation;
+- requested versus observed account/profile/model/provider/runtime identity;
+- the authoritative config and the caller that reaches it;
+- whether the target worktree is clean and whether the proposed write scope
+  overlaps existing dirty files.
+
+If a dirty shared checkout overlaps the write scope, use an isolated worktree
+or an explicitly authorized checkpoint. Do not reset, checkout, stash, clean,
+or overwrite the shared state to manufacture a clean preflight. A successful
+unit test does not prove that the active runtime invokes the changed path.
+
 ## Hard stops
 
 - Do not infer absence from a filename or one-root search.
@@ -107,6 +125,10 @@ state format, lifecycle, worktree, or orchestration path.
 Report a compact table with:
 
 `artifact | classification | owner/caller | state/default consumers | tests | cache/generated copies | conflict | evidence`
+
+Also report:
+
+`runtime/config | requested identity | observed identity | executable path | worktree/branch | dirty-scope overlap`
 
 Plus a **constraint audit table** (new — required when neighboring plans/docs/ADRs were inventoried):
 

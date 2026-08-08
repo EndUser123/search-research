@@ -71,10 +71,24 @@ test("route blocks when the authoritative registry says no candidate is eligible
   const quotaPath = join(dir, "quota.json");
   const modelsPath = join(dir, "models.json");
   await writeFile(registryPath, JSON.stringify({
-    models: {
-      "glm-5-2": { provider: "zai", transports: { pi_cli: { status: "unknown" } } },
-    },
-    lanes: {},
+    schema_version: 5,
+    threshold_policy: {},
+    candidates: [{
+      id: "codex-zai-glm-5-2",
+      model: "glm-5.2",
+      provider: "zai",
+      transport: "pi",
+      orchestrator: "codex",
+      lanes: ["reasoning"],
+      capabilities: { context_window: 131072, tool_calling: true, structured_output: true, multimodal: false, reasoning: true },
+      quota: { type: "flat_rate", monthly_estimated: 0, shared_with: [] },
+      lifecycle: "active",
+      policy: "excluded",
+      dispatch_path: "pi",
+      dispatch_paths: ["pi", "http", "opencode", "spawn"],
+    }],
+    serde_broken: [],
+    tool_grounded_spawn_broken: [],
   }));
   await writeFile(quotaPath, JSON.stringify({ zai: { pct: 0, updated: Date.now() / 1000, source: "test" } }));
   await writeFile(modelsPath, JSON.stringify({ providers: { zai: { models: [{ id: "glm-5.2" }] } } }));
@@ -100,21 +114,24 @@ test("route permits a configured candidate with incomplete transport history as 
   const registryPath = join(dir, "fleet-models.json");
   const modelsPath = join(dir, "models.json");
   await writeFile(registryPath, JSON.stringify({
-    models: {
-      "nim-deepseek-ai-deepseek-v4-flash": {
-        provider: "nim",
-        transports: { pi_cli: { status: "unknown" } },
-      },
-    },
-    lanes: {
-      mechanical: {
-        tier1: [],
-        tier2: [{
-          slug: "nim-deepseek-ai-deepseek-v4-flash",
-          dispatch_latency: { PI: { probe: 4.0, structured: 8.0 } },
-        }],
-      },
-    },
+    schema_version: 5,
+    threshold_policy: {},
+    candidates: [{
+      id: "codex-nvidia-nim-deepseek-ai-deepseek-v4-flash",
+      model: "deepseek-ai/deepseek-v4-flash",
+      provider: "nim",
+      transport: "pi",
+      orchestrator: "codex",
+      lanes: ["mechanical"],
+      capabilities: { context_window: 131072, tool_calling: true, structured_output: true, multimodal: false, reasoning: false },
+      quota: { type: "flat_rate", monthly_estimated: 0, shared_with: [] },
+      lifecycle: "active",
+      policy: "use_freely",
+      dispatch_path: "pi",
+      dispatch_paths: ["spawn", "pi"],
+    }],
+    serde_broken: [],
+    tool_grounded_spawn_broken: [],
   }));
   await writeFile(modelsPath, JSON.stringify({ providers: { "nvidia-nim": { models: [{ id: "deepseek-ai/deepseek-v4-flash" }] } } }));
   const result = spawnSync(process.execPath, [cli, "route", "--input", "-"], {

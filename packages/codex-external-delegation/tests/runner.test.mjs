@@ -240,6 +240,25 @@ test("rejects a successful Pi payload when runtime identity differs", async () =
   assert.equal(result.result_payload, null);
 });
 
+test("accepts a provider-qualified packet model when Pi reports its canonical model ID", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket({
+    ...basePacket,
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "minimax",
+    model: "minimax/MiniMax-M3",
+  }, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '{"type":"message_start","message":{"provider":"minimax","model":"MiniMax-M3"}}\n<external-delegation-result>{"status":"ok","result_payload":{"value":42}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.failure_class, "none");
+  assert.equal(result.result_payload.value, 42);
+});
+
 test("does not classify task content mentioning quota as a provider failure", async () => {
   const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
   const result = await runPacket({

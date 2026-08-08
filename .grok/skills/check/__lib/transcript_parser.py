@@ -86,7 +86,9 @@ def extract_session_id(source_path: str) -> str | None:
         return None
     p = Path(source_path)
     # Look for a UUID-shaped parent dir (8-4-4-4-12 hex).
-    uuid_re = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
+    uuid_re = re.compile(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE
+    )
     for parent in p.parents:
         if uuid_re.match(parent.name):
             return parent.name
@@ -211,12 +213,16 @@ def _parse_tool_calls(raw_calls: Any) -> tuple[tuple[ToolCall, ...], tuple[str, 
             except json.JSONDecodeError as e:
                 args = {}
                 parse_error = f"json_decode_error: {e.msg}"
-                warnings.append(f"tool_call {call_id} ({name}) args parse error: {e.msg}")
+                warnings.append(
+                    f"tool_call {call_id} ({name}) args parse error: {e.msg}"
+                )
         else:
             args_raw = "" if raw_args is None else str(raw_args)
             args = {}
             parse_error = f"unexpected_arguments_type: {type(raw_args).__name__}"
-            warnings.append(f"tool_call {call_id} ({name}) args type {type(raw_args).__name__}")
+            warnings.append(
+                f"tool_call {call_id} ({name}) args type {type(raw_args).__name__}"
+            )
         calls.append(
             ToolCall(
                 id=str(call_id),
@@ -279,7 +285,9 @@ def parse_jsonl(
             obj = raw
         else:
             skipped_malformed += 1
-            warnings.append(f"line {total_lines}: unexpected record type {type(raw).__name__}")
+            warnings.append(
+                f"line {total_lines}: unexpected record type {type(raw).__name__}"
+            )
             continue
 
         if not isinstance(obj, dict):
@@ -386,7 +394,9 @@ def parse_jsonl(
         has_timestamps=False,  # Verified: Grok JSONL has no timestamps.
         warnings=tuple(warnings),
     )
-    status = infer_source_status(fwd_path, total_lines, skipped_malformed, parsed_events=len(events))
+    status = infer_source_status(
+        fwd_path, total_lines, skipped_malformed, parsed_events=len(events)
+    )
     session_id = extract_session_id(fwd_path)
     return Transcript(
         events=tuple(events),

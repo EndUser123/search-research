@@ -11,6 +11,7 @@ batch edits accidentally removing definitions.
 Usage:
     python trace_check.py --paths path1.py path2.py [--output out.json]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -108,14 +109,20 @@ def extract_self_calls(source: str) -> list[dict[str, Any]]:
 
         def visit_Call(self, node: ast.Call) -> None:
             # Check for self.method() or self._method() pattern
-            if (isinstance(node.func, ast.Attribute)
-                    and isinstance(node.func.value, ast.Name)
-                    and node.func.value.id == "self"):
-                self.calls.append({
-                    "line": node.lineno,
-                    "method": node.func.attr,
-                    "class": self.class_stack[-1] if self.class_stack else "<module>",
-                })
+            if (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+            ):
+                self.calls.append(
+                    {
+                        "line": node.lineno,
+                        "method": node.func.attr,
+                        "class": self.class_stack[-1]
+                        if self.class_stack
+                        else "<module>",
+                    }
+                )
             self.generic_visit(node)
 
     visitor = ClassVisitor()
@@ -248,6 +255,7 @@ def _try_resolve_external_method(
         if base_obj is None:
             # Try builtins (dict, list, str, Exception, etc.)
             import builtins
+
             base_obj = getattr(builtins, base_name, None)
 
         if base_obj is None:
@@ -279,16 +287,18 @@ def check_file(path: str) -> list[dict[str, Any]]:
     try:
         ast.parse(source)
     except SyntaxError as e:
-        return [{
-            "file": path,
-            "line": e.lineno or 0,
-            "method": "<syntax-error>",
-            "class": "<parse>",
-            "issue": (
-                f"SyntaxError at line {e.lineno or 0}: {e.msg}"
-                " — AST parse failed, trace_check cannot analyze"
-            ),
-        }]
+        return [
+            {
+                "file": path,
+                "line": e.lineno or 0,
+                "method": "<syntax-error>",
+                "class": "<parse>",
+                "issue": (
+                    f"SyntaxError at line {e.lineno or 0}: {e.msg}"
+                    " — AST parse failed, trace_check cannot analyze"
+                ),
+            }
+        ]
 
     class_methods, class_bases = extract_class_methods(source)
     self_calls = extract_self_calls(source)
@@ -325,41 +335,43 @@ def check_file(path: str) -> list[dict[str, Any]]:
                     # Couldn't resolve — fall back to confidence scoring
                     has_external = bool(external_bases.get(cls))
                     confidence = "low" if has_external else "high"
-                    policy = (
-                        "advisory" if has_external
-                        else "deterministic_failures"
-                    )
+                    policy = "advisory" if has_external else "deterministic_failures"
                     resolution_note = (
                         " (class has external base classes — "
                         "may be inherited, import resolution failed)"
-                        if has_external else ""
+                        if has_external
+                        else ""
                     )
-                findings.append({
+                findings.append(
+                    {
+                        "file": path,
+                        "line": call["line"],
+                        "method": method,
+                        "class": cls,
+                        "confidence": confidence,
+                        "policy": policy,
+                        "resolution": resolution,
+                        "issue": (
+                            f"self.{method}() called at line "
+                            f"{call['line']} but not defined "
+                            f"on class {cls}{resolution_note}"
+                        ),
+                    }
+                )
+        elif cls == "<module>":
+            # self.* at module scope is always a NameError at runtime
+            findings.append(
+                {
                     "file": path,
                     "line": call["line"],
                     "method": method,
-                    "class": cls,
-                    "confidence": confidence,
-                    "policy": policy,
-                    "resolution": resolution,
+                    "class": "<module>",
                     "issue": (
-                        f"self.{method}() called at line "
-                        f"{call['line']} but not defined "
-                        f"on class {cls}{resolution_note}"
+                        f"self.{method}() called at module scope "
+                        f"(line {call['line']}) — NameError guaranteed"
                     ),
-                })
-        elif cls == "<module>":
-            # self.* at module scope is always a NameError at runtime
-            findings.append({
-                "file": path,
-                "line": call["line"],
-                "method": method,
-                "class": "<module>",
-                "issue": (
-                    f"self.{method}() called at module scope "
-                    f"(line {call['line']}) — NameError guaranteed"
-                ),
-            })
+                }
+            )
 
     return findings
 
@@ -373,8 +385,7 @@ def main(argv: list[str] | None = None) -> int:
         "--paths", nargs="+", required=True, help="Python files to check"
     )
     parser.add_argument(
-        "--output", "-o", default=None,
-        help="Write JSON result to this path"
+        "--output", "-o", default=None, help="Write JSON result to this path"
     )
     args = parser.parse_args(argv)
 
@@ -405,7 +416,7 @@ def main(argv: list[str] | None = None) -> int:
     if all_findings:
         print(f"TRACE_CHECK: {len(all_findings)} called-but-undefined method(s) found:")
         for f in all_findings[:20]:
-            print(f"  {f["file"]}:{f["line"]}: self.{f["method"]}() — {f["issue"]}")
+            print(f"  {f['file']}:{f['line']}: self.{f['method']}() — {f['issue']}")
         if len(all_findings) > 20:
             print(f"  ... +{len(all_findings) - 20} more")
     else:

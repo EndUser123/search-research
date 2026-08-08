@@ -77,6 +77,8 @@ test("classifies missing commands and provider failures", () => {
   assert.equal(classifyFailure({ error: { code: "ENOENT" }, exitCode: null, stdout: "", stderr: "" }), "command_missing");
   assert.equal(classifyFailure({ exitCode: 1, stdout: "", stderr: "401 invalid api key" }), "auth_or_quota");
   assert.equal(classifyFailure({ exitCode: 1, stdout: "", stderr: "connection refused" }), "provider_unavailable");
+  assert.equal(classifyFailure({ exitCode: 0, stdout: "Error: RegionError: requires explicit opt in", stderr: "" }), "provider_unavailable");
+  assert.equal(classifyFailure({ exitCode: 0, stdout: "invalid_request_error: failed to deserialize developer role", stderr: "" }), "provider_unavailable");
   assert.equal(classifyFailure({ exitCode: 1, stdout: "", stderr: "context window exceeded" }), "context_limit");
 });
 

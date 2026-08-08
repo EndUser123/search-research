@@ -9,7 +9,7 @@ import { compilePacket, hashPacket } from "../src/packet.mjs";
 const selectorFixtureCandidates = [
   {
     id: "opencode-go/deepseek-v4-flash",
-    registry_slug: "go-deepseek-v4-flash",
+    registry_slug: "codex-opencode-go-deepseek-v4-flash",
     worker: "pi",
     provider: "opencode-go",
     model: "deepseek-v4-flash",
@@ -24,7 +24,7 @@ const selectorFixtureCandidates = [
   },
   {
     id: "nvidia-nim/deepseek-ai/deepseek-v4-flash",
-    registry_slug: "nim-deepseek-ai-deepseek-v4-flash",
+    registry_slug: "codex-nvidia-nim-deepseek-ai-deepseek-v4-flash",
     worker: "pi",
     provider: "nvidia-nim",
     model: "deepseek-ai/deepseek-v4-flash",
@@ -47,11 +47,40 @@ async function createSelectorFixture(now) {
   const modelsPath = join(root, "models.json");
   await mkdir(stateDir);
   await writeFile(registryPath, JSON.stringify({
-    models: {
-      "go-deepseek-v4-flash": { provider: "opencode-go", transports: { pi_cli: { status: "working" } } },
-      "nim-deepseek-ai-deepseek-v4-flash": { provider: "nvidia-nim", transports: { pi_cli: { status: "working" } } },
-    },
-    lanes: {},
+    schema_version: 5,
+    threshold_policy: {},
+    candidates: [
+      {
+        id: "codex-opencode-go-deepseek-v4-flash",
+        model: "deepseek-v4-flash",
+        provider: "opencode-go",
+        transport: "pi",
+        orchestrator: "codex",
+        lanes: ["mechanical"],
+        capabilities: { context_window: 131072, tool_calling: true, structured_output: true, multimodal: false, reasoning: false },
+        quota: { type: "flat_rate", monthly_estimated: 0, shared_with: [] },
+        lifecycle: "active",
+        policy: "use_freely",
+        dispatch_path: "pi",
+        dispatch_paths: ["spawn", "pi"],
+      },
+      {
+        id: "codex-nvidia-nim-deepseek-ai-deepseek-v4-flash",
+        model: "deepseek-ai/deepseek-v4-flash",
+        provider: "nim",
+        transport: "pi",
+        orchestrator: "codex",
+        lanes: ["mechanical"],
+        capabilities: { context_window: 131072, tool_calling: true, structured_output: true, multimodal: false, reasoning: false },
+        quota: { type: "flat_rate", monthly_estimated: 0, shared_with: [] },
+        lifecycle: "active",
+        policy: "use_freely",
+        dispatch_path: "pi",
+        dispatch_paths: ["spawn", "pi"],
+      },
+    ],
+    serde_broken: [],
+    tool_grounded_spawn_broken: [],
   }));
   await writeFile(quotaPath, JSON.stringify({}));
   await writeFile(modelsPath, JSON.stringify({ providers: {
@@ -129,6 +158,26 @@ test("compiles a complete versioned packet and hashes authoritative inputs", () 
   assert.equal(packet.packet_hash, hashPacket(packet));
   const changed = { ...packet, objective: "List exports of module X." };
   assert.notEqual(packet.packet_hash, hashPacket(changed));
+});
+
+test("infers write mode from declared write intent while honoring explicit mode", () => {
+  const { packet } = compilePacket({
+    ...bounded,
+    task_id: "write-intent-001",
+    write_scope: ["src/example.mjs"],
+    worktree_request: { worktreeRoot: "P:/tmp/worktrees", intendedFiles: ["src/example.mjs"] },
+  });
+  assert.equal(packet.mode, "write");
+  assert.equal(packet.containment, "isolated_worktree_required");
+
+  const explicitlyReadOnly = compilePacket({
+    ...bounded,
+    task_id: "write-intent-002",
+    mode: "read_only",
+    write_scope: ["src/example.mjs"],
+  });
+  assert.equal(explicitlyReadOnly.packet.mode, "read_only");
+  assert.equal(explicitlyReadOnly.packet.containment, "read_only");
 });
 
 test("uses authoritative provider state when the caller leaves model selection open", async () => {

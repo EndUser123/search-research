@@ -16,10 +16,18 @@ export function hashPacket(packet) {
   return createHash("sha256").update(canonical(withoutHash)).digest("hex");
 }
 
+function inferMode(input) {
+  if (input.mode !== undefined && input.mode !== null) return input.mode;
+  const declaredWriteScope = Array.isArray(input.write_scope) && input.write_scope.length > 0;
+  const requestedWorktree = input.worktree_request !== undefined && input.worktree_request !== null;
+  const providedIsolation = typeof input.isolated_cwd === "string" && input.isolated_cwd.trim().length > 0;
+  return declaredWriteScope || requestedWorktree || providedIsolation ? "write" : "read_only";
+}
+
 export function compilePacket(input = {}) {
   const classification = input.classification || classifyTask(input);
   const invocationId = input.invocation_id || randomUUID();
-  const effectiveMode = input.mode || "read_only";
+  const effectiveMode = inferMode(input);
   const hasExplicitModel = Boolean(input.model || input.requested_model);
   const selection = !hasExplicitModel && classification.lane === "pi"
     ? selectModel({ ...input, classification })
@@ -30,6 +38,9 @@ export function compilePacket(input = {}) {
   const requestedAgent = input.requested_agent || (classification.lane === "opencode" ? (effectiveMode === "read_only" ? "external-readonly-primary" : "external-writer") : null);
   const packet = {
     schema_version: "2",
+    session_id: input.session_id || null,
+    run_id: input.run_id || null,
+    request_id: input.request_id || null,
     invocation_id: invocationId,
     parent_run_id: input.parent_run_id || null,
     task_id: input.task_id || invocationId,
@@ -55,7 +66,7 @@ export function compilePacket(input = {}) {
     output_schema: input.output_schema || { required: ["observations"] },
     timeout_seconds: input.timeout_seconds || 120,
     timeout_ms: input.timeout_ms || (input.timeout_seconds || 120) * 1000,
-    containment: input.containment || (input.mode === "write" ? "isolated_worktree_required" : "read_only"),
+    containment: input.containment || (effectiveMode === "write" ? "isolated_worktree_required" : "read_only"),
     isolated_cwd: input.isolated_cwd || null,
     worktree_request: input.worktree_request || null,
     worktree_cleanup: input.worktree_cleanup || "preserve",

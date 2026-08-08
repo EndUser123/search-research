@@ -205,7 +205,7 @@ All 8 risks from the risk scan have mitigations folded into Phase 1:
 
 ## AGENTS.md convention
 
-One-line addition to the web-search tool selection rule:
+One-line addition to `~/.grok/AGENTS.md` § "Web-search tool selection" (after the preference order list):
 
 > Before external web research, check if `search_wiki` has relevant workspace knowledge — if the topic involves prior decisions, patterns, or documented solutions, the workspace likely already covers it. Use `search_all` when you need both.
 

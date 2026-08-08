@@ -103,6 +103,20 @@ test("malformed telemetry is ignored and never invents token or cost values", as
   assert.equal(Object.hasOwn(stored, "cost"), false);
 });
 
+test("history duration remains numeric when runner timestamps are ISO strings", () => {
+  const entry = buildHistoryEntry(
+    packet,
+    { task_id: packet.task_id, status: "ok", failure_class: "none", result_payload: { value: 1 } },
+    {
+      startedAt: "2026-08-07T12:00:00.000Z",
+      endedAt: "2026-08-07T12:00:01.250Z",
+    },
+  );
+  assert.equal(entry.duration_ms, 1250);
+  assert.equal(entry.started_at, "2026-08-07T12:00:00.000Z");
+  assert.equal(entry.ended_at, "2026-08-07T12:00:01.250Z");
+});
+
 test("concurrent duplicate task IDs create distinct immutable entries", async () => {
   const dir = await root();
   const historyDir = join(dir, "history");

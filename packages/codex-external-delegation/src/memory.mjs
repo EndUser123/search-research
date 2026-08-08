@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 export const MEMORY_SCHEMA_VERSION = "delegation-memory.v1";
@@ -14,6 +14,16 @@ function safePart(value) {
 
 function numeric(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function timestampMs(value, fallback) {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.getTime();
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
 }
 
 function reportedMetrics(packet, result) {
@@ -44,9 +54,13 @@ export function historyRootForArtifact(artifactDir) {
 }
 
 export function buildHistoryEntry(packet, result, { startedAt, endedAt, artifactDir } = {}) {
+  const fallbackNow = Date.now();
+  const startedMs = timestampMs(startedAt, fallbackNow);
+  const endedMs = timestampMs(endedAt, fallbackNow);
   const entry = {
     schema_version: MEMORY_SCHEMA_VERSION,
-    entry_id: `${safePart(result?.task_id || packet?.task_id)}--${safePart(result?.run_id || packet?.run_id || result?.invocation_id || packet?.invocation_id)}--${randomUUID()}`,
+    entry_id: `${safePart(result?.session_id || packet?.session_id)}--${safePart(result?.task_id || packet?.task_id)}--${safePart(result?.run_id || packet?.run_id || result?.invocation_id || packet?.invocation_id)}--${randomUUID()}`,
+    session_id: result?.session_id || packet?.session_id || null,
     task_id: result?.task_id || packet?.task_id || null,
     parent_run_id: packet?.parent_run_id || null,
     invocation_id: result?.invocation_id || packet?.invocation_id || null,
@@ -56,9 +70,9 @@ export function buildHistoryEntry(packet, result, { startedAt, endedAt, artifact
     worker: result?.worker || packet?.worker || null,
     provider: result?.provider || packet?.requested_provider || null,
     model: result?.model || packet?.model || null,
-    started_at: new Date(startedAt || Date.now()).toISOString(),
-    ended_at: new Date(endedAt || Date.now()).toISOString(),
-    duration_ms: Math.max(0, (endedAt || Date.now()) - (startedAt || Date.now())),
+    started_at: new Date(startedMs).toISOString(),
+    ended_at: new Date(endedMs).toISOString(),
+    duration_ms: Math.max(0, endedMs - startedMs),
     attempt: Number.isInteger(result?.attempt) ? result.attempt : null,
     timeout: result?.timed_out === true,
     failure_class: result?.failure_class || "unknown",
@@ -91,7 +105,7 @@ export async function writeHistoryEntry(entry, historyRoot) {
   try {
     await rename(tempPath, finalPath);
   } catch (error) {
-    try { await writeFile(tempPath, "", { flag: "a" }); } catch { /* best effort cleanup */ }
+    try { await unlink(tempPath); } catch { /* best effort cleanup */ }
     throw error;
   }
   return { path: finalPath, entry_id: entry.entry_id };

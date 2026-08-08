@@ -12,6 +12,7 @@ Usage:
         --scope-files requirements.txt pyproject.toml \\
         --output P:/.artifacts/.../deterministic-check.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,8 +31,12 @@ def _run(cmd: list[str], timeout: int = 60) -> tuple[int, str, str]:
     """Run a command, return (exit_code, stdout, stderr). Soft-fail on error."""
     try:
         r = subprocess.run(
-            cmd, capture_output=True, text=True,
-            timeout=timeout, encoding="utf-8", errors="replace"
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
         )
         return r.returncode, r.stdout, r.stderr
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
@@ -52,11 +57,9 @@ def run_ruff(py_files: list[str]) -> dict[str, Any]:
     if not shutil.which("ruff"):
         return {"status": "skipped", "reason": "ruff not installed"}
     code, out, _ = _run(
-        ["ruff", "check", "--select", "E,F",
-         "--output-format=json", "--"] + py_files
+        ["ruff", "check", "--select", "E,F", "--output-format=json", "--"] + py_files
     )
-    return {"raw": out, "exit_code": code,
-            "findings": _parse_json_safe(out) or []}
+    return {"raw": out, "exit_code": code, "findings": _parse_json_safe(out) or []}
 
 
 def run_pyright(py_files: list[str]) -> dict[str, Any]:
@@ -68,10 +71,10 @@ def run_pyright(py_files: list[str]) -> dict[str, Any]:
     parsed = _parse_json_safe(out)
     errors = []
     if parsed and "generalDiagnostics" in parsed:
-        errors = [d for d in parsed["generalDiagnostics"]
-                  if d.get("severity") == "error"]
-    return {"raw": out if out else "",
-            "exit_code": code, "errors": errors}
+        errors = [
+            d for d in parsed["generalDiagnostics"] if d.get("severity") == "error"
+        ]
+    return {"raw": out if out else "", "exit_code": code, "errors": errors}
 
 
 def run_pylint(py_files: list[str]) -> dict[str, Any]:
@@ -80,12 +83,17 @@ def run_pylint(py_files: list[str]) -> dict[str, Any]:
     if not shutil.which("pylint"):
         return {"status": "skipped", "reason": "pylint not installed"}
     code, out, _ = _run(
-        ["pylint", "--errors-only", "--enable=cyclic-import",
-         "--output-format=json", "--"] + py_files,
-        timeout=120
+        [
+            "pylint",
+            "--errors-only",
+            "--enable=cyclic-import",
+            "--output-format=json",
+            "--",
+        ]
+        + py_files,
+        timeout=120,
     )
-    return {"raw": out, "exit_code": code,
-            "findings": _parse_json_safe(out) or []}
+    return {"raw": out, "exit_code": code, "findings": _parse_json_safe(out) or []}
 
 
 def run_trace_check(py_files: list[str]) -> dict[str, Any]:
@@ -93,15 +101,17 @@ def run_trace_check(py_files: list[str]) -> dict[str, Any]:
         return {"status": "skipped", "reason": "no py_files"}
     script = _SKILL_LIB / "trace_check.py"
     if not script.exists():
-        return {"status": "skipped",
-                "reason": f"trace_check.py not found at {script}"}
+        return {"status": "skipped", "reason": f"trace_check.py not found at {script}"}
     code, out, _ = _run([sys.executable, str(script), "--paths"] + py_files)
     parsed = _parse_json_safe(out)
     if parsed:
         return parsed
     if code != 0:
-        return {"status": "error", "exit_code": code,
-                "reason": "trace_check subprocess failed"}
+        return {
+            "status": "error",
+            "exit_code": code,
+            "reason": "trace_check subprocess failed",
+        }
     return {"status": "ok", "findings": [], "finding_count": 0}
 
 
@@ -111,11 +121,11 @@ def run_bandit(py_files: list[str]) -> dict[str, Any]:
     if not shutil.which("bandit"):
         return {"status": "skipped", "reason": "bandit not installed"}
     code, out, _ = _run(
-        ["bandit", "-f", "json", "-ll", "-x", "tests", "--"] + py_files,
-        timeout=60
+        ["bandit", "-f", "json", "-ll", "-x", "tests", "--"] + py_files, timeout=60
     )
     return _parse_json_safe(out) or {
-        "status": "skipped", "reason": "bandit output parse failed"
+        "status": "skipped",
+        "reason": "bandit output parse failed",
     }
 
 
@@ -125,14 +135,15 @@ def run_radon(py_files: list[str]) -> dict[str, Any]:
     if not shutil.which("radon"):
         return {"status": "skipped", "reason": "radon not installed"}
     code, out, _ = _run(
-        ["radon", "cc", "-j", "-s", "-n", "C", "--"] + py_files,
-        timeout=120
+        ["radon", "cc", "-j", "-s", "-n", "C", "--"] + py_files, timeout=120
     )
     parsed = _parse_json_safe(out)
     if not parsed:
-        return {"status": "skipped",
-                "reason": "radon output parse failed",
-                "raw": out[:2000] if out else ""}
+        return {
+            "status": "skipped",
+            "reason": "radon output parse failed",
+            "raw": out[:2000] if out else "",
+        }
     # Count functions at complexity grade C or worse
     hotspot_count = 0
     hotspots = []
@@ -143,12 +154,14 @@ def run_radon(py_files: list[str]) -> dict[str, Any]:
             rank = item.get("rank", item.get("letter", ""))
             if rank in ("C", "D", "E", "F"):
                 hotspot_count += 1
-                hotspots.append({
-                    "file": filepath,
-                    "name": item.get("name", "?"),
-                    "complexity": item.get("complexity", 0),
-                    "rank": rank,
-                })
+                hotspots.append(
+                    {
+                        "file": filepath,
+                        "name": item.get("name", "?"),
+                        "complexity": item.get("complexity", 0),
+                        "rank": rank,
+                    }
+                )
     return {
         "hotspot_count": hotspot_count,
         "hotspots": hotspots,
@@ -161,18 +174,22 @@ def run_vulture(py_files: list[str], run_dir: Path) -> dict[str, Any]:
         return {"status": "skipped", "reason": "no py_files"}
     script = _SKILL_LIB / "vulture_precheck.py"
     if not script.exists():
-        return {"status": "skipped",
-                "reason": f"vulture_precheck.py not found at {script}"}
+        return {
+            "status": "skipped",
+            "reason": f"vulture_precheck.py not found at {script}",
+        }
     out_file = run_dir / "packets" / "vulture-advisory.json"
     out_file.parent.mkdir(parents=True, exist_ok=True)
     code, out, _ = _run(
-        [sys.executable, str(script), "--paths"] + py_files
+        [sys.executable, str(script), "--paths"]
+        + py_files
         + ["--min-confidence", "80", "--output", str(out_file)]
     )
     if out_file.exists():
-        return _parse_json_safe(
-            out_file.read_text(encoding="utf-8")
-        ) or {"status": "ok", "finding_count": 0}
+        return _parse_json_safe(out_file.read_text(encoding="utf-8")) or {
+            "status": "ok",
+            "finding_count": 0,
+        }
     return {"status": "skipped", "reason": "vulture output not produced"}
 
 
@@ -188,18 +205,18 @@ def run_pip_audit(scope_files: list[str]) -> dict[str, Any]:
             break
     if not req_file:
         for f in scope_files:
-            if (f.endswith("requirements.txt")
-                    or (f.endswith(".txt") and "requirements" in f)):
+            if f.endswith("requirements.txt") or (
+                f.endswith(".txt") and "requirements" in f
+            ):
                 if Path(f).exists():
                     req_file = f
                     break
     if not req_file:
-        return {"status": "skipped",
-                "reason": "no requirements file in scope"}
+        return {"status": "skipped", "reason": "no requirements file in scope"}
     code, out, _ = _run(["pip-audit", "-r", req_file, "-f", "json"], timeout=60)
     return _parse_json_safe(out) or {
         "status": "skipped",
-        "reason": "pip-audit output parse failed"
+        "reason": "pip-audit output parse failed",
     }
 
 
@@ -219,20 +236,19 @@ def main(argv: list[str] | None = None) -> int:
         "and produce a merged JSON packet."
     )
     parser.add_argument(
-        "--py-files", nargs="+", required=True,
-        help="Python files to check"
+        "--py-files", nargs="+", required=True, help="Python files to check"
     )
     parser.add_argument(
-        "--run-dir", required=True,
-        help="Run directory for output packets"
+        "--run-dir", required=True, help="Run directory for output packets"
     )
     parser.add_argument(
-        "--scope-files", nargs="*", default=[],
-        help="All scope files (for pip-audit requirements detection)"
+        "--scope-files",
+        nargs="*",
+        default=[],
+        help="All scope files (for pip-audit requirements detection)",
     )
     parser.add_argument(
-        "--output", "-o", default=None,
-        help="Write merged JSON result to this path"
+        "--output", "-o", default=None, help="Write merged JSON result to this path"
     )
     args = parser.parse_args(argv)
 
@@ -272,12 +288,12 @@ def main(argv: list[str] | None = None) -> int:
     bandit_medium_high = 0
     if isinstance(bandit.get("results"), list):
         bandit_medium_high = sum(
-            1 for r in bandit["results"]
+            1
+            for r in bandit["results"]
             if r.get("issue_severity", "") in ("MEDIUM", "HIGH")
         )
 
-    vulture_count = (vulture.get("finding_count", 0)
-                     if isinstance(vulture, dict) else 0)
+    vulture_count = vulture.get("finding_count", 0) if isinstance(vulture, dict) else 0
     radon_count = radon.get("hotspot_count", 0)
 
     # Add summary to the packet for verifiers
@@ -320,14 +336,15 @@ def main(argv: list[str] | None = None) -> int:
             test_name = f"test_{p.stem}.py"
             test_path = pkg_root / "tests" / test_name
             if not test_path.exists():
-                coverage_gaps.append({
-                    "source": str(p),
-                    "missing_test": str(test_path),
-                    "message": (
-                        f"{p.name} has no test file. "
-                        f"Expected: {test_path}"
-                    ),
-                })
+                coverage_gaps.append(
+                    {
+                        "source": str(p),
+                        "missing_test": str(test_path),
+                        "message": (
+                            f"{p.name} has no test file. Expected: {test_path}"
+                        ),
+                    }
+                )
     packet["test_coverage_gaps"] = coverage_gaps
     if coverage_gaps:
         print(
@@ -336,13 +353,10 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     # Write output
-    output_path = args.output or str(
-        run_dir / "packets" / "deterministic-check.json"
-    )
+    output_path = args.output or str(run_dir / "packets" / "deterministic-check.json")
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     Path(output_path).write_text(
-        json.dumps(packet, indent=2, default=str) + "\n",
-        encoding="utf-8"
+        json.dumps(packet, indent=2, default=str) + "\n", encoding="utf-8"
     )
     print(f"DETERMINISTIC_CHECK: packet written to {output_path}")
 

@@ -83,7 +83,9 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) != 2:
-        sys.stderr.write("usage: python preprocessor.py <chat_history.jsonl> <output.json>\n")
+        sys.stderr.write(
+            "usage: python preprocessor.py <chat_history.jsonl> <output.json>\n"
+        )
         return 1
     in_path, out_path = args
     try:

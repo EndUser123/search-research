@@ -6,10 +6,20 @@ const DEFAULT_FLEET_REGISTRY = join(homedir(), ".grok", "skills", "model-quota",
 const DEFAULT_QUOTA_CACHE = join(homedir(), ".cache", "opencode", "fleet-quota-cache.json");
 const DEFAULT_QUOTA_STATE = join(homedir(), ".cache", "opencode", "quota-provider-state");
 const DEFAULT_PI_MODELS = join(homedir(), ".pi", "agent", "models.json");
+const FLEET_REGISTRY_SCHEMA_VERSION = 5;
+const CODEX_ORCHESTRATOR = "codex";
+const PI_INVOCATION_METHOD = "pi";
+const REGISTRY_PROVIDER_ALIASES = Object.freeze({
+  "opencode-go": Object.freeze(["opencode-go"]),
+  "opencode-zen": Object.freeze(["opencode-zen", "zen"]),
+  "nvidia-nim": Object.freeze(["nvidia-nim", "nvidia", "nim"]),
+  minimax: Object.freeze(["minimax"]),
+  zai: Object.freeze(["zai"]),
+});
 const DEFAULT_CANDIDATES = [
   {
     id: "opencode-go/deepseek-v4-flash",
-    registry_slug: "go-deepseek-v4-flash",
+    registry_slug: "codex-opencode-go-deepseek-v4-flash",
     worker: "pi",
     provider: "opencode-go",
     model: "deepseek-v4-flash",
@@ -24,7 +34,7 @@ const DEFAULT_CANDIDATES = [
   },
   {
     id: "nvidia-nim/deepseek-ai/deepseek-v4-flash",
-    registry_slug: "nim-deepseek-ai-deepseek-v4-flash",
+    registry_slug: "codex-nvidia-nim-deepseek-ai-deepseek-v4-flash",
     worker: "pi",
     provider: "nvidia-nim",
     model: "deepseek-ai/deepseek-v4-flash",
@@ -39,7 +49,7 @@ const DEFAULT_CANDIDATES = [
   },
   {
     id: "nvidia-nim/nvidia/nemotron-3-ultra-550b-a55b",
-    registry_slug: "nvidia-nemotron-3-ultra",
+    registry_slug: "codex-nvidia-nemotron-3-ultra",
     worker: "pi",
     provider: "nvidia-nim",
     model: "nvidia/nemotron-3-ultra-550b-a55b",
@@ -54,7 +64,7 @@ const DEFAULT_CANDIDATES = [
   },
   {
     id: "minimax/MiniMax-M3",
-    registry_slug: "minimax-m3",
+    registry_slug: "codex-minimax-m3",
     worker: "pi",
     provider: "minimax",
     model: "MiniMax-M3",
@@ -69,7 +79,7 @@ const DEFAULT_CANDIDATES = [
   },
   {
     id: "zai/glm-5.2",
-    registry_slug: "glm-5-2",
+    registry_slug: "codex-zai-glm-5-2",
     worker: "pi",
     provider: "zai",
     model: "glm-5.2",
@@ -84,7 +94,7 @@ const DEFAULT_CANDIDATES = [
   },
   {
     id: "opencode-zen/deepseek-v4-flash-free",
-    registry_slug: "zen-deepseek-v4-flash-free",
+    registry_slug: "codex-opencode-zen-deepseek-v4-flash-free",
     worker: "pi",
     provider: "opencode-zen",
     model: "deepseek-v4-flash-free",
@@ -114,9 +124,18 @@ const BROKEN_TRANSPORT_STATUSES = new Set([
   "disabled",
   "blocked",
 ]);
+const EXPECTED_PI_BASE_URLS = Object.freeze({
+  "opencode-go": "https://opencode.ai/zen/go/v1",
+  "opencode-zen": "https://opencode.ai/zen/v1",
+  "nvidia-nim": "https://integrate.api.nvidia.com/v1",
+  minimax: "https://api.minimax.io/anthropic",
+  zai: "https://api.z.ai/api/coding/paas/v4",
+});
 
 export const MODEL_CANDIDATES = Object.freeze(DEFAULT_CANDIDATES.map((candidate) => Object.freeze({
   ...candidate,
+  orchestrator: CODEX_ORCHESTRATOR,
+  invocation_method: PI_INVOCATION_METHOD,
   roles: Object.freeze({ ...candidate.roles }),
   capabilities: Object.freeze({ ...candidate.capabilities }),
 })));
@@ -261,34 +280,63 @@ function assessQuota(candidate, entry, snapshot, nowMs, maxAgeMs) {
   };
 }
 
-function latencyForRole(entry, role) {
-  const latency = entry?.dispatch_latency?.PI || entry?.dispatch_latency?.pi_cli;
-  if (!latency || typeof latency !== "object") return null;
-  const keys = {
-    mechanical: ["probe", "structured"],
-    extraction: ["probe", "structured"],
-    verification: ["reasoning", "structured"],
-    coding: ["code-gen", "multi-step"],
-    structured_output: ["structured"],
-    reasoning: ["reasoning", "multi-step"],
-    multimodal: [],
-  }[role] || [];
-  const values = keys.map((key) => Number(latency[key])).filter(Number.isFinite);
-  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+function latencyForRole(entry) {
+  // The shared v5 registry may contain Grok/spawn evidence for the same
+  // provider and model. That evidence is not Codex/Pi evidence and must not
+  // influence this selector. Only an explicitly identity-bound Codex/Pi
+  // evidence block is eligible for live latency ranking.
+  const identity = entry?.evidence?.identity;
+  if (identity?.orchestrator !== CODEX_ORCHESTRATOR || identity?.invocation_method !== PI_INVOCATION_METHOD) {
+    return null;
+  }
+  const latency = entry.evidence?.latency;
+  const p90 = Number(latency?.p90);
+  return Number.isFinite(p90) ? p90 : null;
 }
 
-function findFleetEntry(registry, candidate) {
-  const direct = registry.models?.[candidate.registry_slug];
-  if (direct) {
-    const laneEntry = Object.values(registry.lanes || {})
-      .flatMap((lane) => ["tier1", "tier2"].flatMap((tier) => lane?.[tier] || []))
-      .find((value) => value?.slug === candidate.registry_slug);
-    return laneEntry ? { ...direct, ...laneEntry, transports: direct.transports } : direct;
+function registryProviderMatches(entry, candidate) {
+  const allowed = REGISTRY_PROVIDER_ALIASES[candidate.provider] || [candidate.provider];
+  return allowed.includes(entry?.provider);
+}
+
+function resolveFleetEntry(registry, candidate) {
+  if (registry?.schema_version !== FLEET_REGISTRY_SCHEMA_VERSION || !Array.isArray(registry.candidates)) {
+    return { error: "fleet_registry_schema_unsupported" };
   }
-  return Object.values(registry.models || {}).find((value) => value?.provider === candidate.provider && value?.model === candidate.model)
-    || Object.values(registry.lanes || {})
-      .flatMap((lane) => ["tier1", "tier2"].flatMap((tier) => lane?.[tier] || []))
-      .find((value) => value?.slug === candidate.registry_slug);
+  const matches = registry.candidates.filter((value) => value?.id === candidate.registry_slug);
+  if (!matches.length) return { error: "candidate_missing_from_fleet_registry" };
+  const expectedOrchestrator = candidate.orchestrator || CODEX_ORCHESTRATOR;
+  const entry = matches.find((value) => value?.orchestrator === expectedOrchestrator);
+  if (!entry) {
+    return { error: "candidate_orchestrator_binding_missing", entry: matches[0] };
+  }
+  if (!registryProviderMatches(entry, candidate)) {
+    return { error: "registry_provider_mismatch", entry };
+  }
+  if (entry.model !== candidate.model) {
+    return { error: "registry_model_binding_mismatch", entry };
+  }
+  const expectedTransport = candidate.invocation_method || PI_INVOCATION_METHOD;
+  const registryTransport = entry.invocation_method || entry.transport || entry.dispatch_path || null;
+  if (registryTransport !== expectedTransport
+    || (entry.transport && entry.transport !== expectedTransport)
+    || (entry.dispatch_path && entry.dispatch_path !== expectedTransport)) {
+    return { error: "registry_transport_binding_mismatch", entry };
+  }
+  return { entry };
+}
+
+function piDispatchPaths(entry) {
+  const paths = Array.isArray(entry?.dispatch_paths) ? [...entry.dispatch_paths] : [];
+  if (entry?.dispatch_path) paths.push(entry.dispatch_path);
+  return new Set(paths.map((path) => String(path).toLowerCase()));
+}
+
+function registryLatencyAllowed(registry) {
+  // Quarantine the implicit-write format used by the old benchmark writer.
+  // Its measurements remain historical evidence, but were copied across
+  // role lanes and must not influence live routing.
+  return registry.provenance?.reason !== "model-benchmark dispatch latency write-back";
 }
 
 function authoritativeHealth(candidate, input, role, { allowTestPaths = false } = {}) {
@@ -299,10 +347,46 @@ function authoritativeHealth(candidate, input, role, { allowTestPaths = false } 
   const nowMs = input.now_ms || Date.now();
   if (!registry) return { available: false, health_source: "fleet_registry_missing", unverified: true };
 
-  const entry = findFleetEntry(registry, candidate);
-  if (!entry) return { available: false, health_source: "candidate_missing_from_fleet_registry", unverified: true };
+  const resolved = resolveFleetEntry(registry, candidate);
+  if (resolved.error) {
+    return {
+      available: false,
+      health_source: "fleet_registry",
+      registry_error: resolved.error,
+      unverified: true,
+    };
+  }
+  const entry = resolved.entry;
 
-  const transport = entry.transports?.pi_cli || {};
+  if (!piDispatchPaths(entry).has(PI_INVOCATION_METHOD)) {
+    return {
+      available: false,
+      health_source: "fleet_registry",
+      registry_error: "pi_dispatch_unavailable",
+      provider_unavailable: true,
+    };
+  }
+  if (entry.lifecycle !== "active") {
+    return {
+      available: false,
+      health_source: "fleet_registry",
+      registry_error: `lifecycle_${entry.lifecycle || "missing"}`,
+      provider_unavailable: true,
+    };
+  }
+  if (entry.policy === "excluded") {
+    return {
+      available: false,
+      health_source: "fleet_registry",
+      registry_error: "registry_policy_excluded",
+      provider_unavailable: true,
+    };
+  }
+
+  // v5 stores transport availability as dispatch_paths. A legacy
+  // pi_cli-status block is accepted only as an explicitly Pi-scoped detail;
+  // top-level serde/spawn compatibility views are intentionally ignored.
+  const transport = entry.transports?.pi_cli || entry.transport_status?.pi_cli || {};
   if (BROKEN_TRANSPORT_STATUSES.has(transport.status)) {
     return {
       available: false,
@@ -312,10 +396,30 @@ function authoritativeHealth(candidate, input, role, { allowTestPaths = false } 
     };
   }
 
-  const configuredModels = piModels?.providers?.[candidate.provider]?.models || [];
-  const configured = configuredModels.some((model) => model?.id === candidate.model);
+  const piProvider = piModels?.providers?.[candidate.provider];
+  const configuredModels = piProvider?.models || [];
+  const configuredModel = configuredModels.find((model) => model?.id === candidate.model);
+  const configured = Boolean(configuredModel);
   if (!configured) {
     return { available: false, health_source: "pi_model_registry", provider_unavailable: true, model_not_configured: true };
+  }
+  const expectedBaseUrl = EXPECTED_PI_BASE_URLS[candidate.provider];
+  if (expectedBaseUrl && piProvider?.baseUrl && piProvider.baseUrl.replace(/\/$/, "") !== expectedBaseUrl) {
+    return {
+      available: false,
+      health_source: "pi_model_registry",
+      provider_unavailable: true,
+      binding_mismatch: `baseUrl:${piProvider.baseUrl}`,
+    };
+  }
+  const effectiveCompat = { ...(piProvider?.compat || {}), ...(configuredModel?.compat || {}) };
+  if (candidate.provider === "opencode-go" && piProvider?.compat && effectiveCompat.supportsDeveloperRole !== false) {
+    return {
+      available: false,
+      health_source: "pi_model_registry",
+      provider_unavailable: true,
+      binding_mismatch: "opencode-go requires supportsDeveloperRole=false",
+    };
   }
 
   const quotaProvider = candidate.quota_provider || candidate.provider;
@@ -327,16 +431,17 @@ function authoritativeHealth(candidate, input, role, { allowTestPaths = false } 
     nowMs,
     input.quota_max_age_ms ?? DEFAULT_QUOTA_MAX_AGE_MS,
   );
-  const latencyMs = latencyForRole(entry, role);
+  const latencyMs = registryLatencyAllowed(registry) ? latencyForRole(entry, role) : null;
   return {
     available: quotaAssessment.quota_available,
     ...quotaAssessment,
     quota_class: entry.quota_class || candidate.quota_class,
+    registry_schema_version: FLEET_REGISTRY_SCHEMA_VERSION,
     registry_transport_status: transport.status || "unknown",
     registry_transport_verified_at: transport.verified_at || null,
     configured_model: true,
     latency_ms: latencyMs === null ? null : latencyMs * 1000,
-    evidence_count: latencyMs === null ? 0 : Object.keys(entry.dispatch_latency?.PI || {}).length,
+    evidence_count: latencyMs === null ? 0 : Object.keys(entry.evidence?.sample_counts || {}).length,
     health_source: "fleet_registry_and_quota_cache",
   };
 }
@@ -369,6 +474,7 @@ function rejectReasons(candidate, input, health) {
   if (input.requires_images && !candidate.capabilities.images) reasons.push("image_input_unsupported");
   if (input.requires_reasoning && !candidate.capabilities.reasoning) reasons.push("reasoning_unsupported");
   if (input.requires_structured_output && !candidate.capabilities.structured_output) reasons.push("structured_output_unsupported");
+  if (health.registry_error) reasons.push(health.registry_error);
   if (health.available === false) reasons.push("provider_unavailable");
   if (health.quota_status === "stale_or_missing") reasons.push("provider_quota_snapshot_unavailable");
   if (health.quota_available === false && health.quota_class !== "unlimited_with_rate_limit") reasons.push("provider_quota_unavailable");
@@ -449,6 +555,8 @@ export function selectModel(input = {}, { allowUntrustedHealth = false } = {}) {
     worker: candidate.worker,
     provider: candidate.provider,
     model: candidate.model,
+    orchestrator: candidate.orchestrator || CODEX_ORCHESTRATOR,
+    invocation_method: candidate.invocation_method || PI_INVOCATION_METHOD,
     role,
     quota_pool: candidate.quota_pool,
     confidence: health.health_source === "test_override"

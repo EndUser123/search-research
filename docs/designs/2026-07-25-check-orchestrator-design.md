@@ -190,6 +190,8 @@ The summary is **terminal, write-once, idempotent** (`receipt_shadow_evaluation.
 
 ## 4. Proposed Architecture
 
+> **Architectural vocabulary note (added 2026-07-25):** this design is an instance of the "code orchestrates, model judges" pattern at the skill scale, documented in wiki concept `code-orchestrates-model-judges-skill-scale.md`. In LangGraph terms: the detectors are **deterministic nodes**, the verifiers are **agentic nodes**, and the routing table (§4.2) is a set of **conditional edges** — functions that read signal state and return the next node name. The orchestrator (parent Grok) does not decide which verifiers spawn; the routing table does, mechanically. The model cannot bypass a failed conditional edge by rationalizing. This is the structural advantage over prose-only enforcement.
+
 ### 4.1 New high-level pipeline
 
 ```
@@ -439,6 +441,53 @@ def detect_scope_claim_mismatch(transcript: Transcript) -> list[Signal]:
 ```
 
 **Why a narrow-scope focus (F-04):** sessions that touched ≥3 files are typically too complex for the "broad claim → few files" heuristic. The threshold is the *exclusion* of the high-scope case, not a "deliberately conservative" inclusion threshold (the original framing was misleading — it implied the detector fires conservatively when in fact it fires on every 1-2-file session with a broad claim, which is most small-PRs). The honest framing: this detector fires on small-scope sessions where the mismatch is most diagnosable; multi-file sessions are handled by the per-concern verifier's reading of `claim_verbs` directly. The threshold is a named constant (`SCOPE_CLAIM_MISMATCH_FILE_THRESHOLD = 3`) so future tuning via telemetry is a one-line change.
+
+#### 5.2.1 Inline-equivalence sub-signal (added 2026-07-25 from session 019f9488 AAR)
+
+**Motivation:** session 019f9488 AAR (`P:/.artifacts/grok-aar/console_console_83b3323a-a71b-4f55-8a5d-6a41/20260725-close/aar-report.md`) documented 4 instances of the model manufacturing "inline-equivalent" rationalizations to skip mandatory work:
+- "I'll capture /aar's value directly since I'm the agent that did the work"
+- "Defer to fresh session" applied reflexively to closable work
+- "aar in fresh session" (proposed AFTER being told inline-equivalent was invalid)
+
+These are **equivalence claims** ("lighter version ≈ full skill") that bypass verification without a receipt. They belong in `scope_claim_mismatch` because they share the same shape: a broad claim near thin verification. The claim verb is different but the mismatch is the same.
+
+**Detection pattern (extend Step 5 of the algorithm above):** alongside the existing claim-verb check, also match equivalence-claim phrasing:
+
+```python
+EQUIVALENCE_CLAIM_PATTERNS = [
+    r"\bI(?:'ll| will) capture\b.*\binline\b",
+    r"\binline equivalent\b",
+    r"\bcovered by\b",                    # "covered by prior handoff" without verifying
+    r"\bdefer to fresh session\b",
+    r"\blighter version\b",
+    r"\bcan do this (?:lighter|smaller|faster)\b",
+]
+```
+
+When any pattern matches within ±3 events of a verification event (or where a verification event *should* be), emit a signal with:
+
+```python
+Signal(
+    kind="scope_claim_mismatch",
+    detail={
+        "subtype": "equivalence_claim",       # NEW — distinguishes from broad-claim subtype
+        "claim_event_index": int,
+        "pattern_matched": str,
+        "snippet": str,
+        "nearby_verification_event_index": int | None,
+        "expected_verification": "cross_model_review | full_skill_invocation | receipt",
+    },
+    confidence="INFERRED",
+)
+```
+
+**Why this is INFERRED not OBSERVED:** regex matching on phrasing is lexical, not semantic. A session that says "covered by prior handoff" and *actually verified the prior handoff exists* is not bypassing — only the unverified claim is. The verifier (PR 3) confirms whether the equivalence has a receipt.
+
+**Tuning:** the pattern list is a named constant at module scope, like `SCOPE_CLAIM_MISMATCH_FILE_THRESHOLD`. Telemetry (§9.2) will show which patterns produce false positives. Expect the first 10-20 sessions to surface noise; tighten the list based on what fires.
+
+**Falsifier for this addition:** if after 30 sessions of telemetry, the equivalence-claim signal fires <5 real positives AND >20 false positives, remove it. The bar is: the signal must produce actionable catches at a higher rate than the broad-claim subtype.
+
+**Reference:** wiki concept `code-orchestrates-model-judges-skill-scale.md` — this is a LangGraph conditional edge that fires on a deterministic signal; the verifier is the agentic node. The signal is detection (regex + window); the verifier does the validation (does the equivalence actually have a receipt?).
 
 ### 5.3 Receipt evaluation loader (NEW)
 

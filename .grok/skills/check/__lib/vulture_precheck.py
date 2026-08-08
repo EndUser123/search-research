@@ -14,6 +14,7 @@ Usage:
 Exit codes:
   0 — always (advisory; missing tool is skipped, not failure)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -99,9 +100,11 @@ def _decorated_handler_names(path: str) -> set[str]:
     deco_window = 0
     for line in lines:
         stripped = line.strip()
-        if (stripped.startswith("@on(")
-                or stripped.startswith("@work(")
-                or stripped.startswith("@work ")):
+        if (
+            stripped.startswith("@on(")
+            or stripped.startswith("@work(")
+            or stripped.startswith("@work ")
+        ):
             deco_window = 6
             continue
         if deco_window > 0:

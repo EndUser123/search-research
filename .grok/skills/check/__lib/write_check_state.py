@@ -9,7 +9,10 @@ verdict (judgment), but the receipt format (mechanical) is produced here.
 
 Consumer contract (close_accounting.py:557-560):
     session_re = r"^\\*\\*Session:\\*\\*\\s*([^\\s]+)"
-    verdict_re = r"^\\*\\*Verdict:\\*\\*\\s*CHECK\\s+(PASS|FAIL)\\b(?:\\s*\\((\\d+)\\s*/\\s*(\\d+)[^)]*\\))?"
+    verdict_re = (
+        r"^\\*\\*Verdict:\\*\\*\\s*CHECK\\s+(PASS|FAIL)\\b"
+        r"(?:\\s*\\((\\d+)\\s*/\\s*(\\d+)[^)]*\\))?"
+    )
 
 The output MUST contain exactly these two lines for the consumer to detect it:
     **Session:** <session-id>

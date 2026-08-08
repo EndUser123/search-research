@@ -27,6 +27,9 @@ const PROVIDER_PATTERNS = [
   /service unavailable/i,
   /gateway timeout/i,
   /timed out/i,
+  /regionerror/i,
+  /invalid_request_error/i,
+  /failed to deserialize/i,
 ];
 
 const IDENTITY_PATTERNS = [

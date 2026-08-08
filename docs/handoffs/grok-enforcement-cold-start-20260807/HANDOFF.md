@@ -4,8 +4,9 @@ parent_handoff_path: P:/docs/handoffs/agentic-sdlc-control-plane-design-20260807
 produced_at: 2026-08-07
 status: open
 handoff_type: cold-start-briefing
-accurate_as_of_grok_head: 6ad018646c5878dc5bf329a6f621c9c6634c8c4f
+accurate_as_of_grok_head: e75437a78d9ba5889a276f9dc8bb1859fb6dcbe9
 implemented_slice_commit: c97837f
+revalidated_at: 2026-08-08T01:04:39Z
 ---
 
 # Cold-start briefing: Grok enforcement control plane
@@ -39,10 +40,16 @@ The current shared checkout is not clean. At handoff creation:
 
 - repository: `C:/Users/brsth/.grok`
 - branch: `main`
-- current head: `6ad018646c5878dc5bf329a6f621c9c6634c8c4f`
+- current head: `e75437a78d9ba5889a276f9dc8bb1859fb6dcbe9`
 - `c97837f` is an ancestor, not the current head;
-  `6ad0186` was committed by another concurrent workstream.
-- dirty paths observed: 87
+  `e75437a` was committed by another concurrent workstream.
+- dirty paths observed: 97
+
+Revalidation snapshot (`2026-08-08T01:04:39Z`): the current head was
+`e75437a`; the focused suite passed (`69 passed`), Ruff passed for the two
+changed test files, and no source files were intentionally changed by these
+checks. The checkout may continue to advance because other workstreams own
+it; refresh status and head before acting.
 
 Never reset, clean, stash, checkout, or overwrite this checkout to make it
 appear clean.
@@ -110,7 +117,8 @@ Read these in order:
    - `C:/Users/brsth/.grok/hooks/scripts/tests/test_ship_phase_gate.py`
    - `C:/Users/brsth/.grok/skills/ship-rhai/tests/test_ship_receipt.py`
 
-Then run, read-only:
+Then run these non-destructive verification commands (tests and linters may
+write caches or temporary state):
 
 ```powershell
 git -C C:/Users/brsth/.grok status --short

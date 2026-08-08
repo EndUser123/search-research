@@ -324,7 +324,9 @@ class Transcript:
             self,
             events=events if events is not None else self.events,
             source_path=source_path if source_path is not None else self.source_path,
-            source_status=source_status if source_status is not None else self.source_status,
+            source_status=source_status
+            if source_status is not None
+            else self.source_status,
             parse_stats=parse_stats if parse_stats is not None else self.parse_stats,
             session_id=session_id if session_id is not None else self.session_id,
         )

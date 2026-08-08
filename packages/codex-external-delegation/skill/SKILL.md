@@ -5,7 +5,7 @@ description: Delegate bounded low-ambiguity work from Codex through Pi using sub
 
 # External Delegation
 
-Codex remains the parent and owns task classification, scope, risk decisions, integration, and final judgment. Use the bridge for low-ambiguity work such as read-only exploration, extraction, classification, test execution, documentation drafts, or a tightly specified mechanical change.
+Codex remains the parent and owns task classification, scope, risk decisions, integration, and final judgment. Use the bridge for low-ambiguity work such as exploration, extraction, classification, test execution, documentation drafts, or a tightly specified mechanical change. Read-only work is one supported mode, not the boundary of delegation; bounded implementation work should use the write lane.
 
 Do not delegate ambiguous diagnosis, architecture, security decisions, final review, destructive actions, external mutations, or work whose result cannot be independently verified.
 
@@ -13,14 +13,22 @@ Do not delegate ambiguous diagnosis, architecture, security decisions, final rev
 
 1. Decide whether this is bounded execution or parent-owned reasoning.
 2. If bounded, create a packet JSON in the current task's state directory. Do not ask the user to write the packet.
-3. Default to `mode: "read_only"` and `worker: "pi"`. If the caller has not
+3. Choose the task mode from the requested operation and default to
+   `worker: "pi"`. Use `mode: "read_only"` for inspection/extraction tasks and
+   `mode: "write"` for bounded implementation or editing tasks. If `mode` is
+   omitted, the bridge infers `write` only when write intent is declared by a
+   non-empty `write_scope`, `worktree_request`, or `isolated_cwd`; otherwise it
+   remains `read_only`. Explicit mode always wins. If the caller has not
    selected a model, use the provider-aware selector: choose the best eligible
    `(model, provider, path)` candidate from current capability, quota, health,
    context, and latency evidence. Automatic selection reads the local fleet
    registry, Pi model registry, and quota cache; caller-supplied health is not
    authoritative. A `provisional` selection is allowed only when those local
    sources clear the gates but Pi transport history is incomplete; runtime
-   identity verification remains mandatory.
+   identity verification remains mandatory. The selector also validates the
+   effective Pi provider binding: configured model identity, expected endpoint,
+   and provider/model compatibility must agree. Quota availability does not
+   imply endpoint or protocol availability.
 4. Include explicit `allowed_paths`, `forbidden_actions`, `output_schema.required`, and exact `verification.commands`.
 5. Do not add fallback workers. If Pi fails, halt and return its failure evidence. OpenCode requires a new explicit invocation with a new task ID and packet.
 6. For write mode, provide a `worktree_request` or a previously provisioned
