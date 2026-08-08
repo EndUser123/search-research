@@ -319,7 +319,7 @@ single biggest applicability risk.
 - **Evidence basis:** multi-source (SkillAxe Appendix E, our wiki T16,
   SkillRouter).
 - **Goodhart warning:** do NOT set a numeric trigger-accuracy *target* — the
-  [[deferred-and-rejected-skill-improvements-registry]] rejected plan-writer's
+  /deferred-and-rejected-skill-improvements-registry rejected plan-writer's
   length budget on exactly this basis ("arbitrary thresholds become targets").
   Measure and surface; let the operator decide.
 
@@ -382,7 +382,7 @@ single biggest applicability risk.
   of evals (more findings) into a low-action-rate system WOULD — so R6 must
   pair with R1's "only act on the delta," not generate evals that flood.
 - **Goodhart risk (R4):** ⚠️ flagged above — no numeric targets; measure and
-  surface only. Consistent with [[deferred-and-rejected-skill-improvements-registry]].
+  surface only. Consistent with /deferred-and-rejected-skill-improvements-registry.
 - **Subagent infrastructure caveat:** this very /www run could not use parallel
   research subagents — `pick_model.py`'s top 3 lanes (cerebras reasoning =
   8192 ctx limit; nim deepseek = EOL today 2026-08-07; cohere coding = trial
@@ -451,7 +451,7 @@ These recommendations are wrong if:
 - [[mechanical-enforcement-of-llm-skill-steps-2026]] — evals are mechanical enforcement of skill quality
 - [[measurement-before-addition-principle]] — R6 must pair with R1
 - [[routine-skill-improvement-cadence]] — when to run the eval-driven loop
-- [[deferred-and-rejected-skill-improvements-registry]] — Goodhart warning on numeric targets
+- /deferred-and-rejected-skill-improvements-registry — Goodhart warning on numeric targets
 
 ## What this means for our workspace
 

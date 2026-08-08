@@ -57,7 +57,7 @@ Run /aar on a supplied transcript, then fix everything that surfaced.
 ### Infrastructure
 - `/tp` SKILL.md restored from git (went to 0 bytes mid-session — sibling-session collision)
 - tp critique 7d1f11abe3e3 resolved (Option D was already implemented)
-- doc-check fixes: `[[fmea]]` wikilink resolved, 3 missing `host:` frontmatter fields added
+- doc-check fixes: `/fmea` wikilink resolved, 3 missing `host:` frontmatter fields added
 - SILENT-NO-OP scanner finding fixed in `_get_session_start_time`
 - BROKEN-PATH scanner FP eliminated in script_scan.py (bare-`/` pattern fragments)
 - CROSS-SKILL-DEP scanner finding suppressed (intentional documented dependency)

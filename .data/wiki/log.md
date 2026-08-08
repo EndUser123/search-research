@@ -1,5 +1,11 @@
 # Vault Log
 
+## Data-driven detector prioritization
+Source: session-019fe25d
+Agent: grok
+Notes: Scan historical transcripts for operator corrections, classify by failure type, prioritize detector builds
+Page: wiki/concepts/data-driven-detector-prioritization-scan-historical-transcripts.md
+
 ## agent-fabricated-architectural-decisions
 Source: dream 2026-08-07 Pass 1 Candidate 1
 Agent: grok

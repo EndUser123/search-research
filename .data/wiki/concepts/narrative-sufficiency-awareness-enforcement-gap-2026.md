@@ -155,7 +155,7 @@ The Algorithme essay ["Hallucination Is a Calibration Problem, and Medicine Alre
 3. **Force the differential** — ask for top-k candidates with the reasoning that would distinguish them, not the single answer. The differential interface is a calibration instrument.
 4. **Order the lab** — route the claim to a cheap external check whose errors are independent of the model's. "A troponin assay understands nothing about cardiology, and that is fine, because it fails independently of the physician."
 
-The closing line: "Stop trying to make the pattern-matcher perfect. Order the lab." This is the structural framing the field needs; the workspace's [[claims-require-receipts-narrative-sufficiency-is-not-verification]] rule is the prose version of "order the lab."
+The closing line: "Stop trying to make the pattern-matcher perfect. Order the lab." This is the structural framing the field needs; the workspace's /claims-require-receipts-narrative-sufficiency-is-not-verification rule is the prose version of "order the lab."
 
 ## The gap: what the field has NOT structurally enforced
 
@@ -221,7 +221,7 @@ This concept is wrong if:
 
 ## Auto-related
 
-- [[claims-require-receipts-narrative-sufficiency-is-not-verification]]
+- /claims-require-receipts-narrative-sufficiency-is-not-verification
 - [[reactive-pattern-matching-and-closure-pressure]]
 - [[plausible-narratives-substitute-for-verification]]
 - [[fabricated-causal-chain-receipt-required]]

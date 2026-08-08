@@ -41,7 +41,7 @@ boundary is clear:
 |---|---|---|
 | Missing `host:` frontmatter | ✅ Fix — add `host: both` | Deterministic, no judgment needed |
 | Unclosed code fence | ✅ Fix — append closing ``` | Deterministic |
-| Unresolved `[[wikilink]]` | ✅ Fix — convert to `/slug` prose | Deterministic (the link doesn't resolve; prose reference is always safe) |
+| Unresolved `/wikilink` | ✅ Fix — convert to `/slug` prose | Deterministic (the link doesn't resolve; prose reference is always safe) |
 | Broken HTTP link | ❌ Report — needs human decision (link may be transient, or replacement needed) | Judgment required |
 | Stale README reference | ❌ Report — needs human judgment (is the reference still relevant?) | Judgment required |
 | Missing CHANGELOG entry | ❌ Report — needs commit context the script doesn't have | Context required |
@@ -98,7 +98,7 @@ and make `--fix` opt-in only.
 - `doc-check/scripts/check.py:fix_skill_frontmatter()` — adds `host: both`
   after the description block in the frontmatter
 - `doc-check/scripts/check.py:fix_code_fences()` — appends closing ```
-- `doc-check/scripts/check.py:fix_wikilinks()` — converts `[[slug]]` to
+- `doc-check/scripts/check.py:fix_wikilinks()` — converts `/slug` to
   `/slug` when no candidate file resolves
 - `doc-check/SKILL.md` — rule 1 removed, auto-fix section added
 - `ship-py/__lib/ship_orchestrator.py:cmd_doc_check` — passes `--fix` flag
