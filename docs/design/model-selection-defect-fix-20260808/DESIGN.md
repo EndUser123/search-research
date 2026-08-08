@@ -702,3 +702,40 @@ All claims in this design are backed by file reads in this session:
 - `C:/Users/brsth/.grok/skills/model-quota/scripts/fleet_quota.py:496-540` — `check_cohere` already detects trial-cap body
 - `P:/.artifacts/model-routing/` (list_dir) — only `shadow_comparison.jsonl`; `quarantine.json` absent
 - `P:/.artifacts/model-evidence/evidence_cache.json` (list_dir) — present, read by pick_model.py:154-160
+
+---
+
+## Execution Status
+
+Updated: 2026-08-08T08:30:00Z
+Session: 019fdf47-6ec5-7b82-b363-a256a98cb5fc
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | registry_views.py (DRY root) | ✅ DONE (prev session) | commit 0870dd6 |
+| 2 | AGENTS.md --list description fix | ✅ DONE (prev session) | commit 0870dd6 |
+| 3 | Unit 4: migrate 3 consumers to registry_views | ✅ DONE | commit 60e6cad (swept by concurrent session); FREE_PROVIDERS/PREFIX_TO_PROVIDER imported from registry_views in pick_model.py, spawn gate, PostToolUseFailure |
+| 4 | Unit 4: rewrite get_fallback_for_lane for v5 | ✅ DONE | walks candidates[] array, filters codex-orchestrator; test_glm_fallback_from_registry now PASSES |
+| 5 | Unit 4: delete broken is_model_free | ✅ DONE | rg "def is_model_free" returns 0 hits in hooks |
+| 6 | Unit 8: shadow test | ✅ DONE | commit b246c1c; 3/3 passed (zero_failures, total_picks_positive, all_lanes_covered) |
+| 7 | Unit 2: lifecycle.expires_at field | ✅ DONE | commit 9429c81; schema + validator + is_expired() + evidence_eligibility() gate |
+| 8 | Unit 3: auto context-window inference | ✅ DONE | commit 9429c81; pick() passes requirements with context_window_min to all 3 router modes |
+| 9 | Bonus: serde_broken pre-filter in router | ✅ DONE | commit 9429c81; eligible_candidates() filters serde_broken + tool_grounded_spawn_broken |
+| 10 | Unit 5: cohere trial-cap classification | ✅ DONE | commit 3799772; gate Check 2a reads trial_exhausted; PostToolUseFailure writes it |
+| 11 | Unit 6: quarantine writer | ✅ DONE | commit 3799772; write_quarantine_record() in PostToolUseFailure, closes learning loop |
+
+### Key findings during execution
+
+- **cerebras-glm-4-7 context window is 128K** (not 8K as the design doc's failure analysis assumed). The design doc's claim that cerebras fails on context-window-too-small was incorrect. The registry shows `context_window: 131072`. The actual cerebras failures were likely serde or quota related.
+- **get_fallback_for_lane was dead code** — it walked `registry["lanes"]` (v4 dict shape) that doesn't exist in v5. The test `test_glm_fallback_from_registry` was pre-existing failure. Rewritten against v5 `candidates[]` array with orchestrator filter.
+- **Router didn't filter serde_broken** — the shadow test caught `nvidia-nemotron-3-ultra` (in serde_broken) being returned by pick(). Added pre-filter in `eligible_candidates()` so the picker never recommends serde-broken models.
+- **Concurrent session collision**: Unit 4 changes were swept into commit 60e6cad by another session ("Claude Sonnet 4.6"). Changes were correctly committed but under a different message.
+
+### Remaining (HANDOFF items)
+
+1. **EOL dates for 16 candidates**: populate `expires_at` on each candidate in fleet-models.json (research task — needs /www to find each vendor's EOL announcement)
+2. **Context floor measurements**: replace placeholder values in ORCHESTRATOR_CONTEXT_FLOOR with measured /context output
+3. **cerebras provider classification**: operator decision — should cerebras be in FREE_PROVIDERS? (currently not, but cerebras-glm-4-7 has quota_class=None)
+4. **Feature flags not yet wired**: the design doc specifies env-var flags (GROK_LIFECYCLE_EOL_GATE, GROK_AUTO_CONTEXT_FLOOR, etc.) — these are not yet implemented. The changes are live without flags. Rollback is via `git revert`.
+5. **Shadow mode window**: the design doc specifies a 1-week shadow period before full activation. All gates are live immediately (no shadow mode implementation).
