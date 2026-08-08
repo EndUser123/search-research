@@ -151,13 +151,16 @@ propagation).
 
 ## What this means for our workspace
 
-- **`dead_zone_guard.py` is the reference implementation.** It extracts
-  `sessionId` from the payload, writes a JSONL record before `sys.exit(2)`,
-  and uses the same per-session filename pattern as the existing hooks.
+- **`hook_block_logger.py` is the shared reference implementation.** It
+  provides `log_block(session_id, hook_name, tool_name, file_path, exit_code, message)`
+  that any blocking hook imports. The function uses `msvcrt.locking()` on a
+  sentinel lock file to serialize concurrent appends within the same session.
 
-- **Other PreToolUse hooks that exit 2 should adopt the same pattern.**
-  The `_log_block()` function is generic — it takes session_id, hook_name,
-  tool_name, file_path, exit_code, message. Any blocking hook can call it.
+- **All 4 blocking PreToolUse hooks now adopt the pattern:**
+  - `dead_zone_guard.py` — file-location hygiene blocks
+  - `PreToolUse_spawn_model_gate.py` — serde-broken, quota-exhausted, cohere-trial, cache-unreadable blocks (writes to BOTH the existing `spawn-blocks.jsonl` and the unified session-scoped log)
+  - `PreToolUse_ship_phase_gate.py` — git-push-blocked-during-ship-pipeline blocks
+  - `PreToolUse_verify_before_write.py` — unverified-external-constant blocks
 
 - **Consumers (`/why`, `/check`, `/close`) can read the session's block log**
   to answer "what hooks blocked in this session?" without scanning other
@@ -183,12 +186,13 @@ This pattern is wrong if:
 
 ## Receipts
 
-- `~/.grok/hooks/scripts/dead_zone_guard.py:20-21` — `import time` + `from pathlib import Path` added
-- `~/.grok/hooks/scripts/dead_zone_guard.py:109-131` — `_log_block()` function
-- `~/.grok/hooks/scripts/dead_zone_guard.py:140` — `session_id = data.get("sessionId", "")`
-- `~/.grok/hooks/scripts/dead_zone_guard.py:156-164` — dead-zone block path calls `_log_block()` before `sys.exit(2)`
-- `~/.grok/hooks/scripts/dead_zone_guard.py:174-182` — root-block path calls `_log_block()` before `sys.exit(2)`
-- Verified: test payload with `sessionId` + new file in `docs/designs/` → exit 2 + JSON log record written to `hook-blocks-{session_id}.jsonl`
+- `~/.grok/hooks/scripts/hook_block_logger.py` — shared `log_block()` function with msvcrt.locking
+- `~/.grok/hooks/scripts/dead_zone_guard.py` — delegates to shared logger via `_log_block()` wrapper
+- `~/.grok/hooks/PreToolUse_spawn_model_gate.py` — `log_block()` updated to accept `session_id`, writes to both `spawn-blocks.jsonl` and session-scoped log at all 5 exit-2 points
+- `~/.grok/hooks/PreToolUse_ship_phase_gate.py` — logs git_push blocks before `sys.exit(2)`
+- `~/.grok/hooks/PreToolUse_verify_before_write.py` — logs unverified-constant blocks before `sys.exit(2)`
+- Verified: 6 logger tests (functional, multi-write, session-isolation, empty-session, lock-file, 4-thread concurrent stress with 80 lines zero corruption)
+- Verified: 17 spawn_model_gate tests + 28 spawn_quota tests pass (no regression)
 - `$env:GROK_SESSION_ID` is empty on this host (verified: `Write-Host $env:GROK_SESSION_ID` → empty); session ID comes from hook payload stdin JSON
 - [[multi-terminal-isolation-stale-data-immunity]] — the wiki concept documenting per-session isolation
 - [[pipeline-session-scoping-each-layer-independently]] — each layer must independently scope
