@@ -6,6 +6,18 @@ Agent: grok
 Notes: Recorded schema-v5 Codex/Pi registry integration, identity separation, and public orchestration-repo research.
 Page: wiki/concepts/codex-pi-grok-schema-v5-registry-integration.md
 
+## Solution-unit validation before build
+Source: /tp + AGENTS.md gate extension
+Agent: grok
+Notes: Pattern for questioning the proposed unit before engaging; reference incident overnight-controller reframe
+Page: P:/.data/wiki/concepts/solution-unit-validation-before-build.md
+
+## Overnight controller and autonomy-tier patterns
+Source: /www research
+Agent: grok
+Notes: Prior art for bounded autonomous operation + refined recommendations after fresh-lens critique
+Page: P:/.data/wiki/concepts/overnight-controller-and-autonomy-tier-patterns.md
+
 ## claim-without-checking-industry-approaches-2026
 Source: session-019fdc43
 Agent: grok

@@ -194,6 +194,41 @@ search-space-coverage check transfers to our domain is
 `[INFERENCE — untested]`. The next step is reading the GroundEval
 implementation to assess transferability before designing.
 
+## What this means for our workspace
+
+This finding drives three concrete dispositions for our infrastructure:
+
+1. **Retire the dormant extraction direction for this problem class.** The
+   stack at `P:/.claude/hooks/verification/` (claims.py, engine.py) targets
+   output-level claim-to-tool-event matching. For reasoning-stage belief-state
+   hallucinations it is structurally the wrong layer — it cannot see what it
+   needs to see. Worse, its `SELF_VERIFIED` text-pattern bypass (engine.py
+   lines 230-273) actively rewards the failure mode by trusting post-hoc
+   self-justification. Future faithfulness work should not revive this path
+   for the 5-instance class. The pure-regex `decomposition.py` is the one
+   clean component worth harvesting if a future design needs compound-claim
+   splitting with no host coupling.
+
+2. **The forward path is trajectory-validity, handed off fresh.** The design
+   direction lives at `P:/docs/handoffs/trajectory-validity-layer3-design-20260807/HANDOFF.md`,
+   targeting 3 of 5 instances with deterministic evidence-space checks:
+   negative-existence claims → wiki + skills catalog search; session-state
+   claims → `/context`; capability/syntax claims → SKILL.md read. Instances 3
+   (causal misattribution) and 5 (missing /www) are explicitly out of scope —
+   deterministic trajectory-checking cannot operationalize them, and honesty
+   about that boundary is part of the finding.
+
+3. **Measurement must precede any shipping.** Both falsified approaches were
+   killed by running them against real data (retrodiction over 1385 turns for
+   keyword detection; calibration over the 5 instances for extraction). The
+   measure-first pattern (`[[measure-first-pattern-for-proactive-mechanism-design]]`)
+   is the standing rule: any future detection mechanism must pass calibration
+   over the 5 instances — and ideally retrodiction over historical transcripts
+   (`~/.grok/sessions/`) — before it is wired as a blocking hook. The
+   calibration script `P:/tmp/calibration_test.py` is the receipt template.
+   `[[advisory-vs-blocking-enforcement-decision-2026]]` is the promotion gate
+   that keeps unmeasured mechanisms advisory, never blocking.
+
 ## Falsifier
 
 This analysis is wrong if:
@@ -244,9 +279,9 @@ This analysis is wrong if:
 
 ## Auto-related
 
-- [[claim-without-checking-industry-approaches-2026]] — the prior survey; its "Layer 3 absent / build Claimify" conclusion is now superseded
-- [[keyword-detection-recommendations-falsified-67percent-fp]] — the keyword falsification; this concept explains WHY via the taxonomy
-- [[reasoning-first-search-never-claim-without-checking]] — the 5 motivating instances, now taxonomy-classified
-- [[measure-first-pattern-for-proactive-mechanism-design]] — the calibration test is an instance
-- [[advisory-vs-blocking-enforcement-decision-2026]] — the promotion gate that prevented shipping either falsified approach
-- [[self-clearing-enforcement-hooks-design-pattern]] — the hook pattern both approaches were evaluated against
+- [[scope-matching-verification-discipline]]
+- [[claim-without-checking-industry-approaches-2026]]
+- [[context-firewall-architecture]]
+- [[causal-mechanism-claims-require-source-receipts-before-durable-write]]
+- [[agent-control-plane-enforcement-architectures-2026]]
+
