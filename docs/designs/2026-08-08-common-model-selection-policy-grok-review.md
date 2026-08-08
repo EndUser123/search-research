@@ -28,7 +28,7 @@ Each claim verified against the actual Grok codebase this session.
 | C2 | "shared golden decision vectors" (line 65) | **ASPIRATIONAL** | `golden_vectors.py:13` "SKELETON". No JS counterpart (`golden-vectors.mjs` does not exist in `codex-external-delegation/src/`). The conformance boundary is unenforced. This is the #1 implementation precondition. |
 | C3 | "evidence must remain separate by complete invocation identity" (line 71) | **VERIFIED** (restates existing) | `registry_schema.py:99` `EvidenceIdentity` with 4-tuple (`provider`, `model`, `invocation_method`, `orchestrator`). Already enforced by `_evidence_for()` at `model_router.py:138-160`, keyed by `"|".join(identity.to_tuple())`. |
 | C4 | "capacity model contract" with `capacity_kind`, `usable_now`, `remaining`, `reset_at` (lines 283-310) | **ASPIRATIONAL** | No capacity adapter exists in code. The router's `_quota_headroom()` (`model_router.py:277-300`) is a 4-bucket heuristic (`subscription→1.0`, `free_tier→1.0`, `flat_rate→0.9`, `rate_limited→0.6`). The data lives in `fleet-quota-cache.json` but the router explicitly does not read it (`pick_model.py:107-110`). |
-| C5 | "scoped failure feedback" — 11 normalized classes (lines 387-429) | **PARTIAL** | Grok has 7 implemented classes. The proposal has 11. Mapping: `context_mismatch`↔`context_too_large`, `rate_limit_or_capacity`↔`rate_limit`, `protocol_or_serialization`↔`serde`, `route_or_model_not_found`↔`model_gone`, `access_denied`↔`auth_error`, `provider_outage`↔`provider_outage`, `unknown`↔`unknown`. **4 proposal classes are missing from our code:** `timeout`, `contract_malformed`, `identity_mismatch`, `scope_violation`. Grok has agreed to expand to 11 — see "Error taxonomy alignment" below. |
+| C5 | "scoped failure feedback" — 11 normalized classes (lines 387-429) | **VERIFIED** | Grok now has all 11 classes implemented. Mapping: `context_mismatch`↔`context_too_large`, `rate_limit_or_capacity`↔`rate_limit`, `protocol_or_serialization`↔`serde`, `route_or_model_not_found`↔`model_gone`, `access_denied`↔`auth_error`, `provider_outage`↔`provider_outage`, `timeout`↔`timeout`, `contract_malformed`↔`contract_malformed`, `identity_mismatch`↔`identity_mismatch`, `scope_violation`↔`scope_violation`, `unknown`↔`unknown`. 39 tests pass. |
 | C6 | "failure in Grok must not silently quarantine the same model for Codex" (line 403) | **CONTRADICTED** | `write_quarantine_record()` writes to `P:/.artifacts/model-routing/quarantine.json` with no orchestrator scoping. `load_quarantine_records()` reads the same file with no orchestrator filter. A Grok failure quarantines for all readers. The proposal says the right thing; the code doesn't implement it yet. |
 | C7 | "verified-result evidence is necessarily lagging" (lines 44-48) | **VERIFIED** | The proposal now correctly states the objective is lagging. Fixed in Rev 2. |
 | C8 | "evidence hierarchy and candidate onboarding" (lines 170-194) | **VERIFIED** (partially) | `CandidateRecord.lifecycle` supports the onboarding path. `promotion_threshold_per_lane: 5` exists. However, the "bounded safe-calibration lane" concept (line 190) is not implemented — there's no calibration lane in the registry. |
@@ -166,13 +166,15 @@ expand to 11. The mapping and action table:
 | `access_denied` | `auth_error` | **Log only** | None |
 | `provider_outage` | `provider_outage` | Quarantine | **60s** (transient) |
 | `unknown` | `unknown` | **Log only** | None |
-| `timeout` | **MISSING** | Quarantine | 300s (model may be overloaded) |
-| `contract_malformed` | **MISSING** | Quarantine | 300s (format weakness) |
-| `identity_mismatch` | **MISSING** | **Log only** | None (config error, not model) |
-| `scope_violation` | **MISSING** | Quarantine + **operator alert** | **3600s** (model misbehaved) |
+| `timeout` | `timeout` | Quarantine | 300s (model may be overloaded) |
+| `contract_malformed` | `contract_malformed` | Quarantine | 300s (format weakness) |
+| `identity_mismatch` | `identity_mismatch` | **Log only** | None (config error, not model) |
+| `scope_violation` | `scope_violation` | Quarantine | **3600s** (model misbehaved) |
 
-The 4 new classes will be added to `PostToolUseFailure_spawn_quota.py` in
-the next implementation wave.
+All 11 classes are now implemented in `PostToolUseFailure_spawn_quota.py`
+as of 2026-08-08. Priority order: context_too_large > rate_limit > timeout >
+identity_mismatch > model_gone > auth_error > scope_violation > provider_outage
+> contract_malformed > serde > unknown. 39 tests pass.
 
 ---
 

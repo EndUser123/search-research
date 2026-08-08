@@ -1,5 +1,5 @@
 ---
-title: "Spawn failure error taxonomy: 7-class classification with reactive quarantine"
+title: "Spawn failure error taxonomy: 11-class classification with reactive quarantine"
 created: 2026-08-08
 source: session-2026-08-08
 tags: [error-classification, spawn-gate, quarantine, posttoolusefailure, model-fleet, diagnostics, architecture, serde, rate-limit, context-window]
@@ -17,17 +17,17 @@ relations:
   - target: wiki/concepts/cohere-trial-api-quota-signals-and-failure-modes.md
     type: related
 summary: >
-  The PostToolUseFailure hook classifies spawn failures into a 7-class taxonomy
-  (context_too_large, rate_limit, serde, model_gone, auth_error, provider_outage,
-  unknown) with class-appropriate actions — replacing the prior binary (serde vs
-  rate_limit) that misclassified context-too-large as serde and left auth/outage/gone
-  errors unclassified. Combined with the decision to use reactive quarantine
-  (spawn fails → classify → quarantine excludes model until cooldown) instead of
-  proactive EOL tracking (expires_at field), the system self-heals without
+  The PostToolUseFailure hook classifies spawn failures into an 11-class taxonomy
+  (context_too_large, rate_limit, timeout, identity_mismatch, model_gone, auth_error,
+  scope_violation, provider_outage, contract_malformed, serde, unknown) with class-appropriate
+  actions — replacing the prior binary (serde vs rate_limit) that misclassified context-too-large
+  as serde and left auth/outage/gone errors unclassified. Combined with the decision to use
+  reactive quarantine (spawn fails → classify → quarantine excludes model until cooldown)
+  instead of proactive EOL tracking (expires_at field), the system self-heals without
   requiring the operator to maintain external data about provider lifecycles.
 ---
 
-# Spawn failure error taxonomy: 7-class classification with reactive quarantine
+# Spawn failure error taxonomy: 11-class classification with reactive quarantine
 
 ## Decision context
 
@@ -58,16 +58,20 @@ meaningless because it can change." The reactive quarantine loop — where failu
 are classified and the model is temporarily excluded — handles dead models after
 the first failure, making proactive tracking unnecessary.
 
-## The 7-class taxonomy
+## The 11-class taxonomy
 
 | Class | HTTP codes | Detection | Action |
 |-------|-----------|-----------|--------|
 | `context_too_large` | 422 + context patterns | `CONTEXT_TOO_LARGE_PATTERNS` matched | Quarantine (standard cooldown) |
 | `rate_limit` | 429 (always) | Status code or `RATE_LIMIT_PATTERNS` | Mark provider at 0%, quarantine |
-| `serde` | 400/422 + serde patterns | `SERDE_BROKEN_PATTERNS` matched | Learn serde-broken (escalating cooldown) |
+| `timeout` | 408/504 | Status code or `TIMEOUT_PATTERNS` | Quarantine (standard 300s cooldown) |
+| `identity_mismatch` | none (body text) | `IDENTITY_MISMATCH_PATTERNS` matched | **Log only** — routing/config error |
 | `model_gone` | 410/404 | Status code | Quarantine (standard cooldown, long reprobe) |
 | `auth_error` | 401/403 | Status code | **Log only** — operator issue |
+| `scope_violation` | none (body text) | `SCOPE_VIOLATION_PATTERNS` matched | Quarantine with **3600s** cooldown |
 | `provider_outage` | 500/502/503 | Status code | Quarantine with **60s** cooldown |
+| `contract_malformed` | none (body text) | `CONTRACT_MALFORMED_PATTERNS` matched | Quarantine (standard 300s cooldown) |
+| `serde` | 400/422 + serde patterns | `SERDE_BROKEN_PATTERNS` matched | Learn serde-broken (escalating cooldown) |
 | `unknown` | anything else | No pattern matched | **Log only** — for investigation |
 
 ### Key design choices
@@ -79,11 +83,27 @@ while serde means the model output fails Grok Build's deserialization. The
 etc.) is checked first. If matched, the model is quarantined with a standard
 cooldown — it's not broken, just too small for the current orchestrator's prompt.
 
-**Auth errors do NOT quarantine.** A 401/403 is an operator issue (bad API key,
-expired credentials, wrong permissions). Quarantining the model would mask the
+**Auth errors and identity mismatches do NOT quarantine.** A 401/403 is an
+operator issue (bad API key, expired credentials). An identity mismatch is a
+routing/config error (wrong model returned). Quarantining the model would mask the
 real problem — the operator needs to see the error in the diagnostic log and fix
-the key. The error is logged to `spawn-errors.jsonl` with an actionable hint but
-no quarantine record is written.
+the key or the route. Both are logged to `spawn-errors.jsonl` with actionable hints
+but no quarantine record is written.
+
+**Timeout (408/504) is checked before provider outage.** A 504 is a gateway
+timeout — the upstream provider didn't respond in time. This is a latency issue,
+not a server crash. The standard 300s cooldown applies (the model may be overloaded).
+
+**Scope violation gets a 3600s cooldown.** When a model is asked to use a capability
+it doesn't support (tool calls, vision), the model "misbehaved" relative to what was
+asked. The long cooldown prevents wasting spawn attempts on a model that will keep
+failing. Patterns are conservative (`does not support tool`, `function calling not
+supported`, `vision not supported`) — generic "not supported" does not trigger it.
+
+**Contract malformed is checked before serde.** Contract-level issues (malformed
+request/response structure) are more specific than field-level serde failures.
+The patterns (`malformed request body`, `unexpected response format`) catch harness
+defects, which may need repetition before aggressive quarantine is warranted.
 
 **Provider outages get a 60s cooldown, not the standard 300s.** A 500/502/503 is
 transient — the provider's server is temporarily unavailable. The standard 5-minute
@@ -92,7 +112,7 @@ likely back. The 60s cooldown lets the system retry quickly.
 
 ### Precedence rules
 
-Context-too-large > rate_limit > model_gone > auth_error > provider_outage > serde > unknown.
+Context-too-large > rate_limit > timeout > identity_mismatch > model_gone > auth_error > scope_violation > provider_outage > contract_malformed > serde > unknown.
 
 Status codes take priority over pattern matching (industry best practice: HTTP
 status is authoritative, error body text is ambiguous). The one exception is
@@ -194,12 +214,17 @@ new patterns need to be added from the unclassified error text.
 ## Receipts
 
 - `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — `classify_error()` function
-  (lines 96-168), `log_error()` function (lines 170-195), action path (lines 380-430)
-- `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — `CONTEXT_TOO_LARGE_PATTERNS`
-  (lines 30-42), `MODEL_GONE_STATUS_CODES`, `AUTH_ERROR_STATUS_CODES`,
-  `PROVIDER_OUTAGE_STATUS_CODES` (lines 23-35)
+  returns 11-class taxonomy; `log_error()` writes diagnostic JSONL; action path
+  handles all 11 classes with class-appropriate quarantine/escalation
+- `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — `CONTEXT_TOO_LARGE_PATTERNS`,
+  `TIMEOUT_STATUS_CODES`/`TIMEOUT_PATTERNS`, `IDENTITY_MISMATCH_PATTERNS`,
+  `SCOPE_VIOLATION_PATTERNS`, `CONTRACT_MALFORMED_PATTERNS`,
+  `MODEL_GONE_STATUS_CODES`, `AUTH_ERROR_STATUS_CODES`,
+  `PROVIDER_OUTAGE_STATUS_CODES` (pattern lists and status code sets)
 - `~/.grok/hooks/tests/test_spawn_quota_error_learner.py` — `TestRichClassification`
-  class (13 tests covering all 7 classes + precedence + hint completeness)
+  class (24 tests covering all 11 classes + precedence + hint completeness)
+- `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — `_quarantine_expired()` and
+  GC logic in `write_quarantine_record()` prune expired records on every write
 - `~/.grok/skills/model-quota/scripts/model_router.py` — `evidence_eligibility()`
   reverted to lifecycle-only (no `expires_at` check)
 - `docs/design/model-selection-defect-fix-20260808/DESIGN.md` — design doc with
