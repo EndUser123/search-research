@@ -44,7 +44,8 @@ triage them.
 ## How to run the scanner
 
 ```powershell
-python ~/.grok/skills/skill-dev/__lib/script_scan.py --skill <skill-name>
+python ~/.grok/skills/skill-dev/__lib/script_scan.py ~/.grok/skills/<skill-name>
+python ~/.grok/skills/skill-dev/__lib/script_scan.py ~/.grok/skills/<skill-name> --json
 ```
 
 ## Provenance
