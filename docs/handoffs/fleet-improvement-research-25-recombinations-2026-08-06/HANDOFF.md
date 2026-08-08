@@ -6,7 +6,7 @@ parent_session: none
 current_terminal_id: console_019fcdd2
 produced_at: 2026-08-06T20:00:00Z
 last_updated_by: 019fcdd2-e190-7323-9b77-57a1c73dada5
-last_updated_at: 2026-08-07T01:30:00Z
+last_updated_at: 2026-08-07T22:30:00Z
 status: open
 handoff_type: investigation
 accurate_as_of_head: 6c3bff8
@@ -157,6 +157,30 @@ Remaining steps (per build plan):
 
 The hook loads at next session start (Grok Build loads hooks at session start only). Falsifier status: all three falsifiers currently PASSING (accuracy 100% ≥80%, latency 0.7s <5s, FP rate TBD on live sessions).
 
+### TASK-4 Post-review update (2026-08-07, later same session)
+
+**Full SDLC arc completed:** `/go` → `/ship-py` → `/check` → `/review` → `/aar` → `/insight` → `/todo`
+
+**Review findings addressed (from `/review` + `/check`):**
+- **S1 (HIGH) FIXED:** Added `redact_secrets()` — strips API keys (sk-, ghp_, AKIA, etc.), PEM keys, and high-entropy base64 before sending to Groq API and before telemetry logging. Prevents tool output exfiltration.
+- **C2 (MEDIUM) FIXED:** Regex pre-filter anchored on negative form only (`can't/cant/cannot`) — was matching positive "can be fixed."
+- **2 findings DISPROVED:** C1 (content format — Grok uses `str`, not `list`), C4 (stopHookActive casing — docs confirm camelCase is correct).
+- **9 findings verified real but deferred** (circuit breaker, prompt injection hardening, telemetry redaction scope, retry on transient errors, MODE normalization, etc.). All documented in `P:/.artifacts/console_019fcdd2/grok-review/claim-judge/20260807-215509/FINDINGS.md`.
+
+**AAR report:** Written at `P:/.artifacts/grok-aar/console_console_c5bed5e0-e149-4321-967c-8e1b/20260807-214500/aar-report.md`. Validated PASS. Key headline lesson: non-hermetic test design produces claims that don't survive independent verification.
+
+**Wiki concepts captured:**
+- `embedded-claim-rule-prompt-technique.md` — the EMBEDDED CLAIM RULE as a general prompt engineering technique
+- `check-after-ship-py-verification-sequence.md` — the two-skill verification pattern
+- `ungrounded-state-prediction-claims-detection-architecture.md` — updated from "deferred" to "built and deployed"
+
+**Additional fixes this session:**
+- Trufflehog Go binary v3.96.0 installed (pre-push secret scanning now functional)
+- `/ask` routing: added canonical skill-family keyword sets to prevent finding-skill misses
+- AGENTS.md: replaced phantom `/harvest` references with `/insight`
+- AAR `reference_loader.py`: fixed missing `import os`
+- Corpus accuracy after all fixes: 7/8 (88%) — above 80% threshold
+
 ## 8. Open decisions
 
 ### Decision 1: Which recombinations to build first?
@@ -246,3 +270,4 @@ Or, if the operator wants go_router.py first:
 |------|---------|--------|
 | 2026-08-06T20:00 | 019fcdd2 | created |
 | 2026-08-07T01:30 | 019fcdd2 | TASK-4 COMPLETE: LLM-as-judge Stop hook built, tested (8/8 corpus + 4/4 e2e), deployed advisory |
+| 2026-08-07T22:30 | 019fcdd2 | TASK-4 post-review: full SDLC arc done (ship-py+check+review+aar+insight), S1 redaction fixed, C2 regex fixed, 2 wiki concepts captured, 9 deferred findings documented in FINDINGS.md |

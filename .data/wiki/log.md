@@ -1,5 +1,17 @@
 # Vault Log
 
+## [2026-08-07] ingest | Grok /tp compression, MCP, and hook boundaries
+Source: session-2026-08-07
+Agent: grok
+Notes: Decision record: retain Grok native /tp, reuse existing MCP, defer run-registry MCP, and shadow-test one scoped TP Stop validator.
+Page: wiki/concepts/tp-compression-mcp-hook-boundaries-2026.md
+
+## [2026-08-07] ingest | Agent skill compression boundaries: progressive disclosure, deterministic code, MCP, and hooks
+Source: session-2026-08-07
+Agent: grok
+Notes: MMX research on progressive disclosure and deterministic skill boundaries; scoped to Grok /tp and cross-host fleet design.
+Page: wiki/concepts/agent-skill-compression-boundaries-2026.md
+
 ## Skill pipeline integration testing
 Source: session-019fd9ae
 Agent: grok
