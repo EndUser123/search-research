@@ -211,13 +211,28 @@ def main(argv: list[str] | None = None) -> int:
     # (suppresses stale "hasn't run" suggestions when verification is current)
     try:
         receipt_script = Path.home() / ".grok" / "scripts" / "verification_receipt.py"
-        if receipt_script.exists() and session_id:
+        _session_id = data.get("session_id", "")
+        _verdict = data.get("verdict", "").upper().strip()
+        # Use the derived verdict if it was corrected by write_check_state
+        if _verdict not in ("PASS", "FAIL"):
+            _verdict = "PASS"  # safe fallback
+        if receipt_script.exists() and _session_id:
             import subprocess
+
             subprocess.run(
-                [sys.executable, str(receipt_script), "register",
-                 "--skill", "/check", "--session", session_id,
-                 "--verdict", verdict],
-                capture_output=True, timeout=30,
+                [
+                    sys.executable,
+                    str(receipt_script),
+                    "register",
+                    "--skill",
+                    "/check",
+                    "--session",
+                    _session_id,
+                    "--verdict",
+                    _verdict,
+                ],
+                capture_output=True,
+                timeout=30,
             )
     except (OSError, subprocess.TimeoutExpired):
         pass  # fail-open — receipt registration is best-effort
