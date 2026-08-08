@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: maintain-skill-gap-analysis-what-field-does-we-dont
+Agent: --action
+Notes: created
+Page: --summary
+
 ## Hook-block observability: per-session logging with escalation path
 Source: session-2026-08-08
 Agent: grok
