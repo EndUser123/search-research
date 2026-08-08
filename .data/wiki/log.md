@@ -1,5 +1,11 @@
 # Vault Log
 
+## Spawn failure error taxonomy: 7-class classification with reactive quarantine
+Source: session-2026-08-08
+Agent: grok
+Notes: 7-class error taxonomy replacing binary serde/rate_limit; reactive quarantine over proactive EOL; context-too-large as distinct class
+Page: P:/.data/wiki/concepts/spawn-failure-error-taxonomy-reactive-quarantine-2026.md
+
 ## --concept
 Source: sibling-session-collision-dominant-file-loss-vector
 Agent: --action
