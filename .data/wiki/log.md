@@ -1,5 +1,29 @@
 # Vault Log
 
+## --concept
+Source: check-and-fix-skills-verification-skills-should-fix-what-they-can
+Agent: --action
+Notes: created
+Page: --summary
+
+## --concept
+Source: pipeline-session-scoping-each-layer-independently
+Agent: --action
+Notes: created
+Page: --summary
+
+## tool-fallbacks
+Source: session-2026-08-08
+Agent: grok
+Notes: Added 3 entries: nim-deepseek-v4-flash EOL (410 Gone), zen-deepseek-v4-flash-free serde (reasoning_content), cohere trial-tier (1000/month cap).
+Page: wiki/concepts/tool-fallbacks.md
+
+## llm-confabulation-causes-prevention-anti-patterns-2026
+Source: session-2026-08-08-www
+Agent: grok
+Notes: LLM confabulation survey: 4 causal claims verified (2 confirmed, 2 partial). 4-layer prevention stack. 15+ repos. 7 anti-patterns. Workspace receipt-rule IS the canonical structural fix (Receipt-Gated Pipelines).
+Page: wiki/concepts/llm-confabulation-causes-prevention-anti-patterns-2026.md
+
 ## triage-discovery-architecture-evaluation-convergent-validity-2026
 Source: session-2026-08-07-www
 Agent: grok
