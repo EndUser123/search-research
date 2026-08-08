@@ -614,28 +614,12 @@ All changes have feature flags. The DRY unit (Unit 1) is functionally identical 
 |---|---|---|---|
 | Phase 1 (this session) | 1, 4, 7, 8 | Low (cleanup + shadow test) | git revert per unit |
 | Phase 2 (this session) | 2 (schema), 3 (auto-context-floor) | Medium (changes selection) | Feature flag `GROK_LIFECYCLE_EOL_GATE=0`, `GROK_AUTO_CONTEXT_FLOOR=0` |
-| Phase 3 (this session) | 5 (cohere), 6 (quarantine writer) | Medium (changes gate deny path) | Feature flag `GROK_COHERE_TRIAL_BLOCKING=0`, `GROK_QUARANTINE_WRITES=0` |
-| Phase 4 (HANDOFF) | 2 second pass: populate `expires_at` for all 16 candidates; measure `ORCHESTRATOR_CONTEXT_FLOOR` for grok/codex/agy | Low (data task) | N/A — this is data, not code |
-
-### Shadow mode
-
-Units 2, 3, 5, 6 all introduce new gate checks. Shadow mode means: the new code runs and **logs** what it would block, but does NOT actually block. This is implemented by:
-
-1. Set `GROK_*_SHADOW=1` (one per unit, four total).
-2. New code path runs alongside the old code path.
-3. Logs to `P:/.artifacts/model-routing/shadow_comparison.jsonl` (file already exists per `list_dir`).
-4. After 100+ spawns, compare shadow_blocks vs actual_blocks; assert zero regressions.
-
-The shadow mode window is **1 week** (long enough to catch weekly cadence patterns). If no FC-1 through FC-5 fires during the shadow window, the flag is removed and the gate is active.
+| Phase 3 (this session) | 5 (cohere), 6 (quarantine writer) | Medium (changes gate deny path) | git revert |
+| Phase 4 (HANDOFF) | Set cerebras/low-rate-limit candidates to `excluded` policy | Low (data task) | N/A — registry data change |
 
 ### Rollback procedure
 
-Per unit:
-- Set `GROK_<UNIT>_FLAG=0` in `~/.grok/config.toml` `[environment]`
-- Restart Grok Build supervisor (or run `cc-ccr` to restart the supervisor)
-- Re-run `test_pick_model_shadow.py` to verify the rollback succeeded
-
-The DRY unit (Unit 1) cannot be cleanly disabled via flag (it changes import paths); `git revert` is the rollback. The DRY change is functionally identical to the prior code (same dicts, same logic), so the revert is safe.
+All changes are reversible via `git revert <commit>`. No feature flags or shadow mode — the reactive learning loop (quarantine + serde-broken) is the safety net, not an observation window.
 
 ---
 
