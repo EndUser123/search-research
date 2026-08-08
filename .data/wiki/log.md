@@ -1,5 +1,17 @@
 # Vault Log
 
+## --concept
+Source: no-question-theater
+Agent: --action
+Notes: refined
+Page: --summary
+
+## Making skill-dev actually improve skills
+Source: /www deep research (session 019fdeea)
+Agent: grok
+Notes: SkillAxe 4-dimension eval-guided framework + fault attribution closes 47-67pct gap to human skills; 8 applicability-gated recs
+Page: P:/.data/wiki/concepts/skill-dev-evaluation-guided-improvement-fault-attribution-gap.md
+
 ## Telemetry logging standard
 Source: session-20260807
 Agent: grok
