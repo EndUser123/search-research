@@ -4,13 +4,24 @@ parent_handoff_path: docs/handoffs/recommendation-validation-design-20260807/HAN
 current_session_id: 019fdc43-c6c8-7f21-9944-e4317943bc08
 current_terminal_id: console_a8dfe293-484b-49d1-8c12-b6d7
 produced_at: 2026-08-07T22:00:00Z
-status: open
+status: closed-direction-falsified-new-direction-open
 handoff_type: investigation
 accurate_as_of_head: 4e659ae
 source_transcript: ~/.grok/sessions/P%3A%5C/019fdc43-c6c8-7f21-9944-e4317943bc08/chat_history.jsonl
 ---
 
 # Handoff: Claim verification Layer 3 — design direction
+
+> **STATUS UPDATE (2026-08-07, session 019fde3e):** The design direction
+> below ("Claimify-style extraction + deterministic entity matching") is
+> **FALSIFIED** for this problem class. Calibration test showed 0/5 catch
+> rate on the documented instances. The /www research found the field's
+> taxonomy (Lin et al. 2025) classifies all 5 instances as Reasoning-stage
+> belief-state hallucinations, which output-level detection cannot catch.
+> The new direction is **GroundEval-style trajectory-validity checking**.
+> See `P:/.data/wiki/concepts/layer3-claim-extraction-falsified-trajectory-validity-is-field-standard-2026.md`
+> for the full falsification + new direction. The handoff body below is
+> preserved as the historical record of the falsified direction.
 
 ## Goal
 

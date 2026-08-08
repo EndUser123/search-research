@@ -39,6 +39,20 @@ relations:
 
 # Claim-without-checking: industry approaches to LLM agent hallucination prevention
 
+> **CORRECTION NOTE (2026-08-07, session 019fde3e):** This concept's
+> conclusion that "Layer 3 is ABSENT" was based on grepping `~/.grok/hooks/`
+> only and missed the dormant stack at `P:/.claude/hooks/verification/`.
+> Its recommendation of "Claimify-style extraction" is **FALSIFIED** for
+> this problem class — calibration test showed 0/5 catch rate on the
+> documented instances, and the field's taxonomy (Lin et al. 2025)
+> classifies all 5 instances as Reasoning-stage belief-state
+> hallucinations that output-level extraction cannot catch. The
+> superseding concept is
+> [[layer3-claim-extraction-falsified-trajectory-validity-is-field-standard-2026]].
+> The survey content below remains valid as a description of the industry
+> landscape; the *conclusion drawn from it* (build Layer 3 via Claimify)
+> is what was wrong.
+
 ## Decision context
 
 **Why this research was needed:** the workspace built and falsified a
