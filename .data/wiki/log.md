@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: scan-historical-transcripts-before-deferring-data-already-exists
+Agent: --action
+Notes: created
+Page: --summary
+
 ## Spawn failure error taxonomy: 7-class classification with reactive quarantine
 Source: session-2026-08-08
 Agent: grok
