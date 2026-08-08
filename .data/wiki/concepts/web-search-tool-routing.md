@@ -8,8 +8,8 @@ summary: >
   firecrawl, web-search-prime), (2) built-in web_search fallback, (3) the local
   search-research CLI with 11+ providers (tavily, serper, exa, perplexity, glm, zai,
   ddgs, brave, github, google, kagi, mojeek, bing, you), and (4) cross-model CLIs
-  (agy, mmx, codex, pwm). Perplexity MCP is DISABLED (expensive). Tavily key is EMPTY
-  (MCP not wired). Strategy: intent-routed + parallelize + fallback-aware. Do NOT use
+  (agy, mmx, codex, pwm). Exa, Tavily, and Perplexity MCP servers are all CONNECTED.
+  Strategy: intent-routed + parallelize + fallback-aware. Do NOT use
   agy for primary search — it is a second-opinion/research harness, not a search backend.
 agent: grok
 host: grok
@@ -226,7 +226,7 @@ run_terminal_command("search-research 'facet 2' --mode exa --hyde --output json 
 - **Don't scrape every search result.** Score first, scrape top 3-5 per depth. Token budget matters.
 - **Don't forget `search_recency_filter`.** For anything time-sensitive, `oneMonth`/`oneWeek` filters stale results.
 - **Don't use `firecrawl_agent` for simple lookups.** 1-5 min + credits-heavy. Use `firecrawl_search` (seconds) for simple queries.
-- **Don't call Tavily backend without checking `TAVILY_API_KEY`.** It's empty. The CLI will fail auth.
+- **Don't call Tavily backend without checking quota.** Free tier is rate-limited (1k/mo). Pair with Exa for diversity.
 - **Don't conflate search with research.** Search finds URLs; research synthesizes. Use `/www` for the full pipeline.
 - **Don't trust a single source for load-bearing claims.** Triangulate ≥2 independent sources for `[HIGH]` confidence.
 

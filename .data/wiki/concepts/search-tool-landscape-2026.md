@@ -128,7 +128,7 @@ Based on the benchmark, practitioner experience, and our existing inventory:
 | **yt-dlp** | $0 | IP-level rate limiting; age-restricted needs cookies | **Use for YouTube transcripts** |
 | **Mojeek** | $0, no key | Independent small index — lower coverage | **Use for additional diversity** |
 | **Perplexity (pwm)** | $5/1k | Expensive; 11s latency | **Reserve for deep research only** |
-| **Tavily** | Requires key | `TAVILY_API_KEY` is **EMPTY** — can't use until set | **Blocked — set key to unlock** |
+| **Tavily** | Requires key | `TAVILY_API_KEY` is **SET** — MCP connected, CLI + SDK available | **Works** |
 
 **Rule:** free + no binding constraint = use it. The only reason to exclude a free tool is if it adds **tool-selection confusion** (the degradation effect at 15-20 tools). The solution to that is the routing layer (search-research CLI `--mode auto`, or our `/web` routing) — not excluding the tool from the fleet.
 
