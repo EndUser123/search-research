@@ -250,6 +250,8 @@ relations:
     type: related
   - target: wiki/concepts/http-429-rate-limiting.md
     type: related
+  - target: wiki/concepts/youtube-workspace-sidebar-extension-build-research.md
+    type: extended-by
 ---
 
 # YouTube Transcript Extraction Techniques

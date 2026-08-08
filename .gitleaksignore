@@ -416,3 +416,7 @@ f9492afc6bd427831f13da16adb3d41197057215:scripts/security/REMEDIATION-QUICKSTART
 # Added 2026-07-19: test_operational_safety.py tests the secret-detector with obviously-fake fixtures (sk-abc123..., sk-1234567...). Test scope only. Relative paths to match new file-based hook scan.
 .grok/skills/aar/tests/test_operational_safety.py:generic-api-key:93
 .grok/skills/aar/tests/test_operational_safety.py:generic-api-key:178
+
+# 2026-08-08: pre-existing Reddit/dev.to source URLs in transcript-extraction concept (false positive on URL fragments)
+.data/wiki/concepts/youtube-transcript-extraction-techniques.md:generic-api-key:65
+.data/wiki/concepts/youtube-transcript-extraction-techniques.md:generic-api-key:209
