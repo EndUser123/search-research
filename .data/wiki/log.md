@@ -1,5 +1,17 @@
 # Vault Log
 
+## automatic-logical-fallacy-detection-in-hooks-2026
+Source: session-019fe25d
+Agent: grok
+Notes: /www research on fallacy detection viability
+Page: P:/.data/wiki/concepts/automatic-logical-fallacy-detection-in-hooks-2026.md
+
+## AAR session 019fdf3c
+Source: session 019fdf3c
+Agent: grok
+Notes: hash-bound receipts + HookTimer + predictable-enforcement research. PARTIAL. 2 corrections.
+Page: P:/.artifacts/grok-aar/session-019fdf3c-deepsession-20260808/aar-report.md
+
 ## --concept
 Source: maintain-skill-gap-analysis-what-field-does-we-dont
 Agent: --action
