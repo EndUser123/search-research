@@ -683,3 +683,464 @@ This concept is wrong if:
 - [[check-and-fix-skills-verification-skills-should-fix-what-they-can]] — improvement 5 shares the auto-fix-what-is-deterministic principle
 - [[agent-config-directory-taxonomy]] — relevant to Improvement 1's consumer-update phase (path references in plugin manifests)
 - [[mechanical-enforcement-over-behavioral-reminder]] — Improvement 3 + 4 are both mechanical-enforcement instantiations
+---
+
+## /tp review deep-dive (2026-08-08)
+
+A `/tp` (premise-critique) review surfaced 6 items from the 5 improvements
+above that were flagged `[REFINE]` (need more evidence) or `[DEFER]`
+(marginal ROI). This section captures the wiki-web-wiki cycle that
+resolved each: external research via `search_web__query` (Brave + Exa +
+DuckDuckGo fused) on 2026-08-08, plus a fresh read of our own
+implementations to disambiguate the wiki's framing.
+
+### Discovery correction (important before verdicts)
+
+The original wiki description of Improvement 3 said `intent_classifier.py`
+"runs the LLM classifier first, then the keyword check." Reading the
+actual implementation this session (`P:/.claude/hooks/shared/intent_classifier.py`
+lines 1-50) shows it is **embedding-based semantic classification via
+sentence-transformers, ~10ms local** — not an LLM call. The IRIS
+"neuro-symbolic" framing in the original concept was based on the
+academic literature's LLM-vs-rule debate, which does not directly apply
+when the "LLM" half is actually a 10ms embedding lookup. This changes
+R1's framing materially — see R1 below.
+
+### Verdicts (6 items)
+
+#### R1 — Neuro-symbolic gate ordering — `CONFIRM CURRENT ARCHITECTURE` (do not flip)
+
+**The original wiki assumed:** our gate runs an LLM classifier first,
+then keyword. The IRIS pattern (deterministic rule first, LLM classifier
+for ambiguous cases only) would suggest flipping.
+
+**What the actual code does** (`P:/.claude/hooks/shared/intent_classifier.py`,
+confirmed this session): runs a **local sentence-transformers embedding
+classifier (~10ms) first**, then the regex `skill_enforcer` second
+(`tests/test_intent_classifier_integration.py:78-83` — priority 0.5 vs 1.0).
+
+**External evidence the IRIS pattern doesn't apply at our scale:**
+
+- **Semgrep AI-powered detection** (`semgrep.dev/blog/2025/ai-powered-detection-with-semgrep/`):
+  *"AI-powered detection starts with deterministic findings—improving
+  true positive rates for IDORs and business logic vulnerabilities over
+  LLM-only methods."* Semgrep is rule-first because their rules are
+  cheap (millisecond regex/AST) and LLM is slow (hundreds of ms).
+- **Vulnhalla** (CyberArk, `cyberark.com/resources/threat-research-blog/vulnhalla-picking-the-true-vulnerabilities-from-the-codeql-haystack`):
+  *"combining CodeQL with LLM-powered reasoning"* — rule-first, LLM-for-triage.
+- **Emerging Trends paper** (`lexuanbach.github.io/publication/IEA2026c.pdf`):
+  *"these gains emerge primarily when agents augment established tools
+  rather than replace them."*
+- **DEV.to** (`dev.to/ayame0328/how-i-replaced-llm-based-code-analysis-with-static-analysis-and-got-better-results-43nl`):
+  *"Confidence levels. High confidence for clear-cut cases (eval(input())),
+  medium for ambiguous ones (eval() with non-obvious arguments)."*
+
+**Where Semgrep's rule-first reasoning breaks:** when the rule is slow
+(LLM, not regex), or when the semantic gap between phrasings is too
+large for a single regex. Our case is the second: embedding classifier
+at 10ms is fast enough that it doesn't waste budget, and paraphrased
+commands ("git push --force" vs "force push the branch") need semantic
+understanding — see R2 evidence on Anthropic issue 26862.
+
+**Verdict:** the current "embedding-classifier-first, regex-second"
+ordering is already optimal for our scale. The original wiki
+"LLM-first" framing was inaccurate; the IRIS debate does not apply
+because the slow half doesn't exist in our pipeline. **Do not flip.**
+
+**Falsifier:** this verdict is wrong if a future hook needs to call a
+real LLM (not embedding) for disambiguation. In that case, the IRIS
+pattern does apply and the LLM should be the second-stage fallback, not
+the first gate.
+
+#### R2 — Semantic PreToolUse gating — `UPGRADE TO SHIP` (with bounded scope)
+
+**External evidence is strong that semantic PreToolUse gating is
+production-viable, not theoretical:**
+
+- **Anthropic Claude Code Auto Mode** (`arxiv.org/abs/2604.04978`,
+  arXiv 2604.04978): *"0.4% false positive rate and 17% false negative
+  rate on production"* — Anthropic's own two-stage transcript classifier
+  is the deployed reference implementation.
+- **Cursor** (`cursor.com/docs/enterprise/llm-safety-and-controls`):
+  *"Auto-review runs allowlisted calls, sandboxes shell commands when
+  it can, and routes the rest through an LLM classifier that returns
+  allow or block based on safety and how well the call matches the
+  user's intent."*
+- **Dyad** (`dyad.sh/blog/claude-code-permission-hooks`): *"Python-based
+  system that calls Claude Sonnet to classify operations as GREEN,
+  YELLOW, or RED."*
+- **OpenCode Auto Mode** (`github.com/anomalyco/opencode/issues/33585`):
+  *"Escalation backstop — per-session denial counters (3 consecutive /
+  20 total), reset each user turn, so a false positive can't loop
+  forever."* — the missing piece: backstop on false positives.
+- **Open-source tools:** `claude-intent-alignment-guard`, `agent-gate`,
+  `cc-toolgate` (3 separate GitHub repos).
+
+**Evidence the current regex-only PreToolUse hooks DO have FP problems:**
+
+- **Anthropic issue 26862** (`github.com/anthropics/claude-code/issues/26862`):
+  *"High false-positive rate: Hooks that try to block patterns like
+  git push --force or drizzle-kit push frequently misfire on completely
+  safe commands"* (e.g., `git push origin main` blocked because hook
+  sees "push" and gets confused).
+- **destructive_command_guard** (`github.com/Dicklesworthstone/destructive_command_guard`):
+  implements a 3-tier gate — Tier 1 quick reject (<10μs keyword), Tier 2
+  context classification, Tier 3 full regex on executable spans only.
+  This is exactly the deterministic-first semantic-second hybrid.
+
+**Our existing hooks already follow the hybrid pattern, but inconsistently:**
+
+| Hook file | Current architecture | Gap |
+|-----------|---------------------|-----|
+| `PreToolUse_bash_syntax_validator.py` | AST parsing + heuristics | Already semantic — no change needed |
+| `PreToolUse_existence_gate.py` | Existence probing | Already semantic |
+| `PreToolUse_evidence_hierarchy_gate.py` | Pattern + context | Mostly deterministic |
+| `PreToolUse_referent_scope_gate.py` | Reference resolution | Semantic-adjacent |
+| `PreToolUse_task_done_evidence_gate.py` | Regex on output | **FP-prone** — candidate for upgrade |
+| (none) | Destructive-command detection | **MISSING** — highest-value target |
+
+**Concrete action (bounded ~100 lines):**
+
+1. Add a `PreToolUse_destructive_command_gate.py` hook modeled on
+   `destructive_command_guard` 3-tier pattern (keyword < 10μs, context
+   classification, regex only on executable spans).
+2. Use the existing `intent_classifier.py` embedding module as the
+   context-classification layer (reuse, don't reimplement).
+3. Add an OpenCode-style escalation backstop: deny-counter per session
+   (3 consecutive / 20 total) so a single misfire can't loop forever.
+4. Ship the destructive-command gate FIRST; defer the upgrade of
+   `task_done_evidence_gate.py` until the new pattern proves out.
+
+**Verdict:** ship the destructive-command PreToolUse gate as the next
+concrete instance of the semantic-gating pattern. The Anthropic 0.4% FP
+empirical benchmark sets the bar; the OpenCode backstop is the
+required safety mechanism.
+
+**Falsifier:** this verdict is wrong if our embedding classifier takes
+>100ms per call in production (violates PreToolUse latency budget). The
+test in `intent_classifier.py` claims ~10ms; verify on real workloads
+before shipping.
+
+#### R3 — Wire drift detector into `/maintain` — `UPGRADE TO SHIP` (integration point already exists)
+
+**External evidence is overwhelming that drift detection belongs in a
+scheduled maintenance loop, not a new scheduler:**
+
+- **Renovate** (`docs.renovatebot.com/key-concepts/scheduling/`,
+  `stackharbor.com/en/knowledge-base/renovate-bot-dependency-updates/`):
+  standard cadence is weekly, with `vulnerabilityAlerts.schedule` to
+  bypass for security. Composable scheduling is built in.
+- **Dependabot** (`github.blog/changelog/2025-04-22-dependabot-now-lets-you-schedule-update-frequencies-with-cron-expressions/`):
+  added cron-interval support (`dependabot-core#6339`) — same composable
+  pattern.
+- **Spacelift** (`docs.spacelift.io/concepts/stack/drift-detection`):
+  *"periodically executing proposed runs on your stable infrastructure...
+  create a drift detection schedule for your stack. You will be able to
+  add multiple cron rules."* Multiple cron rules per stack is the exact
+  composable-check pattern.
+- **Dagster Declarative Automation** (`docs.dagster.io/guides/automate/declarative-automation/migrating-from-sensors`):
+  *"Conditions are built from small, composable operators (since,
+  newly_true, all_deps_match) that can be combined, customized, and
+  shared across assets."* — the same shape our `/maintain` needs.
+- **bugfree.ai** (`bugfree.ai/knowledge-hub/drift-detection-in-gitops-workflows`):
+  *"Schedule regular checks to compare the live state of your
+  infrastructure with the desired state... can be done through cron
+  jobs or CI/CD pipelines that trigger drift detection scripts."*
+- **Devonair** (`devonair.ai/blog/workflows/cron-scheduled-maintenance`):
+  production example — *"Security scan at 2 AM, Check for critical
+  updates at 3 AM, Clean up temporary files at 4 AM"* — same shape as
+  `/maintain` Step 2a/2b/2c.
+
+**Critical local finding — the integration point is already built.**
+
+Reading `C:\Users\brsth\.grok\skills\maintain\SKILL.md` lines 309-329
+this session, `/maintain` already has **Step 2h — Scheduled checks**
+with:
+
+- Registry file: `P:/.data/scheduled-checks.json`
+- Runner: `P:/.agents/scripts/scheduled_checks.py`
+- Per-check "runs at most once per day" semantics
+- Adding a new check = appending one JSON entry
+
+The `/tp` review's "use existing `/maintain`, not a new scheduler"
+verdict was correct. **No new infrastructure is needed.**
+
+**Concrete action (bounded ~10 lines):**
+
+Append one entry to `P:/.data/scheduled-checks.json`:
+
+```json
+{
+  "id": "credential-drift-detector",
+  "description": "Probe live state vs documented credentials, status, MCP connections",
+  "check_type": "command",
+  "check_args": {"cmd": "python ~/.grok/skills/<x>/scripts/credential_drift_detector.py --json"},
+  "action_on_found": "append to P:/.data/wiki/concepts/credential-drift-reports/<date>.md",
+  "frequency": "daily",
+  "last_checked": null,
+  "status": "pending",
+  "created": "2026-08-08"
+}
+```
+
+**Verdict:** ship the integration as a single JSON entry. The
+`/maintain` Step 2h infrastructure already handles scheduling,
+deduplication, and report generation — extending it is the right
+integration pattern, not building a parallel scheduler.
+
+**Falsifier:** this verdict is wrong if `credential_drift_detector.py`
+calls quota-consuming APIs (e.g., `pwm usage` after every commit).
+Mitigation: weekly cadence for quota-consuming probes; daily for
+config-file diff probes that don't hit external APIs.
+
+#### D1 — Credential debris detection — `UPGRADE WITH SCOPE` (not full deferral)
+
+**The /tp review was right that "every backup key looks like debris"
+in a naive implementation, but external practice shows the
+distinction is achievable:**
+
+- **TruffleHog verifier** (`trufflesecurity.com/blog/how-trufflehog-verifies-secrets`,
+  `appsecsanta.com/trufflehog`): *"TruffleHog pulls ahead on raw
+  feature count. Its 800+ detectors include active credential testing
+  that confirms whether a key still works... tells you which historical
+  credentials are still live and must be rotated now."* — the
+  verifier API answers "is this credential actually used?"
+- **TruffleHog falsepositives.go** (`github.com/trufflesecurity/trufflehog/blob/9f0b97f1/pkg/detectors/falsepositives.go`):
+  explicit FP filter file — the tool treats FP management as a
+  first-class concern.
+- **GitGuardian ML filtering** (`devsecops.ae/secrets-scanners-comparison-2026/`):
+  *"ML-based filtering that drops false positives"* — industry
+  practice is to use verifier signals, not just regex match.
+- **AWS IAM GetCredentialReport** (`docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_finding-unused.html`):
+  *"Identify when an IAM access key was last used"* — `last_used`
+  timestamp is the canonical signal.
+- **Azure Operator Nexus** (`learn.microsoft.com/en-us/azure/operator-nexus/howto-credential-rotation`):
+  `secretRotationStatus.lastRotationTime` field — rotation timestamp
+  signal.
+- **NHiMG** (`nhimg.org/faq/what-fails-when-inactive-credentials-are-not-fully-revoked-before-system-retirem/`):
+  the concept of "inactive credentials" specifically — distinguishes
+  from "rotated" and from "live."
+- **OneUptime** (`oneuptime.com/blog/post/2026-01-30-security-secret-rotation-strategies/view`):
+  *"A credential leaked six months ago is still valid if you never
+  rotated it."* — the harm is unrevoked credentials, not all
+  credentials.
+
+**The signal exists. The /tp review's concern was a naive
+implementation; the right scope is narrower:**
+
+- "Debris" = (a) credentials verified as no longer functional (TruffleHog
+  verifier returned 401/expired) AND (b) older than N days (e.g., 90d)
+  AND (c) not referenced in any current code/config.
+- "Backup" = (a) currently functional OR (b) referenced in code/config
+  OR (c) recently used (last_used < N days).
+
+**Concrete action (bounded ~50 lines):**
+
+Add a "credential debris" pass to `credential_drift_detector.py` that
+uses TruffleHog-style verification (or a lightweight equivalent) to
+classify each detected credential:
+
+| Verifier result | last_used | Classification | Action |
+|----------------|-----------|----------------|--------|
+| 401/expired | >90d | **Debris** | Suggest rotation |
+| Functional | any | Live | No action |
+| Verifier unreachable | <30d | Indeterminate | Mark for manual review |
+| Verifier unreachable | >180d | Likely debris | Suggest rotation |
+
+**Verdict:** upgrade with scope. Implement the debris pass with the
+verifier-first signal (TruffleHog model), not regex-only. The naive
+"every backup looks like debris" concern is addressed by the
+verifier-first classification.
+
+**Falsifier:** this verdict is wrong if the verifier calls consume quota
+or hit rate limits across N services. Mitigation: batch probes (1
+per service per day); cache verifier results for 24h; never probe
+unauthorized services.
+
+#### D2 — Runtime task-definition validation — `PARTIAL UPGRADE` (envelope, not full schema)
+
+**The /tp review said "mostly covered by spawn_model_gate." The reality
+is partial — model selection is covered, task envelope is not:**
+
+Read `C:\Users\brsth\.grok\hooks\PreToolUse_spawn_model_gate.py` lines
+1-100 this session. Current validation:
+
+- ✅ Serde-broken models → block
+- ✅ Quota-exhausted providers → block with fallback chain
+- ✅ Reads `fleet-models.json` registry
+- ❌ Prompt non-empty (not validated — empty prompt would still dispatch)
+- ❌ Wait_all consumer (not validated — Improvement 4.2 lint not yet built)
+- ❌ Return-shape schema (not validated — depends on caller)
+- ❌ Dispatch envelope (parent context, expected duration, model lane)
+
+**External evidence the envelope-level check is a real pattern:**
+
+- **Director-AI Agent Preflight Guard** (`anulum.github.io/director-ai/api/agent-preflight/`):
+  validates dispatch envelope, not just model selection.
+- **pcvelz/superpowers** (`github.com/pcvelz/superpowers`):
+  `pre-agent-task-dispatch-validate.sh` for "transcript-walking logic
+  and the SUPERPOWERS_DISPATCH_GUARD=0 escape hatch. Metadata keys are
+  documented in skills/shared/task-format-reference.md. Optional
+  PostToolUse hook on Agent that fires the moment a subagent's [result
+  is consumed]." — exact shape of our missing envelope check.
+- **bugcrowd/ecs-task-definition-validator** (`github.com/bugcrowd/ecs-task-definition-validator`):
+  *"Validates ECS Task Definitions with JSON Schema."* — schema
+  validation pattern.
+- **voxmedia/open-agent-toolkit** (`github.com/voxmedia/open-agent-toolkit`):
+  `oat-dispatch-subagents` with `record-schema.md` — record schema
+  for dispatch.
+- **Agent Safety Gates** (`medium.com/@ThinkingLoop/agent-safety-gates-12-preflight-checks-before-tools-run-ecf1c41ba252`):
+  *"12 preflight checks before tools run"* — the comprehensive gate
+  list pattern.
+
+**Bounded action (~30 lines):**
+
+Add 3 envelope checks to `PreToolUse_spawn_model_gate.py`:
+
+```python
+# Envelope validation (additive to existing model/quota checks)
+if not spawn_args.get("prompt", "").strip():
+    block("empty_prompt", "Task definition missing prompt")
+if "wait_all" not in caller_stack_trace and spawn_args.get("background"):
+    block("missing_wait_all", "Background subagent dispatched without wait_all consumer")
+if spawn_args.get("model") and not is_lane_compatible(spawn_args["model"], spawn_args.get("lane")):
+    block("lane_mismatch", f"Model {spawn_args['model']} not in expected lane")
+```
+
+**Verdict:** partial upgrade — add the 3-line envelope check, don't
+build a full schema validator. The model/quota validation is already
+comprehensive; the envelope is the actual gap.
+
+**Falsifier:** this verdict is wrong if the wait_all check produces
+false positives on fire-and-forget subagents the operator wants to
+persist across sessions. Mitigation: opt-in `persist=True` flag at
+dispatch time (Flock's pattern, already cited in the parent concept).
+
+#### D3 — Smoke test in PreToolUse — `CONFIRM DEFER WITH CARVE-OUT`
+
+**External evidence is unanimous that running smoke tests in a
+PreToolUse hook is impractical at our scale:**
+
+- **Pre-commit perf issue** (`github.com/pre-commit/pre-commit/issues/1564`):
+  *"execution time of pre-commit is >7 seconds with the before/after
+  diffs, and ~1 second with those diffs disabled."* — even diff
+  calculation is a budget hit.
+- **Pre-commit perf issue** (`github.com/pre-commit/pre-commit/issues/3603`):
+  *"Pre-commit performance issues in our large repository"* —
+  documented class.
+- **thoughtspile** (`thoughtspile.github.io/2021/06/14/faster-pre-commit/`):
+  *"How we made our pre-commit check 7x faster"* via `--incremental
+  --noEmit` — caching is essential.
+- **chipper** (`github.com/phetsims/chipper/issues/1269`): *"tsc
+  without project references and with incremental: true takes around
+  3.7 seconds with no code changes"* — incremental caching is the
+  pattern.
+- **Husky issue 973** (`github.com/typicode/husky/issues/973`):
+  *"Prepush hook fails on long running tests"* — the same problem
+  on the pre-push side, and people move slow tests OUT.
+- **Husky PR 555** (`github.com/christianpeirson/argos-edge/pull/555`):
+  *"perf(husky): pre-push eslint scoped + fallow opt-in (kill
+  cross-worktree stall)"* — scoping + opt-in is the mitigation pattern.
+
+**The mitigation pattern is git-diff-scoped pre-push, not PreToolUse:**
+
+- **Stack Overflow** (`stackoverflow.com/questions/63663011/run-tests-with-husky-pre-push-only-when-there-are-changes`):
+  *"Run tests with husky pre-push only when there are changes"* —
+  git diff scoping.
+- **lint-staged** pattern (`dev.to/_d7eb1c1703182e3ce1782/git-hooks-with-husky-and-lint-staged-the-complete-setup-guide-for-2025-53ji`):
+  scopes checks to staged files only — incremental by construction.
+
+**The smoke-test-as-PreToolUse-hook design is structurally wrong
+because:**
+
+1. PreToolUse fires **before** the write, not after. A smoke test on
+   un-written code is meaningless.
+2. Even with diff scoping, the latency budget is ~5s; integration smoke
+   tests routinely take 30s+.
+3. The Anthropic 0.4% FP rate (R2) is on classification, not on running
+   code — semantic classification is what fits the PreToolUse budget;
+   smoke tests don't.
+
+**Carve-out — where smoke testing DOES belong:**
+
+- `~/.grok/hooks/quality_gate.py` already runs post-write smoke tests
+  (per `code-orchestrates-model-judges-skill-scale.md:90`).
+- `P:/docs/handoffs/.../HANDOFF.md` and `wiki/concepts/hook-script-capability-derivation-receipt-loop-fix.md`
+  document the existing post-write smoke pattern.
+- The scheduled_checks infrastructure (R3) can run integration smoke
+  tests on a daily/weekly cadence, NOT per-PreToolUse.
+
+**Verdict:** confirm defer. The PreToolUse budget cannot accommodate
+smoke tests. **Use the existing post-write `quality_gate.py` pattern
+for per-write smoke, and the scheduled_checks infrastructure for
+periodic integration smoke.** A PreToolUse smoke test hook is the
+wrong shape.
+
+**Falsifier:** this verdict is wrong if a future hook needs to
+**classify** whether a write will break a consumer (not run the smoke
+test). That's R2's territory, not D3's. The classification can fit
+PreToolUse; the actual smoke cannot.
+
+### Summary table (for the operator)
+
+| Item | Verdict | Why | Bounded action |
+|------|---------|-----|----------------|
+| **R1** Neuro-symbolic ordering | CONFIRM current | Embedding (10ms) ≠ LLM (300ms+); IRIS debate doesn't apply at our scale | None — document the discovery correction in the parent concept |
+| **R2** Semantic PreToolUse gating | UPGRADE | Anthropic 0.4% FP, Cursor/Dyad/OpenCode all ship it, issue 26862 confirms regex-only has FP problem | Ship `PreToolUse_destructive_command_gate.py` (~100 lines), reuse `intent_classifier.py`, add per-session backstop |
+| **R3** Drift detector into `/maintain` | UPGRADE | Integration point already built (Step 2h, `P:/.data/scheduled-checks.json`); Renovate/Dependabot/Dagster all use this pattern | Append 1 JSON entry (~10 lines) |
+| **D1** Credential debris | UPGRADE with scope | TruffleHog verifier (FP filter file, active probing) + AWS/Azure last-used timestamps make the distinction achievable | Add verifier-first classification pass (~50 lines) |
+| **D2** Runtime task validation | PARTIAL UPGRADE | Model/quota validation is comprehensive; envelope (prompt non-empty, wait_all, lane) is the actual gap | Add 3 envelope checks (~30 lines) |
+| **D3** Smoke test in PreToolUse | CONFIRM DEFER | Latency budget violation is structural; not solvable with caching alone | Use post-write `quality_gate.py` for per-write smoke; scheduled_checks for periodic integration smoke |
+
+### Net effect on the parent concept's Workstream C (gating infra)
+
+Original Workstream C prioritized intent-classifier docs (Medium ROI).
+After this deep-dive:
+
+- **R2 UPGRADE** moves to HIGH ROI (concrete destructive-command gate
+  with empirical FP benchmark).
+- **D2 PARTIAL UPGRADE** is a LOW-EFFORT HIGH-VALUE add (30 lines).
+- **R1 CONFIRM** removes a planned-but-not-needed work item.
+
+Updated priority (from this deep-dive):
+
+| Workstream | ROI | Why |
+|------------|-----|-----|
+| R2 destructive-command PreToolUse gate | **High** | Empirical 0.4% FP benchmark + multiple production tools + concrete FP problem in issue 26862 |
+| R3 drift-detector scheduled-checks entry | **High** | Zero new infrastructure; one JSON entry; uses existing Step 2h |
+| D1 credential debris verifier pass | **Medium** | Bounded, signal-driven, reuses TruffleHog/verifier pattern |
+| D2 task envelope check | **Medium** | Bounded, fills an actual gap, doesn't conflict with spawn_model_gate |
+| R1 ordering doc only | **Low** | Discovery correction is the deliverable; no code change |
+| D3 PreToolUse smoke | **Defer** | Latency violation is structural, not solvable |
+
+### Receipts (this session's claims)
+
+- **"intent_classifier.py is embedding-based, not LLM-based":** read
+  `P:/.claude/hooks/shared/intent_classifier.py` lines 1-50 this session.
+- **"intent_classifier priority 0.5 < skill_enforcer priority 1.0":**
+  read `P:/.claude/hooks/tests/test_intent_classifier_integration.py:78-83`
+  this session.
+- **"spawn_model_gate validates model/quota only, not envelope":** read
+  `C:\Users\brsth\.grok\hooks\PreToolUse_spawn_model_gate.py` lines 1-100
+  this session.
+- **"/maintain already has Step 2h scheduled-checks infrastructure":**
+  read `C:\Users\brsth\.grok\skills\maintain\SKILL.md` lines 309-329
+  this session.
+- **12 search_web__query calls run this session** (Brave + Exa + DDG
+  fused); 10+ results each; multi-backend confirmation on the highest-
+  signal results.
+- **Anthropic Claude Code Auto Mode 0.4% FP rate:** arXiv 2604.04978
+  via `search_web__query` result, snippet directly cited.
+- **TruffleHog `falsepositives.go` file exists:** confirmed via Exa
+  search result pointing to `github.com/trufflesecurity/trufflehog/blob/9f0b97f1/pkg/detectors/falsepositives.go`.
+
+### New wiki relations (auto-related to add on wiki update)
+
+- [[anthropic-claude-code-auto-mode-fp-rate]] — empirical 0.4% FP
+  benchmark that backs R2's upgrade verdict
+- [[trufflehog-verifier-pattern-for-credential-debris]] — D1's
+  implementation template
+- [[opencode-auto-mode-escalation-backstop-pattern]] — R2's required
+  safety mechanism for false-positive loops
+- [[scheduled-checks-composable-cadence-pattern]] — R3's integration
+  template (already cited via `maintain/scheduled-checks.json`)
