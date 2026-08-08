@@ -1,5 +1,11 @@
 # Vault Log
 
+## Design-doc conformance check procedure
+Source: session-2026-08-08
+Agent: grok
+Notes: Reusable procedure for verifying design proposal claims against actual codebase
+Page: P:/.data/wiki/concepts/design-doc-conformance-check-procedure.md
+
 ## --concept
 Source: scan-historical-transcripts-before-deferring-data-already-exists
 Agent: --action
