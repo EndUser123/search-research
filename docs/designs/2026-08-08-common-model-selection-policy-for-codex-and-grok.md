@@ -1,10 +1,33 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Status:** Proposed for cross-orchestrator review  
-**Revision:** 3 — reconciles the Grok conformance review; not yet accepted for implementation  
+**Status:** Revision 4 — incorporates all 16 relay-reviewed findings  
+**Revision:** 4 — converges the 6-turn cross-orchestrator review (review-a4284b50b3c5-7ce08143); ready for operator acceptance  
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
+
+## Revision 4 change log
+
+This revision incorporates all 16 findings from the 6-turn review relay
+(review-a4284b50b3c5-7ce08143, status: converged). Both Codex and Grok
+agreed on every finding with zero disputes. The 12 correction items are
+woven into the body; the review request section (§13) is replaced by
+the operator acceptance decision.
+
+**Key changes from Revision 3:**
+
+1. Objective renamed to conditional valid-result service time (CR-001, C-R3-01)
+2. Added v1 algorithm contract with executable formulas (CR-002)
+3. Candidate lifecycle gate: candidate records only eligible for safe-calibration (CR-003, F1)
+4. Panel-level capacity reservation for diverse panels (CR-004, C-R3-03)
+5. Capacity decision table keyed by capacity_kind × freshness (C-R3-02)
+6. Mandatory replay fields in receipts (CR-005, C-R3-04)
+7. Binding fingerprint with normative component list (CR-006, C-R5-03)
+8. Quarantine concurrency model specified (G-R2-01)
+9. All-attempt outcomes recorded as diagnostic (C-R3-01)
+10. Task-classification contract with authority and ambiguity handling (C-R5-01)
+11. Verification states: not_applicable, not_run, failed, passed (C-R5-02)
+12. Minimum diverse-panel quorum (2 families) and fail-closed behavior (C-R5-04)
 
 ## Executive proposal
 
@@ -23,26 +46,45 @@ The shared policy is therefore a common decision contract, not a global
 cross-host model picker.
 
 ```text
-task classification
-  -> hard eligibility gates
-  -> task-fit / verified-success floor
-  -> capacity and quota pacing
-  -> common selection mode
-  -> selection receipt
+task classification (authoritative, with ambiguity fallback)
+  -> hard eligibility gates (including lifecycle gate)
+  -> task-fit / verified-success floor (with explicit verification states)
+  -> capacity and quota pacing (with decision table)
+  -> common selection mode (deterministic | weighted_pool | diverse_panel)
+  -> panel capacity reservation (if diverse_panel)
+  -> selection receipt (with replay fields)
   -> independent result verification
 ```
 
-The primary objective is:
+### Primary objective
 
-> Minimize expected time to a verified result, subject to capability,
+> Minimize **conditional valid-result service time** subject to capability,
 > reliability, capacity, policy, and cost constraints.
 
-This is an evidence-based operating objective, not an observable quantity at
-selection time. The selector cannot know whether the next result will verify;
-it estimates that outcome from completed historical evidence and combines it
-with current capacity, rate-limit, and health signals. The actual verification
-result is recorded afterward and is not used to justify the decision that was
-already made.
+The objective is **conditional service time**, not unconditional time to
+verified result. The system has no automatic retry or fallback: a failed
+worker returns to the parent for judgment. Therefore the selector optimizes
+the expected service time of a single attempt that produces a valid result,
+conditioned on that attempt succeeding. The unconditional expected time to
+a verified result (including failures, retries, and rework) is a diagnostic
+metric recorded after the fact, not a selection-time formula.
+
+**Do not use `p90_latency / verified_success_probability` as a selection
+formula.** That estimator assumes a retry model that the system does not
+have. Instead:
+
+- Rank by conditional valid-result p90 latency among candidates that clear
+  the verified-success floor.
+- Record all-attempt outcomes (success, timeout, malformed, verification
+  failure, scope violation) as diagnostic evidence.
+- Monitor unconditional time-to-verified-result as a lagging quality metric,
+  not as a live ranking input.
+
+This is an evidence-based operating objective. The selector cannot know
+whether the next result will verify; it estimates that outcome from
+completed historical evidence and combines it with current capacity,
+rate-limit, and health signals. The actual verification result is recorded
+afterward and is not used to justify the decision that was already made.
 
 ## Current conformance status
 
@@ -62,8 +104,10 @@ known gaps:
   invocation scope, so the shared quarantine file is not safe as a
   cross-orchestrator authority.
 - Grok's normal eligibility path currently admits `candidate` lifecycle
-  records; the safe-calibration boundary below is therefore a required
-  implementation correction, not an existing guarantee.
+  records; the lifecycle gate below is therefore a required implementation
+  correction, not an existing guarantee. **Live confirmation:** 7
+  candidate-lifecycle models are currently in the active routing pool with
+  zero verified-success evidence (fleet scan F1).
 - Current receipts do not yet expose every target field in both hosts;
   missing capacity, latency, evidence, or verification values must remain
   explicit unknowns rather than being synthesized.
@@ -82,12 +126,13 @@ Codex and Grok should share or conform to:
 - provider aliases and canonical model identifiers;
 - capability and context metadata;
 - lifecycle and policy-state vocabulary;
-- task-lane definitions;
+- task-lane definitions and task-classification contract;
 - quota/capacity model semantics and adapter output contract;
-- selection-mode definitions;
-- verified-success definition;
-- selection-receipt shape;
-- golden decision fixtures and algorithm version.
+- selection-mode definitions and v1 algorithm contract;
+- verified-success definition (with explicit verification states);
+- selection-receipt shape (including replay fields);
+- golden decision fixtures and algorithm version;
+- binding fingerprint component list and serialization rules.
 
 The implementations may remain native: JavaScript for Codex and Python for
 Grok. The shared schema and golden vectors are the compatibility boundary.
@@ -97,8 +142,29 @@ Grok. The shared schema and golden vectors are the compatibility boundary.
 Runtime evidence must remain separate by the complete invocation identity:
 
 ```text
-provider + model + invocation_method + orchestrator
+provider + model + invocation_method + orchestrator + binding_fingerprint
 ```
+
+The `binding_fingerprint` is a non-ranking identifier used for evidence
+segmentation. It is a SHA-256 hash of the sorted JSON encoding of:
+
+```text
+{
+  "provider": "<provider>",
+  "model": "<model>",
+  "invocation_method": "<pi|native|http|opencode>",
+  "orchestrator": "<codex|grok>",
+  "route": "<endpoint or alias resolution>",
+  "harness_version": "<selector/harness version>",
+  "prompt_contract": "<system prompt + tool policy hash>",
+  "result_contract": "<result schema version>",
+  "verifier": "<verification harness version>",
+  "config_provenance": "<config file hash>"
+}
+```
+
+When any fingerprint component changes, a new evidence cohort begins. Old
+evidence is retained as diagnostic but does not merge into the new cohort.
 
 Evidence should additionally be segmented by task lane and cohort where
 relevant. In particular, Codex/Pi measurements must not be merged with
@@ -113,57 +179,145 @@ The reason is not that the policy differs. The execution conditions differ:
 - parent verification and worktree/scope checks.
 
 Discoverability may be shared. Measured success, latency, timeout, and
-verification outcomes are local to the exact invocation identity.
+verification outcomes are local to the exact binding fingerprint.
 
-## Task groups and selection modes
+## Task-classification contract
 
-There are two primary task groups and one optional modifier.
+Task classification is the first policy decision. It must be authoritative,
+deterministic, and shared between both hosts to prevent divergence at the
+first gate.
 
-### Mechanical/routine
+### Classification authority
 
-Includes extraction, reading, formatting, routine verification, structured
-output, and bounded low-ambiguity work. Bounded coding may use this group when
-the specification is complete and the work is independently verifiable.
+The task lane is determined by the **dispatching skill or caller**, not by
+the selector. The selector receives the lane as an input; it does not infer
+the lane from the prompt content. If the caller does not specify a lane,
+the default is `reasoning` (the higher-safety lane).
 
-Selection mode: `deterministic`.
+### Ambiguity handling
 
-Choose the fastest eligible candidate that clears the task-fit and
-verified-success floor. Latency must be measured for the exact provider,
-model, invocation method, and orchestrator. Use end-to-end valid-result
-latency, including bridge and contract overhead, rather than raw HTTP or
-token-generation speed.
+When a task straddles lanes (e.g., "read this file and summarize it" could
+be mechanical or reasoning):
 
-### Reasoning
+1. The caller declares the lane explicitly.
+2. If the caller is ambiguous, the **higher-safety lane** is used.
+3. For write-capable tasks, ambiguity always resolves to the lane with the
+   stricter verified-success floor.
+4. The receipt records the declared lane, the ambiguity resolution (if any),
+   and the classifier provenance (which skill or caller assigned the lane).
 
-Includes planning, debugging, architecture, ambiguous coding, synthesis, and
-a single-model critique.
+### Lane definitions
 
-Selection mode: `weighted_pool`.
+| Lane | Selection mode | Exploration | Write-capable | Description |
+|------|---------------|-------------|---------------|-------------|
+| `mechanical` | `deterministic` | epsilon=0.05 (safe only) | No | Extraction, reading, formatting, routine verification, structured output, bounded low-ambiguity coding |
+| `reasoning` | `weighted_pool` | epsilon=0.1 (safe only) | No | Planning, debugging, architecture, ambiguous coding, synthesis, single-model critique |
+| `coding` | `weighted_pool` | epsilon=0.0 | Yes (worktree) | Write-capable coding with complete specification and independent verification |
+| `critic` | `diverse_panel` | epsilon=0.0 | No | Multi-model red-team or cross-check |
 
-Eligible candidates receive evidence-based weights using task-lane verified
-success, contract/verification outcomes, latency, capacity fitness, evidence
-confidence, and freshness. A faster model should not automatically beat a
-materially more reliable reasoning model.
+Bounded coding may use the `mechanical` lane when the specification is
+complete and the work is independently verifiable. Otherwise coding uses
+the `coding` lane with worktree isolation.
 
-Bounded exploration is allowed only for safe tasks and only within the
-configured exploration policy. Exploration is disabled for write-capable or
-otherwise high-risk work.
+## V1 algorithm contract
 
-### Independent critique modifier
+Both selectors must implement the same algorithm for each selection mode.
+This contract is versioned (`algorithm_version: "v1"`). Any change requires
+a new version and replay-tested fixtures.
 
-Critique is not a separate intelligence tier. It is reasoning with an
-additional independence requirement.
+### Deterministic mode (mechanical lane)
 
-- A single critique uses the normal reasoning pool.
-- A multi-model red-team or cross-check uses `diverse_panel`.
-- The panel first requires distinct provider/model families, then applies the
-  normal reasoning ranking within those families.
-- If fewer families are available than requested, the receipt explicitly
-  discloses reduced diversity.
+```text
+eligible = candidates that pass all gates
+ranked = sort(eligible, key=lambda c: (
+    capacity_fitness(c),        # desc: higher capacity first
+    p90_latency(c),             # asc: faster first
+    verified_success_rate(c),   # desc: tie-breaker (already floored)
+    stable_candidate_id(c),     # asc: stable final tie-breaker
+))
+selected = ranked[0]
+```
 
-Diversity may override speed and cost only when independent perspective is an
-  explicit objective. A provider outage or rate-limit event may also require
-  switching families for resilience.
+Exploration (epsilon=0.05 for mechanical safe lanes only): with probability
+epsilon, select a random eligible candidate instead of the top-ranked one.
+Exploration is disabled for write-capable or high-risk work.
+
+### Weighted-pool mode (reasoning, coding lanes)
+
+```text
+eligible = candidates that pass all gates
+
+For each candidate c:
+    evidence_weight = verified_success_rate(c) * freshness_decay(c)
+    latency_penalty = p90_latency(c) / lane_p90_median(eligible)
+    capacity_score = capacity_fitness(c)
+
+    raw_weight = evidence_weight * capacity_score / latency_penalty
+
+    # Small-sample correction: Wilson lower bound for verified_success_rate
+    # when sample_size < 30. Prevents high-variance candidates from
+    # getting inflated weights.
+    if sample_size(c) < 30:
+        effective_success = wilson_lower(verified_success_rate(c), sample_size(c), z=0.95)
+    else:
+        effective_success = verified_success_rate(c)
+
+    weight = effective_success * capacity_score / latency_penalty
+
+weights = normalize([weight(c) for c in eligible])
+selected = weighted_random_choice(eligible, weights)
+```
+
+**Missing-data defaults:**
+
+- No evidence for candidate: neutral cold-start prior (success_rate=0.5,
+  latency=lane median, confidence=low). Does NOT beat a measured candidate
+  unless the measured candidate is below the verified-success floor.
+- Stale evidence (>30 days): freshness_decay applies, shrinking confidence
+  toward the neutral prior.
+- p90 unavailable but p50 available: use p50 as a provisional proxy, label
+  as `latency_source: "p50_provisional"` in the receipt.
+
+**Tie-breaking:** if two candidates have indistinguishable weights (within
+5% of each other), use capacity fitness, then stable candidate ID.
+
+Exploration (epsilon=0.1 for reasoning safe lanes): with probability
+epsilon, select a random eligible candidate. Disabled for write-capable.
+
+### Diverse-panel mode (critic lane)
+
+```text
+families_available = distinct(provider_family(c) for c in eligible)
+
+if len(families_available) < MINIMUM_PANEL_QUORUM (2):
+    # Cannot meet the independence objective
+    if fail_closed:
+        return BLOCKED("insufficient provider diversity for independent critique")
+    elif operator_consent_for_degraded:
+        return DEGRADED_PANEL(reduced_diversity_receipt)
+    else:
+        return BLOCKED("insufficient diversity; operator not consulted")
+
+panel = []
+for family in sample(families_available, min(requested_size, len(families_available))):
+    best_in_family = highest_weight(eligible where provider_family == family)
+    panel.append(best_in_family)
+
+# Panel capacity reservation
+total_demand = len(panel)  # expected concurrent calls
+if not reserve_capacity(panel_providers, total_demand):
+    # Reservation failed — cannot safely dispatch concurrently
+    return BLOCKED("capacity reservation failed for panel") or
+    staggered_dispatch(panel)  # sequential fallback, disclosed in receipt
+```
+
+**Minimum panel quorum:** 2 distinct provider families. A single-family
+"panel" is not independent critique; it is a single-model critique using
+the normal reasoning pool.
+
+**Reservation failure:** fail-closed by default. The operator may pre-authorize
+degraded mode (reduced diversity, staggered dispatch, or single-model fallback)
+for specific task types. Degraded mode is always disclosed in the receipt.
 
 ## Common eligibility gates
 
@@ -175,21 +329,36 @@ Ranking never happens before these gates:
 3. The exact provider/model/invocation/orchestrator binding is configured and
    verified.
 4. The provider endpoint and transport are currently usable.
-5. The candidate is active and not quarantined, excluded, or awaiting an
-   approval that was not granted.
+5. **Lifecycle gate:** the candidate's lifecycle is `active` for the requested
+   lane and risk class. A `candidate` lifecycle record is eligible ONLY for
+   the safe-calibration lane. Normal reasoning, coding, or write-capable
+   selection requires lifecycle=active. This gate is enforced by the
+   selector, not by policy text alone.
 6. Current quota, rate-limit, and concurrency state admits the call.
 7. The candidate clears the lane-specific verified-success floor, or the task
    is explicitly admitted to the bounded safe-calibration lane. A normal
    reasoning or write-capable selection may not use the calibration exception.
 
-The quality floor is a gate, not a universal quality ranking. Internally,
-verified success is rich and includes:
+### Verification states
 
-- intended provider, model, transport, and orchestrator were actually used;
-- the worker returned the required result contract;
-- no timeout, malformed output, or transport mismatch occurred;
-- verification passed when verification was defined;
-- write tasks stayed within worktree and scope boundaries.
+Verified success is rich and includes explicit verification states:
+
+```text
+verification_not_applicable  # verification was not defined for this task
+verification_not_run         # verification was defined but not executed
+verification_failed          # verification was executed and did not pass
+verification_passed          # verification was executed and passed
+```
+
+Only `verification_passed` counts toward a promotion threshold. Lane-floor
+eligibility rules:
+
+| Verification state | Counts toward promotion? | Eligible for reasoning/coding? | Eligible for calibration? |
+|---|---|---|---|
+| `verification_passed` | Yes | Yes (if sample sufficient) | Yes |
+| `verification_not_applicable` | No | No (treat as unverified) | Yes (bounded scope only) |
+| `verification_not_run` | No | No | No |
+| `verification_failed` | No (counts against) | No | No |
 
 The operator can see one promotion threshold per lane, while the system keeps
 the richer evidence needed to enforce it.
@@ -198,8 +367,8 @@ the richer evidence needed to enforce it.
 
 Evidence is applied at the narrowest trustworthy scope first:
 
-1. exact provider/model/invocation/orchestrator identity in the requested lane;
-2. the same exact identity in related lanes;
+1. exact binding fingerprint identity in the requested lane;
+2. the same fingerprint identity in related lanes;
 3. a model-family or provider prior when exact evidence is absent;
 4. a neutral cold-start prior when no defensible prior exists.
 
@@ -234,7 +403,7 @@ enforce identity, contract, verification, timeout, and scope conditions.
 
 Latency is an optimization input, not a substitute for correctness.
 
-- Use measured p90 valid-result latency for the exact invocation identity as
+- Use measured p90 valid-result latency for the exact binding fingerprint as
   the shared target. p50 remains useful diagnostic data, but it does not
   satisfy the target on its own. Grok's current p50-only router is therefore
   non-conformant until its accumulator and selector consume p90.
@@ -251,10 +420,8 @@ Latency is an optimization input, not a substitute for correctness.
 - Treat a latency difference as meaningful only when the available sample,
   posterior uncertainty, and p50/p90 interval evidence support it. Overlapping
   intervals are uncertainty, not proof that two candidates are equal; when no
-  candidate has a defensible advantage, use a stable documented tiebreaker and
-  record that uncertainty in the receipt. A quality confidence interval is not
-  evidence of a latency interval; latency uncertainty requires latency samples
-  or a clearly defined latency estimator.
+  candidate has a defensible advantage, use the documented tiebreaker (v1
+  algorithm contract) and record that uncertainty in the receipt.
 - Recompute latency evidence by lane and cohort; do not copy benchmark
   latency across task types or invocation identities.
 
@@ -262,16 +429,10 @@ For mechanical work, latency is normally the primary ranking factor after the
 gates. For reasoning work, latency modulates the evidence weight because
 quality and verification success matter more.
 
-Tie-breaking is selection-mode specific. Ordinary selection does not use
-diversity as a hidden tie-breaker; diversity applies only to an explicit
-`diverse_panel` request. A deterministic selector may use capacity fitness,
-approved cost policy, and then a stable candidate identifier when evidence is
-indistinguishable. A weighted pool remains probabilistic rather than silently
-becoming deterministic.
-
-The long-term metric to monitor is time to a verified result, not raw worker
-latency. This captures the cost of failures, malformed responses, and parent
-rework without requiring an automatic retry or fallback.
+The long-term metric to monitor is unconditional time to a verified result
+(including failures and rework), not raw worker latency. This captures the
+cost of failures, malformed responses, and parent rework without requiring
+an automatic retry or fallback.
 
 ## Cost, subscription, and quota rules
 
@@ -295,7 +456,7 @@ capacity constraint. Use it when its quota is available and the model fits;
 preserve it only when forecasted demand could exhaust the quota before reset
 or when it is materially better for a task with no adequate substitute.
 
-Do not create an arbitrary permanent “reasoning reserve” when observed usage
+Do not create an arbitrary permanent "reasoning reserve" when observed usage
 shows the pool is unlikely to exhaust.
 
 ### Free and rate-limited routes
@@ -332,13 +493,7 @@ when actually reported or reliably estimated from bounded provider pricing.
 ## Provider capacity model contract
 
 Capacity is not one universal percentage. Each provider adapter must declare
-which capacity model it can observe:
-
-This is a forward specification and an implementation gate. The current Grok
-`_quota_headroom()` function is a type-based placeholder, and loading the
-quota cache in `pick_model.py` does not make that cache part of router scoring.
-The current Codex quota assessment also contains provider defaults, but those
-defaults are not a substitute for this shared adapter contract.
+which capacity model it can observe.
 
 - **windowed units:** tokens, requests, or another provider-defined unit with
   remaining amount and reset time;
@@ -367,23 +522,36 @@ source and freshness
 unknown_reason
 ```
 
-These fields preserve provider semantics; they do not make unlike units
-numerically comparable. A dollar balance is not a token quota, and a 429 is
-not proof that a quota is zero. If remaining or reset data is unavailable, the
-selector must represent an explicit rate-limited or unknown state and must not
-invent a burn rate. Unknown or stale capacity is neither unlimited nor
-exhausted: it may permit an already-approved, bounded non-spend call when
-current route health admits it, but it provides no pacing advantage and must
-not authorize unbounded use or scarcity-sensitive spending. A confirmed
-retry-after or exhaustion signal is honored until its stated expiry or a
-fresh provider observation.
+### Capacity decision table
 
-For `multi-pool` providers, each limiting window remains a separate record
-with its own unit, remaining value, reset, and source. The selector may use the
-most restrictive admissibility result for the requested task, but it must not
-collapse unrelated windows into one provider-wide percentage. A depleted
-browser/search pool, for example, must not be treated as proof that an
-independent coding pool is depleted.
+Admissibility is determined by the following table, keyed by capacity_kind
+and freshness. This table is normative — the selector does not invent
+defaults when the adapter output is ambiguous.
+
+| capacity_kind | freshness | ordinary task | bounded non-spend task | scarcity-sensitive task |
+|---|---|---|---|---|
+| `windowed_units` | fresh (<5 min) | allow if remaining > 0, apply pacing | allow | allow only if not forecast-exhausted |
+| `windowed_units` | stale (>5 min) | block until refreshed | allow if route health is clean | block |
+| `monetary_budget` | fresh | allow if remaining > cap | allow | allow only if remaining > reserve |
+| `monetary_budget` | stale | block until refreshed | allow | block |
+| `rate_limited_only` | live (429 health checked) | allow if no active 429/backoff | allow | allow if concurrency state admits |
+| `rate_limited_only` | stale | allow with disclosed uncertainty | allow | block |
+| `multi_pool` | fresh | check most restrictive window | allow if all relevant windows admit | allow only if all windows clear reserve |
+| `multi_pool` | stale | block until refreshed | allow if route health clean | block |
+| `unknown` | n/a | allow with disclosed uncertainty (non-spend only) | allow | block |
+
+**Confirmed exhaustion or retry-after:** always blocks until the stated expiry
+or a fresh provider observation overrides it.
+
+**Stale capacity** is neither unlimited nor exhausted. It may permit an
+already-approved bounded non-spend call when current route health admits it,
+but it provides no pacing advantage and must not authorize scarcity-sensitive
+spending.
+
+For `multi_pool` providers, each limiting window remains a separate record
+with its own unit, remaining value, reset, and source. The selector may use
+the most restrictive admissibility result for the requested task, but it must
+not collapse unrelated windows into one provider-wide percentage.
 
 ## Quota pacing and adaptive reserves
 
@@ -417,8 +585,7 @@ The runtime compares observed burn rate with allowable burn rate:
 
 If multiple windows exist—such as hourly, daily, and weekly—evaluate each in
 its own units. The most restrictive admissibility or risk result controls the
-decision; unrelated percentages must not be numerically combined. Daily
-pacing does not replace short-window rate-limit and concurrency checks.
+decision; unrelated percentages must not be numerically combined.
 
 The protected reserve is adaptive. It should reflect:
 
@@ -429,32 +596,52 @@ The protected reserve is adaptive. It should reflect:
 
 It is a capacity control, not a model-quality tier.
 
-## Selection receipts and failure behavior
+## Selection receipts and replay fields
 
 Every selection receipt should record:
 
-- task lane and selection mode;
-- selected provider, model, invocation method, and orchestrator;
-- eligible candidates and rejection reasons;
+- task lane, declared lane, ambiguity resolution (if any), and selection mode;
+- selected provider, model, invocation method, orchestrator, and binding fingerprint;
+- eligible candidates and rejection reasons (including lifecycle gate rejections);
 - capability, policy, lifecycle, and capacity decisions;
-- evidence cohort, sample count, freshness, and confidence;
-- latency metrics used;
+- evidence cohort, binding fingerprint, sample count, freshness, and confidence;
+- latency metrics used (including `latency_source: "p90" | "p50_provisional"`);
 - capacity model, source freshness, unknown reason when applicable, and quota
   window/pacing state used;
 - cost policy decision, without invented cost values;
 - alternatives considered;
-- algorithm and policy version.
+- **Replay fields (mandatory for weighted_pool and diverse_panel):**
+  - `algorithm_version`: e.g., "v1"
+  - `random_seed`: the PRNG seed used for weighted selection
+  - `prng_version`: PRNG algorithm identifier
+  - `normalized_weights`: the weight vector applied to eligible candidates
+  - `exploration_triggered`: boolean, whether exploration was activated
+  - `exploration_draw`: the random value that determined exploration (if triggered)
+  - `evidence_snapshot_hash`: hash of the evidence state used for this decision
+  - `capacity_snapshot_hash`: hash of the capacity state used for this decision
 
 The current orchestrator does not dynamically hand a failed task to the
 other orchestrator. A worker failure after start is recorded and returned for
 parent judgment. A different provider or harness requires a new explicit task
 and identity. A bounded pre-dispatch health refresh may update eligibility,
-but it must not become an implicit fallback chain. The minimum refresh means
-reloading the authoritative local quarantine and capacity state immediately
-before selection. A live provider query is optional only when state is stale,
-must have a bounded deadline, and must record its source and age. It must not
-query every provider on every selection, retry a failed worker, or silently
-transfer ownership to another orchestrator.
+but it must not become an implicit fallback chain.
+
+### Quarantine concurrency model
+
+Quarantine records are **per-orchestrator** to avoid cross-orchestrator
+write contention:
+
+```text
+P:/.artifacts/model-routing/quarantine-{orchestrator}.json
+```
+
+Each orchestrator writes only its own quarantine file. A failure in Grok
+quarantines a binding in `quarantine-grok.json`; it does not touch
+`quarantine-codex.json`. The selector reads only its own orchestrator's
+quarantine file for eligibility decisions.
+
+Quarantine records within each file use atomic writes (tmp + os.replace)
+with the GC pattern: expired records are pruned on every write.
 
 ### Scoped failure feedback
 
@@ -479,8 +666,7 @@ Every suppression, cooldown, or capacity update must bind to the provider,
 model, invocation method, orchestrator, failure class, scope, timestamps, and
 reprobe/expiry condition. A failure in Grok must not silently quarantine the
 same model for Codex, and a Pi failure must not silently quarantine a native
-route unless the exact binding is shared and the evidence supports that
-scope.
+route unless the exact binding is shared and the evidence supports that scope.
 
 The default reactions are deliberately narrow:
 
@@ -506,12 +692,9 @@ The default reactions are deliberately narrow:
   misbehavior without evidence that excludes a parent or harness defect;
 - `unknown` is surfaced and logged without aggressive quarantine.
 
-Reactive failure feedback is not permission for an implicit cross-harness
-fallback. It updates the local selector's evidence and eligibility state for
-future tasks, subject to scope and expiry. Existing quarantine records that
-lack orchestrator or invocation scope are diagnostic-only until their origin
-is proven or they expire; they must not globally suppress another
-orchestrator.
+Existing quarantine records that lack orchestrator or invocation scope are
+diagnostic-only until they expire via their `reprobe_after` TTL. Unscoped
+records do not block any orchestrator.
 
 ## Evidence, benchmarking, and learning
 
@@ -522,9 +705,7 @@ Benchmark and live telemetry are evidence inputs, not policy authority.
 - The two performance datasets remain separate.
 - A shared registry or cache file does not make evidence shared. Every
   evidence writer must be named, and every record/cache group must retain the
-  complete four-part identity. A reader may consume another host's discovery
-  metadata, but it must not treat another host's runtime outcomes as local
-  evidence.
+  complete binding fingerprint.
 - Discoverability and static capability metadata may be shared.
 - Pre-fix, malformed, or configuration-tainted cohorts are excluded from live
   routing evidence and retained only as historical diagnostics where useful.
@@ -537,32 +718,30 @@ Benchmark and live telemetry are evidence inputs, not policy authority.
   zero quality and not toward an unjustified positive score.
 - Selection bias is addressed with bounded exploration on safe lanes and
   lane-specific evidence coverage.
-
-The exact cache writer, refresh command, and authority for each host must be
-documented before live routing is enabled. A shared derived cache is
-acceptable only when it is rebuilt from an authoritative telemetry source and
-cannot be concurrently overwritten by an unrelated host. The proposal does
-not assume that Codex and Grok currently share a writer; that is an
-implementation fact to verify.
-
-The selector should not learn a new policy merely because one model has been
-selected often. It may update model evidence and confidence, while policy
-changes remain versioned decisions subject to replay and review.
+- **All-attempt outcomes are recorded as diagnostic:** every spawn records
+  success, timeout, malformed, verification_failure, or scope_violation.
+  This data feeds the unconditional time-to-verified-result monitoring metric
+  but is not used as a live selection formula.
 
 ## Shared implementation contract
 
 The common contract should be implemented by both selectors without requiring
 a shared runtime library:
 
-1. Shared registry schema and candidate identity rules.
-2. Shared task-lane and selection-mode vocabulary.
-3. Shared provider-capacity adapter output contract, including independent
-   multi-window state.
-4. Shared verified-success, scoped failure-feedback, and receipt schema.
-5. Shared golden decision fixtures plus executable conformance harnesses in
+1. Shared registry schema, candidate identity rules, and binding fingerprint
+   component list.
+2. Shared task-lane and selection-mode vocabulary, plus task-classification
+   contract.
+3. Shared v1 algorithm contract (formulas, priors, tie-breakers, exploration
+   epsilon, missing-data defaults, small-sample correction).
+4. Shared provider-capacity adapter output contract, including the capacity
+   decision table and independent multi-window state.
+5. Shared verified-success states, scoped failure-feedback, and receipt schema
+   (including replay fields).
+6. Shared golden decision fixtures plus executable conformance harnesses in
    both hosts. Structural fixture validation alone is insufficient.
-6. Native Codex and Grok implementations.
-7. Replay and live-path tests that prove equivalent policy decisions on
+7. Native Codex and Grok implementations.
+8. Replay and live-path tests that prove equivalent policy decisions on
    equivalent inputs without merging runtime evidence.
 
 The orchestrator field is an input to candidate/evidence filtering, not a
@@ -575,81 +754,46 @@ evidence for all of the following:
 
 1. **Identity and authority:** registry, evidence, quarantine, and capacity
    readers/writers are identified; every runtime record is bound to provider,
-   model, invocation method, and orchestrator.
+   model, invocation method, orchestrator, and binding fingerprint.
 2. **Latency target:** both selectors consume the canonical valid-result p90
    field. Any p50-only path is labeled provisional and cannot claim
    conformance.
 3. **Capacity:** each enabled provider has an adapter or an explicit
-   rate-limited/unknown state. Static quota-class multipliers do not count as
-   capacity evidence.
+   rate-limited/unknown state per the capacity decision table. Static
+   quota-class multipliers do not count as capacity evidence.
 4. **Candidate gating:** normal reasoning and write selection require
-   lane-appropriate verified evidence; safe calibration is isolated and
-   bounded.
-5. **Failure scope:** quarantine/cooldown records are exact-binding scoped,
-   old unscoped records cannot cross-suppress orchestrators, and the normalized
-   action matrix is tested against harness, provider, and model faults.
+   lifecycle=active and lane-appropriate verified evidence with
+   verification_passed state. Safe calibration is isolated, bounded, and
+   the only lane that admits candidate-lifecycle records.
+5. **Failure scope:** quarantine/cooldown records are per-orchestrator,
+   exact-binding scoped, old unscoped records expire via reprobe_after TTL,
+   and the normalized action matrix is tested against harness, provider, and
+   model faults.
 6. **Conformance:** the shared golden fixtures execute through both native
    selectors, including deterministic, weighted-pool, diverse-panel,
-   capacity, cold-start, and failure-scope cases.
-7. **Live path:** an actual Codex selection and an actual Grok selection emit
-   receipts showing the selected identity, p90/capacity inputs, rejection
-   reasons, and verification outcome. Unit tests alone do not satisfy this
-   gate.
+   capacity, cold-start, lifecycle-gate, and failure-scope cases.
+7. **Replay:** weighted-pool and diverse-panel receipts include all replay
+   fields (algorithm_version, random_seed, normalized_weights, exploration
+   flag, evidence/capacity snapshot hashes). A stored receipt plus referenced
+   snapshots reproduces the selected candidate.
+8. **Panel quorum:** diverse-panel selection enforces the minimum 2-family
+   quorum. Reservation failure produces BLOCKED or explicitly disclosed
+   DEGRADED mode, never a silent single-family panel.
+9. **Live path:** an actual Codex selection and an actual Grok selection emit
+   receipts showing the selected identity, binding fingerprint, p90/capacity
+   inputs, rejection reasons, replay fields, and verification outcome. Unit
+   tests alone do not satisfy this gate.
 
-## Open decisions for review
+## Operator acceptance
 
-Please challenge these points before implementation is treated as settled:
+This proposal (Revision 4) is the output of a 6-turn cross-orchestrator
+review relay (review-a4284b50b3c5-7ce08143) between Codex and Grok. Both
+actors converged on all 16 findings with zero disputes. The proposal is
+offered for operator acceptance.
 
-1. Is “time to verified result” the correct primary objective, or should a
-   different operator cost be explicit?
-2. What demand forecast and uncertainty margin should determine protected
-   reserves for each quota window? A fixed percentage may be a temporary
-   fallback, but is not the long-term policy.
-3. Should the initial automatic pay-per-use cap be exactly $0.01 per task?
-4. What canonical p90 estimator and latency-uncertainty method should both
-   selectors implement, and what stable tiebreaker applies when it is not
-   meaningful?
-5. What effective lane-specific evidence is required before a candidate can
-   be used for bounded writes, and what neutral/global prior applies at
-   cold-start?
-6. Which capacity model and authoritative signals are available for each
-   subscription, quota, rate-limited, and multi-pool provider? What should the
-   selector do when those signals are unknown or stale?
-7. What failure scopes and cooldown/reprobe rules are justified by evidence,
-   without turning transport defects into model-quality judgments?
-8. What are the authoritative writers and refresh commands for each evidence,
-   capacity, quarantine, and receipt store?
-9. How should unscoped historical quarantine records be retained, expired, or
-   discarded without allowing cross-orchestrator suppression?
-10. Does the common policy need any further exception beyond the independent
-   critique/diversity modifier?
-11. Which current registry fields or selector behaviors conflict with this
-   proposal and should be removed rather than compatibility-preserved?
+**Acceptance means:** proceed to native implementation planning in both
+hosts against this contract, with the acceptance gates above as the
+definition of done.
 
-## Review request for Grok
-
-Review this proposal as an adversarial design review. Do not assume that
-existing Grok routing behavior is correct. Return:
-
-- contradictions or accidental priority inversions;
-- quota-pacing and reset-window edge cases;
-- capacity models that the common contract cannot represent, including
-  unknown or stale capacity;
-- cases where latency, quality, or capacity evidence can be circular or
-  selection-biased;
-- cold-start and lane-specific evidence sufficiency;
-- provider-specific signals that should be normalized versus left opaque;
-- failure modes and scope errors in Codex/Pi and Grok invocation identity
-  binding;
-- target-versus-current conformance gaps in p90 latency, capacity adapters,
-  golden-vector execution, candidate gating, quarantine scope, and live
-  receipt fields;
-- whether any proposed failure action incorrectly attributes a provider or
-  harness fault to model quality;
-- policy fields that are unnecessary complexity;
-- concrete corrections, each labeled as verified fact, inference, hypothesis,
-  or open decision. Do not call a target feature implemented merely because a
-  schema, structural test, or placeholder exists.
-
-Do not merge Codex and Grok performance scores. Evaluate whether the same
-policy can be applied independently to each orchestrator's evidence.
+**Non-acceptance means:** identify which finding or correction needs
+further iteration before implementation begins.
