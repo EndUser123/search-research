@@ -1,5 +1,11 @@
 # Vault Log
 
+## Hook-block observability: per-session logging with escalation path
+Source: session-2026-08-08
+Agent: grok
+Notes: Per-session JSONL log for PreToolUse blocks; escalation path to centralized and OTel with triggers
+Page: P:/.data/wiki/concepts/hook-block-observability-per-session-logging-escalation-path.md
+
 ## Design-doc conformance check procedure
 Source: session-2026-08-08
 Agent: grok
