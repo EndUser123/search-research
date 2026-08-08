@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --concept
+Source: sibling-session-collision-dominant-file-loss-vector
+Agent: --action
+Notes: created
+Page: --summary
+
+## --concept
 Source: ship-py-gap-to-opportunity-finder-pipeline-evolution
 Agent: --action
 Notes: created
