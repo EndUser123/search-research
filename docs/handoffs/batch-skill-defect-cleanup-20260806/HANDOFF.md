@@ -1,7 +1,16 @@
 # Handoff — batch skill code-defect cleanup (155 defects across 9 skills)
 
 ## Status
-OPEN — candidate for /maintain batch pass.
+RESOLVED — all 8 skills scan clean (0 findings) as of 2026-08-08.
+
+154 of 155 defects were fixed across multiple sessions since this handoff
+was written (2026-08-06), via commits like `a217183` (resolve remaining 13
+fleet-wide), `dad92ff` (batch 86→14), `f36282c` (todo SILENT-NO-OP fixes),
+`58d3bf8` (BROKEN-PATH FP tuning), and skill-specific SILENT-NO-OP / CRAFT
+cleanups. The final defect (LLM-FILLABLE false positive — a comment in
+close_accounting.py referencing the `<LLM:>` pattern) was resolved by a
+scanner root-cause fix: `check_llm_fillable` now skips comment lines, since
+comments are documentation, never validation fields.
 
 ## Objective
 
