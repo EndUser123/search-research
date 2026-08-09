@@ -101,6 +101,26 @@ ZDR = Zero Data Retention. The "explicit opt in" the error names is the **monthl
 
 **[CORRECTION to "region opt-in" framing]** The error message says "RegionError" and "hosted in China," but the actual gate is the monthly ZDR re-acceptance, not region routing. The "China" framing in the error message reflects that DeepSeek's hosting infrastructure is in China (and thus requires ZDR terms for non-China accounts), but the actionable fix is ZDR acceptance, not region selection.
 
+**[FACT, receipt: curl of OpenCode Go docs 2026-08-09 + operator transcript]** The workspace toggle "Enable models hosted in China" at `https://opencode.ai/workspace/wrk_01KRA5GPCFPQ4FZZ99809PXX9D/go` is a **blanket Providers-level switch**, not per-model. Enabling it whitelists all China-hosted vendors on the Go subscription for routing.
+
+**[FACT, receipt: model table from `https://opencode.ai/docs/go/` 2026-08-09]** The Go subscription model list breaks down by vendor country as:
+
+| Vendor | Country | Models on Go |
+|---|---|---|
+| DeepSeek | China | V4 Pro, V4 Flash (2) |
+| GLM (Zhipu) | China | GLM-5.2, GLM-5.1 (2) |
+| Kimi (Moonshot) | China | K3, K2.7 Code, K2.6 (3) |
+| Qwen (Alibaba) | China | 3.8 Max, 3.7 Max, 3.7 Plus, 3.6 Plus (4) |
+| MiMo (Xiaomi) | China | V2.5, V2.5 Pro (2) |
+| MiniMax | China | M3, M2.7, M2.5 (3) |
+| Hy3 | [UNKNOWN — likely China; docs don't state] | Hy3, Hy3-preview (2) |
+| Grok (xAI) | US | Grok 4.5 (1) |
+| GPT (OpenAI) | US | GPT 5.6 Luna (1) |
+
+**Verified count: 17 of 19 models on the Go subscription (89%) route through Chinese infrastructure.** Only Grok 4.5 and GPT 5.6 Luna route to US infrastructure. If Hy3 is not China-hosted, the count is 16/19 (84%).
+
+**[FACT, receipt: PI probe after toggle 2026-08-09]** After the operator enabled the China toggle, `go-deepseek-v4-flash` returned exit 0 with response "OK" via `pi -p --provider opencode-go --model deepseek-v4-flash --no-session`. The 403 cleared. Toggle was the actual fix; the ZDR acceptance was implicit in enabling it.
+
 **[UNKNOWN]** Whether the ZDR re-acceptance is a one-click confirm or requires review/signing. The docs say "renewed monthly" but don't describe the UX. Visiting the workspace URL is the only way to find out.
 
 **[UNKNOWN]** Whether accepting ZDR also unlocks the model for the Grok Build spawn_subagent transport (separate from PI direct), or whether that path has additional gates.
