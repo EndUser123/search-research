@@ -309,3 +309,28 @@ The model-selection system has three live layers:
 **New open item:**
 
 - ~~The golden-vector executable conformance gate is a shared requirement (both hosts). Grok's verifier fails during selector invocation; Codex's is absent.~~ **RESOLVED on Grok side (2026-08-09, commit `c55646d`):** root cause was a one-line registry construction bug in `invoke_selector()`. All 25 golden vectors now pass. Status changed from SKELETON to EXECUTABLE. The Codex JS counterpart remains the operator/Codex side to ship.
+
+---
+
+## Revision 2 — 2026-08-09T14:00Z (session 019fdf47)
+
+**Trigger:** `/go complete the remaining steps and live test` — operator authorized full R5b conformance implementation.
+
+**What was implemented (3 of 4 R5b conformance gaps closed):**
+
+1. **Lifecycle gate (Gap B)** — `evidence_eligibility()` now blocks `lifecycle=candidate` records. Only `active` candidates are eligible. 12 candidate records in the live registry are now correctly excluded. (Commit `b6b985f`)
+2. **p90 fallback chain (Gap A)** — `_latency_p50()` → `_latency_p90()` implements R5b fix #12 (`p90 > p50_provisional > lane_median > BLOCKED`). `compute_score()` now uses p90 valid-result latency. (Commit `b6b985f`)
+3. **Quarantine scope (Gap C)** — `QuarantineRecord` gains `orchestrator` and `invocation_method` fields. Transport and model quarantine creation sites populate them from the candidate. Backward compatible. (Commit `b6b985f`)
+
+**What remains open (Gap D):**
+
+- **Quota capacity adapter** — `_quota_headroom()` is still a type-based heuristic (subscription/free_tier/flat_rate/rate_limited → fixed headroom values). R5b wants a provider-capacity adapter that checks `remaining > demand + reserve` using provider-unit-specific data (tokens, requests, money). This needs live quota data integration from `fleet_quota.py` — it's a feature addition, not a conformance fix.
+
+**Verification:**
+- 25/25 golden vectors pass (all 3 changes verified)
+- 461 tests pass, 9 skipped (pre-existing), 0 failures
+- Live test against real `fleet-models.json`: all 4 lanes (coding, reasoning, critic, mechanical) return valid selections with correct gate behavior. Candidates correctly blocked by lifecycle gate. Diverse panel correctly discloses reduced diversity (2 of 3).
+
+**Live test observations:**
+- All candidates score as cold-start (0 evidence blocks in registry) — the deterministic selector falls back to canonical ID ordering among equal scorers. This is a data gap (no evidence populated), not a code gap. The scoring logic is proven by golden vectors with embedded evidence.
+- The `model_error_classification-architecture-20260801` handoff's taxonomy expansion is now reflected in the live quarantine hook.
