@@ -26,7 +26,7 @@ the CLI equivalent **before retrying the built-in**:
 
 | Built-in | CLI fallback | Notes |
 |---|---|---|
-| `web_search` | `mmx search query "<q>"` | MiniMax API quota — separate pool from Grok team rate limit |
+| `web_search` | **`search_web__query`** (MCP) FIRST, then `mmx search query "<q>"` | `search_web__query` searches Brave+Exa+DDG in parallel with RRF fusion — use it before anything else. Only fall to `mmx` if the MCP is unavailable. |
 | `image_gen` | `mmx image generate "<prompt>"` | MiniMax image API |
 | `image_edit` | `mmx image ...` (check `mmx image --help`) | TBD — verify subcommand |
 | vision / image understanding | `mmx vision describe <path>` | MiniMax vision API |
