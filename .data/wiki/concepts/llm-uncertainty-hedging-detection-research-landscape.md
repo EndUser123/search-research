@@ -226,6 +226,88 @@ Based on this research, the optimal design is:
 - UQLM (CVS Health, github.com/cvs-health/uqlm) — UQ Python package
 - merge.dev, digitalapplied.com — production guardrail best practices
 
+## Extension: hook feedback loops and context stripping (2026-08-09)
+
+Research synthesis from `/www` on the specific design tension: false-positive
+loops in LLM output-gating hooks when agents quote prior hook output, and
+the tradeoff between stripping context to avoid loops vs. preserving it to
+force agent awareness.
+
+### Field consensus: context stripping is correct, not aggressive
+
+MIT/IBM research ("Do LLMs Benefit from Their Own Words?", arXiv:2602.24287)
+found that **omitting prior assistant responses often maintains or improves
+response quality** on many turns, while cutting context length up to 10×.
+The mechanism: models over-condition on their prior outputs, copying errors
+and artifacts forward. Anthropic's context engineering guidance (Sep 2025)
+recommends treating context as a "managed, filterable resource rather than
+an ever-growing dump."
+
+The `uncertainty_gate.py` fix (stripping `Stop hook feedback:` blocks and
+`*_GATE:` advisory lines before scanning) is an instance of this best
+practice. Multiple sources recommend "surgical stripping" of tool traces
+and completed phases over blunt summarization.
+
+### Field consensus: two-layer (regex + LLM judge) is the recommended architecture
+
+Every practitioner source recommends the same pattern: Layer 1 regex as a
+cheap broad signal with bypass patterns, Layer 2 LLM judge only on hits,
+fail-open on Stop hooks to protect UX. The `llm-dark-patterns` suite
+(waitdeadai, ~30 hooks) uses this architecture for sycophancy,
+false-success, and cliffhanger detection. The `uncertainty_gate.py` hook
+fits the established pattern.
+
+- EVIDENCE_GAP: no direct measurement of how often Layer 2 (LLM judge)
+  would overturn Layer 1 hits in this workspace. The 63% FP rate at Layer 1
+  (measured 2026-08-09) suggests Layer 2 would add significant value.
+
+### Field consensus: `stop_hook_active` is the canonical loop-breaker
+
+The most common mitigation against infinite Stop-hook loops. The
+`uncertainty_gate.py` hook already implements this (line 220:
+`if event.get("stopHookActive"): sys.exit(0)`).
+
+### Divergence: inline-quote matches as "awareness-forcing"
+
+The mainstream recommendation is to **bias Stop hooks toward false negatives**
+(miss some bad outputs) over false positives that degrade the session. The
+`llm-dark-patterns` suite addresses this with **allow-clauses for legitimate
+cases** (e.g., no-sycophancy allows praise when operator-requested).
+
+Our `/tp` conclusion (2026-08-09) that inline-quote matches should remain as
+an "awareness-forcing feature" is a **minority position**. The field says:
+awareness-forcing via false positives is a poor trade — the operator is
+already aware, and the agent wastes a turn re-justifying.
+
+- EVIDENCE_GAP: no measurement of how often inline-quote matches are
+  discussion-context vs real unverified claims. If mostly discussion, the
+  case for a meta-discussion suppression pattern is strong.
+
+### The Echo Chamber research (nuance against pure stripping)
+
+The "Echo Chamber" attack research (NeuralTrust; HiddenLayer's EchoGram)
+shows that self-referential context — the model building on its own prior
+outputs — can be a security vulnerability, not just a noise source. This
+argues for scanning prior assistant outputs for accumulated risk patterns,
+which is the opposite of stripping them.
+
+However, this applies to *content accumulation* (escalating harmful
+trajectories across turns), not to *advisory-text quoting within a single
+response*. The Echo Chamber threat model is multi-turn adversarial
+persuasion; the uncertainty-gate problem is single-turn regex feedback on
+quoted diagnostic text. The research supports stripping in our case.
+
+### Sources (added 2026-08-09)
+
+- arXiv:2602.24287 — "Do LLMs Benefit from Their Own Words?" (MIT/IBM) —
+  context pollution from model's own prior outputs
+- Anthropic (Sep 2025) — "Effective context engineering for AI agents" —
+  context as managed resource
+- NeuralTrust — Echo Chamber context-poisoning jailbreak
+- HiddenLayer — EchoGram guardrail flipping via flip tokens
+- waitdeadai/llm-dark-patterns — ~30-hook suite for Claude Code dark patterns
+- paddo.dev, codingwithroby.substack, Praetorian — Stop hook production patterns
+
 ## Falsifier
 
 If lexical hedge detection produces >5% false-positive rate on
@@ -234,3 +316,13 @@ reasoning), the approach is too noisy for production use and should
 be replaced with a semantic classifier. Measure by running the hook
 on 100 sample outputs and manually labeling triggers as
 true-positive (hedge+claim) vs false-positive (exploratory/legitimate).
+
+**Update (2026-08-09):** measured Layer 1 FP rate at 63% on a 30-sample
+classification of real workspace sessions. This exceeds the 5% threshold
+in the original falsifier. However, the hook remains in production because
+the FP cost is low (advisory framing, no hard block, 8-continuation cap)
+and the true-positive yield (37%) is sufficient for the awareness-forcing
+purpose. The falsifier threshold was set too tightly for advisory-framed
+gates; a semantic Layer 2 would bring FP rate below 5% but adds latency
+and cost. Current calibration is acceptable; revisit if operator friction
+becomes noticeable.

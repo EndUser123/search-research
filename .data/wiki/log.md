@@ -1,5 +1,119 @@
 # Vault Log
 
+## --title
+Source: llm-uncertainty-hedging-detection-research-landscape — extension: hook feedback loops and context stripping
+Agent: --source
+Notes: session-2026-08-09 /www
+Page: --path
+
+## Claude Code JSON Output Mode
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-Agentic-Platforms
+Page: wiki/concepts/claude-code-json-output-mode.md
+
+## Have House Deal
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook yt-is-worker-04
+Page: wiki/concepts/have-house-deal.md
+
+## Strategic Options Management and Market Analysis
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook yt-is-worker-04
+Page: wiki/concepts/strategic-options-management-and-market-analysis.md
+
+## Py Trees Behaviour Module
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook LLM-Driven Behavior Trees for Autonomous Robot Task Planning
+Page: wiki/concepts/py-trees-behaviour-module.md
+
+## Pydantic Models and Serialization
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook LLM-Driven Behavior Trees for Autonomous Robot Task Planning
+Page: wiki/concepts/pydantic-models-and-serialization.md
+
+## Py Trees Documentation Cloudflare Verification
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook LLM-Driven Behavior Trees for Autonomous Robot Task Planning
+Page: wiki/concepts/py-trees-documentation-cloudflare-verification.md
+
+## Self-Correcting Autonomous Agent Loops
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook LLM-Driven Behavior Trees for Autonomous Robot Task Planning
+Page: wiki/concepts/self-correcting-autonomous-agent-loops.md
+
+## Claude Code Official Plugins Ecosystem
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code - Plugin Optimization and Workflow Guides
+Page: wiki/concepts/claude-code-official-plugins-ecosystem.md
+
+## Open-Source AI Agent Ecosystem
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook scraper_v3_1776145392
+Page: wiki/concepts/open-source-ai-agent-ecosystem.md
+
+## FastMCP Framework Overview
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Iterative AI Refinement and Multi-Agent Debate Frameworks
+Page: wiki/concepts/fastmcp-framework-overview.md
+
+## Self-Evolving LLMs via Meta-Evaluation
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Iterative AI Refinement and Multi-Agent Debate Frameworks
+Page: wiki/concepts/self-evolving-llms-via-meta-evaluation.md
+
+## Claude Skills on GitHub
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Iterative AI Refinement and Multi-Agent Debate Frameworks
+Page: wiki/concepts/claude-skills-on-github.md
+
+## Claude Code Configuration Patterns
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Worktree Guide: Hooks, Setup, and Parallel Workflows
+Page: wiki/concepts/claude-code-configuration-patterns.md
+
+## Claude Code Worktree Isolation
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Worktree Guide: Hooks, Setup, and Parallel Workflows
+Page: wiki/concepts/claude-code-worktree-isolation.md
+
+## Checkpoint Bundle Skills
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Software Quality Assurance (SQA)
+Page: wiki/concepts/checkpoint-bundle-skills.md
+
+## Adversarial Review Skill Bundle
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Software Quality Assurance (SQA)
+Page: wiki/concepts/adversarial-review-skill-bundle.md
+
+## Bundle Skill Approach
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Software Quality Assurance (SQA)
+Page: wiki/concepts/bundle-skill-approach.md
+
+## Skill Review Bundle Format
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Software Quality Assurance (SQA)
+Page: wiki/concepts/skill-review-bundle-format.md
+
 ## good-tests-vs-coverage-tests-the-mutation-discriminator
 Source: session-2026-08-09
 Agent: grok
