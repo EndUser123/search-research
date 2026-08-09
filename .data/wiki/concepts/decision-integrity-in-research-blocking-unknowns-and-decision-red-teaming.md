@@ -119,8 +119,8 @@ Critique phase and in /www's disconfirmation pass.
 | Critique point | Existing coverage | Gap |
 |----------------|------------------|-----|
 | Evidence → inference → decision collapse | `[FACT]`/`[INFERENCE]`/`[UNKNOWN]` vocabulary | Enforcement at decision boundaries |
-| Capability-shaped reuse search | [[replacement-before-investigation]] | Add capability-decomposition variant |
-| Research vs decision separation | [[evidence-scope-discipline]] | Apply at research-output layer |
+| Capability-shaped reuse search | /replacement-before-investigation | Add capability-decomposition variant |
+| Research vs decision separation | /evidence-scope-discipline | Apply at research-output layer |
 | Insufficient adversarial pass | /www disconfirmation phase | Add decision-level questions |
 
 The gap is always the same: the rules exist but don't fire under pressure.
@@ -250,8 +250,8 @@ to obey. Independently verify substantive criticism. Classify each point as
 CONFIRMED / PARTIALLY CONFIRMED / REJECTED with evidence. Update only to
 the extent supported by evidence.*
 
-**Relationship to existing rules:** [[correction-response-discipline-
-anti-binary-swing]] covers hook and operator corrections (identify the
+**Relationship to existing rules:** /correction-response-discipline-
+anti-binary-swing covers hook and operator corrections (identify the
 narrow valid kernel, separate from overreach). This rule extends the same
 discipline to peer-review and external-LLM feedback specifically. The
 CRITIC principle (external evidence required for relabeling) applies here:
@@ -371,3 +371,60 @@ transitions difficult" — is now implemented as a deterministic Stop hook:
 SPIKE_REQUIRED remains the costless fallback — the gate never blocks it.
 30 unit tests + 6 acceptance tests through real hook dispatch path.
 Commit: `8677fbc` in `~/.grok`.
+
+## Evidence audit and remediation (2026-08-08)
+
+An evidence-only audit (external LLM review) identified that the initial
+implementation was a credible validator prototype but not yet a functioning
+preventive control. Three trivial bypass paths, one material bypass, and
+unverified dispatch path.
+
+**Root cause of the gap:** the initial rating of SUBSTANTIALLY_COMPLETE was
+generous. The central preventive boundary was optional — a model could
+recommend BUILD without emitting a contract, or self-declare `required: false`
+to skip enforcement entirely.
+
+### Six bypasses closed (commit `f56c497`)
+
+1. **State/action mismatch** (was MATERIAL): `state: DISCOVERY` +
+   `proposed_action: BUILD` now blocked. Terminal action with non-terminal
+   state is an invalid transition.
+2. **No artifact** (was TRIVIAL): hook now detects terminal-action language
+   in prose (BUILD/NEW/FORK/CREATE + recommendation context) and requires
+   a contract. Omitting the artifact does not bypass the gate.
+3. **`required: false`** (was TRIVIAL): terminal actions are ALWAYS gated
+   regardless of the model-declared `required` field.
+4. **Missing `evidence_requirements`** (was LOW): absence now blocks —
+   omitting the key does not silently skip evidence-type validation.
+5. **Flow-style YAML** (was LOW): `<decision-contract>` tags as primary
+   extraction method. Formatting style can no longer cause silent
+   `NO_ARTIFACT`.
+6. **Hook dispatch verification**: active-surface refreshed; hook confirmed
+   in Stop section. 9 acceptance tests through real subprocess path.
+
+### Four-level enforcement taxonomy (diagnostic instrument)
+
+The audit produced a reusable diagnostic for auditing enforcement claims:
+
+| Level | What it means | Example |
+|-------|--------------|---------|
+| 1. Documentation | "You should do X" | AGENTS.md prose rule |
+| 2. Required output structure | "You must report X" | SKILL.md template field |
+| 3. Deterministic validation | "Invalid X is detected" | Unit-tested validator |
+| 4. Runtime authority | "You cannot cross the boundary without valid X" | Hook that blocks the turn |
+
+The root-cause project intended Level 4. The initial implementation delivered
+Level 3 with an unverified Level 4 path. The remediation closes the gap to
+genuine Level 4 for the decision-gate portion.
+
+### Explicitly open as separate workstreams
+
+- **Revision invalidation (claim ledger)**: ADVISORY ONLY — no mechanical
+  enforcement. Stale derived claims can still survive in summaries/confidence
+  sections. Separate workstream.
+- **Reviewer-as-hypothesis**: ADVISORY ONLY — prose in AGENTS.md + /tp
+  protocol. Not followed 9 times during this session's own implementation.
+  Separate workstream.
+- **Evidence vocabulary**: `causal_discriminating` is incorrectly modeled
+  as the same axis as modality types. Should be split into
+  `modality` + `discriminates_competing_explanations`. Not yet fixed.
