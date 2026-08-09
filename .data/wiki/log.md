@@ -1,5 +1,29 @@
 # Vault Log
 
+## polling-loop-continuation-controller-design-decision
+Source: session-2026-08-08
+Agent: grok
+Notes: Design decision: polling loop as continuation controller for ship-py
+Page: P:/.data/wiki/concepts/polling-loop-continuation-controller-design-decision.md
+
+## Resolution throughput > verification discovery: pipeline imbalance pattern
+Source: session-019fe403
+Agent: grok
+Notes: agy core reframing from /tp panel
+Page: .data/wiki/concepts/resolution-throughput-greater-than-verification-discovery-pipeline-imbalance.md
+
+## RAG-APR evidence: retrieval-augmented generation improves LLM bug repair
+Source: session-019fe403
+Agent: grok
+Notes: 4 peer-reviewed papers validating /why-in-fix
+Page: .data/wiki/concepts/rag-apr-evidence-retrieval-augmented-generation-improves-llm-bug-repair.md
+
+## Design-choice audit: challenge every decision against first principles
+Source: session-019fe403
+Agent: grok
+Notes: RCA finding: /tp didn't ask design-discipline questions the operator had to supply
+Page: .data/wiki/concepts/design-choice-audit-challenge-every-decision-against-first-principles.md
+
 ## Data-driven detector prioritization
 Source: session-019fe25d
 Agent: grok
