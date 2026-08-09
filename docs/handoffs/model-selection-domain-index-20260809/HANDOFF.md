@@ -9,7 +9,7 @@ last_updated_by: 019fdf47-6ec5-7b82-b363-a256a98cb5fc
 last_updated_at: 2026-08-09T13:00:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: 7782e3a2aa4b0597b1e85d989a09c2debd94e2cb
+accurate_as_of_head: 49bd9986144e3d5aa04633538f49d4a543c835c5
 ---
 
 # Model-selection domain index: policy + picker + open work
@@ -275,3 +275,37 @@ The model-selection system has three live layers:
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-09T13:00 | 019fdf47... | created — domain index for model-selection work (policy + picker + 18 open handoffs) |
+| 2026-08-09T13:30 | 019fdf47... | revision 1 — Codex updated R5b status to "accepted for planning, not conformant"; Grok review marked historical; stale claims corrected |
+
+---
+
+## Revision 1 — 2026-08-09T13:30Z (session 019fdf47)
+
+**Trigger:** Codex updated both design docs after this handoff was written. The R5b status shifted and the Grok review was marked superseded.
+
+**What changed in the source docs:**
+
+1. **R5b status changed** from "ready for operator acceptance" to "Revision 5b — canonical design accepted for implementation planning; not live or conformant" (line 3 of the design doc). This is a meaningful shift: the proposal is no longer awaiting acceptance — it is accepted as the planning target, but implementation gates remain open.
+2. **New "Current conformance status" section added** (lines 106-148) documenting specific implementation gaps: Grok's router uses p50 not p90, golden-vector verifier is structural-only (`SKELETON`), quarantine records lack full scope, candidate lifecycle gate not enforced, Codex rank records don't enforce verified-success floors.
+3. **Candidate count corrected:** the live registry contains 12 Grok `candidate` records without embedded verified-success evidence (not the hard-coded count from the F1 fleet scan). A hard-coded count is not durable evidence — must be re-run before activation.
+4. **Golden-vector test failure evidence added:** `golden_vectors.py verify` structurally validates 25 cases but fails during selector invocation; Codex executable counterpart absent. Unit tests (191 Grok + 16 Codex) pass but do not clear the shared executable-conformance gate.
+5. **Grok review marked historical/superseded:** `2026-08-08-common-model-selection-policy-grok-review.md` now states "Historical review of Revision 2 — superseded by Revision 5b; retain for audit traceability." Its recommendations are not current policy.
+
+**Stale claims in the original handoff (corrected above in this revision):**
+
+- Original Status (line 25): said "ready for operator acceptance." **Corrected:** accepted for implementation planning, not live or conformant. Implementation gates remain open.
+- Canonical artifacts table (line 39): said "Ready for operator acceptance." **Corrected:** accepted for planning; see the design doc's "Current conformance status" section for the gap list.
+- Canonical artifacts table (line 40): listed the Grok review as current with "C5 finding VERIFIED." **Corrected:** the Grok review is now historical/superseded — retain for audit, do not cite as current authority.
+- Verified facts (line 58): quoted the old status verbatim. **Corrected:** the quoted text is no longer in the design doc at that line.
+
+**Updated open decisions:**
+
+- **D1 (Accept R5b?) — partially resolved.** Codex marked the doc as "accepted for implementation planning." The decision shifts from "accept the proposal?" to "activate the implementation gates?" The gaps in the "Current conformance status" section are the blockers. The operator's next decision is whether to prioritize closing those gaps (MS-02 first, then the conformance gaps).
+
+**Updated task packet MS-01:**
+
+- MS-01 goal partially met: the proposal is accepted for planning. The remaining work is closing the implementation gaps documented in the "Current conformance status" section. This is no longer a pure acceptance decision — it's a gap-closure prioritization decision.
+
+**New open item:**
+
+- The golden-vector executable conformance gate is a shared requirement (both hosts). Grok's verifier fails during selector invocation; Codex's is absent. This is a blocker for live activation that was not visible when the original handoff was written.
