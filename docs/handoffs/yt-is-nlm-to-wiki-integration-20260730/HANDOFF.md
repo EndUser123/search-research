@@ -191,3 +191,72 @@ Revised next steps:
 - Categorization script: `P:/tmp/categorize_unmatched.py`
 
 **Status update:** OPEN — 25 additional transcripts imported (3,893 → 3,918). API search resolved 257 of 497 real-title unmatched (87% at exact score 100); 249 ready for import tomorrow via `--import-file` mode, 218 need re-search with fresh quota. Channel-sync path deprioritized (the 497 are YouTube-History-sourced, not Watch Later). Forward sync (step 6) is the next major milestone.
+
+---
+
+## Revision 2 — 2026-08-08 — canonical wiki-yt authentication path
+
+This revision supersedes the historical authentication instructions above for
+the active `wiki-yt` skill. The older `nlm login` and silent-CDP recipes remain
+historical evidence only; do not use them for current wiki-yt work.
+
+### What changed
+
+- `P:/.agents/skills/wiki-yt/scripts/ytis_nlm.py` is now the only
+  wiki-yt-to-NotebookLM bridge.
+- The bridge delegates account selection and direct `notebooklm-py` access to
+  YTIS's package-owned `P:/packages/yt-is/csf/nlm_client.py`.
+- The exact account identities and canonical storage mapping are owned by
+  `P:/packages/yt-is/csf/nlm_auth_check.py`:
+  - `a.hominidae` -> `P:/.data/yt-is/nlm-auth/storage_state.json`
+  - `troup.hominidae` -> `P:/.data/yt-is/nlm-auth/storage_state_troup_hominidae.json`
+  - `brsthomson` -> `P:/.data/yt-is/nlm-auth/storage_state_brsthomson.json`
+- `wiki-yt` no longer invokes `nlm login`, performs silent browser re-auth, or
+  copies a legacy CLI cookie/profile store.
+- Source listing, notebook metadata, source fulltext, notebook rename, and
+  cookie export now use the bridge. The export path reuses one direct client
+  per notebook and fails closed on authentication errors.
+
+### Verification state
+
+- Offline storage inspection matched each canonical file to its expected
+  account email.
+- `P:/.agents/skills/wiki-yt/tests/test_ytis_nlm.py` and the existing
+  `wiki-yt` synthesis tests pass: 23 passed.
+- YTIS auth/client tests pass: 36 passed.
+- All migrated scripts compile and `git diff --check` is clean for the
+  `wiki-yt` changes.
+- A live NotebookLM session probe and live wiki sync were **not** run in this
+  revision. Static storage validity is not proof that all three sessions are
+  currently accepted by the service.
+
+### Next executable action
+
+After the operator has authenticated any expired account using the current YTIS
+auth recipe, run the read-only YTIS session probe for the three named accounts,
+then perform a small canary sync with an explicit notebook, account identity,
+and output directory. Do not start the full backlog until the canary confirms
+source listing, one source-fulltext export, manifest handling, and rerun
+idempotency. Record the canary result in a new revision here.
+
+### Live preflight update - 2026-08-08
+
+The first read-only live probe was run after the offline checks. All three
+profiles reported the expected embedded email but failed the NotebookLM
+session request with `Authentication expired or invalid`:
+
+- `a.hominidae` / `a.hominidae@gmail.com`: session expired
+- `troup.hominidae` / `troup.hominidae@gmail.com`: session expired
+- `brsthomson` / `brsthomson@hotmail.com`: session expired
+
+This is a service-session expiry, not an account-to-storage mismatch. The
+operator re-authentication command is the explicit `python -m notebooklm
+login --storage <canonical-path> --browser chrome --fresh` path from
+`P:/packages/yt-is/docs/operations/nlm-auth-architecture.md`, run one account
+at a time. The legacy `nlm login` and `csf-nlm-worker-auth` profile-family
+paths remain out of scope for active `wiki-yt` operation.
+
+The first explicit `a.hominidae` browser login attempt was launched with the
+canonical storage path, but the login process ended without changing the
+storage file and the post-login probe still failed. Treat that attempt as
+incomplete; no account is live-validated yet.
