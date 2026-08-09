@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --title
+Source: Mechanical tool output is a hypothesis, not a measurement: the method-vs-evidence receipt distinction
+Agent: --source
+Notes: session-2026-08-09
+Page: --path
+
+## --title
 Source: Denylist drift: workspace scanners must use allowlist classification, not denylist
 Agent: --source
 Notes: session-2026-08-09
@@ -9241,3 +9247,5 @@ d)
   - Source: crawl-ingest (ingested)
 
 - 2026-08-09 — added [[deepseek-region-optin-failure-pattern]]: 403 RegionError on go-deepseek-v4-flash (operator transcript 2026-08-09); also added row to [[tool-fallbacks]] Session-attested failures. Source: session-2026-08-09.
+
+- 2026-08-09 — added [[prior-session-fact-vs-this-session-fact-pattern]]: re-probe wiki/tool-fallbacks entries before asserting as current state (reference incident: deepseek-v4-flash correction 2026-08-09). Source: session-2026-08-09.
