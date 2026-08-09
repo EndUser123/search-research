@@ -1,62 +1,96 @@
 # Handoff — ship-py Phase 2: functionality composition improvements
 
 ## Status
-OPEN — Phase 1 shipped (defect fixes + FMEA phase). Phase 2 is feature composition.
-/www research resolved 3 uncertainties (see Research Verdicts below).
+PHASE 1 + PHASE 2 SHIPPED + PUSHED. Open items are documentation, testing,
+and coordination with a sibling session working on cross-model validation.
 
-## Objective
+## ⚠️ Coordination flag
 
-Wire ship-py to compose with existing workspace skills at each pipeline phase.
-Phase 1 shipped: abort, secret-scan, FMEA phase, session-scoped verdict staleness,
-atomic hook state sync, merge-unreachable fix, all_merged fix, SKILL.md 15-phase
-docs, 55 tests. Phase 2 is about making ship-py more valuable by leveraging
-tools the fleet already has.
+**Another session is working on ship-py's review phase.** See:
+`P:/docs/handoffs/cross-model-validation-middleware-20260808/HANDOFF.md`
 
-## Research verdicts (/www confidence-gap analysis)
+That work proposes replacing the LLM-controlled review with orchestrator-
+spawned cross-model validation (direct HTTP/Pi subprocess). If that lands,
+it supersedes our P2-1 (cross-model diversity PAUSE_INSTRUCTIONS edit) —
+the orchestrator would handle model dispatch directly.
 
-| Candidate | Verdict | Evidence | Disposition |
-|---|---|---|---|
-| /why in fix phase | IMPLEMENT | 4 peer-reviewed RAG-APR papers (RAGFix, ReCode, ReAPR, Dual Retrieval) | P2-3 below |
-| review-relay in review | DON'T WIRE | Adds external state files (snapshots, leases) = stale-data risk. Current cmd_review already works (found the critical merge bug). | Replace with cmd_review improvement |
-| N-runs flaky detection | DON'T IMPLEMENT | Field consensus: flaky reruns belong in CI, not local. Our "flakiness" is non-hermetic tests, not order-dependence. /check post-ship is the right fix. | Removed from candidate list |
-| /design conformance check | IMPLEMENT | Concept documented in wiki (design-doc-conformance-check-procedure.md). Catches proposal-vs-code mismatches. | P2-5 below |
+**Before any further ship-py review-phase work:**
+1. Check if the cross-model-validation-middleware handoff is resolved
+2. If resolved: align with its architecture
+3. If still open: coordinate to avoid conflicting edits to run_all.py and
+   the review phase
 
-## Phase 2 workstream (4 items)
+## What shipped this session (session 019fe403)
 
-### P2-1: Improve cmd_review pause instructions (replaces review-relay)
+### Phase 1 — defect fixes + new phases (all pushed)
+- `abort` subcommand + aborted phase gate
+- `secret-scan` phase (gitleaks, session-scoped)
+- `fmea-scan` phase (component-level I/O failure mode analysis, category-gated)
+- Verdict staleness check (session-scoped, not absolute HEAD)
+- Hook state sync (save_state writes both state.json AND ship-phase-py.json atomically)
+- all_merged logic fix
+- Merge-unreachable bug fix (verdict phase="complete" → "merge-ready")
+- Secret-scan fail-open masking fix (consult exit code, not just parsed findings)
+- 8 Phase 1 feature tests (55 total passing)
 
-**Current:** review phase spawns 2 agents with "different models" but doesn't enforce model-family diversity.
-**Target:** mandate different model families per agent in the pause instruction. The cmd_* function can't spawn agents, but it CAN set the instruction text that tells the LLM which models to use.
-**Effort:** S — edit PAUSE_INSTRUCTIONS["review"] in run_all.py.
+### Phase 2 — functionality composition (all pushed)
+- P2-5: Design conformance check (conditional phase, design-check + design-check-record)
+- P2-4: PR babysit post-publish (optional phase, babysit + babysit-record)
+- P2-3: /why grounding in fix phase (PAUSE_INSTRUCTIONS edit, RAG-APR evidence-backed)
+- P2-2: Version bump in publish (--version-bump flag, SKILL.md semver + changelog)
+- P2-1: Cross-model review diversity (PAUSE_INSTRUCTIONS edit, ⚠️ may be superseded by cross-model-validation-middleware handoff)
 
-### P2-2: Integrate version-bump into publish phase
+### Design-choice audit pattern (cross-skill, all pushed)
+- Wiki concept: design-choice-audit-challenge-every-decision-against-first-principles.md
+- Wired into 6 skills: /tp, /go, /design, /refactor, /risk, /plan-writer
+- RCA: /tp didn't ask design-discipline questions the operator had to supply
 
-**Current:** publish is `git push origin main` + optional `--tag`.
-**Target:** publish phase calls version-bump for full semver + manifest sync + changelog.
-**Spike:** read version-bump SKILL.md for manifest assumptions.
-**Effort:** M.
+### Research wiki concepts (all pushed)
+- RAG-APR evidence (4 peer-reviewed papers validating /why-in-fix)
+- Resolution throughput > verification discovery (agy's pipeline-imbalance reframing)
 
-### P2-3: Add /why grounding to fix phase
+### Pipeline: 18 phases
+```
+detect → refactor-scan → fmea-scan → skill-dev → auto-fix → secret-scan →
+refactor → check → design-check → review → risk → fix → verify → doc-check →
+verdict → merge → publish → babysit
+```
 
-**Current:** fix agent does symptomatic patches.
-**Target:** fix agent queries wiki for known failure patterns before proposing fixes.
-**Evidence:** 4 peer-reviewed RAG-APR papers (RAGFix IEEE BigData 2024, ReCode ASE 2025, ReAPR EMSE 2025, Dual Retrieval arXiv 2507.10103) show RAG significantly improves LLM bug repair.
-**Effort:** M — modify PAUSE_INSTRUCTIONS["fix"] to include /why grounding step.
+## Open items (not blocking — documentation and testing)
 
-### P2-4: Add pr-babysit post-publish loop
+1. **Tests for Phase 2 features** — design_check, babysit, publish version-bump,
+   /why-in-fix PAUSE_INSTRUCTIONS, cross-model review PAUSE_INSTRUCTIONS
+2. **Enrich changelog generation** — include commit messages (currently only
+   version bumps and file counts)
+3. **design-check doc-matching** — improved heuristic landed but may still
+   produce false positives on common skill names
+4. **Document design-choice audit as AGENTS.md rule** — currently only in
+   wiki concept + 6 skills, not in the governing rules file
 
-**Current:** pipeline stops at publish. CI failures, review comments unhandled.
-**Target:** optional post-publish phase invoking pr-babysit.
-**Effort:** M.
+## Commits (both repos pushed)
 
-### P2-5: Add /design conformance check
+### ~/.grok repo
+- `0ae38d3` abort subcommand + aborted phase gate
+- `b0ad5af` secret-scan phase (gitleaks)
+- `a4e6fb5` verdict staleness + hook I/O hardening
+- `fe8fc40` ruff format (auto-fix phase)
+- `14e3802` SKILL.md 14-phase + CRAFT fix + 8 Phase 1 tests
+- `f4b2ab3` ruff F401/F841 in test file
+- `dbc0f0c` merge-unreachable + secret_scan fail-open masking fixes
+- `a7bd2aa` session-scoped staleness + atomic hook sync + all_merged
+- `6f9f18f` FMEA phase (cmd_fmea_scan)
+- `33993fe` design-choice audit /tp + /go
+- `c1f39f9` design-choice audit /design + /refactor + /risk
+- `f7715b9` design-choice audit /plan-writer
+- `b88de35` Phase 2 — 5 functionality enhancements (18-phase pipeline)
+- `1481915` fix: 5 /risk findings from Phase 2 scan
+- `d5b4d7a` SKILL.md 18-phase update v2.5.0
+- `90c2176` design-check heuristic improvement
+- `8c9da05` design-choice audit /refactor (final)
 
-**Current:** no phase verifies implementation matches design doc.
-**Target:** when a design doc exists for shipped work, extract behavioral claims and verify against codebase (VERIFIED/ASPIRATIONAL/PARTIAL/CONTRADICTED).
-**Concept:** design-doc-conformance-check-procedure.md (already in wiki).
-**Effort:** M — new conditional phase, triggered by detect when a design doc is found.
-
-## Remaining low-severity items (from review agent 1)
-
-- gitleaks fail-open in automated runs — document as design choice, consider --strict flag
-- abort ownership check — LOW, deferred
+### P:/ repo
+- `462f108` Phase 2 handoff (initial)
+- `711f96d` Phase 2 handoff update with /www verdicts
+- `b904df9` wiki: design-choice audit concept
+- `e5e7987` wiki: RAG-APR + resolution-throughput concepts
+- `f59dcb8` wiki: design-choice audit update
