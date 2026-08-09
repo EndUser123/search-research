@@ -1,5 +1,11 @@
 # Vault Log
 
+## orchestrator-controlled-cross-model-validation-ship-py
+Source: session-2026-08-09
+Agent: grok
+Notes: Decision: concrete implementation of three-role architecture for ship-py cross-validate phase (6 decisions, 4 review rounds)
+Page: P:/.data/wiki/concepts/orchestrator-controlled-cross-model-validation-ship-py.md
+
 ## session-scoped-output-redirect-pattern
 Source: session-2026-08-09
 Agent: grok
@@ -9221,3 +9227,5 @@ d)
   - URL: https://docs.cohere.com/docs/cohere-faqs
   - SHA256: 8ee50907e6478e6f341fc751c98498f7feb8034c923d6f4c5029fd65bb8148d4
   - Source: crawl-ingest (ingested)
+
+- 2026-08-09 — added [[deepseek-region-optin-failure-pattern]]: 403 RegionError on go-deepseek-v4-flash (operator transcript 2026-08-09); also added row to [[tool-fallbacks]] Session-attested failures. Source: session-2026-08-09.
