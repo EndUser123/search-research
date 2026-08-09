@@ -428,3 +428,37 @@ genuine Level 4 for the decision-gate portion.
 - **Evidence vocabulary**: `causal_discriminating` is incorrectly modeled
   as the same axis as modality types. Should be split into
   `modality` + `discriminates_competing_explanations`. Not yet fixed.
+
+### Final calibration (post-remediation review)
+
+**DECISION_GATE_ROOT_CAUSE_FIX_COMPLETE_FOR_DEFINED_SCOPE** — with one test outstanding.
+
+Implementation: substantially complete. All 6 known bypasses closed. 42 unit
+tests + 9 subprocess acceptance tests pass.
+
+**Runtime acceptance: PENDING ONE FRESH-SESSION TEST.** Subprocess tests prove
+the registered command implementation behaves correctly. They do not prove the
+complete Grok Build dispatch chain (Stop event → hook discovery → dispatcher
+invocation → block honored) works end-to-end. The active-surface snapshot
+shows the hook is discovered, but configuration evidence is not behavioral
+evidence. To close: start a fresh session, attempt a terminal commitment
+without a contract, observe the gate block.
+
+### Bypass-surface adversarial testing principle
+
+The audit/remediation process uncovered a reusable engineering principle:
+
+> A control's own bypass surface needs adversarial testing, not just its
+> rejection logic.
+
+The first implementation tested: "Does BUILD without alternatives fail?"
+It did not test: "Can I avoid the rule entirely?" That distinction is why
+3 trivial bypasses survived the initial implementation.
+
+For any future gate, acceptance testing must cover both:
+- **Rejection correctness**: does the gate reject an invalid input?
+- **Bypass resistance**: can the actor avoid entering the gate, misclassify
+  itself out of scope, change state labels, omit required state, or exploit
+  the reader/writer boundary?
+
+This principle applies to all hooks, not just the decision-contract gate.
