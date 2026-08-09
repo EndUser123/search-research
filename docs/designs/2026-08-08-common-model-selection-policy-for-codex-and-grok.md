@@ -1,8 +1,8 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Status:** Revision 5a — incorporates all 35+3 findings from three relay sessions  
-**Revision:** 5a — converges both prior relays plus the R5 re-review (review-78ba2723102b-f5f12c38); ready for operator acceptance  
+**Status:** Revision 5b — incorporates all 40 findings from four relay sessions  
+**Revision:** 5b — converges all relay sessions (review-a4284b50b3c5-7ce08143, review-48c2aaf5f35b-66380b08, review-78ba2723102b-f5f12c38, review-2dee25098f99-7fbe1e16, review-dd27d4099861-f8f99394); ready for operator acceptance  
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
@@ -41,8 +41,8 @@ both relays are woven into the body.
     — calibration writes now explicitly use coding lane, not mechanical
 14. Fixed capacity decision table: all admissibility checks now compare against
     demand + reserve, not bare remaining > 0
-15. Near-zero weight threshold: 0 is BLOCKED; values below 1e-6 after
-    normalization are treated as zero for safety
+15. Near-zero weight threshold: if total raw weight <= 1e-6 before
+    normalization, return BLOCKED (not uniform fallback)
 
 ## Executive proposal
 
@@ -877,11 +877,9 @@ evidence for all of the following:
 
 ## Operator acceptance
 
-This proposal (Revision 5) is the output of two 6-turn cross-orchestrator
-review relays (review-a4284b50b3c5-7ce08143 and
-review-48c2aaf5f35b-66380b08, both converged). Both sessions produced 35
-total findings with zero disputes across 12 turns. The proposal is offered
-for operator acceptance.
+This proposal (Revision 5b) is the output of five cross-orchestrator review
+relay sessions (all converged, zero disputes across 40 total findings).
+The proposal is offered for operator acceptance.
 
 **Acceptance means:** proceed to native implementation planning in both
 hosts against this contract, with the acceptance gates above as the
