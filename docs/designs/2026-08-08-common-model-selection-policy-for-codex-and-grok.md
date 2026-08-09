@@ -1,16 +1,18 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Status:** Revision 5b — canonical design accepted for implementation planning; not live or conformant
-**Revision:** 5b — converges all relay sessions (review-a4284b50b3c5-7ce08143, review-48c2aaf5f35b-66380b08, review-78ba2723102b-f5f12c38, review-2dee25098f99-7fbe1e16, review-dd27d4099861-f8f99394, review-f05015dbd989-4f58d01b); implementation gates remain open
+**Last updated:** 2026-08-09 — recovery contract and evidence scope hardened; live conformance remains open
+**Status:** Revision 5c — canonical design accepted for implementation planning; not live or conformant
+**Revision:** 5c — hardens quota-recovery semantics and reconciles the 2026-08-09 evidence snapshot; the 5b relay sessions remain the review provenance and implementation gates remain open
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
 ## Revision 5 change log
 
-This revision incorporates all 42 findings from six cross-orchestrator review
-relay sessions (all converged, zero disputes). The correction items from
-all sessions are woven into the body.
+Revision 5b incorporated all 42 findings from six cross-orchestrator review
+relay sessions (all converged, zero disputes). Revision 5c preserves that
+baseline and adds the quota-recovery contract, evidence-scope corrections,
+and explicit acceptance tests below.
 
 **Key changes from Revision 4:**
 
@@ -43,6 +45,16 @@ all sessions are woven into the body.
     demand + reserve, not bare remaining > 0
 15. Near-zero weight threshold: if total raw weight <= 1e-6 before
     normalization, return BLOCKED (not uniform fallback)
+
+**Revision 5c hardening (2026-08-09):**
+
+16. Added an explicit capacity-recovery state machine for temporary backoff,
+    quota reset, stale post-reset observations, and confirmed route retirement.
+17. Added bounded resubmission ownership, retry/reprobe timing, and receipt
+    fields so a temporary capacity failure cannot become an unexplained
+    permanent block or an unbounded retry loop.
+18. Reconciled the evidence snapshot to distinguish targeted passing tests,
+    collection-blocked suites, embedded golden vectors, and live-path evidence.
 
 ## Executive proposal
 
@@ -105,7 +117,9 @@ afterward and is not used to justify the decision that was already made.
 
 This document defines the target policy. It does not claim that either live
 selector already conforms to every rule. The latest source review (session
-019fdf47, 2026-08-09) found these gaps and shipped fixes for the Grok side:
+019fdf47, 2026-08-09) found these gaps and shipped fixes for the Grok side.
+The evidence snapshot below is a dated, scope-limited record; it is not a
+standing conformance attestation.
 
 ### Grok conformance — shipped fixes (2026-08-09)
 
@@ -168,8 +182,11 @@ selector already conforms to every rule. The latest source review (session
   semantics are not correctly classified.
 
 - **Quota recovery** — a confirmed `0%` capacity snapshot blocks even after its
-  recorded reset time. The selector does not return `deferred_until` or retry
-  outcomes. A temporary quota problem requires a fresh external observation.
+  recorded reset time. The selector does not yet return `deferred_until`,
+  `reprobe_at`, or a structured retry outcome, and no caller/queue ownership
+  for bounded resubmission is verified. The policy now defines those states;
+  implementation evidence is still missing for temporary backoff, multi-hour
+  or monthly resets, post-reset refresh, and confirmed route retirement.
 
 - **Unknown-capacity rule** — missing or stale capacity for mapped providers is
   admitted for ordinary work, but the selector does not yet pass task
@@ -202,25 +219,128 @@ absent.
 
 ### Evidence snapshot (2026-08-09, session 019fdf47)
 
-Grok model-quota test suite: 461 tests pass, 9 skipped (pre-existing tier-
-based obsolescence), 0 failures. `golden_vectors.py verify` reports 25/25
-matching cases with executable selector invocation. Live test against real
-`fleet-models.json` + evidence cache + quota cache: all 4 lanes (coding,
-reasoning, critic, mechanical) return valid selections with correct gate
-behavior (lifecycle, capacity, evidence-driven ranking). The full Grok
-model-quota suite remains blocked during collection by the pre-existing
-`migrate_to_v4.py` import of missing `registry_views` exports (not a
-conformance issue).
+The following results are measured, scope-limited evidence from the current
+source review:
 
-These results verify selector logic and gate behavior but do not clear the
-shared live-path conformance gate. The golden vectors test embedded
-mini-registries, not live capacity or evidence data. The Codex executable
-counterpart is still absent.
+Reproduction commands (working directory
+`C:\Users\brsth\.grok\skills\model-quota`):
 
-Until the remaining gaps are resolved and the live paths are verified,
-receipts and benchmark artifacts must describe the implementation as
-provisional or non-conformant where applicable. Passing unit tests alone is
-not acceptance.
+```powershell
+python -m pytest -q tests/test_model_router.py tests/test_circuit_breaker.py tests/test_golden_vectors.py tests/test_pick_model_migration.py tests/test_registry_schema.py
+python -m pytest -q tests/test_benchmark_gate.py tests/test_evidence_accumulator.py tests/test_pick_model_shadow.py
+python scripts/golden_vectors.py verify
+```
+
+- Grok selector/router, circuit-breaker, golden-vector, migration, and schema
+  targeted tests: **249 passed**.
+- Grok benchmark-gate, evidence-accumulator, and shadow-selection targeted
+  tests: **101 passed**.
+- `python scripts/golden_vectors.py verify`: **25/25 cases passed** with
+  executable selector invocation. These fixtures use embedded mini-registries;
+  they do not exercise live capacity, live evidence freshness, or the Codex
+  selector.
+- A clean full Grok model-quota test run is **not verified**: collection is
+  blocked by the pre-existing `migrate_to_v4.py` import of missing
+  `registry_views` exports. The targeted pass counts above must not be read as
+  a full-suite result.
+- No executable Codex counterpart or paired live Codex/Grok receipt was
+  produced by this snapshot. The shared live-path conformance gate therefore
+  remains open.
+
+These results support targeted selector behavior, not live cross-host
+conformance. Receipts and benchmark artifacts must describe the
+implementation as provisional or non-conformant until every acceptance gate
+has current, path-specific evidence. Passing unit tests alone is not
+acceptance.
+
+## Pool test certification (lane-specific capability gate)
+
+Each lane has a standardized test suite that produces the `quality_score > 0`
+telemetry records required for verified-success promotion. Pool tests are
+bounded, safe, and produce calibration-cohort evidence — they are the
+mechanism that connects candidate lifecycle to real capability verification.
+
+### What problem pool tests solve
+
+The promotion pipeline (`check_promotion()` in `circuit_breaker.py`) requires
+N≥5 verified-success records per lane to promote a candidate from `candidate`
+to `active`. A verified success is: identity match + `success=True` +
+`quality_score > 0` + no `error_type`. But production telemetry has
+`quality_score=0.0` everywhere because the spawn dispatcher records
+success/failure, not output quality. Pool tests are the quality-score
+producer: they run standardized problems, score the output objectively, and
+write telemetry records with `quality_score = fraction_passed`.
+
+### Coding pool tests
+
+HumanEval-style code generation problems with sandboxed execution. Each
+problem has:
+- A **prompt**: function signature + docstring + examples
+- A **test**: assert statements that verify correctness
+
+The model's output is extracted (markdown code block parsing), concatenated
+with the test, and executed in a subprocess sandbox. Pass = exit code 0,
+fail = non-zero exit or timeout. The scoring is binary per problem
+(0.0 or 1.0); the aggregate quality score is `passes / total`.
+
+Implementation: `~/.grok/skills/model-benchmark/scripts/pool_test.py`.
+Reuses the existing `CodeExecTier` problems from `benchmark_tiers.py` and
+the `telemetry.log_call()` SQLite writer.
+
+### Cohort design
+
+Pool test telemetry uses `task_domain: "calibration-coding"`. This feeds two
+paths differently:
+
+| Path | Effect |
+|------|--------|
+| `check_promotion()` | Calibration records with `quality_score > 0` and `success=True` count toward the promotion threshold |
+| Runtime scoring (`_evidence_for()`) | Calibration evidence has `routing_eligible: false`, so pool-test quality scores do NOT influence runtime selection |
+
+This is intentional: pool-test scores are synthetic (standardized problems),
+not production performance. Pool tests certify that a model CAN do the job
+(promotion gate); production telemetry determines how WELL it does real work
+(runtime ranking).
+
+### Lifecycle flow
+
+```
+1. New model enters registry as lifecycle=candidate
+2. Operator runs: python pool_test.py --model <id> --lane coding
+3. Pool test produces N telemetry records (one per problem, quality_score per problem)
+4. evidence_accumulator --compute groups them
+5. check_promotion() counts verified successes >= threshold → promotes to active
+6. Once active, production spawns accumulate real evidence that influences runtime scoring
+7. Periodic re-certification (weekly/monthly) catches model drift
+```
+
+### Codex equivalent
+
+Codex implements the same pattern in JS:
+- HumanEval problems (shared `CODE_PROBLEMS` fixture — both hosts use the same test set)
+- Sandboxed execution (Node `vm` or subprocess)
+- Calibration-cohort telemetry with `task_domain: "calibration-coding"`
+- `check_promotion()` equivalent counts verified successes
+
+The test problems MUST be the same across both hosts so a model certified
+on Grok meets the same standard as one certified on Codex. The shared
+fixture is the compatibility boundary — the execution sandbox is native
+per host.
+
+### Lane expansion
+
+For v1, only the coding pool test exists. The same pattern extends to other
+lanes:
+
+| Lane | Test type | Scoring |
+|------|-----------|---------|
+| coding | HumanEval code generation + sandboxed execution | Binary pass/fail per problem |
+| reasoning | Analysis tasks with known-correct conclusions | Rubric score 0.0-1.0 |
+| mechanical | Extraction/formatting tasks with expected output | Exact match |
+| critic | Code review tasks with planted bugs | Recall (fraction of bugs found) |
+
+Each lane's pool test is a separate runner, but all share the same
+telemetry pipeline, cohort design, and promotion gate.
 
 ## What is shared and what remains separate
 
@@ -675,6 +795,9 @@ The normalized adapter result should expose, when available:
 capacity_kind
 usable_now
 capacity_risk
+recovery_state
+recovery_reason
+retryable
 expected_wait
 retry_after
 rate_limit_state
@@ -682,6 +805,10 @@ concurrency_state
 remaining + unit
 reset_at
 projected_exhaustion
+deferred_until
+reprobe_at
+recovery_owner
+retry_budget
 observed_at
 source and freshness
 unknown_reason
@@ -707,6 +834,42 @@ defaults when the adapter output is ambiguous.
 
 **Confirmed exhaustion or retry-after:** always blocks until the stated expiry
 or a fresh provider observation overrides it.
+
+### Capacity recovery and resubmission contract
+
+Capacity failure is a control outcome, not an instruction to silently retry or
+fall back. The selector returns a recovery result to the caller; the caller or
+an explicitly configured queue owns any later resubmission. A selector must
+never invoke a substitute provider, create an implicit fallback chain, or
+retry without a declared budget.
+
+| recovery_state | Meaning | Required selector behavior | Resubmission behavior |
+|---|---|---|---|
+| `available` | A current observation admits this request. | Permit dispatch subject to all other gates. | No recovery action. |
+| `backoff` | A temporary 429, rate-limit, queue, or provider cooldown is active. | Block the affected binding and return `retry_after`, `deferred_until`, and the scoped reason. | Caller may schedule one bounded retry no earlier than `deferred_until`, after a fresh bounded observation. |
+| `quota_exhausted` | An authoritative window or budget is exhausted. | Block the affected capacity window; return its `reset_at`, `deferred_until`, unit, and source. | Caller may defer until the reset horizon, but must obtain a fresh observation before dispatch. |
+| `reset_pending` | The recorded reset time has passed, but recovery has not been freshly observed. | Do not infer recovery from elapsed time; return `reprobe_at` and remain blocked for ordinary or spend-sensitive work. | Queue a bounded reprobe. A fresh positive observation is required to transition to `available`. |
+| `route_retired` | Independent evidence confirms that the provider/model/route is discontinued. | Return terminal `BLOCKED` for the exact binding with `retryable=false`; do not treat it as temporary quota. | No automatic retry. Registry/operator action or a new explicit task identity is required. |
+| `unknown` | No trustworthy remaining, reset, or rate signal is available. | Apply the `unknown` row of the decision table and disclose the uncertainty. | Do not retry spend-sensitive work; any bounded non-spend attempt still records the unknown reason and budget. |
+
+`deferred_until` is a lower bound, not proof that the provider recovered. When
+several independent windows or backoffs govern one request, the effective
+defer time is the latest active constraint for that request, while every
+underlying window remains separately recorded. `retry_after` is the provider's
+earliest retry signal; `reset_at` is the capacity-window boundary; neither may
+be silently substituted for the other.
+
+Every deferred result records `recovery_owner` (parent or named queue),
+`retry_budget`, the current attempt number, and the exact binding scope. If no
+recovery owner or budget is supplied, the safe result is `BLOCKED` with an
+operator-visible reason. This preserves the no-automatic-fallback policy while
+still making a temporary failure retryable and observable.
+
+The conformance suite must cover at least: a short 429 backoff, a multi-hour
+reset, a monthly quota reset, a reset whose timestamp passes without fresh
+observation, independent multi-pool exhaustion, and a confirmed discontinued
+route. Each case must prove both the immediate decision and the later
+transition (or terminal outcome), not merely the presence of a timestamp.
 
 **Demand accounting:** admissibility checks remaining capacity against
 this request's estimated demand plus the protected reserve, not merely
@@ -975,13 +1138,20 @@ evidence for all of the following:
    receipts showing the selected identity, binding fingerprint, p90/capacity
    inputs, rejection reasons, replay fields, and verification outcome. Unit
    tests alone do not satisfy this gate.
+10. **Recovery:** temporary backoff, multi-hour reset, monthly reset,
+    post-reset reprobe, independent multi-pool exhaustion, and confirmed route
+    retirement are tested through the native selectors. Results expose
+    `recovery_state`, `retryable`, `retry_after`, `deferred_until`,
+    `reprobe_at`, recovery ownership, and bounded retry state. A retry after a
+    defer horizon requires a fresh observation; elapsed time alone is not
+    evidence of recovery.
 
 ## Operator acceptance
 
-This proposal (Revision 5b) is the output of six cross-orchestrator review
-relay sessions (all converged, zero disputes across 42 total findings). Relay
-convergence is review provenance; it is not evidence that either live
-selector is conformant.
+This proposal (Revision 5c) preserves the output of six cross-orchestrator
+review relay sessions (all converged, zero disputes across 42 total findings)
+and adds a targeted recovery/evidence hardening update. Relay convergence is
+review provenance; it is not evidence that either live selector is conformant.
 
 The proposal is offered for operator acceptance as an implementation-planning
 contract, not as authorization to activate live routing.
