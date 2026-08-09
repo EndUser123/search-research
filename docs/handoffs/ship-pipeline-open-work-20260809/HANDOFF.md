@@ -37,52 +37,40 @@ This handoff consolidates genuinely-open items from:
 
 ### Track A: Test quality (from ship-py-remaining-gaps)
 
-**A1.** `test_pauses_at_review_when_no_review_findings` — still uses unfixed
-`patch('phases.run_all._execute_phase')` without `return_value=0` in at least
-one test case. Works by accident; crashes if a deterministic phase is added
-between check and review. Fix: ensure ALL `_execute_phase` patches use
-`return_value=0`.
-- File: `~/.grok/skills/ship-py/tests/test_run_all.py`
+**A1.** `test_pauses_at_review_when_no_review_findings` — **DONE (commit ab15f5b)**.
+All `_execute_phase` patches now use `return_value=0`.
 
-**A2.** `test_pause_emits_findings_path` — asserts only `result == 0`, never
-checks the canonical path appears in output. Fix: use `capsys` to capture
-stdout and assert the path string.
-- File: `~/.grok/skills/ship-py/tests/test_run_all_integration.py`
+**A2.** `test_pause_emits_findings_path` — **DONE (commit ab15f5b)**. Now uses
+`capsys` to capture stdout and asserts the canonical path string appears.
 
 **A3.** Test state isolation — tests don't use a shared `tmp_artifacts` fixture.
 Real state files at `P:/.artifacts/ship-py/test-session/` can leak between
 tests. Fix: adopt the `tmp_artifacts` fixture pattern from `test_ship_orchestrator.py`.
+(STILL OPEN)
 
 ### Track B: Phase consistency + enforcement (from ship-py-remaining-gaps)
 
 **B1.** `refactor.py` silently passes when findings file is missing (unlike
-`risk.py` which blocks). When `has_code_files=True` but no findings file
-exists, refactor.py falls through to empty default. Fix: block rather than
-silently passing.
-- File: `~/.grok/skills/ship-py/__lib/phases/refactor.py`
+`risk.py` which blocks). **DONE (commit ab15f5b)** — now blocks when
+has_code_files=True but no findings file.
 
-**B2.** `correction_classifier.py` uses substring match for `no_detector_types`
-— `[ft for ft, det in detector_map.items() if "NO DETECTOR" in det]` is fragile
-to renaming. Fix: use a structured marker.
-- File: `~/.grok/scripts/correction_classifier.py`
+**B2.** `correction_classifier.py` uses substring match for `no_detector_types`.
+**DONE (commit ab15f5b)** — replaced with structured (has_detector, desc) tuple.
 
-**B3.** Verdict phase only WARNS on chain breakage — `chain_warning` is added
-to summary but doesn't change return code. A broken tamper-evident chain at
-verdict time should be a hard block (return 2), not a warning.
-- File: `~/.grok/skills/ship-py/__lib/phases/verdict.py` (~line 117)
+**B3.** Verdict phase only WARNS on chain breakage. **DONE (commit ab15f5b)** —
+now hard-blocks (return 2 + state blocked) on broken tamper-evident chain.
 
 **B4.** Polling-loop timeout has no retry cap — re-invocation retries
 indefinitely with no exponential backoff. Fix: add retry counter and hard
-block after N timeouts.
+block after N timeouts. (STILL OPEN — affects responsiveness, not integrity)
 - File: `~/.grok/skills/ship-py/__lib/phases/run_all.py`
 
 ### Track C: Stop hook regex (from ship-py-hardening Finding 11)
 
-**C1.** Stop hook `quality_gate.py` regex `_SHIP_PY_CLAIM_PATTERNS` false-positive
-matches "ship-py cannot complete" as a completion claim. The ABORTED verdict
-recognition (commit 083e493) prevents the worst feedback loop, but the regex
-fix (negative lookahead for "cannot/unable") is still needed for non-aborted cases.
-- File: `~/.grok/hooks/scripts/quality_gate.py:163-164`
+**C1.** **ALREADY RESOLVED.** The old `quality_gate.py` (which matched
+"ship-py ... done" text claims via regex) was replaced by the frontmatter-based
+evidence-gate system (`quality_gates_frontmatter.py`), which checks JSON
+evidence files, not text claims. No regex false-positive remains.
 
 ### Track D: Phase 2 documentation + testing (from ship-py-phase2)
 
