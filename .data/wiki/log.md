@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --concept
+Source: externalized-verification-over-intrinsic-self-correction
+Agent: --action
+Notes: created
+Page: --summary
+
+## --concept
 Source: playwright-connectovercdp-not-ruled-out
 Agent: --action
 Notes: created
