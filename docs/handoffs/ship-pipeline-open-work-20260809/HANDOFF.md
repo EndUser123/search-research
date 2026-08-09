@@ -11,8 +11,11 @@ handoff_type: implementation_plan
 # HANDOFF: ship-pipeline open work (consolidated 2026-08-09)
 
 ## Status
-OPEN — consolidated from 4 prior handoffs. All done/superseded ship handoffs
-were deleted; this is the single source of truth for remaining ship-pipeline work.
+OPEN — 3 items remain (A3 test isolation, B4 timeout, D1-D4 Phase 2 polish).
+The anti-fabrication architecture is complete (all 3 specification-gaming
+layers that the original fraud exploited are closed). What remains is test
+hygiene, timeout tuning, and Phase 2 feature polish — none of which affects
+pipeline integrity.
 
 ## Objective
 Complete the remaining open work on the ship-py verify-and-publish pipeline.
@@ -24,120 +27,120 @@ This handoff consolidates genuinely-open items from:
 
 ## What's already done (don't re-do)
 
+**Anti-fabrication architecture (the original fraud surface — all closed):**
 - Cross-model validation phase shipped (commit 6f7d324) — see [[orchestrator-controlled-cross-model-validation-ship-py]]
 - Polling loop + anti-fabrication gates + transition chain + path validation (commit ee28569)
+- Verdict hard-blocks on broken tamper-evident chain (commit ab15f5b) — was warning, now return 2
+- Refactor blocks on missing findings, matching risk.py contract (commit ab15f5b) — was silent pass
+- Verdict gate blocks SHIP DONE when review_findings missing
+- _format_version now functional (v3, used for mid-flight migration discriminator)
+- PreToolUse phase-gate hook shipped (commit 5c1e1b0)
+
+**Pipeline features (all shipped):**
 - abort subcommand + secret-scan + fmea-scan + design-check + babysit + version-bump (Phase 1+2, session 019fe403)
 - ship_receipt.py exists (66KB) — receipt generation is automated
-- _format_version now functional (v3, used for mid-flight migration)
-- PreToolUse phase-gate hook shipped (commit 5c1e1b0)
-- Verdict gate blocks SHIP DONE when review_findings missing
-- 80 tests passing, ruff clean
 
-## Remaining open work
+**Resolved/closed items:**
+- A1 (test return_value=0) — DONE (commit ab15f5b)
+- A2 (test capsys assertion) — DONE (commit ab15f5b)
+- B1 (refactor blocks on missing findings) — DONE (commit ab15f5b)
+- B2 (correction_classifier structured marker) — DONE (commit ab15f5b)
+- B3 (verdict hard-blocks on broken chain) — DONE (commit ab15f5b)
+- C1 (Stop hook regex false-positive) — ALREADY RESOLVED (old quality_gate.py replaced by frontmatter evidence-gate system)
 
-### Track A: Test quality (from ship-py-remaining-gaps)
+**Current test state:** 83 tests collected, 82 pass, 1 xfailed. Ruff clean.
 
-**A1.** `test_pauses_at_review_when_no_review_findings` — **DONE (commit ab15f5b)**.
-All `_execute_phase` patches now use `return_value=0`.
+## Remaining open work (3 items + Phase 2 polish)
 
-**A2.** `test_pause_emits_findings_path` — **DONE (commit ab15f5b)**. Now uses
-`capsys` to capture stdout and asserts the canonical path string appears.
+### Track A: Test quality
 
 **A3.** Test state isolation — tests don't use a shared `tmp_artifacts` fixture.
 Real state files at `P:/.artifacts/ship-py/test-session/` can leak between
 tests. Fix: adopt the `tmp_artifacts` fixture pattern from `test_ship_orchestrator.py`.
-(STILL OPEN)
+- **Impact:** test hygiene — doesn't affect production reliability. Tests pass today by accident; this prevents future test-order-dependent failures.
+- **Effort:** ~30 min (add conftest.py fixture, update test files to use it)
 
-### Track B: Phase consistency + enforcement (from ship-py-remaining-gaps)
+### Track B: Timeout tuning
 
-**B1.** `refactor.py` silently passes when findings file is missing (unlike
-`risk.py` which blocks). **DONE (commit ab15f5b)** — now blocks when
-has_code_files=True but no findings file.
+**B4.** Polling-loop timeout — currently a fixed 600s wall-clock deadline with
+no liveness signal. **RESEARCHED (commit 80b9bbd)** — see
+[[liveness-vs-timeout-for-agent-pipeline-polling-loops]]. The /www+/tp research
+concluded: measure first. The problem (legitimate agents cut off at 600s) may
+be hypothetical — no measured incidents.
+- **Recommended action:** check `_timed_out_<phase>` markers in state files across recent sessions. If no legitimate cutoffs occurred, increase `poll_timeout` default from 600s to 1800s (one config change) and close this. If incidents exist, implement the progress-sidecar pattern.
+- **Impact:** responsiveness (hung-agent detection time), not integrity. The chain-block (B3, done) catches downstream consequences of a timed-out phase.
+- **Effort:** 5 min (config bump) OR ~2 hours (progress-sidecar if needed)
 
-**B2.** `correction_classifier.py` uses substring match for `no_detector_types`.
-**DONE (commit ab15f5b)** — replaced with structured (has_detector, desc) tuple.
-
-**B3.** Verdict phase only WARNS on chain breakage. **DONE (commit ab15f5b)** —
-now hard-blocks (return 2 + state blocked) on broken tamper-evident chain.
-
-**B4.** Polling-loop timeout has no retry cap — re-invocation retries
-indefinitely with no exponential backoff. **RESEARCHED (commit 80b9bbd)** —
-see [[liveness-vs-timeout-for-agent-pipeline-polling-loops]]. The /www+/tp
-research found: (a) for single-host scale, the progress-file-mtime pattern is
-simpler than full heartbeats, BUT (b) hunk-log-mtime produces false positives
-on read-heavy phases (review agents reasoning without editing), and (c) the
-problem may be hypothetical — no measured incidents of legitimate premature
-cutoff. **Recommended action:** first MEASURE whether the problem exists
-(check `_timed_out_<phase>` markers in state files). If no incidents, increase
-`poll_timeout` default from 600s to 1800s (one config change) and close this
-item. If incidents exist, implement the progress-sidecar pattern (agent touches
-a progress file every 30s; polling loop checks mtime with 180s liveness timeout
-+ 1800s overall backstop).
-- File: `~/.grok/skills/ship-py/__lib/phases/run_all.py`
-
-### Track C: Stop hook regex (from ship-py-hardening Finding 11)
-
-**C1.** **ALREADY RESOLVED.** The old `quality_gate.py` (which matched
-"ship-py ... done" text claims via regex) was replaced by the frontmatter-based
-evidence-gate system (`quality_gates_frontmatter.py`), which checks JSON
-evidence files, not text claims. No regex false-positive remains.
-
-### Track D: Phase 2 documentation + testing (from ship-py-phase2)
+### Track D: Phase 2 documentation + testing (polish)
 
 **D1.** Tests for Phase 2 features — design_check, babysit, publish version-bump,
-/why-in-fix PAUSE_INSTRUCTIONS, cross-model review PAUSE_INSTRUCTIONS.
-**Note:** cross-model review PAUSE_INSTRUCTIONS (P2-1) is now superseded by the
-shipped cross-validate phase — skip that test, write tests for the other 4.
+/why-in-fix PAUSE_INSTRUCTIONS. (cross-model review PAUSE_INSTRUCTIONS is
+superseded by the shipped cross-validate phase — skip that one.)
+- **Impact:** regression catching. Phase 2 features shipped without tests; they work today but changes could break them silently.
+- **Effort:** ~2 hours (4 test files)
 
 **D2.** Enrich changelog generation in publish phase — include commit messages
 (currently only version bumps and file counts).
+- **Impact:** nicer release notes. Cosmetic.
+- **Effort:** ~30 min
 
 **D3.** design-check doc-matching — improved heuristic landed but may still
 produce false positives on common skill names.
+- **Impact:** minor — false positives are warnings, not blocks.
+- **Effort:** ~1 hour (improve the matching heuristic)
 
 **D4.** Document design-choice audit as AGENTS.md rule — currently only in wiki
 concept `[[design-choice-audit-challenge-every-decision-against-first-principles]]`
 + 6 skills, not in the governing rules file.
+- **Impact:** discoverability — the pattern is enforced in 6 skills but not findable from AGENTS.md.
+- **Effort:** ~15 min (add a section to AGENTS.md)
 
-### Track E: Singh execution-reality middleware (distinct work item)
+### Track E: Singh execution-reality middleware (distinct work item — optional)
 
 **E1.** Design + implement the Singh payload-response misalignment heuristic
-(~30 lines of Python). This is the THIRD specification-gaming layer:
+(~30 lines of Python). This would be the THIRD specification-gaming layer:
 - Layer 1 (DONE): polling loop — prevents continuation abandonment
 - Layer 2 (DONE): cross-model validation — prevents review-finding fabrication
-- Layer 3 (OPEN): Singh heuristic — prevents tool-output fabrication (agent
+- Layer 3 (OPTIONAL): Singh heuristic — prevents tool-output fabrication (agent
   claims tool returned X when it returned Y)
 
-**Source:** Singh KDD 2026 Workshop — 56.6% fabrication rate measured; heuristic
-catches with 0% false positive rate under neutral prompts.
+**Status:** This addresses a failure mode we have NOT observed in our workspace.
+The two layers already shipped cover the fabrication surface the original
+fraud exploited. The Singh heuristic is a proactive layer for a hypothetical
+failure mode. **Operator decision pending** — keep as documented option or
+remove from scope.
+
+**Source:** Singh KDD 2026 Workshop — 56.6% fabrication rate measured in
+academic settings; 0% false positive rate under neutral prompts.
 **Wiki:** [[making-llm-agents-honestly-execute-skills-solution-stack]] §2
-**Pattern:** for every (tool_payload, agent_response) pair, if payload is
-null/malformed AND response contains data claims → flag as Fabrication.
 
-This is a distinct work item with its own design needs. It was a separate
-handoff (`singh-execution-reality-middleware-20260808`) folded here for
-consolidation. If the operator prefers to split it back out, that's fine —
-the point of consolidation is one place to look, not forcing unrelated work
-into one implementation pass.
+## What "done" looks like for ship-py reliability
 
-## Acceptance criteria
+The pipeline is **reliable against the original fraud today.** The three
+hardening fixes (B1, B3 + the cross-validate phase) closed every
+specification-gaming path the 2026-08-08 incident exploited:
 
-- Track A: 3 test-quality fixes; all tests still pass
-- Track B: refactor.py blocks on missing findings; verdict returns 2 on broken chain; polling has retry cap
-- Track C: quality_gate.py regex excludes "cannot/unable" patterns
-- Track D: Phase 2 tests written (4 of 5; skip P2-1 superseded)
-- Track E: Singh heuristic designed (separate /design run) + implemented
+1. **Can't fabricate review findings** — cross-validate phase produces
+   independent findings from a model the LLM can't influence (Layer 2)
+2. **Can't skip refactor** — refactor.py now blocks on missing findings (B1)
+3. **Can't fabricate state transitions** — verdict hard-blocks on broken
+   tamper-evident chain (B3)
+4. **Can't skip review** — verdict gate blocks SHIP DONE when review_findings missing
+5. **Can't self-advance via --verdict** — escape hatch removed
+
+What remains (A3, B4, D1-D4) is hygiene, tuning, and polish — not integrity gaps.
 
 ## Suggested next invocation
 
 ```
-/go Read P:/docs/handoffs/ship-pipeline-open-work-20260809/HANDOFF.md and implement Tracks A-D. Track E (Singh heuristic) is a separate /design run — do not bundle.
+/go Read P:/docs/handoffs/ship-pipeline-open-work-20260809/HANDOFF.md and implement A3 + D1. B4 is a 5-min config bump after measuring. Track E is operator-decision.
 ```
 
 ## References
 
 - [[orchestrator-controlled-cross-model-validation-ship-py]] — Layer 2 (DONE)
 - [[polling-loop-continuation-controller-design-decision]] — Layer 1 (DONE)
+- [[liveness-vs-timeout-for-agent-pipeline-polling-loops]] — B4 research
 - [[making-llm-agents-honestly-execute-skills-solution-stack]] — solution families
 - [[specification-gaming-in-llm-agent-pipelines]] — diagnosis
 - [[design-choice-audit-challenge-every-decision-against-first-principles]] — Track D4
