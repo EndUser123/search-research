@@ -377,10 +377,11 @@ dispatch" (the constraint). In Python, "code" means "subprocess.run()".
 2. **ship-rhai.rhai workflow** — consolidate fix+verify+merge into fewer
    agent dispatches. The detect phase can be removed entirely if the
    command wrapper pre-computes git state.
-3. **ship-py orchestrator** — the research confirms this is the
-   structurally superior architecture. Prioritize implementing `cmd_fix`,
-   `cmd_merge`, and the state-machine gate (TP-01 from
-   `ship-py-mandatory-step-gate-20260806` handoff).
+3. **ship-py orchestrator** — SHIPPED. The Python orchestrator is the
+   production architecture. `cmd_fix`, `cmd_merge`, and the state-machine
+   gate are all implemented. ship-rhai is deprecated (the .rhai workflow
+   file was deleted). Remaining work consolidated in
+   `ship-pipeline-open-work-20260809`.
 4. **orchcore evaluation** — install and evaluate for the Python path.
    Provides phase-level resume, stream monitoring, and rate-limit recovery
    out of the box. [UNTESTED] — needs evaluation session.
@@ -397,7 +398,7 @@ dispatch" (the constraint). In Python, "code" means "subprocess.run()".
 | Rhai has no subprocess/filesystem/env access | `command-wrapper-pattern-for-workflows.md` documents: "Rhai has no `ls`/`glob`/`opendir`", "Rhai has no `getenv`" | [OBSERVED] — workspace wiki |
 | ship-rhai delegates all phases to agents | `~/.grok/workflows/ship-rhai.rhai` lines 129-143 (detect), 369-370 (verify), 447-458 (merge) — all use `agent()` | [OBSERVED] — code read this session |
 | ship-py runs ship_receipt.py via subprocess directly | `ship_orchestrator.py` line 510: `subprocess.run(cmd, ...)` | [OBSERVED] — code read this session |
-| 21-minute ship-rhai-3 runaway | `ship-py-hardening-20260805` handoff Finding 8, line 77 | [OBSERVED] — handoff |
+| 21-minute ship-rhai-3 runaway | Historical: ship-py-hardening-20260805 handoff (deleted; consolidated into ship-pipeline-open-work-20260809) Finding 8 | [OBSERVED] — handoff |
 | Agent consolidation reduced close-check from 9→3 agents | `agent-consolidation-in-parallel-workflows.md` Receipts table | [OBSERVED] — workspace wiki |
 | Pre-packed evidence reduced close-check remediation from 15→5 min | `pre-packed-evidence-pattern-for-workflow-subagents.md` summary | [OBSERVED] — workspace wiki |
 | orchcore exists and provides headless orchestration | [GitHub repo](https://github.com/AbdelazizMoustafa10m/orchcore), PyPI package `orchcore` | [INFERENCE] — not tested on this workspace |
@@ -411,13 +412,11 @@ dispatch" (the constraint). In Python, "code" means "subprocess.run()".
 1-5 to reduce runtime from ~21 min to ~5-8 min. The biggest single win is
 pre-computing the detect phase in the command wrapper.
 
-**For structural fix (ship-py path):** port the Rhai workflow's
-enforcement (phase ordering, gates) into ship-py's Python orchestrator,
-which can do deterministic work directly. This eliminates the Rhai
-constraint entirely and is the field-consensus production pattern. The
-remaining work for ship-py is: (1) implement `cmd_fix` and `cmd_merge`
-subcommands, (2) add the state-machine gate from `ship-py-mandatory-step-gate`
-handoff, (3) port the retry-with-fallback logic from ship-rhai.rhai.
+**For structural fix (ship-py path):** DONE. ship-py's Python orchestrator
+implements phase ordering, gates, cmd_fix, cmd_merge, and the state-machine
+gate. ship-rhai is deprecated (the .rhai workflow was deleted). The Rhai
+constraint is eliminated. Remaining ship-py work is consolidated in
+`ship-pipeline-open-work-20260809`.
 
 **For external tooling:** orchcore is the most directly applicable library
 for the Python orchestrator path, providing phase-level resume, stream

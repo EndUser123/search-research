@@ -30,7 +30,7 @@ SKILL.md, and tests. At no point did the agent check whether another session
 was also working on ship-py.
 
 Near session end, the operator flagged that another session had created an
-active handoff at `docs/handoffs/cross-model-validation-middleware-20260808/`
+active handoff at `docs/handoffs/ship-pipeline-open-work-20260809/`
 targeting ship-py's review phase — the same phase this session had modified
 (P2-1: cross-model diversity in PAUSE_INSTRUCTIONS).
 

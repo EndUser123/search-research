@@ -22,7 +22,7 @@ confidence: 1.0
 last_verified: 2026-08-09
 half_life_days: 365
 sources:
-  - "P:/docs/handoffs/cross-model-validation-middleware-20260808/HANDOFF.md" (handoff)
+  - "P:/docs/handoffs/ship-pipeline-open-work-20260809/HANDOFF.md" (consolidated; original cross-model-validation handoff closed and deleted)
   - "session-2026-08-09 /design run 34d31ac0" (design doc, 4 review rounds)
   - "https://arxiv.org/html/2607.19449v1" (Singh 2026, fabrication baseline)
   - "https://arxiv.org/abs/2408.00989" (Inspector pattern, 96.4% recovery)
@@ -137,11 +137,11 @@ This entire approach is wrong if:
 - **Anti-bypass verified:** `python ship_orchestrator.py cross-validate --help` shows only `--session-id` (no `--findings-file`)
 - **Tests:** 80 passed, 1 xfailed — `test_cross_validate.py` covers both acceptance criteria (captures real output, detects fabricated findings via disputed verdicts)
 - **Factory pattern precedent:** [[making-llm-agents-honestly-execute-skills-solution-stack]] §5 (89.25% coverage); Inspector pattern arXiv:2408.00989 (96.4% recovery)
-- **Singh heuristic separation:** `P:/docs/handoffs/singh-execution-reality-middleware-20260808/` — different failure mode (tool-output fabrication), separate work item
+- **Singh heuristic separation:** Track E in `P:/docs/handoffs/ship-pipeline-open-work-20260809/` — different failure mode (tool-output fabrication), separate work item
 
 ## Sources
 
-- [Handoff](file:///P:/docs/handoffs/cross-model-validation-middleware-20260808/HANDOFF.md) — the binding requirements
+- [Consolidated handoff](file:///P:/docs/handoffs/ship-pipeline-open-work-20260809/HANDOFF.md) — single source of truth for remaining ship-pipeline work
 - [Design run 34d31ac0](session-2026-08-09) — 4 review rounds + critical friend, converged
 - [Inspector pattern (arXiv:2408.00989)](https://arxiv.org/abs/2408.00989) — 96.4% error recovery with adversarial independence
 - [[making-llm-agents-honestly-execute-skills-solution-stack]] — prescribes the three-role pattern

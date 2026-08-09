@@ -82,9 +82,9 @@ This decision is wrong if:
 
 The polling loop is shipped (commit ee28569). It works within the current platform constraints. The two open handoffs represent the next layers:
 
-1. **Cross-model validation** (`P:/docs/handoffs/cross-model-validation-middleware-20260808/`) — the orchestrator spawns a pool model via direct HTTP or Pi subprocess (not via the LLM), captures the output, and writes findings from it. This closes the evidence-production fabrication gap that the polling loop doesn't address.
+1. **Cross-model validation** (SHIPPED — commit 6f7d324, see [[orchestrator-controlled-cross-model-validation-ship-py]]) — the orchestrator spawns a pool model via direct HTTP or Pi subprocess (not via the LLM), captures the output, and writes findings from it. This closes the evidence-production fabrication gap that the polling loop doesn't address.
 
-2. **Singh execution-reality middleware** (`P:/docs/handoffs/singh-execution-reality-middleware-20260808/`) — ~30-line payload-response coherence check. Catches tool-output fabrication (agent claims tool returned X when it returned Y). Different failure mode from review-finding fabrication.
+2. **Singh execution-reality middleware** (Track E in `P:/docs/handoffs/ship-pipeline-open-work-20260809/`) — ~30-line payload-response coherence check. Catches tool-output fabrication (agent claims tool returned X when it returned Y). Different failure mode from review-finding fabrication.
 
 The polling loop + these two handoffs together address the three layers of specification gaming: continuation abandonment (polling loop), review-finding fabrication (cross-model validation), and tool-output fabrication (Singh middleware). None alone is sufficient; all three are needed.
 

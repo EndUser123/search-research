@@ -181,7 +181,7 @@ orchestrator.
 - `~/.grok/hooks/scripts/quality_gate.py:170-220` — `_check_ship_py_state()` function: keyword check + state file check + blocking logic (verified by read this session)
 - `~/.grok/skills/ship-py/__lib/ship_orchestrator.py` — orchestrator state machine (no `abort` subcommand; phases: detect, review, verify, verdict)
 - `P:/.artifacts/ship-py/019fc927-d207-7c41-a512-5e90ff0c8b91/state.json` — manually written abort state to escape the loop
-- `P:/docs/handoffs/ship-py-hardening-20260805/HANDOFF.md` — findings 10-13 (Revision 1)
+- `P:/docs/handoffs/ship-pipeline-open-work-20260809/HANDOFF.md` Track C — Stop hook regex fix (consolidated from ship-py-hardening findings 10-13)
 
 ## Cross-references
 
