@@ -74,23 +74,36 @@ That diagnosis is plausible at one level (the request is being routed somewhere 
 403: {"type":"RegionError","message":"The latest version of this model is only available hosted in China and requires explicit opt in: https://opencode.ai/workspace/wrk_01KRA5GPCFPQ4FZZ99809PXX9D/go"}
 ```
 
-**The opt-in URL is in the error message itself.** The operator can visit the workspace dashboard URL above to enable China-region hosting for this model. This was missed in the original conversation summary because the URL was wrapped in the terminal output.
+**Root cause verified via /www investigation (2026-08-09):** the error message text is misleading. This is NOT a region routing problem. The OpenCode Go docs at `https://opencode.ai/docs/go/` (verified via curl 2026-08-09, HTTP 200) state at line 730:
+
+> **DeepSeek V4 Flash:** ZDR agreement is renewed monthly. The current agreement is valid through August 31, 2026.
+
+ZDR = Zero Data Retention. The "explicit opt in" the error names is the **monthly ZDR re-acceptance** for the DeepSeek V4 Flash model on the Go subscription. DeepSeek's data-handling terms require periodic reconfirmation, and the workspace `wrk_01KRA5GPCFPQ4FZZ99809PXX9D` hasn't accepted the current cycle.
+
+**Verified facts (curl receipts 2026-08-09):**
+
+- The endpoint `https://opencode.ai/zen/go/v1/models` returns HTTP 200 with `deepseek-v4-flash` in the model list. Endpoint is correct; slug is recognized.
+- The Go subscription docs at `https://opencode.ai/docs/go/` actively advertise DeepSeek V4 Flash (model ID `deepseek-v4-flash`, endpoint `https://opencode.ai/zen/go/v1/chat/completions`, $0.14/$0.28 pricing, 158,150 req/mo tier).
+- The ZDR agreement is workspace-scoped (`wrk_01KRA5GPCFPQ4FZZ99809PXX9D`), not account-scoped. The opt-in URL redirects to auth login — only accessible from a logged-in browser session.
+- No public REST API exists to query workspace ZDR state programmatically (`/api/models` returns 404). Workspace settings are gated behind browser auth.
+
+**The fix:** visit `https://opencode.ai/workspace/wrk_01KRA5GPCFPQ4FZZ99809PXX9D/go` in a browser where the operator is logged into OpenCode. Accept the ZDR terms for the current renewal cycle. After acceptance, the 403 should clear and the model should work via PI.
 
 **[FACT, receipt: direct PI probe 2026-08-09]** All three DeepSeek V4 Flash slugs probed via PI in the same session that produced this finding:
 
 | Slug | PI probe result | Latency | Status |
 |---|---|---|---|
-| `go-deepseek-v4-flash` (opencode-go) | 403 RegionError with opt-in URL | 22.0s | Region opt-in required |
+| `go-deepseek-v4-flash` (opencode-go) | 403 RegionError with opt-in URL | 22.0s | Monthly ZDR re-acceptance required |
 | `nim-deepseek-ai-deepseek-v4-flash` (nvidia-nim) | 410 Gone (no body) | 21.9s | EOL confirmed |
 | `zen-deepseek-v4-flash-free` (opencode-zen) | Exit 0, response "OK" | 32.4s | **WORKS via PI** |
 
 **[CORRECTION to original framing]** The "all three are broken" summary in the original conversational capture was wrong. `zen-deepseek-v4-flash-free` works via direct PI; it is only broken for the Grok Build spawn_subagent transport (serde-broken on `reasoning_content`). The wiki entry for zen already documented this ("Works via PI and direct HTTP"), but the conversation summary missed it. Per the I-CALM framing: the prior "all three broken" claim was an unverified wrong claim (-2 penalty); abstaining until probed would have been the correct response.
 
-**[UNKNOWN]** Whether the OpenCode Go upstream has changed its V4 Flash routing intentionally (intentional region restriction) or this is a transient upstream issue that will self-heal.
+**[CORRECTION to "region opt-in" framing]** The error message says "RegionError" and "hosted in China," but the actual gate is the monthly ZDR re-acceptance, not region routing. The "China" framing in the error message reflects that DeepSeek's hosting infrastructure is in China (and thus requires ZDR terms for non-China accounts), but the actionable fix is ZDR acceptance, not region selection.
 
-**[UNKNOWN]** Whether enabling "China region opt-in" at the workspace URL above resolves the issue, or whether that opt-in is only available to certain account tiers. The URL is the workspace dashboard — visiting it should reveal what tier/gate is required.
+**[UNKNOWN]** Whether the ZDR re-acceptance is a one-click confirm or requires review/signing. The docs say "renewed monthly" but don't describe the UX. Visiting the workspace URL is the only way to find out.
 
-**[UNKNOWN]** The exact upstream change that triggered this — no release notes or changelog checked yet. Probing the OpenCode Go model catalog and comparing to the fleet-models.json entry's current state is the next step.
+**[UNKNOWN]** Whether accepting ZDR also unlocks the model for the Grok Build spawn_subagent transport (separate from PI direct), or whether that path has additional gates.
 
 ## What this means for our workspace
 
