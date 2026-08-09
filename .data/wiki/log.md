@@ -1,5 +1,59 @@
 # Vault Log
 
+## session-scoped-output-redirect-pattern
+Source: session-2026-08-09
+Agent: grok
+Notes: Technique: session-scoped output redirect for multi-terminal CLI dispatch
+Page: P:/.data/wiki/concepts/session-scoped-output-redirect-pattern.md
+
+## commit-ordering-bug-write-after-commit-push-before-commit
+Source: session-019fe403
+Agent: grok
+Notes: failure-pattern for /why-in-fix density
+Page: .data/wiki/concepts/commit-ordering-bug-write-after-commit-push-before-commit.md
+
+## state-synchronization-gap-dual-write-fail-open
+Source: session-019fe403
+Agent: grok
+Notes: failure-pattern for /why-in-fix density
+Page: .data/wiki/concepts/state-synchronization-gap-dual-write-fail-open.md
+
+## session-scoped-comparison-avoid-false-positives-multi-agent
+Source: session-019fe403
+Agent: grok
+Notes: failure-pattern for /why-in-fix density
+Page: .data/wiki/concepts/session-scoped-comparison-avoid-false-positives-multi-agent.md
+
+## fail-open-masking-error-collapsed-to-clean-verdict
+Source: session-019fe403
+Agent: grok
+Notes: failure-pattern for /why-in-fix density
+Page: .data/wiki/concepts/fail-open-masking-error-collapsed-to-clean-verdict.md
+
+## pipeline-state-machine-terminal-state-blocking-phase-gate-bug
+Source: session-019fe403
+Agent: grok
+Notes: failure-pattern for /why-in-fix density
+Page: .data/wiki/concepts/pipeline-state-machine-terminal-state-blocking-phase-gate-bug.md
+
+## Multi-agent coordination blindness: working on shared skills without checking for active sessions
+Source: session-019fe403
+Agent: grok
+Notes: behavioral pattern from working on ship-py without checking sibling sessions
+Page: .data/wiki/concepts/multi-agent-coordination-blindness-working-on-shared-skills.md
+
+## FMEA zigzag: design-choice-audit case study
+Source: session-019fe403
+Agent: grok
+Notes: reference incident for the design-choice audit
+Page: .data/wiki/concepts/fmea-zigzag-design-choice-audit-case-study.md
+
+## Operator-driven structural improvement: RCA to skill-graph propagation pattern
+Source: session-019fe403
+Agent: grok
+Notes: meta-pattern for operator-driven skill improvement
+Page: .data/wiki/concepts/operator-driven-structural-improvement-rca-to-skill-graph-propagation.md
+
 ## polling-loop-continuation-controller-design-decision
 Source: session-2026-08-08
 Agent: grok
