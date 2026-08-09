@@ -445,37 +445,77 @@ Task classification is the first policy decision. It must be authoritative,
 deterministic, and shared between both hosts to prevent divergence at the
 first gate.
 
+### Two classification dimensions
+
+Research and production practice (Inferbase 2026, Morph 2026, RouteLLM,
+FrugalGPT, Agent-as-a-Router arXiv 2606.22902) have converged on two
+independent classification dimensions. Earlier revisions conflated them
+into fixed "lanes" (coding, reasoning, mechanical, critic), which broke
+down when task complexity varied within a single lane.
+
+**Dimension 1: Capability required** — what kind of work is this?
+
+| Capability | What it means | Carries tools? | Write-capable? | Selection strategy |
+|---|---|---|---|---|
+| `tool-loop` | The main agent loop: reads context, calls tools, writes code, modifies files | Yes | Yes (worktree) | Pin or vetted pool (behavioral stability matters) |
+| `reasoning` | Analysis, planning, debugging, synthesis, single-model critique | No | No | Weighted pool (quality matters) |
+| `mechanical` | Extraction, formatting, structured output, routine verification | No | No | Cheapest capable model (cost matters most) |
+
+The tool-loop vs no-tool split is the highest-leverage distinction: it
+determines whether the model is pinned (for behavioral stability) or
+pooled (for cost/quality optimization). A model that writes code under
+a tool schema has different requirements than one summarizing output.
+
+**Dimension 2: Difficulty** — how hard is this within its capability band?
+
+| Difficulty | What it means | Routing effect |
+|---|---|---|
+| `trivial` | One-step, well-defined, low ambiguity | Cheapest model in the band |
+| `standard` | Multi-step but clear scope | Standard pool |
+| `hard` | Ambiguous, multi-system, high stakes | Best available model |
+
+Difficulty is applied within a capability band. A trivial coding task
+(add an import) and a hard coding task (debug a race condition) are both
+`tool-loop` capability, but the former can use a cheap model and the
+latter needs the best available.
+
+### Legacy lane mapping
+
+The v1 lanes map to the new two-dimensional classification:
+
+| Legacy lane | New capability | Default difficulty |
+|---|---|---|
+| `coding` | `tool-loop` | `standard` |
+| `reasoning` | `reasoning` | `standard` |
+| `mechanical` | `mechanical` | `trivial` |
+| `critic` | `reasoning` + diverse-panel constraint | `hard` |
+| `calibration` | (lifecycle state, not a capability) | n/a |
+
+The `critic` lane becomes `reasoning` capability with a `diverse_panel`
+selection constraint, not a separate capability. The `calibration` lane
+is a lifecycle state (candidate onboarding), not a task classification.
+
 ### Classification authority
 
-The task lane is determined by the **dispatching skill or caller**, not by
-the selector. The selector receives the lane as an input; it does not infer
-the lane from the prompt content. If the caller does not specify a lane,
-the default is `reasoning` (the higher-safety lane).
+The task classification is determined by the **dispatching skill or
+caller**, not by the selector. The selector receives the capability and
+difficulty as inputs; it does not infer them from the prompt content.
+If the caller does not specify, the default is `reasoning` / `standard`.
 
 ### Ambiguity handling
 
-When a task straddles lanes (e.g., "read this file and summarize it" could
-be mechanical or reasoning):
+When a task straddles capabilities (e.g., "read this file and summarize
+it" could be mechanical or reasoning):
 
-1. The caller declares the lane explicitly.
-2. If the caller is ambiguous, the **higher-safety lane** is used.
-3. For write-capable tasks, ambiguity always resolves to the lane with the
-   stricter verified-success floor.
-4. The receipt records the declared lane, the ambiguity resolution (if any),
-   and the classifier provenance (which skill or caller assigned the lane).
+1. The caller declares the classification explicitly.
+2. If the caller is ambiguous, the **higher-capability** classification
+   is used (reasoning over mechanical, tool-loop over reasoning).
+3. For write-capable tasks, ambiguity always resolves to `tool-loop`.
+4. The receipt records the declared classification, the ambiguity
+   resolution (if any), and the classifier provenance.
 
-### Lane definitions
-
-| Lane | Selection mode | Exploration | Write-capable | Description |
-|------|---------------|-------------|---------------|-------------|
-| `mechanical` | `deterministic` | epsilon=0.05 (safe only) | **No** | Extraction, reading, formatting, routine verification, structured output, bounded low-ambiguity read-only work |
-| `reasoning` | `weighted_pool` | epsilon=0.1 (safe only) | No | Planning, debugging, architecture, ambiguous coding, synthesis, single-model critique |
-| `coding` | `weighted_pool` | epsilon=0.0 | Yes (worktree) | All write-capable work including bounded coding with complete specification and independent verification |
-| `critic` | `diverse_panel` | epsilon=0.0 | No | Multi-model red-team or cross-check |
-| `calibration` | `weighted_pool` | epsilon=0.1 | Yes (worktree, bounded scope only) | Safe onboarding for candidate-lifecycle models; bounded scope, isolated worktree, mandatory verification. Not eligible for normal routing. |
-
-All tasks that write files — including bounded coding — must use the `coding`
-lane with worktree isolation. The `mechanical` lane is strictly read-only;
+All tasks that write files must use the `tool-loop` capability with
+worktree isolation. The `mechanical` capability is strictly read-only;
 no exceptions.
 
 ## V1 algorithm contract
