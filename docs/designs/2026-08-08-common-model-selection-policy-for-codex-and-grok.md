@@ -1,33 +1,39 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Status:** Revision 4 — incorporates all 16 relay-reviewed findings  
-**Revision:** 4 — converges the 6-turn cross-orchestrator review (review-a4284b50b3c5-7ce08143); ready for operator acceptance  
+**Status:** Revision 5 — incorporates all 35 findings from two converged relay sessions  
+**Revision:** 5 — converges both the 6-turn review (review-a4284b50b3c5-7ce08143) and the 6-turn re-review (review-48c2aaf5f35b-66380b08); ready for operator acceptance  
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
-## Revision 4 change log
+## Revision 5 change log
 
-This revision incorporates all 16 findings from the 6-turn review relay
-(review-a4284b50b3c5-7ce08143, status: converged). Both Codex and Grok
-agreed on every finding with zero disputes. The 12 correction items are
-woven into the body; the review request section (§13) is replaced by
-the operator acceptance decision.
+This revision incorporates all 35 findings from two 6-turn cross-orchestrator
+review relays, both converged with zero disputes. The correction items from
+both relays are woven into the body.
 
-**Key changes from Revision 3:**
+**Key changes from Revision 4:**
 
-1. Objective renamed to conditional valid-result service time (CR-001, C-R3-01)
-2. Added v1 algorithm contract with executable formulas (CR-002)
-3. Candidate lifecycle gate: candidate records only eligible for safe-calibration (CR-003, F1)
-4. Panel-level capacity reservation for diverse panels (CR-004, C-R3-03)
-5. Capacity decision table keyed by capacity_kind × freshness (C-R3-02)
-6. Mandatory replay fields in receipts (CR-005, C-R3-04)
-7. Binding fingerprint with normative component list (CR-006, C-R5-03)
-8. Quarantine concurrency model specified (G-R2-01)
-9. All-attempt outcomes recorded as diagnostic (C-R3-01)
-10. Task-classification contract with authority and ambiguity handling (C-R5-01)
-11. Verification states: not_applicable, not_run, failed, passed (C-R5-02)
-12. Minimum diverse-panel quorum (2 families) and fail-closed behavior (C-R5-04)
+1. Fixed weighted-pool formula: freshness decay now interpolates toward neutral
+   prior (0.5), not multiplies toward zero (C-R4-01)
+2. Fixed deterministic ranking: capacity is gate-only (pass/fail), not a sort
+   key; p90 latency is the first sort key (C-R4-02)
+3. Lane verified-success floors are operator-configurable defaults requiring
+   minimum N>=10 samples; labeled as policy not evidence-derived (C-R5-01)
+4. Removed bounded-coding-in-mechanical: all writes use coding lane (C-R4-04)
+5. Wilson lower bound: one-sided 95% (z=1.645), exact formula in golden
+   fixtures; zero weights -> BLOCKED not uniform (C-R5-02, C-R5-05)
+6. Added model_family field (distinct from provider); panel quorum requires
+   distinct model_family for critique independence (C-R5-06)
+7. Capacity demand is provider-unit-specific (tokens, requests, money); check
+   remaining > demand + reserve (C-R5-03, C-R4-10)
+8. Capacity reservation: durable record with ID, owner, demand, TTL,
+   release-on-dispatch, crash recovery (C-R5-08)
+9. Quarantine concurrency: msvcrt.locking sentinel before read-modify-write (C-R4-08)
+10. Replay snapshots: retention tied to receipt retention; expired receipts
+    marked non-replayable (C-R5-07)
+11. Canonical candidate ordering (sorted by ID); weights rounded to 6 dp (C-R4-09)
+12. Missing-p90 fallback: p90 > p50_provisional > lane_median_provisional > BLOCKED (C-R5-09)
 
 ## Executive proposal
 
@@ -210,14 +216,14 @@ be mechanical or reasoning):
 
 | Lane | Selection mode | Exploration | Write-capable | Description |
 |------|---------------|-------------|---------------|-------------|
-| `mechanical` | `deterministic` | epsilon=0.05 (safe only) | No | Extraction, reading, formatting, routine verification, structured output, bounded low-ambiguity coding |
+| `mechanical` | `deterministic` | epsilon=0.05 (safe only) | **No** | Extraction, reading, formatting, routine verification, structured output, bounded low-ambiguity read-only work |
 | `reasoning` | `weighted_pool` | epsilon=0.1 (safe only) | No | Planning, debugging, architecture, ambiguous coding, synthesis, single-model critique |
-| `coding` | `weighted_pool` | epsilon=0.0 | Yes (worktree) | Write-capable coding with complete specification and independent verification |
+| `coding` | `weighted_pool` | epsilon=0.0 | Yes (worktree) | All write-capable work including bounded coding with complete specification and independent verification |
 | `critic` | `diverse_panel` | epsilon=0.0 | No | Multi-model red-team or cross-check |
 
-Bounded coding may use the `mechanical` lane when the specification is
-complete and the work is independently verifiable. Otherwise coding uses
-the `coding` lane with worktree isolation.
+All tasks that write files — including bounded coding — must use the `coding`
+lane with worktree isolation. The `mechanical` lane is strictly read-only;
+no exceptions.
 
 ## V1 algorithm contract
 
@@ -225,15 +231,34 @@ Both selectors must implement the same algorithm for each selection mode.
 This contract is versioned (`algorithm_version: "v1"`). Any change requires
 a new version and replay-tested fixtures.
 
+### Lane verified-success floors
+
+The following floors are **operator-configurable policy defaults**, not
+evidence-derived values. They require a minimum of N>=10 lane-appropriate
+verified successes before a candidate is considered to have "cleared" the
+floor. Candidates with fewer than 10 samples are `provisional` regardless
+of their raw success rate.
+
+| Lane | Default floor | Minimum samples |
+|------|--------------|-----------------|
+| `mechanical` | 80% | 10 |
+| `reasoning` | 70% | 10 |
+| `coding` | 75% | 10 |
+| `critic` | 70% | 10 |
+
 ### Deterministic mode (mechanical lane)
 
 ```text
-eligible = candidates that pass all gates
+eligible = candidates that pass all gates (including lifecycle + verified-success floor)
+
+# Capacity is a GATE (pass/fail), not a ranking key.
+# Candidates that fail capacity admissibility are already excluded.
+
 ranked = sort(eligible, key=lambda c: (
-    capacity_fitness(c),        # desc: higher capacity first
-    p90_latency(c),             # asc: faster first
-    verified_success_rate(c),   # desc: tie-breaker (already floored)
-    stable_candidate_id(c),     # asc: stable final tie-breaker
+    p90_latency(c),                      # ASC: faster first (primary)
+    verified_success_lower_bound(c),     # DESC: within 5% latency tie-band,
+                                         #   prefer higher reliability
+    stable_candidate_id(c),              # ASC: stable final tie-breaker
 ))
 selected = ranked[0]
 ```
@@ -248,72 +273,109 @@ Exploration is disabled for write-capable or high-risk work.
 eligible = candidates that pass all gates
 
 For each candidate c:
-    evidence_weight = verified_success_rate(c) * freshness_decay(c)
-    latency_penalty = p90_latency(c) / lane_p90_median(eligible)
-    capacity_score = capacity_fitness(c)
-
-    raw_weight = evidence_weight * capacity_score / latency_penalty
-
-    # Small-sample correction: Wilson lower bound for verified_success_rate
-    # when sample_size < 30. Prevents high-variance candidates from
-    # getting inflated weights.
-    if sample_size(c) < 30:
-        effective_success = wilson_lower(verified_success_rate(c), sample_size(c), z=0.95)
+    # Step 1: Effective verified-success rate with small-sample correction
+    # Wilson one-sided lower bound (z=1.645 for 95% confidence)
+    # Formula: (p + z^2/(2n) - z*sqrt(p*(1-p)/n + z^2/(4n^2))) / (1 + z^2/n)
+    # where p = observed success rate, n = sample size
+    if sample_size(c) >= 10:
+        effective_success = wilson_lower_bound(
+            verified_success_rate(c), sample_size(c), z=1.645
+        )
     else:
-        effective_success = verified_success_rate(c)
+        effective_success = 0.5  # neutral cold-start prior
 
-    weight = effective_success * capacity_score / latency_penalty
+    # Step 2: Freshness decay interpolates toward neutral prior (0.5),
+    # NOT multiply toward zero.
+    # staleness_factor = 0.0 (fresh) to 1.0 (fully stale at 30 days)
+    staleness = min(1.0, age_days(c) / 30.0)
+    effective_success = effective_success * (1 - staleness) + 0.5 * staleness
 
-weights = normalize([weight(c) for c in eligible])
-selected = weighted_random_choice(eligible, weights)
+    # Step 3: Latency penalty (normalized against lane median)
+    latency = p90_latency(c) if p90_available(c)
+              else p50_latency(c) if p50_available(c)       # p50_provisional
+              else lane_p90_median(eligible)                 # lane_median_provisional
+    latency_penalty = latency / lane_p90_median(eligible)
+
+    # Step 4: Final weight
+    weight = effective_success / latency_penalty
+
+# Normalize weights
+total = sum(weight(c) for c in eligible)
+if total <= 0:
+    # Zero or near-zero total weights: BLOCKED, not uniform fallback.
+    # Zero weights can mean no usable evidence, not just rounding.
+    return BLOCKED("all eligible candidates have zero effective weight")
+weights = [weight(c) / total for c in eligible]
+
+# Round weights to 6 decimal places for deterministic replay
+weights = [round(w, 6) for w in weights]
+
+selected = weighted_random_choice(eligible, weights, seed=random_seed)
 ```
 
-**Missing-data defaults:**
+**Missing-data fallback chain (ordered):**
 
-- No evidence for candidate: neutral cold-start prior (success_rate=0.5,
-  latency=lane median, confidence=low). Does NOT beat a measured candidate
-  unless the measured candidate is below the verified-success floor.
-- Stale evidence (>30 days): freshness_decay applies, shrinking confidence
-  toward the neutral prior.
-- p90 unavailable but p50 available: use p50 as a provisional proxy, label
-  as `latency_source: "p50_provisional"` in the receipt.
+1. p90 available: use p90, label `latency_source: "p90"`
+2. p50 available but not p90: use p50, label `latency_source: "p50_provisional"`
+3. Neither available: use lane median, label `latency_source: "lane_median_provisional"`
+4. Lane median unavailable: BLOCKED
 
-**Tie-breaking:** if two candidates have indistinguishable weights (within
-5% of each other), use capacity fitness, then stable candidate ID.
+**Tie-breaking:** if two candidates have weights within 5% of each other,
+prefer the candidate with higher verified-success lower bound, then stable
+candidate ID.
 
 Exploration (epsilon=0.1 for reasoning safe lanes): with probability
-epsilon, select a random eligible candidate. Disabled for write-capable.
+epsilon, select a random eligible candidate. Disabled for write-capable
+(`coding` lane).
 
 ### Diverse-panel mode (critic lane)
 
 ```text
-families_available = distinct(provider_family(c) for c in eligible)
+# model_family is an explicit registry field (e.g., "deepseek-v4", "nemotron-3")
+# DISTINCT from provider (e.g., "nvidia-nim", "zen")
+# Two models sharing the same upstream model are the same model_family
+families_available = distinct(model_family(c) for c in eligible)
 
-if len(families_available) < MINIMUM_PANEL_QUORUM (2):
-    # Cannot meet the independence objective
-    if fail_closed:
-        return BLOCKED("insufficient provider diversity for independent critique")
-    elif operator_consent_for_degraded:
+MINIMUM_PANEL_QUORUM = 2  # distinct model_families required
+if len(families_available) < MINIMUM_PANEL_QUORUM:
+    if operator_preauthorized_degraded:
         return DEGRADED_PANEL(reduced_diversity_receipt)
     else:
-        return BLOCKED("insufficient diversity; operator not consulted")
+        return BLOCKED("insufficient model_family diversity for independent critique")
 
 panel = []
 for family in sample(families_available, min(requested_size, len(families_available))):
-    best_in_family = highest_weight(eligible where provider_family == family)
+    best_in_family = highest_weight(eligible where model_family == family)
     panel.append(best_in_family)
 
-# Panel capacity reservation
-total_demand = len(panel)  # expected concurrent calls
-if not reserve_capacity(panel_providers, total_demand):
-    # Reservation failed — cannot safely dispatch concurrently
+# Panel capacity reservation: durable record, not advisory check
+reservation = CapacityReservation(
+    id=unique_id(),
+    owner=session_id + ":" + turn_id,
+    demand=estimate_demand(panel),  # provider-unit-specific (see below)
+    ttl_seconds=300,
+    created_at=now(),
+)
+# Reservation holds until dispatch consumes it or TTL expires.
+# Crash recovery: reservation auto-expires via TTL.
+if not acquire_reservation(reservation):
     return BLOCKED("capacity reservation failed for panel") or
     staggered_dispatch(panel)  # sequential fallback, disclosed in receipt
 ```
 
-**Minimum panel quorum:** 2 distinct provider families. A single-family
-"panel" is not independent critique; it is a single-model critique using
-the normal reasoning pool.
+**Capacity demand estimation:** demand is provider-unit-specific, not a
+flat call count. For each panel member:
+
+- `windowed_units` (token pools): estimate input_tokens + bounded_output_tokens
+- `monetary_budget`: estimate cost from provider pricing + token envelope
+- `rate_limited_only`: demand = 1 request per member
+- `multi_pool`: check demand against every relevant unit independently
+- `unknown`: demand estimate is advisory only; reservation is best-effort
+
+**Minimum panel quorum:** 2 distinct model families. A single-family "panel"
+is not independent critique. Panel diversity is defined by `model_family`
+(lineage), not by `provider` (route). Different providers serving the same
+upstream model do not provide critique independence.
 
 **Reservation failure:** fail-closed by default. The operator may pre-authorize
 degraded mode (reduced diversity, staggered dispatch, or single-model fallback)
@@ -543,6 +605,16 @@ defaults when the adapter output is ambiguous.
 **Confirmed exhaustion or retry-after:** always blocks until the stated expiry
 or a fresh provider observation overrides it.
 
+**Demand accounting:** admissibility checks remaining capacity against
+this request's estimated demand plus the protected reserve, not merely
+`remaining > 0`. Demand is provider-unit-specific:
+
+- `windowed_units`: estimate input_tokens + bounded_output_tokens for this task
+- `monetary_budget`: estimate cost from provider pricing + token envelope
+- `rate_limited_only`: demand = 1 request
+- `multi_pool`: check demand against every relevant unit independently
+- `unknown`: demand estimate is advisory; admissibility is best-effort
+
 **Stale capacity** is neither unlimited nor exhausted. It may permit an
 already-approved bounded non-spend call when current route health admits it,
 but it provides no pacing advantage and must not authorize scarcity-sensitive
@@ -614,11 +686,16 @@ Every selection receipt should record:
   - `algorithm_version`: e.g., "v1"
   - `random_seed`: the PRNG seed used for weighted selection
   - `prng_version`: PRNG algorithm identifier
-  - `normalized_weights`: the weight vector applied to eligible candidates
+  - `normalized_weights`: the weight vector applied to eligible candidates, in canonical candidate ordering (sorted by candidate ID), rounded to 6 decimal places
   - `exploration_triggered`: boolean, whether exploration was activated
   - `exploration_draw`: the random value that determined exploration (if triggered)
   - `evidence_snapshot_hash`: hash of the evidence state used for this decision
   - `capacity_snapshot_hash`: hash of the capacity state used for this decision
+
+**Replay snapshot retention:** evidence and capacity snapshots are retained
+in `P:/.artifacts/model-routing/snapshots/` with the same retention as
+receipts. Receipts older than the snapshot retention period are marked
+`replayable: false` and excluded from conformance claims.
 
 The current orchestrator does not dynamically hand a failed task to the
 other orchestrator. A worker failure after start is recorded and returned for
@@ -641,7 +718,10 @@ quarantines a binding in `quarantine-grok.json`; it does not touch
 quarantine file for eligibility decisions.
 
 Quarantine records within each file use atomic writes (tmp + os.replace)
-with the GC pattern: expired records are pruned on every write.
+with the GC pattern: expired records are pruned on every write. The
+read-modify-write cycle is protected by a sentinel lock file with
+`msvcrt.locking` (Windows) or `fcntl.flock` (POSIX) to prevent lost updates
+from concurrent same-orchestrator processes.
 
 ### Scoped failure feedback
 
@@ -786,10 +866,11 @@ evidence for all of the following:
 
 ## Operator acceptance
 
-This proposal (Revision 4) is the output of a 6-turn cross-orchestrator
-review relay (review-a4284b50b3c5-7ce08143) between Codex and Grok. Both
-actors converged on all 16 findings with zero disputes. The proposal is
-offered for operator acceptance.
+This proposal (Revision 5) is the output of two 6-turn cross-orchestrator
+review relays (review-a4284b50b3c5-7ce08143 and
+review-48c2aaf5f35b-66380b08, both converged). Both sessions produced 35
+total findings with zero disputes across 12 turns. The proposal is offered
+for operator acceptance.
 
 **Acceptance means:** proceed to native implementation planning in both
 hosts against this contract, with the acceptance gates above as the
