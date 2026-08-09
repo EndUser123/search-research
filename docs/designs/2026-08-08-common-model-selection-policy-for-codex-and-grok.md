@@ -271,138 +271,92 @@ implementation as provisional or non-conformant until every acceptance gate
 has current, path-specific evidence. Passing unit tests alone is not
 acceptance.
 
-## Pool health and code-model pool certification
+## Provider capacity health and code-model capability certification
 
-The term **pool test** was overloaded in earlier revisions. The policy now
-separates two suites and a third evidence source:
+There are three separate things that must not be conflated:
 
-| Suite/source | Primary question | Identity key | Produces | May authorize |
+| What | Primary question | Identity key | Produces | May authorize |
 |---|---|---|---|---|
-| Provider-pool health/recovery | Can this quota pool safely serve this request now or recover later? | `quota_pool` + provider account + provider-defined scope | Capacity, recovery, reservation, and retry receipts | Capacity admission only |
-| Code-model capability | Can this exact model binding perform coding work under its harness? | Full binding fingerprint + lane | Calibration `verification_passed` and quality evidence | Lane/risk-scoped promotion |
-| Production code-lane evidence | How well does it perform real work? | Full binding fingerprint + task cohort | Routing-eligible quality, latency, and verification evidence | Runtime ranking after policy gates |
+| Provider capacity health | Can this provider's API serve requests right now? | Provider (API key + endpoint) | Capacity state (fresh/stale/exhausted/unknown) | Capacity admission only |
+| Code-model capability | Can this exact model binding perform coding work? | Binding fingerprint + lane | Calibration `verification_passed` and quality evidence | Lane-scoped promotion |
+| Production evidence | How well does it perform real work? | Binding fingerprint + task cohort | Routing-eligible quality, latency, verification | Runtime ranking |
 
-The first suite must not be treated as a model-quality benchmark. The second
-must not be treated as proof that a provider pool is healthy. The third must
-not be substituted with either calibration suite.
+Capacity health is not model quality. Capability is not capacity health.
+Production evidence is neither calibration suite.
 
-### Provider-pool health and recovery suite
+### Provider capacity health
 
-This suite is keyed by the actual quota owner, not merely a provider label:
+Each provider entry in the registry corresponds to one API key and one
+rate limit. In the current fleet, provider = pool — one NVIDIA key, one
+Cohere key, one OpenRouter key. The capacity gate checks whether the
+provider's current quota state admits the request.
 
-```text
-quota_pool + provider_account + provider_defined_scope
-```
+Two models on the same provider share the same rate limit. Exhausting
+the NVIDIA quota on one model exhausts it for all NVIDIA models. The
+capacity gate treats them as one bucket.
 
-The capacity identity is shared when Codex and Grok consume the same provider
-pool. Every observation still records the orchestrator, invocation method,
-route, and binding that observed it. Those route fields become part of the
-capacity key only when the provider explicitly exposes a method- or
-orchestrator-specific limiter nested under the pool scope. This prevents both
-false isolation of shared quota and false merging of independent limits.
-
-It verifies, preferably with synthetic fixtures and only bounded live probes:
-
-- fresh and stale observations, provider units, reset timestamps, and demand;
-- concurrency and queue admission;
-- short `429` backoff and retry-after handling;
-- multi-hour and monthly exhaustion;
-- reset timestamp passing without fresh recovery evidence;
-- independent multi-pool exhaustion;
-- confirmed route retirement; and
-- reservation ownership, release, crash recovery, and bounded retry budget.
-
-Pool-health fixtures produce capacity/recovery receipts, not `quality_score`
-or model-promotion evidence. A live capability call must pass the capacity
-gate, reserve its provider-unit demand, and record the pool snapshot before
-dispatch. Reset and retry behavior should be tested without spending live
-quota whenever a synthetic adapter fixture can prove the same state machine.
+What this covers:
+- fresh vs stale capacity observations
+- exhausted quota (0%) blocking
+- rate-limit backoff and retry-after handling
+- reset window behavior
 
 ### Code-model capability suite
 
-This suite certifies one exact binding in one lane. A target invocation must
-resolve an immutable canonical binding, not accept an ambiguous model name:
+This suite certifies one exact binding in one lane:
 
 ```text
-orchestrator + invocation_method + provider + model + route
-  + verifier + harness/config provenance + quota_pool/account
+orchestrator + invocation_method + provider + model + lane
 ```
 
-The runner may accept a short model alias only when it resolves to exactly one
-binding and records the resolved identity and fingerprint before telemetry is
-written. A model-only record is not sufficient evidence.
+The runner may accept a short model alias only when it resolves to exactly
+one binding and records the resolved identity before telemetry is written.
 
-The current Grok artifact at
-`~/.grok/skills/model-benchmark/scripts/pool_test.py` is a bounded,
-HumanEval-style coding calibration runner. It currently uses Grok/HTTP
-invocation metadata, executes code in a sandbox, and records the
-`calibration-coding` cohort. That is useful calibration evidence, but it does
-not prove repository-context coding, patch application, tool use, independent
-verification, or production reliability. Those require a separate code-pool
-acceptance suite.
+The current Grok artifact (`pool_test.py`) is a HumanEval-style coding
+calibration runner: 13 code generation problems, sandboxed execution,
+binary pass/fail scoring. It is a valid calibration signal for initial
+promotion — it proves the model can write correct standalone code.
 
-Calibration evidence remains `routing_eligible: false` and must not influence
-runtime ranking. It may support promotion only when every authoritative
-condition holds:
+Calibration evidence has `routing_eligible: false` and must not influence
+runtime ranking. It may support promotion only when:
 
 1. exact binding identity and lane match;
 2. `success=true` and explicit `verification_passed`;
 3. no timeout, malformed-output, identity, or scope error;
 4. the operator-configured lane floor is met; and
-5. promotion is scoped to the tested lane and risk class.
+5. promotion is scoped to the tested lane only.
 
-The operator-configured default is currently N=5 per lane in
-`fleet-models.json`. The policy recommendation is N>=10 for higher
-confidence; the operator may choose a lower floor for faster promotion
-with less evidence, or a higher floor for more conservative promotion.
-Both values are valid operator choices — the contract is that the
-configured floor is met, not that a specific number is used.
+The operator-configured default is N=5 per lane in `fleet-models.json`.
+The policy recommendation is N>=10 for higher confidence. Both are valid
+operator choices — the contract is that the configured floor is met.
 
-`quality_score` is a measurement, not a substitute for
-`verification_passed`.
+`quality_score` is a measurement, not a substitute for `verification_passed`.
 
-The current Grok pool test (HumanEval-style function generation with
-sandboxed execution) is a valid calibration signal for initial promotion.
-It proves the model can write correct standalone code. It does not prove
-repository-context coding, patch application, or tool use — those require
-a higher acceptance tier that gates higher-risk work. The initial
-promotion floor (N=5) establishes minimum capability; the higher tier
-(future work) establishes production readiness for complex coding tasks.
-
-The code-pool acceptance suite should add, where relevant:
-
-- repository-context understanding;
-- patch correctness and application;
-- compile/test execution and independent verification;
-- tool and result-contract handling;
-- timeout, malformed-output, and scope-violation behavior; and
-- total time to a verified result, with p50/p90 components recorded.
+The initial promotion floor (HumanEval + N=5) establishes minimum
+capability. A higher acceptance tier (repository-context coding, patch
+application, tool use, independent verification) gates higher-risk work
+and is future work.
 
 ### Cohort and lifecycle flow
 
 ```text
 1. New binding enters the registry as lifecycle=candidate.
-2. Provider-pool health admits a bounded calibration request.
-3. Code-model capability tests produce exact-binding calibration records.
+2. Capacity gate admits a bounded calibration request.
+3. Code-model capability tests produce calibration records.
 4. Only verification_passed records count toward the configured lane floor.
-5. Promotion grants active eligibility for the tested lane/risk class only.
+5. Promotion grants active eligibility for the tested lane only.
 6. Production calls produce separate routing-eligible evidence for ranking.
-7. Periodic re-certification repeats both relevant health and capability gates.
+7. Periodic re-certification repeats capability gates.
 ```
 
-`active` must not be interpreted as globally eligible. The registry or
-selector must expose and enforce `eligible_lanes` and, where needed,
-`eligible_risk_classes`. Coding calibration must not silently authorize
-reasoning, critic, or other lanes.
+`active` must not be interpreted as globally eligible. Coding calibration
+must not silently authorize reasoning, critic, or other lanes.
 
 ### Cross-host compatibility
 
-Codex and Grok may use the same problem manifest, but identical problem text
-alone does not prove equivalent certification. The compatibility artifact must
-include a fixture-manifest hash plus host-specific parser, sandbox, verifier,
-result-contract, and binding receipts. Until a current executable Codex
-counterpart and paired receipt exist, the Codex implementation is a target
-contract, not a verified fact.
+Codex and Grok should use the same problem manifest (fixture hash). Until
+a Codex executable counterpart and paired receipt exist, the Codex pool
+test is a target contract, not a verified fact.
 
 ### Lane expansion
 
