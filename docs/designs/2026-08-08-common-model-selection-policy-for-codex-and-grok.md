@@ -358,21 +358,30 @@ Codex and Grok should use the same problem manifest (fixture hash). Until
 a Codex executable counterpart and paired receipt exist, the Codex pool
 test is a target contract, not a verified fact.
 
-### Lane expansion
+### Pool test suites
 
-The current concrete artifact covers coding calibration only. The target
-pattern extends to other lanes:
+Each capability needs its own pool test suite to produce calibration
+evidence. Difficulty tiers within a capability use the same suite with
+different pass thresholds.
 
-| Lane | Test type | Scoring |
-|------|-----------|---------|
-| coding | Code generation plus sandboxed execution and repository-style acceptance | Verified pass/fail plus quality metrics |
-| reasoning | Analysis tasks with known-correct conclusions | Rubric score plus verification state |
-| mechanical | Extraction/formatting tasks with expected output | Exact match |
-| critic | Code review tasks with planted bugs | Recall plus verification state |
+| Suite | Capability | Difficulty | What it tests | Scoring | Status |
+|---|---|---|---|---|---|
+| Coding pool test | tool-loop | trivial + standard | HumanEval function generation + sandboxed execution | Binary pass/fail, threshold: trivial >=80%, standard >=50% | Built (13 problems) |
+| Coding acceptance test | tool-loop | hard | Repository context, multi-file patches, tool use, verification | Verified pass/fail + quality metrics | Future work |
+| Mechanical pool test | mechanical | trivial + standard | Extraction, formatting, structured output with expected output | Exact match, threshold: trivial >=80%, standard >=50% | Future work |
+| Reasoning pool test | reasoning | trivial + standard | Analysis tasks with known-correct conclusions | Rubric score + verification state | Future work |
+| Reasoning deep test | reasoning | hard | Architecture, root-cause from ambiguous symptoms | Rubric score + verification state | Future work |
 
-Each lane has a separate runner and fixture manifest, while the telemetry
-pipeline, binding identity, capacity gate, and promotion-state vocabulary are
-shared.
+Each suite reuses the same infrastructure: `pool_test.py` runner pattern,
+`telemetry.log_call()` with `calibration-<capability>` task_domain,
+`evidence_accumulator` cohort tagging, and `check_promotion()` threshold.
+
+The trivial/standard split within a capability uses the same problems with
+different pass thresholds. The hard tier needs genuinely different problems
+(multi-file, ambiguous, real repository work) and is a separate suite.
+
+**Codex equivalent:** same problem manifests (fixture hash), native JS
+sandbox per suite, same calibration-cohort telemetry pattern.
 
 ## What is shared and what remains separate
 
