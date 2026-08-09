@@ -95,6 +95,19 @@ This finding is wrong if:
 - `P:/.data/wiki/concepts/deepseek-region-optin-failure-pattern.md` — the corrected entry with PI probe receipts
 - [[narrative-as-signal]] — the broader pattern: plausible narrative substituting for reading the actual evidence
 
+## Receipts
+
+Mechanism claims in this entry are grounded in the following this-session verifications:
+
+- **PI probe command:** `pi -p --provider opencode-zen --model deepseek-v4-flash-free --no-session` — exit 0, response "OK", 32.4s wall-clock (2026-08-09, session `019fe673-8b5c-7ee0-a22e-f1765ae9860b`)
+- **PI probe command:** `pi -p --provider opencode-go --model deepseek-v4-flash --no-session` — exit 1, verbatim 403 response with opt-in URL (2026-08-09, same session)
+- **PI probe command:** `pi -p --provider nvidia-nim --model deepseek-ai/deepseek-v4-flash --no-session` — exit 1, 410 Gone no body (2026-08-09, same session)
+- **fleet-models.json path:** `C:/Users/brsth/.grok/skills/model-quota/scripts/fleet-models.json` — entries `candidates/[0]`, `candidates/[5]`, `candidates/[10]`, `candidates/[11]` (verified via `verify_deepseek_slugs_2026-08-09.py` this session)
+- **OpenCode Go docs:** `https://opencode.ai/docs/go/` line 730 (curl-fetched 2026-08-09): "DeepSeek V4 Flash: ZDR agreement is renewed monthly. The current agreement is valid through August 31, 2026."
+- **RFC 9110 §15.5.4** (web_fetch 2026-08-09): "The 403 (Forbidden) status code indicates that the server understood the request but refuses to authorize it."
+
+The `nim-deepseek-ai-deepseek-v4-flash` EOL claim and the `zen-deepseek-v4-flash-free` serde-broken claim were [PRIOR_SESSION_FACT] from `tool-fallbacks.md` and were re-verified this session via direct PI probe. The re-probe confirmed nim EOL but DISCONFIRMED the zen "fully broken" framing (zen works via PI direct; only spawn_subagent transport is serde-broken).
+
 ## Auto-related
 
 - [[skill-catalog]]
