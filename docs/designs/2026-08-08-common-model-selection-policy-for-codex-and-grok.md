@@ -1,8 +1,8 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Status:** Revision 5b — incorporates all 42 findings from six relay sessions  
-**Revision:** 5b — converges all relay sessions (review-a4284b50b3c5-7ce08143, review-48c2aaf5f35b-66380b08, review-78ba2723102b-f5f12c38, review-2dee25098f99-7fbe1e16, review-dd27d4099861-f8f99394, review-f05015dbd989-4f58d01b); ready for operator acceptance  
+**Status:** Revision 5b — canonical design accepted for implementation planning; not live or conformant
+**Revision:** 5b — converges all relay sessions (review-a4284b50b3c5-7ce08143, review-48c2aaf5f35b-66380b08, review-78ba2723102b-f5f12c38, review-2dee25098f99-7fbe1e16, review-dd27d4099861-f8f99394, review-f05015dbd989-4f58d01b); implementation gates remain open
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
@@ -104,32 +104,123 @@ afterward and is not used to justify the decision that was already made.
 ## Current conformance status
 
 This document defines the target policy. It does not claim that either live
-selector already conforms to every rule. The latest source review found these
-known gaps:
+selector already conforms to every rule. The latest source review (session
+019fdf47, 2026-08-09) found these gaps and shipped fixes for the Grok side:
 
-- Grok's router currently consumes p50 latency in
-  `C:\Users\brsth\.grok\skills\model-quota\scripts\model_router.py`, while
-  this policy targets valid-result p90.
-- Grok's golden-vector verifier is structural-only and marked `SKELETON` in
-  `C:\Users\brsth\.grok\skills\model-quota\scripts\golden_vectors.py`;
-  the Codex executable counterpart is not present yet.
-- Grok's router still uses quota-class headroom heuristics rather than the
-  provider-capacity adapter defined below.
-- Grok quarantine records do not yet include the full orchestrator and
-  invocation scope, so the shared quarantine file is not safe as a
-  cross-orchestrator authority.
-- Grok's normal eligibility path currently admits `candidate` lifecycle
-  records; the lifecycle gate below is therefore a required implementation
-  correction, not an existing guarantee. **Live confirmation:** 7
-  candidate-lifecycle models are currently in the active routing pool with
-  zero verified-success evidence (fleet scan F1).
-- Current receipts do not yet expose every target field in both hosts;
-  missing capacity, latency, evidence, or verification values must remain
-  explicit unknowns rather than being synthesized.
+### Grok conformance — shipped fixes (2026-08-09)
 
-Until these gaps are resolved and the live paths are verified, receipts and
-benchmark artifacts must describe the implementation as provisional or
-non-conformant where applicable. Passing unit tests alone is not acceptance.
+1. **p90 latency target** (commit `b6b985f`) — `_latency_p50()` replaced with
+   `_latency_p90()` implementing the R5b fallback chain (`p90 > p50_provisional
+   > lane_median > BLOCKED`). `compute_score()` now uses p90 for the speed
+   factor. **RESOLVED.**
+
+2. **Lifecycle gate** (commit `b6b985f`) — `evidence_eligibility()` now blocks
+   `lifecycle=candidate` records. Only `active` candidates are eligible. The 12
+   `candidate` records in the live registry are correctly excluded pending
+   promotion via verified-success evidence. **RESOLVED.**
+
+3. **Quarantine scope** (commit `b6b985f`) — `QuarantineRecord` gains
+   `orchestrator` and `invocation_method` fields. Transport and model
+   quarantine creation sites populate them from the candidate. Backward
+   compatible with pre-scope records. **RESOLVED.**
+
+4. **Golden-vector executable gate** (commit `c55646d`) — `golden_vectors.py`
+   `invoke_selector()` had a one-line registry construction bug that caused
+   `AttributeError` during selector invocation. Fixed: all 25 vectors pass.
+   Status changed from `SKELETON` to `EXECUTABLE`. The verifier now returns
+   exit code 1 on any failure. **RESOLVED.**
+
+5. **Capacity adapter** (commit `6a6d10f`) — `capacity_adapter.py` reads the
+   live fleet quota cache (7 providers: copilot, google, zai, minimax,
+   opencode-go, cohere, grok), normalizes to the R5b adapter shape, and
+   implements the decision table as a 5th gate alongside capability/policy/
+   lifecycle/health. `_quota_headroom()` removed from `compute_score()` —
+   capacity is gate-only per R5b fix #2. Live test confirms exhausted providers
+   (cohere at pct=0) are correctly blocked. **PARTIALLY RESOLVED** — the gate
+   is live and reads real data, but v1 limitations remain:
+   - All providers mapped to `rate_limited_only` (none classified as
+     `windowed_units`, `monetary_budget`, or `multi_pool` yet)
+   - Demand estimation is `demand=1 request` for all lanes (token-level
+     estimation deferred — needs task prompt passed into the selector)
+   - Reserve is a fixed 5% floor (adaptive reserve from demand-forecast
+     telemetry deferred)
+   - Confirmed `0%` snapshot remains blocked even after recorded reset time;
+     `deferred_until` / retry outcome not yet produced
+   - Task class/spend semantics not passed into the capacity decision
+
+6. **Evidence key matching** (commit `abee719`) — the evidence cache had 865
+   groups with p90/success-rate/sample-count data, but only 5/32 candidates
+   matched due to key mismatches (short names vs full IDs, `spawn` vs
+   `http`/`pi`/`opencode`, provider case variation). `_lookup_evidence_in_cache()`
+   now tries model name aliases, dispatch-path fallback, and case-insensitive
+   matching. `compute_score()` uses `success_rate` as quality proxy when
+   `quality_avg` is absent. 8 of 20 active candidates now have evidence reaching
+   the scorer; evidence-backed candidates rank above cold-start candidates.
+   **RESOLVED** for matched candidates; 12 candidates remain cold-start because
+   their telemetry uses provider/model naming patterns not yet covered by the
+   alias strategy.
+
+### Remaining Grok gaps
+
+- **Capacity adapter depth** — `windowed_units`, `monetary_budget`, and
+  `multi_pool` capacity kinds are not yet implemented. The adapter maps all
+  providers to `rate_limited_only`. Providers with token-window or spend-budget
+  semantics are not correctly classified.
+
+- **Quota recovery** — a confirmed `0%` capacity snapshot blocks even after its
+  recorded reset time. The selector does not return `deferred_until` or retry
+  outcomes. A temporary quota problem requires a fresh external observation.
+
+- **Unknown-capacity rule** — missing or stale capacity for mapped providers is
+  admitted for ordinary work, but the selector does not yet pass task
+  class/spend semantics into the capacity decision. This does not satisfy the
+  unknown-capacity rule that limits disclosed uncertainty to non-spend work.
+
+- **Receipt fields** — current receipts do not yet expose every target field.
+  Missing capacity, latency, evidence, or verification values remain explicit
+  unknowns rather than being synthesized.
+
+- **Evidence coverage** — 12 of 20 active candidates have no matching evidence
+  despite telemetry existing for them. The naming mismatch between
+  `fleet-models.json` identifiers and telemetry provider/model strings needs
+  further alias strategies or a canonical naming reconciliation.
+
+- **Quality scoring** — `compute_score()` uses `success_rate` as a quality
+  proxy because `quality_avg` is 0.0 in all current telemetry. The telemetry
+  pipeline does not yet populate quality scores. When it does, the scorer will
+  automatically prefer `quality_avg` over `success_rate`.
+
+### Codex conformance
+
+Codex currently enforces `lifecycle=active` in its registry health path, but
+its live rank records `evidence_count` without enforcing the common
+lane-specific verified-success floors or Wilson lower-bound weighting. The
+current rank uses reliability/defaults, measured latency, quota preference,
+and candidate priority. This is a policy-conformance gap, not evidence that
+the target algorithm is live. The Codex golden-vector JS counterpart remains
+absent.
+
+### Evidence snapshot (2026-08-09, session 019fdf47)
+
+Grok model-quota test suite: 461 tests pass, 9 skipped (pre-existing tier-
+based obsolescence), 0 failures. `golden_vectors.py verify` reports 25/25
+matching cases with executable selector invocation. Live test against real
+`fleet-models.json` + evidence cache + quota cache: all 4 lanes (coding,
+reasoning, critic, mechanical) return valid selections with correct gate
+behavior (lifecycle, capacity, evidence-driven ranking). The full Grok
+model-quota suite remains blocked during collection by the pre-existing
+`migrate_to_v4.py` import of missing `registry_views` exports (not a
+conformance issue).
+
+These results verify selector logic and gate behavior but do not clear the
+shared live-path conformance gate. The golden vectors test embedded
+mini-registries, not live capacity or evidence data. The Codex executable
+counterpart is still absent.
+
+Until the remaining gaps are resolved and the live paths are verified,
+receipts and benchmark artifacts must describe the implementation as
+provisional or non-conformant where applicable. Passing unit tests alone is
+not acceptance.
 
 ## What is shared and what remains separate
 
@@ -712,8 +803,17 @@ receipts. Receipts older than the snapshot retention period are marked
 The current orchestrator does not dynamically hand a failed task to the
 other orchestrator. A worker failure after start is recorded and returned for
 parent judgment. A different provider or harness requires a new explicit task
-and identity. A bounded pre-dispatch health refresh may update eligibility,
-but it must not become an implicit fallback chain.
+and identity.
+
+A bounded pre-dispatch health refresh is limited to one configured,
+timeout-bounded evaluation of the requested route's registry, quarantine, and
+capacity/health state. It may update eligibility but must not invoke a model,
+try substitutes, or create an implicit fallback chain. If the refresh is
+unavailable or exceeds its budget, the selector applies the capacity decision
+table using explicit stale/unknown state and records `refresh_status`,
+`refresh_sources`, and `refresh_duration_ms` in the receipt. Any live provider
+probe must be explicitly enabled by task policy and remain within the same
+budget.
 
 ### Quarantine concurrency model
 
@@ -879,12 +979,17 @@ evidence for all of the following:
 ## Operator acceptance
 
 This proposal (Revision 5b) is the output of six cross-orchestrator review
-relay sessions (all converged, zero disputes across 42 total findings).
-The proposal is offered for operator acceptance.
+relay sessions (all converged, zero disputes across 42 total findings). Relay
+convergence is review provenance; it is not evidence that either live
+selector is conformant.
+
+The proposal is offered for operator acceptance as an implementation-planning
+contract, not as authorization to activate live routing.
 
 **Acceptance means:** proceed to native implementation planning in both
 hosts against this contract, with the acceptance gates above as the
-definition of done.
+definition of done. Live activation requires fresh source evidence for every
+gate, including executable cross-host fixtures and live-path receipts.
 
 **Non-acceptance means:** identify which finding or correction needs
 further iteration before implementation begins.
