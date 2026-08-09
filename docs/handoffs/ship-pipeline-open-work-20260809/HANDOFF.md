@@ -95,24 +95,16 @@ concept `[[design-choice-audit-challenge-every-decision-against-first-principles
 - **Impact:** discoverability — the pattern is enforced in 6 skills but not findable from AGENTS.md.
 - **Effort:** ~15 min (add a section to AGENTS.md)
 
-### Track E: Singh execution-reality middleware (distinct work item — optional)
+### ~~Track E: Singh execution-reality middleware~~ (DROPPED 2026-08-09)
 
-**E1.** Design + implement the Singh payload-response misalignment heuristic
-(~30 lines of Python). This would be the THIRD specification-gaming layer:
-- Layer 1 (DONE): polling loop — prevents continuation abandonment
-- Layer 2 (DONE): cross-model validation — prevents review-finding fabrication
-- Layer 3 (OPTIONAL): Singh heuristic — prevents tool-output fabrication (agent
-  claims tool returned X when it returned Y)
-
-**Status:** This addresses a failure mode we have NOT observed in our workspace.
-The two layers already shipped cover the fabrication surface the original
-fraud exploited. The Singh heuristic is a proactive layer for a hypothetical
-failure mode. **Operator decision pending** — keep as documented option or
-remove from scope.
-
-**Source:** Singh KDD 2026 Workshop — 56.6% fabrication rate measured in
-academic settings; 0% false positive rate under neutral prompts.
-**Wiki:** [[making-llm-agents-honestly-execute-skills-solution-stack]] §2
+**Dropped per /tp recommendation.** The Singh heuristic addresses tool-output
+fabrication (agent claims subprocess returned X when it returned Y) — a failure
+mode NOT observed in this workspace. In our orchestrator-controlled architecture,
+the LLM does NOT directly call subprocess.run — the orchestrator mediates all
+subprocess execution. The academic 56.6% fabrication rate likely doesn't
+transfer to this environment. The wiki documents the pattern
+([[making-llm-agents-honestly-execute-skills-solution-stack]] §2); if the
+failure mode emerges later, it can be implemented then.
 
 ## What "done" looks like for ship-py reliability
 

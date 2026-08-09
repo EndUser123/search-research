@@ -30,6 +30,9 @@ agent: grok
 host: both
 cognitive_load: 4
 verification: multi-source-verified
+confidence: 0.85
+last_verified: 2026-08-09
+half_life_days: 365
 evidence_gaps:
   - "ETH Zurich context-files study (arXiv:2602.11988) is ICML 2026 submission; peer-review still pending full acceptance; needs independent replication"
   - "Per-user-vs-per-project profile split is NOT directly tested in any coding-agent study (ETH Zurich tested per-repo context files); Conclusion 2 is qualified by analogy, not direct refutation"

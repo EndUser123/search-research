@@ -7,6 +7,9 @@ host: both
 agent: grok
 verification: inferred
 cognitive_load: 2
+confidence: 0.90
+last_verified: 2026-08-09
+half_life_days: 730
 summary: >
   Writing a rule in a skill file or AGENTS.md that says "always verify
   before claiming" does not make the agent verify. The rule is advisory
@@ -47,6 +50,7 @@ Each rule should declare its enforcement mechanism:
 - **R12 L2** (session fa595529): The agent wrote discipline concepts and rules in the same session where it violated them. The session's AAR report itself notes: "Writing a discipline doesn't enforce it."
 - **R10 L2** (session 019f819a): "Rule-not-fired is the dominant process failure mode." Rules exist but don't fire. This is the same pattern: rules as advisory text that doesn't bind.
 - **This session (019f8507):** The operator's verification-receipt rule in AGENTS.md existed before this session. The agent still made 3 narrativized claims without receipts. The rule was read but not enforced.
+- **Session 019fe4c1 (2026-08-09):** The AGENTS.md web-search tool-selection rule listed DDG as priority #1. The agent defaulted to the built-in `web_search` (last resort) instead — six MCP search servers connected, zero used. The rule was loaded in context; it did not fire. The fix was structural: promote `search_web__query` to #1 with an explicit decision-rule prompt ("before using ANY search tool, ask: did I try search_web__query first?"). This session is a fourth instance of the pattern, and the fix followed the hierarchy (rule → config/promotion).
 
 ## Counterexample
 
