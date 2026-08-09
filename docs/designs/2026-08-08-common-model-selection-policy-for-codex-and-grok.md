@@ -310,10 +310,11 @@ For each candidate c:
 
 # Normalize weights
 total = sum(weight(c) for c in eligible)
-if total <= 0:
+if total <= 1e-6:
     # Zero or near-zero total weights: BLOCKED, not uniform fallback.
     # Zero weights can mean no usable evidence, not just rounding.
-    return BLOCKED("all eligible candidates have zero effective weight")
+    # Near-zero (< 1e-6) is treated as zero for safety.
+    return BLOCKED("all eligible candidates have zero or near-zero effective weight")
 weights = [weight(c) / total for c in eligible]
 
 # Round weights to 6 decimal places for deterministic replay
@@ -604,7 +605,7 @@ defaults when the adapter output is ambiguous.
 |---|---|---|---|---|
 | `windowed_units` | fresh (<5 min) | allow if remaining > demand + reserve, apply pacing | allow if remaining > demand | allow only if remaining > demand + reserve and not forecast-exhausted |
 | `windowed_units` | stale (>5 min) | block until refreshed | allow if route health is clean | block |
-| `monetary_budget` | fresh | allow if remaining > demand + cap | allow if remaining > demand | allow only if remaining > demand + reserve |
+| `monetary_budget` | fresh | allow if remaining > demand + reserve | allow if remaining > demand | allow only if remaining > demand + reserve |
 | `monetary_budget` | stale | block until refreshed | allow | block |
 | `rate_limited_only` | live (429 health checked) | allow if no active 429/backoff | allow if concurrency state admits demand | allow if concurrency state admits demand |
 | `rate_limited_only` | stale | allow with disclosed uncertainty | allow | block |
