@@ -94,6 +94,22 @@ architectural changes:
 These are design-level changes that should go through `/design` before
 implementation.
 
+## Design completed (2026-08-09)
+
+The `/design` run (b1abe493) completed with **reviewer PROCEED** (0 critical/major) and **critical friend PROCEED** (round 2, 1 implementer caveat). All three improvements ship as skill-side sidecars preserving the dumb-pipe invariant (0 LoC in `src/review-relay.mjs`).
+
+**Key architectural decision:** [[adr-011-review-relay-dumb-pipe-invariant]] — ship dumb-pipe first, migrate to inspecting-pipe only on production bottleneck (≥30 days + cross-section/adaptive-lease/finding-provenance requirement materializes).
+
+**Implementation units:** 15 units across 4 phases (~1830 new LoC, 6 skill helpers + 8 test files, 0 relay LoC).
+
+**Open implementer question:** `previous_findings_path` tick-input inconsistency (R2-N1) — resolved as coordinator-side sidecar (true 0 relay lines, preserves invariant strictly).
+
+**Design artifacts (in temp, will be reaped by OS):**
+- Design doc: `C:/Users/brsth/AppData/Local/Temp/grok-design-b1abe493/grok-design-doc-b1abe493.md`
+- Summary: `C:/Users/brsth/AppData/Local/Temp/grok-design-b1abe493/grok-design-summary-b1abe493.md`
+
+The durable decision is captured in the ADR above; the design doc is working scaffolding.
+
 ## Receipts
 
 - `P:\packages\codex-external-delegation\src\review-relay.mjs` — reviewKeyFromPaths, registryBucket, DEFAULT_LEASE_SECONDS=600
