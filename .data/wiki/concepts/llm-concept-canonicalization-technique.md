@@ -65,7 +65,7 @@ Our wiki at `P:/.data/wiki/concepts/` has grown to hundreds of concept pages. We
 - `/wiki` could benefit from a canonicalization pass that identifies concept pages with semantically equivalent content but different slugs
 - The entity/concept distinction maps to our existing implicit separation of "tool reference" pages vs "pattern/technique" pages
 
-**What we already do well:** Our `[[wikilink]]` cross-referencing system handles the knowledge graph construction automatically — once canonical concepts exist, the links build themselves. This mirrors the [[skill-usability-audit-cold-read-critique]] insight that structural mechanisms beat behavioral reminders. The gap is in the upstream canonicalization step.
+**What we already do well:** Our `wikilink` cross-referencing system handles the knowledge graph construction automatically — once canonical concepts exist, the links build themselves. This mirrors the [[skill-usability-audit-cold-read-critique]] insight that structural mechanisms beat behavioral reminders. The gap is in the upstream canonicalization step.
 
 ## Falsifier
 

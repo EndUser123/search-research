@@ -71,10 +71,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[power-prompts]] — Power Prompts
-- [[artifact-first-memory]] — Artifact-First Memory
+- power-prompts — Power Prompts
+- artifact-first-memory — Artifact-First Memory
 - [[multi-agent-orchestration]] — Multi-Agent Orchestration
-- [[vibe-coding]] — Vibe Coding
+- vibe-coding — Vibe Coding
 
 ## Citations (from contributing transcripts)
 

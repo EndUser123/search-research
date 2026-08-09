@@ -81,9 +81,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[operating-system-migration]] — Operating System Migration
-- [[software-update-failures]] — Software Update Failures
-- [[platform-dependency-risks]] — Platform Dependency Risks
+- operating-system-migration — Operating System Migration
+- software-update-failures — Software Update Failures
+- platform-dependency-risks — Platform Dependency Risks
 
 ## Citations (from contributing transcripts)
 

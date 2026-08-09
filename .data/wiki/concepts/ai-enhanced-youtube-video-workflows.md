@@ -79,9 +79,9 @@ Synthesized from **17 contributing transcripts** in NotebookLM notebook *WL: Mod
 
 ## Related concepts
 
-- [[ai-video-generation]] — AI Video Generation
-- [[code-based-video-editing]] — Code-Based Video Editing
-- [[youtube-optimization]] — YouTube Optimization
+- ai-video-generation — AI Video Generation
+- code-based-video-editing — Code-Based Video Editing
+- youtube-optimization — YouTube Optimization
 
 ## Citations (from contributing transcripts)
 

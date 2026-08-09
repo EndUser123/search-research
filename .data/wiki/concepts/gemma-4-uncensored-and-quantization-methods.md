@@ -76,11 +76,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[quantization-aware-training]] — Quantization Aware Training
-- [[mixture-of-experts-architecture]] — Mixture of Experts Architecture
-- [[local-llm-deployment]] — Local LLM Deployment
-- [[community-fine-tuning]] — Community Fine-tuning
-- [[chat-templates]] — Chat Templates
+- quantization-aware-training — Quantization Aware Training
+- mixture-of-experts-architecture — Mixture of Experts Architecture
+- local-llm-deployment — Local LLM Deployment
+- community-fine-tuning — Community Fine-tuning
+- chat-templates — Chat Templates
 
 ## Citations (from contributing transcripts)
 

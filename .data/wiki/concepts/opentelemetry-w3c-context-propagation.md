@@ -80,11 +80,11 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *Transcri
 
 ## Related concepts
 
-- [[distributed-tracing]] — Distributed Tracing
-- [[w3c-tracecontext]] — W3C TraceContext
-- [[opentelemetry-propagators]] — OpenTelemetry Propagators
-- [[trace-context]] — Trace Context
-- [[span-correlation]] — Span Correlation
+- distributed-tracing — Distributed Tracing
+- w3c-tracecontext — W3C TraceContext
+- opentelemetry-propagators — OpenTelemetry Propagators
+- trace-context — Trace Context
+- span-correlation — Span Correlation
 
 ## Citations (from contributing transcripts)
 

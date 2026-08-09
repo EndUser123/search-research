@@ -160,9 +160,9 @@ Synthesized from **27 contributing transcripts** in NotebookLM notebook *Maximiz
 
 ## Related concepts
 
-- [[quantization-methods-for-local-llms]] — Quantization Methods for Local LLMs
-- [[kv-cache-optimization-strategies]] — KV-Cache Optimization Strategies
-- [[llama.cpp-memory-configuration]] — llama.cpp Memory Configuration
+- quantization-methods-for-local-llms — Quantization Methods for Local LLMs
+- kv-cache-optimization-strategies — KV-Cache Optimization Strategies
+- llama.cpp-memory-configuration — llama.cpp Memory Configuration
 
 ## Citations (from contributing transcripts)
 

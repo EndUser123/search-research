@@ -232,7 +232,7 @@ This concept is the hook-fleet complement.
 
 - **F1 (ship_receipt.py python -m ruff fallback):** read_file confirmed the
   fallback path at the ship_receipt.py line ~290 in the FMEA sweep; the
-  breakage is documented in [[python-m-ruff-swallows-stdout-in-powershell.md]]
+  breakage is documented in [[python-m-ruff-swallows-stdout-in-powershell]]
   (verified by AGENTS.md Class C quoting section).
 - **F2 (PostToolUse_auto_verify.py _write_receipt):** the silent except is
   in function _write_receipt() - FMEA sweep identified the pattern.

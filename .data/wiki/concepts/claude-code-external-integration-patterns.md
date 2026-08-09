@@ -94,10 +94,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[claude-code-desktop-mode]] — Claude Code Desktop Mode
-- [[claude-code-skill-system]] — Claude Code Skill System
-- [[obsidian-plugin-development]] — Obsidian Plugin Development
-- [[ai-assisted-personal-knowledge-management]] — AI-Assisted Personal Knowledge Management
+- claude-code-desktop-mode — Claude Code Desktop Mode
+- claude-code-skill-system — Claude Code Skill System
+- obsidian-plugin-development — Obsidian Plugin Development
+- ai-assisted-personal-knowledge-management — AI-Assisted Personal Knowledge Management
 
 ## Citations (from contributing transcripts)
 

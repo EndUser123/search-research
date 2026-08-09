@@ -98,9 +98,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[token-efficient-llm-workflows]] — Token-efficient LLM workflows
-- [[json-encoding-alternatives]] — JSON encoding alternatives
-- [[structured-data-formats-for-ai]] — Structured data formats for AI
+- token-efficient-llm-workflows — Token-efficient LLM workflows
+- json-encoding-alternatives — JSON encoding alternatives
+- structured-data-formats-for-ai — Structured data formats for AI
 
 ## Citations (from contributing transcripts)
 

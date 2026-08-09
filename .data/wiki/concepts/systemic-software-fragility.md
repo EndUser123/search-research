@@ -272,11 +272,11 @@ Synthesized from **213 contributing transcripts** in NotebookLM notebook *WL: Ca
 
 ## Related concepts
 
-- [[dependency-management]] — Dependency Management
-- [[software-entropy]] — Software Entropy
-- [[digital-infrastructure-resilience]] — Digital Infrastructure Resilience
-- [[testing-limitations]] — Testing Limitations
-- [[cascading-failure-patterns]] — Cascading Failure Patterns
+- dependency-management — Dependency Management
+- software-entropy — Software Entropy
+- digital-infrastructure-resilience — Digital Infrastructure Resilience
+- testing-limitations — Testing Limitations
+- cascading-failure-patterns — Cascading Failure Patterns
 
 ## Citations (from contributing transcripts)
 

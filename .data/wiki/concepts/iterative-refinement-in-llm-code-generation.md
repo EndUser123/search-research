@@ -107,11 +107,11 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Iterati
 
 ## Related concepts
 
-- [[code-synthesis-benchmarks]] — Code Synthesis Benchmarks
-- [[self-reflection-in-llms]] — Self-Reflection in LLMs
-- [[multi-agent-debate-architectures]] — Multi-Agent Debate Architectures
-- [[ast-based-code-analysis]] — AST-Based Code Analysis
-- [[dialectical-reasoning-frameworks]] — Dialectical Reasoning Frameworks
+- code-synthesis-benchmarks — Code Synthesis Benchmarks
+- self-reflection-in-llms — Self-Reflection in LLMs
+- multi-agent-debate-architectures — Multi-Agent Debate Architectures
+- ast-based-code-analysis — AST-Based Code Analysis
+- dialectical-reasoning-frameworks — Dialectical Reasoning Frameworks
 
 ## Citations (from contributing transcripts)
 

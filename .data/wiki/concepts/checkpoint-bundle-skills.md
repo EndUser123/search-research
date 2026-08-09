@@ -78,9 +78,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *Software
 ## Related concepts
 
 - [[/checkpoint-core-management]] — /checkpoint core management
-- [[trash-recovery-system]] — Trash recovery system
-- [[checkpoint-metadata-format]] — Checkpoint metadata format
-- [[evidence-first-validation-pattern]] — Evidence-first validation pattern
+- trash-recovery-system — Trash recovery system
+- checkpoint-metadata-format — Checkpoint metadata format
+- evidence-first-validation-pattern — Evidence-first validation pattern
 
 ## Citations (from contributing transcripts)
 

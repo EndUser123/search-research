@@ -68,9 +68,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WebSync:
 
 ## Related concepts
 
-- [[content-creator-commentary-styles]] — Content Creator Commentary Styles
-- [[video-based-information-dissemination]] — Video-Based Information Dissemination
-- [[digital-media-discourse-patterns]] — Digital Media Discourse Patterns
+- content-creator-commentary-styles — Content Creator Commentary Styles
+- video-based-information-dissemination — Video-Based Information Dissemination
+- digital-media-discourse-patterns — Digital Media Discourse Patterns
 
 ## Citations (from contributing transcripts)
 

@@ -88,9 +88,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[langgraph-agent-architecture]] — LangGraph Agent Architecture
-- [[tool-calling-patterns-in-llms]] — Tool Calling Patterns in LLMs
-- [[input-validation-techniques]] — Input Validation Techniques
+- langgraph-agent-architecture — LangGraph Agent Architecture
+- tool-calling-patterns-in-llms — Tool Calling Patterns in LLMs
+- input-validation-techniques — Input Validation Techniques
 
 ## Citations (from contributing transcripts)
 

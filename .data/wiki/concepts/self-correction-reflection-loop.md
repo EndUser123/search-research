@@ -183,9 +183,9 @@ Synthesized from **30 contributing transcripts** in NotebookLM notebook *Deep Re
 ## Related concepts
 
 - [[claude-code-hooks]] — Claude Code Hooks
-- [[claude.md-configuration]] — CLAUDE.md Configuration
+- [[claudemd-configuration-files]] — CLAUDE.md Configuration
 - [[agent-harness-engineering]] — Agent Harness Engineering
-- [[over-editing-mitigation]] — Over-editing Mitigation
+- over-editing-mitigation — Over-editing Mitigation
 
 ## Citations (from contributing transcripts)
 

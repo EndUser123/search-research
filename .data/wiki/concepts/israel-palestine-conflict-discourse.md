@@ -70,11 +70,11 @@ Synthesized from **18 contributing transcripts** in NotebookLM notebook *WebSync
 
 ## Related concepts
 
-- [[religious-land-claims]] — Religious Land Claims
-- [[october-7-events]] — October 7 Events
-- [[media-verification]] — Media Verification
-- [[zionism-debates]] — Zionism Debates
-- [[property-rights-in-conflict-zones]] — Property Rights in Conflict Zones
+- religious-land-claims — Religious Land Claims
+- october-7-events — October 7 Events
+- media-verification — Media Verification
+- zionism-debates — Zionism Debates
+- property-rights-in-conflict-zones — Property Rights in Conflict Zones
 
 ## Citations (from contributing transcripts)
 

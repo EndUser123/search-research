@@ -70,10 +70,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[prompt-engineering]] — Prompt Engineering
-- [[multi-agent-systems]] — Multi-Agent Systems
-- [[ai-assisted-development]] — AI-Assisted Development
-- [[vibe-coding]] — Vibe Coding
+- prompt-engineering — Prompt Engineering
+- multi-agent-systems — Multi-Agent Systems
+- ai-assisted-development — AI-Assisted Development
+- vibe-coding — Vibe Coding
 
 ## Citations (from contributing transcripts)
 

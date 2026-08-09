@@ -75,11 +75,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[context-engineering]] — Context Engineering
-- [[multi-agent-systems]] — Multi-Agent Systems
-- [[rag-evaluation-metrics]] — RAG Evaluation Metrics
-- [[naive-rag]] — Naive RAG
-- [[tool-use-in-ai-agents]] — Tool Use in AI Agents
+- context-engineering — Context Engineering
+- multi-agent-systems — Multi-Agent Systems
+- rag-evaluation-metrics — RAG Evaluation Metrics
+- naive-rag — Naive RAG
+- tool-use-in-ai-agents — Tool Use in AI Agents
 
 ## Citations (from contributing transcripts)
 

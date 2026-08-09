@@ -79,9 +79,9 @@ Synthesized from **20 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[ai-media-generation]] — AI Media Generation
-- [[transcript-based-video-editing]] — Transcript-Based Video Editing
-- [[claude-code-workflows]] — Claude Code Workflows
+- ai-media-generation — AI Media Generation
+- transcript-based-video-editing — Transcript-Based Video Editing
+- claude-code-workflows — Claude Code Workflows
 
 ## Citations (from contributing transcripts)
 

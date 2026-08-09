@@ -85,10 +85,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[autonomous-agents]] — Autonomous Agents
-- [[ai-tool-use]] — AI Tool Use
+- autonomous-agents — Autonomous Agents
+- ai-tool-use — AI Tool Use
 - [[agent-memory-systems]] — Agent Memory Systems
-- [[workflow-automation]] — Workflow Automation
+- workflow-automation — Workflow Automation
 
 ## Citations (from contributing transcripts)
 

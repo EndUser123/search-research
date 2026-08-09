@@ -68,10 +68,10 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[mcp-integrations]] — MCP Integrations
-- [[workflow-automation]] — Workflow Automation
-- [[claude-capabilities]] — Claude Capabilities
-- [[skill-development-lifecycle]] — Skill Development Lifecycle
+- mcp-integrations — MCP Integrations
+- workflow-automation — Workflow Automation
+- claude-capabilities — Claude Capabilities
+- skill-development-lifecycle — Skill Development Lifecycle
 
 ## Citations (from contributing transcripts)
 

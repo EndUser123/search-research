@@ -259,7 +259,7 @@ Both error types have occurred in our session:
 ## Auto-related
 
 - [[agent-oversight-rubber-stamping]]
-- [[i'm-going-to-create-a-hook-to-enforce-discovery-be]]
+- [[I'm-going-to-create-a-hook-to-enforce-discovery-be]]
 - [[operator-collaboration-style-and-leverage]]
 ## Falsifier
 

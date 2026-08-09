@@ -69,10 +69,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[multimodal-local-ai-models]] — Multimodal Local AI Models
-- [[model-quantization-techniques]] — Model Quantization Techniques
+- multimodal-local-ai-models — Multimodal Local AI Models
+- model-quantization-techniques — Model Quantization Techniques
 - [[private-uncensored-text-to-speech]] — Private Uncensored Text-to-Speech (comprehensive TTS research, resolves the dangling TTS wikilink target)
-- [[privacy-preserving-ai]] — Privacy-Preserving AI
+- privacy-preserving-ai — Privacy-Preserving AI
 
 ## Citations (from contributing transcripts)
 

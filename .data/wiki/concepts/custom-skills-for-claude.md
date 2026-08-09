@@ -66,9 +66,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *Masterin
 
 ## Related concepts
 
-- [[claude-code-execution]] — Claude Code Execution
-- [[mcp-integrations]] — MCP Integrations
-- [[workflow-automation]] — Workflow Automation
+- claude-code-execution — Claude Code Execution
+- mcp-integrations — MCP Integrations
+- workflow-automation — Workflow Automation
 
 ## Citations (from contributing transcripts)
 

@@ -58,9 +58,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: Cana
 
 ## Related concepts
 
-- [[bowline-knot]] — Bowline Knot
-- [[loose-leash-walking]] — Loose Leash Walking
-- [[dog-leash-pulling]] — Dog Leash Pulling
+- bowline-knot — Bowline Knot
+- loose-leash-walking — Loose Leash Walking
+- dog-leash-pulling — Dog Leash Pulling
 
 ## Citations (from contributing transcripts)
 

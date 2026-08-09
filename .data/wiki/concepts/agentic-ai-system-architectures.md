@@ -80,10 +80,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[large-language-model-agents]] — Large Language Model Agents
-- [[agent-workflow-patterns]] — Agent Workflow Patterns
-- [[ai-agent-memory-systems]] — AI Agent Memory Systems
-- [[contract-based-verification]] — Contract-Based Verification
+- large-language-model-agents — Large Language Model Agents
+- agent-workflow-patterns — Agent Workflow Patterns
+- [[agent-memory-systems]] — AI Agent Memory Systems
+- contract-based-verification — Contract-Based Verification
 
 ## Citations (from contributing transcripts)
 

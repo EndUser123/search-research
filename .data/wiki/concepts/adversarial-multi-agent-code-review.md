@@ -106,10 +106,10 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *Adversa
 
 ## Related concepts
 
-- [[context-qa-gate]] — Context QA Gate
-- [[multi-agent-gan-architecture]] — Multi-Agent GAN Architecture
-- [[agentspec-runtime-enforcement]] — AgentSpec Runtime Enforcement
-- [[consensus-verification-pattern]] — Consensus Verification Pattern
+- context-qa-gate — Context QA Gate
+- multi-agent-gan-architecture — Multi-Agent GAN Architecture
+- agentspec-runtime-enforcement — AgentSpec Runtime Enforcement
+- consensus-verification-pattern — Consensus Verification Pattern
 
 ## Citations (from contributing transcripts)
 

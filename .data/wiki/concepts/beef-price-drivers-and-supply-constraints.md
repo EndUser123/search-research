@@ -73,11 +73,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[screwworm-eradication]] — Screwworm Eradication
-- [[cattle-herd-contraction]] — Cattle Herd Contraction
-- [[synthetic-protein-investment]] — Synthetic Protein Investment
-- [[meat-processing-capacity]] — Meat Processing Capacity
-- [[alternative-protein-market]] — Alternative Protein Market
+- screwworm-eradication — Screwworm Eradication
+- cattle-herd-contraction — Cattle Herd Contraction
+- synthetic-protein-investment — Synthetic Protein Investment
+- meat-processing-capacity — Meat Processing Capacity
+- alternative-protein-market — Alternative Protein Market
 
 ## Citations (from contributing transcripts)
 

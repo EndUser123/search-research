@@ -81,10 +81,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Adversar
 
 ## Related concepts
 
-- [[adversarial-code-review]] — Adversarial Code Review
-- [[design-review-automation]] — Design Review Automation
-- [[multi-agent-collaboration]] — Multi-Agent Collaboration
-- [[mcp-integration]] — MCP Integration
+- adversarial-code-review — Adversarial Code Review
+- design-review-automation — Design Review Automation
+- multi-agent-collaboration — Multi-Agent Collaboration
+- mcp-integration — MCP Integration
 
 ## Citations (from contributing transcripts)
 

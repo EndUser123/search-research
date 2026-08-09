@@ -52,7 +52,7 @@ Agent reads research → finds relevant-sounding conclusion → cites it as auth
 
 The failure is structurally identical to [[reactive-pattern-matching-and-closure-pressure]]: the agent pattern-matches on a conclusion that feels relevant, then cites it without doing the work of checking whether the conditions hold. The research's confidence becomes the agent's confidence — without the research's conditions traveling with it.
 
-This is also the same failure mode documented in [[narrative-as-signal-anti-dismissal-rule]] and [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — the agent constructs a plausible narrative (the research supports my conclusion) without verifying the underlying claim (the research's assumptions match my context). The receipt rule says: before claiming a causal mechanism, cite the source code. The applicability rule extends this: before claiming research supports a design choice, cite the conditions under which the research holds and verify they match.
+This is also the same failure mode documented in narrative-as-signal-anti-dismissal-rule and [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — the agent constructs a plausible narrative (the research supports my conclusion) without verifying the underlying claim (the research's assumptions match my context). The receipt rule says: before claiming a causal mechanism, cite the source code. The applicability rule extends this: before claiming research supports a design choice, cite the conditions under which the research holds and verify they match.
 
 ## The applicability check
 

@@ -71,9 +71,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[ai-assisted-development]] — AI-Assisted Development
-- [[prompt-engineering]] — Prompt Engineering
-- [[llm-configuration]] — LLM Configuration
+- ai-assisted-development — AI-Assisted Development
+- prompt-engineering — Prompt Engineering
+- llm-configuration — LLM Configuration
 
 ## Citations (from contributing transcripts)
 

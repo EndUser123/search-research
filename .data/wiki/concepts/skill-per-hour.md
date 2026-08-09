@@ -65,9 +65,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WebSync:
 
 ## Related concepts
 
-- [[depth-of-understanding]] — Depth of Understanding
-- [[hands-on-learning]] — Hands-On Learning
-- [[educational-content-quality]] — Educational Content Quality
+- depth-of-understanding — Depth of Understanding
+- hands-on-learning — Hands-On Learning
+- educational-content-quality — Educational Content Quality
 
 ## Citations (from contributing transcripts)
 

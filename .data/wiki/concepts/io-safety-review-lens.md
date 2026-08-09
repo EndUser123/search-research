@@ -94,7 +94,7 @@ Fix: temp-file + `os.replace` pattern. 4 prior reviews (3 correctness +
 
 ## Related concepts
 
-- [[file-editing-protocol]] — atomic write pattern for config/code files
+- file-editing-protocol — atomic write pattern for config/code files
 - [[verification-before-completion-principle]] — verify before claiming done
 - [[invariants-beat-environment-comfort]] — structural safety over behavioral caution
 ## Falsifier

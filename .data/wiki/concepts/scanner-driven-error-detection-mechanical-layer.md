@@ -71,6 +71,6 @@ This approach is wrong if:
 
 ## Related
 
-- [[class-c-shell-quoting-29-instances]] — the historical failure pattern the scanner detects
+- class-c-shell-quoting-29-instances — the historical failure pattern the scanner detects
 - [[shell-to-python-orchestration-threshold]] — when to extract from shell to Python
 - [[structural-enforcement-for-skipped-rules-grok-build-2026]] — why prose rules don't fire under pressure

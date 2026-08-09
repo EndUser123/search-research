@@ -109,11 +109,11 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Adversa
 
 ## Related concepts
 
-- [[agentic-scaffolding]] — Agentic scaffolding
+- agentic-scaffolding — Agentic scaffolding
 - [[multi-agent-orchestration]] — Multi-agent orchestration
-- [[event-driven-agent-architecture]] — Event-driven agent architecture
-- [[agentic-ai-frameworks]] — Agentic AI frameworks
-- [[quality-gates-for-ai-systems]] — Quality gates for AI systems
+- event-driven-agent-architecture — Event-driven agent architecture
+- agentic-ai-frameworks — Agentic AI frameworks
+- quality-gates-for-ai-systems — Quality gates for AI systems
 
 ## Citations (from contributing transcripts)
 

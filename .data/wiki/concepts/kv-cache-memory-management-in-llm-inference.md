@@ -157,11 +157,11 @@ Synthesized from **25 contributing transcripts** in NotebookLM notebook *Maximiz
 
 ## Related concepts
 
-- [[sliding-window-attention]] — Sliding Window Attention
-- [[prompt-caching]] — Prompt Caching
-- [[vram-optimization]] — VRAM Optimization
-- [[kv-cache-quantization]] — KV Cache Quantization
-- [[context-shift-mechanism]] — Context Shift Mechanism
+- sliding-window-attention — Sliding Window Attention
+- prompt-caching — Prompt Caching
+- vram-optimization — VRAM Optimization
+- kv-cache-quantization — KV Cache Quantization
+- context-shift-mechanism — Context Shift Mechanism
 
 ## Citations (from contributing transcripts)
 

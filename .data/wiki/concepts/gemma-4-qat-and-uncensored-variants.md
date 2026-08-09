@@ -69,10 +69,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[quantization-aware-training]] — Quantization-Aware Training
-- [[mixture-of-experts-models]] — Mixture of Experts Models
-- [[community-fine-tuning]] — Community Fine-Tuning
-- [[gemma-4-base-model]] — Gemma 4 Base Model
+- quantization-aware-training — Quantization-Aware Training
+- mixture-of-experts-models — Mixture of Experts Models
+- community-fine-tuning — Community Fine-Tuning
+- gemma-4-base-model — Gemma 4 Base Model
 
 ## Citations (from contributing transcripts)
 

@@ -66,10 +66,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[blood-pressure-management]] — Blood Pressure Management
-- [[heart-rate-variability]] — Heart Rate Variability
-- [[cardiovascular-risk-assessment]] — Cardiovascular Risk Assessment
-- [[aging-and-cardiovascular-health]] — Aging and Cardiovascular Health
+- blood-pressure-management — Blood Pressure Management
+- heart-rate-variability — Heart Rate Variability
+- cardiovascular-risk-assessment — Cardiovascular Risk Assessment
+- aging-and-cardiovascular-health — Aging and Cardiovascular Health
 
 ## Citations (from contributing transcripts)
 

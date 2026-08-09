@@ -94,9 +94,9 @@ Synthesized from **37 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[international-bridge-dispute]] — International Bridge Dispute
-- [[canada-us-tariff-conflict]] — Canada-US Tariff Conflict
-- [[pm-carney's-diplomatic-approach]] — PM Carney's Diplomatic Approach
+- international-bridge-dispute — International Bridge Dispute
+- canada-us-tariff-conflict — Canada-US Tariff Conflict
+- pm-carney's-diplomatic-approach — PM Carney's Diplomatic Approach
 
 ## Citations (from contributing transcripts)
 

@@ -79,10 +79,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *AI Archi
 
 ## Related concepts
 
-- [[agent-orchestration]] — Agent Orchestration
-- [[llm-tool-use]] — LLM Tool Use
-- [[software-engineering-agents]] — Software Engineering Agents
-- [[agent-feedback-loops]] — Agent Feedback Loops
+- [[multi-agent-orchestration]] — Agent Orchestration
+- llm-tool-use — LLM Tool Use
+- software-engineering-agents — Software Engineering Agents
+- agent-feedback-loops — Agent Feedback Loops
 
 ## Citations (from contributing transcripts)
 

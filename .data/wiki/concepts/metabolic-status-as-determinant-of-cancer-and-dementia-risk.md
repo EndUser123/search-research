@@ -87,10 +87,10 @@ Synthesized from **24 contributing transcripts** in NotebookLM notebook *WL: Hea
 
 ## Related concepts
 
-- [[neurodegeneration-prevention]] — Neurodegeneration Prevention
-- [[anti-inflammatory-dietary-patterns]] — Anti-inflammatory Dietary Patterns
-- [[circadian-rhythm-optimization]] — Circadian Rhythm Optimization
-- [[pharmacological-cognitive-risk]] — Pharmacological Cognitive Risk
+- neurodegeneration-prevention — Neurodegeneration Prevention
+- anti-inflammatory-dietary-patterns — Anti-inflammatory Dietary Patterns
+- circadian-rhythm-optimization — Circadian Rhythm Optimization
+- pharmacological-cognitive-risk — Pharmacological Cognitive Risk
 
 ## Citations (from contributing transcripts)
 

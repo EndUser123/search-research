@@ -78,10 +78,10 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[open-source-ai-tooling]] — Open-Source AI Tooling
-- [[local-development-security]] — Local Development Security
-- [[dependency-scanning]] — Dependency Scanning
-- [[codebase-understanding]] — Codebase Understanding
+- open-source-ai-tooling — Open-Source AI Tooling
+- local-development-security — Local Development Security
+- dependency-scanning — Dependency Scanning
+- codebase-understanding — Codebase Understanding
 
 ## Citations (from contributing transcripts)
 

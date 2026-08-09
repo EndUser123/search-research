@@ -89,10 +89,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[structured-outputs]] — Structured Outputs
+- model-context-protocol — Model Context Protocol
+- structured-outputs — Structured Outputs
 - [[agent-skills]] — Agent Skills
-- [[pydantic-validation]] — Pydantic Validation
+- pydantic-validation — Pydantic Validation
 
 ## Citations (from contributing transcripts)
 

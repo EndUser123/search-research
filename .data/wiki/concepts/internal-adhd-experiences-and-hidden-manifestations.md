@@ -117,11 +117,11 @@ Synthesized from **53 contributing transcripts** in NotebookLM notebook *WL: Hea
 
 ## Related concepts
 
-- [[adhd-masking-and-camouflaging]] — ADHD Masking and Camouflaging
-- [[working-memory-challenges-in-adhd]] — Working Memory Challenges in ADHD
-- [[adhd-burnout-and-recovery-strategies]] — ADHD Burnout and Recovery Strategies
-- [[sleep-dysregulation-in-adhd]] — Sleep Dysregulation in ADHD
-- [[social-skills-adaptations-in-adhd]] — Social Skills Adaptations in ADHD
+- adhd-masking-and-camouflaging — ADHD Masking and Camouflaging
+- working-memory-challenges-in-adhd — Working Memory Challenges in ADHD
+- adhd-burnout-and-recovery-strategies — ADHD Burnout and Recovery Strategies
+- sleep-dysregulation-in-adhd — Sleep Dysregulation in ADHD
+- social-skills-adaptations-in-adhd — Social Skills Adaptations in ADHD
 
 ## Citations (from contributing transcripts)
 

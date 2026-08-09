@@ -101,9 +101,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Video P
 
 ## Related concepts
 
-- [[python-design-patterns]] — Python Design Patterns
-- [[subprocess-management]] — Subprocess Management
-- [[class-inheritance-patterns]] — Class Inheritance Patterns
+- python-design-patterns — Python Design Patterns
+- subprocess-management — Subprocess Management
+- class-inheritance-patterns — Class Inheritance Patterns
 
 ## Citations (from contributing transcripts)
 

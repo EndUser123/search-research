@@ -80,9 +80,9 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *WL: AI 
 
 ## Related concepts
 
-- [[deterministic-rule-based-systems]] — Deterministic Rule-Based Systems
-- [[local-first-privacy-tools]] — Local-First Privacy Tools
-- [[transparent-open-source-security-scanning]] — Transparent Open-Source Security Scanning
+- deterministic-rule-based-systems — Deterministic Rule-Based Systems
+- local-first-privacy-tools — Local-First Privacy Tools
+- transparent-open-source-security-scanning — Transparent Open-Source Security Scanning
 
 ## Citations (from contributing transcripts)
 

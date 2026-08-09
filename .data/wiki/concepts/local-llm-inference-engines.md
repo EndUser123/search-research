@@ -152,11 +152,11 @@ Synthesized from **24 contributing transcripts** in NotebookLM notebook *Maximiz
 
 ## Related concepts
 
-- [[gguf-model-format]] — GGUF Model Format
-- [[openai-compatible-api-endpoints]] — OpenAI-Compatible API Endpoints
-- [[mixture-of-experts-architecture]] — Mixture of Experts Architecture
-- [[model-quantization-techniques]] — Model Quantization Techniques
-- [[local-model-deployment]] — Local Model Deployment
+- gguf-model-format — GGUF Model Format
+- openai-compatible-api-endpoints — OpenAI-Compatible API Endpoints
+- mixture-of-experts-architecture — Mixture of Experts Architecture
+- model-quantization-techniques — Model Quantization Techniques
+- local-model-deployment — Local Model Deployment
 
 ## Citations (from contributing transcripts)
 

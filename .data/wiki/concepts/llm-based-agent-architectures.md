@@ -109,11 +109,11 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *AI Arch
 
 ## Related concepts
 
-- [[multi-agent-debate-systems]] — Multi-Agent Debate Systems
-- [[prompt-injection-defenses]] — Prompt Injection Defenses
-- [[agent-evaluation-frameworks]] — Agent Evaluation Frameworks
-- [[context-engineering-for-agents]] — Context Engineering for Agents
-- [[ai-skills-for-agentic-systems]] — AI Skills for Agentic Systems
+- multi-agent-debate-systems — Multi-Agent Debate Systems
+- prompt-injection-defenses — Prompt Injection Defenses
+- agent-evaluation-frameworks — Agent Evaluation Frameworks
+- context-engineering-for-agents — Context Engineering for Agents
+- ai-skills-for-agentic-systems — AI Skills for Agentic Systems
 
 ## Citations (from contributing transcripts)
 

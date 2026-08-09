@@ -76,9 +76,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *Deep Res
 
 ## Related concepts
 
-- [[deterministic-control-plane]] — Deterministic Control Plane
-- [[verification-patterns-in-agent-loops]] — Verification Patterns in Agent Loops
-- [[loop-specification-design]] — Loop Specification Design
+- deterministic-control-plane — Deterministic Control Plane
+- verification-patterns-in-agent-loops — Verification Patterns in Agent Loops
+- loop-specification-design — Loop Specification Design
 
 ## Citations (from contributing transcripts)
 

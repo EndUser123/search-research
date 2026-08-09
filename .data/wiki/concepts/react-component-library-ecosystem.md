@@ -110,10 +110,10 @@ Synthesized from **40 contributing transcripts** in NotebookLM notebook *Github 
 
 ## Related concepts
 
-- [[react-design-systems]] — React Design Systems
-- [[component-composition-patterns]] — Component Composition Patterns
-- [[typescript-in-react]] — TypeScript in React
-- [[react-native-cross-platform-development]] — React Native Cross-Platform Development
+- react-design-systems — React Design Systems
+- component-composition-patterns — Component Composition Patterns
+- typescript-in-react — TypeScript in React
+- react-native-cross-platform-development — React Native Cross-Platform Development
 
 ## Citations (from contributing transcripts)
 

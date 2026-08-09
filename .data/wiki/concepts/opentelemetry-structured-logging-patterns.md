@@ -386,12 +386,12 @@ Synthesized from **83 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[context-propagation]] — Context Propagation
-- [[distributed-tracing]] — Distributed Tracing
-- [[structured-logging]] — Structured Logging
-- [[opentelemetry-collector]] — OpenTelemetry Collector
-- [[log-correlation]] — Log Correlation
-- [[agentic-observability]] — Agentic Observability
+- context-propagation — Context Propagation
+- distributed-tracing — Distributed Tracing
+- structured-logging — Structured Logging
+- opentelemetry-collector — OpenTelemetry Collector
+- log-correlation — Log Correlation
+- agentic-observability — Agentic Observability
 
 ## Citations (from contributing transcripts)
 

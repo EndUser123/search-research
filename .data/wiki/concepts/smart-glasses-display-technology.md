@@ -83,11 +83,11 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *WL: Mis
 
 ## Related concepts
 
-- [[augmented-reality-displays]] — Augmented Reality Displays
-- [[wearable-display-technology]] — Wearable Display Technology
-- [[micro-oled-technology]] — Micro OLED Technology
-- [[ai-assisted-wearables]] — AI-Assisted Wearables
-- [[waveguide-optical-systems]] — Waveguide Optical Systems
+- augmented-reality-displays — Augmented Reality Displays
+- wearable-display-technology — Wearable Display Technology
+- micro-oled-technology — Micro OLED Technology
+- ai-assisted-wearables — AI-Assisted Wearables
+- waveguide-optical-systems — Waveguide Optical Systems
 
 ## Citations (from contributing transcripts)
 

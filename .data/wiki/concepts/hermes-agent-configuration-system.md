@@ -243,10 +243,10 @@ Synthesized from **181 contributing transcripts** in NotebookLM notebook *WL: Mu
 
 ## Related concepts
 
-- [[mixture-of-agents]] — Mixture of Agents
-- [[agent-harness]] — Agent Harness
+- mixture-of-agents — Mixture of Agents
+- [[pi-agent-harness]] — Agent Harness
 - [[multi-agent-orchestration]] — Multi-Agent Orchestration
-- [[open-source-agent-platforms]] — Open-Source Agent Platforms
+- open-source-agent-platforms — Open-Source Agent Platforms
 - [[agent-memory-systems]] — Agent Memory Systems
 
 ## Citations (from contributing transcripts)

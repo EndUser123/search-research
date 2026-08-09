@@ -228,10 +228,10 @@ Synthesized from **164 contributing transcripts** in NotebookLM notebook *WL: An
 
 ## Related concepts
 
-- [[structured-evaluation]] — Structured Evaluation
-- [[agentic-platforms]] — Agentic Platforms
-- [[token-optimization]] — Token Optimization
-- [[human-ai-collaboration]] — Human-AI Collaboration
+- structured-evaluation — Structured Evaluation
+- agentic-platforms — Agentic Platforms
+- token-optimization — Token Optimization
+- human-ai-collaboration — Human-AI Collaboration
 
 ## Citations (from contributing transcripts)
 

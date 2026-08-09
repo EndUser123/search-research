@@ -67,10 +67,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Opti
 
 ## Related concepts
 
-- [[planned-obsolescence]] — Planned Obsolescence
-- [[razor-blade-business-model]] — Razor-Blade Business Model
-- [[coffee-bean-freshness]] — Coffee Bean Freshness
-- [[consumer-product-quality-assessment]] — Consumer Product Quality Assessment
+- planned-obsolescence — Planned Obsolescence
+- razor-blade-business-model — Razor-Blade Business Model
+- coffee-bean-freshness — Coffee Bean Freshness
+- consumer-product-quality-assessment — Consumer Product Quality Assessment
 
 ## Citations (from contributing transcripts)
 

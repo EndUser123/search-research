@@ -715,9 +715,9 @@ Synthesized from **169 contributing transcripts** in NotebookLM notebook *Claude
 
 ## Related concepts
 
-- [[claude-code-skills]] — Claude Code Skills
-- [[multi-agent-systems]] — Multi-Agent Systems
-- [[agent-orchestration]] — Agent Orchestration
+- claude-code-skills — Claude Code Skills
+- multi-agent-systems — Multi-Agent Systems
+- [[multi-agent-orchestration]] — Agent Orchestration
 
 ## Citations (from contributing transcripts)
 

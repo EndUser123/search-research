@@ -39,7 +39,7 @@ Each unclosed obligation has a cost:
 - **Triage cost**: every future session must scan past stale items to find actionable work
 - **Misrouting cost**: stale handoffs referencing moved/deleted files misroute fresh sessions
 - **Cognitive load**: 213 open handoffs is beyond human triage capacity
-- **Investigation-theater risk**: the pattern of producing durable artifacts (wiki concepts, handoffs) as a substitute for structural fixes. Already documented in `[[analysis-over-action-pattern-knowledge-capture-without-application]]`.
+- **Investigation-theater risk**: the pattern of producing durable artifacts (wiki concepts, handoffs) as a substitute for structural fixes. Already documented in `[[analysis-over-action-knowledge-capture-without-application]]`.
 
 ## The /tp critique that surfaced it
 
@@ -64,9 +64,9 @@ This is distinct from:
 
 ## Related concepts
 
-- [[analysis-over-action-pattern-knowledge-capture-without-application]] — the behavioral pattern this finding names at the system level
+- [[analysis-over-action-knowledge-capture-without-application]] — the behavioral pattern this finding names at the system level
 - [[mechanical-enforcement-over-behavioral-reminder]] — structural fixes over prose
-- [[harvest]] — the obligation tracking system whose data surfaced this finding
+- `harvest` (now `/insight --fleet`) — the obligation tracking system whose data surfaced this finding
 
 ## Falsifier
 

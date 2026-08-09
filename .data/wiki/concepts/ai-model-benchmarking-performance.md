@@ -78,13 +78,13 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[claude-opus-4.8]] — Claude Opus 4.8
-- [[glm-5.2]] — GLM 5.2
-- [[qwen-3.7-max]] — Qwen 3.7 Max
-- [[claude-sonnet-5]] — Claude Sonnet 5
-- [[mixture-of-experts-architecture]] — Mixture of Experts Architecture
-- [[agentic-ai]] — Agentic AI
-- [[terminal-bench-2.0]] — Terminal Bench 2.0
+- claude-opus-4.8 — Claude Opus 4.8
+- glm-5.2 — GLM 5.2
+- qwen-3.7-max — Qwen 3.7 Max
+- claude-sonnet-5 — Claude Sonnet 5
+- mixture-of-experts-architecture — Mixture of Experts Architecture
+- agentic-ai — Agentic AI
+- terminal-bench-2.0 — Terminal Bench 2.0
 
 ## Citations (from contributing transcripts)
 

@@ -77,9 +77,9 @@ Synthesized from **14 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[prompt-engineering-patterns]] — Prompt Engineering Patterns
-- [[multi-model-content-workflows]] — Multi-Model Content Workflows
-- [[lora-training-for-ai-characters]] — LoRa Training for AI Characters
+- prompt-engineering-patterns — Prompt Engineering Patterns
+- multi-model-content-workflows — Multi-Model Content Workflows
+- lora-training-for-ai-characters — LoRa Training for AI Characters
 
 ## Citations (from contributing transcripts)
 

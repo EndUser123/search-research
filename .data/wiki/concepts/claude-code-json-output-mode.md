@@ -93,12 +93,12 @@ Synthesized from **17 contributing transcripts** in NotebookLM notebook *ext-Age
 
 ## Related concepts
 
-- [[claude-code-stream-json-output]] — Claude Code stream-json output
+- claude-code-stream-json-output — Claude Code stream-json output
 - [[claude-code-hooks-(pretooluse/posttooluse)]] — Claude Code hooks (PreToolUse/PostToolUse)
 - [[claude-code-mcp-server-configuration]] — Claude Code MCP server configuration
 - [[claude-code-session-persistence-(transcript_path)]] — Claude Code session persistence (transcript_path)
 - [[claude-code-headless-automation-(`claude--p`)]] — Claude Code headless automation (`claude -p`)
-- [[claude-code-setting.json-and-plugin.json]] — Claude Code setting.json and plugin.json
+- claude-code-setting.json-and-plugin.json — Claude Code setting.json and plugin.json
 
 ## Citations (from contributing transcripts)
 

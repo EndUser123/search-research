@@ -101,10 +101,10 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *Masteri
 ## Related concepts
 
 - [[agent-skills]] — Agent Skills
-- [[model-context-protocol]] — Model Context Protocol
-- [[structural-guardrails]] — Structural Guardrails
-- [[tool-selection-patterns]] — Tool Selection Patterns
-- [[verification-and-qa-for-ai-generated-code]] — Verification and QA for AI-Generated Code
+- model-context-protocol — Model Context Protocol
+- structural-guardrails — Structural Guardrails
+- tool-selection-patterns — Tool Selection Patterns
+- verification-and-qa-for-ai-generated-code — Verification and QA for AI-Generated Code
 
 ## Citations (from contributing transcripts)
 

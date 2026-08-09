@@ -88,5 +88,5 @@ This concept is wrong if:
 ## Related
 
 - [[couple-triggers-to-events-that-actually-fire]] — refined: for forgotten maintenance, reminders are the right trigger
-- [[operator-profile-receipt-enforcement-20260802]] — operator profile patterns
+- operator-profile-receipt-enforcement-20260802 — operator profile patterns
 - [[epistemic-knowledge-system-design-2026]] — where the lint coupling issue surfaced

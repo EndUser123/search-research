@@ -85,12 +85,12 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *WL: Hea
 
 ## Related concepts
 
-- [[ldl-cholesterol-and-heart-disease-risk]] — LDL Cholesterol and Heart Disease Risk
-- [[fructose-metabolism]] — Fructose Metabolism
-- [[protein-and-fat-loss-studies]] — Protein and Fat Loss Studies
-- [[carnivore-diet-elimination-approach]] — Carnivore Diet Elimination Approach
-- [[sourdough-bread-fermentation]] — Sourdough Bread Fermentation
-- [[continuous-ketone-monitoring]] — Continuous Ketone Monitoring
+- ldl-cholesterol-and-heart-disease-risk — LDL Cholesterol and Heart Disease Risk
+- fructose-metabolism — Fructose Metabolism
+- protein-and-fat-loss-studies — Protein and Fat Loss Studies
+- carnivore-diet-elimination-approach — Carnivore Diet Elimination Approach
+- sourdough-bread-fermentation — Sourdough Bread Fermentation
+- continuous-ketone-monitoring — Continuous Ketone Monitoring
 
 ## Citations (from contributing transcripts)
 

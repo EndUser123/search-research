@@ -399,13 +399,13 @@ Synthesized from **328 contributing transcripts** in NotebookLM notebook *WL: Gi
 
 ## Related concepts
 
-- [[insulin-sensitivity]] — Insulin Sensitivity
-- [[cortisol-management]] — Cortisol Management
-- [[visceral-fat-reduction]] — Visceral Fat Reduction
-- [[glp-1-medications]] — GLP-1 Medications
-- [[intermittent-fasting-protocols]] — Intermittent Fasting Protocols
-- [[magnesium-deficiency]] — Magnesium Deficiency
-- [[nutrient-absorption-optimization]] — Nutrient Absorption Optimization
+- insulin-sensitivity — Insulin Sensitivity
+- cortisol-management — Cortisol Management
+- visceral-fat-reduction — Visceral Fat Reduction
+- glp-1-medications — GLP-1 Medications
+- intermittent-fasting-protocols — Intermittent Fasting Protocols
+- magnesium-deficiency — Magnesium Deficiency
+- nutrient-absorption-optimization — Nutrient Absorption Optimization
 
 ## Citations (from contributing transcripts)
 

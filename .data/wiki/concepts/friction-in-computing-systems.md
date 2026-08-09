@@ -67,10 +67,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[software-efficiency-optimization]] — Software Efficiency Optimization
-- [[operating-system-independence]] — Operating System Independence
-- [[thermal-management-in-computing-hardware]] — Thermal Management in Computing Hardware
-- [[accessibility-in-productivity-software]] — Accessibility in Productivity Software
+- software-efficiency-optimization — Software Efficiency Optimization
+- operating-system-independence — Operating System Independence
+- thermal-management-in-computing-hardware — Thermal Management in Computing Hardware
+- accessibility-in-productivity-software — Accessibility in Productivity Software
 
 ## Citations (from contributing transcripts)
 

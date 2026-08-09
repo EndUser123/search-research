@@ -113,10 +113,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[model-context-protocol-tools]] — Model Context Protocol Tools
-- [[langgraph-parallel-execution]] — LangGraph Parallel Execution
-- [[trace-based-evaluation]] — Trace-Based Evaluation
-- [[claude-agent-hooks]] — Claude Agent Hooks
+- model-context-protocol-tools — Model Context Protocol Tools
+- langgraph-parallel-execution — LangGraph Parallel Execution
+- trace-based-evaluation — Trace-Based Evaluation
+- claude-agent-hooks — Claude Agent Hooks
 
 ## Citations (from contributing transcripts)
 

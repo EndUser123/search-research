@@ -64,9 +64,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[cpp-contribution-strategies]] — CPP Contribution Strategies
-- [[property-tax-assessment]] — Property Tax Assessment
-- [[early-retirement-planning]] — Early Retirement Planning
+- cpp-contribution-strategies — CPP Contribution Strategies
+- property-tax-assessment — Property Tax Assessment
+- early-retirement-planning — Early Retirement Planning
 
 ## Citations (from contributing transcripts)
 

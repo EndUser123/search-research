@@ -65,9 +65,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[ai-driven-workflow-automation]] — AI-Driven Workflow Automation
-- [[passive-income-strategies]] — Passive Income Strategies
-- [[domain-specific-ai-implementation]] — Domain-Specific AI Implementation
+- ai-driven-workflow-automation — AI-Driven Workflow Automation
+- passive-income-strategies — Passive Income Strategies
+- domain-specific-ai-implementation — Domain-Specific AI Implementation
 
 ## Citations (from contributing transcripts)
 

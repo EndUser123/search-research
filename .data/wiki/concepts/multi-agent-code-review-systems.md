@@ -165,11 +165,11 @@ Synthesized from **25 contributing transcripts** in NotebookLM notebook *Iterati
 
 ## Related concepts
 
-- [[agentic-workflows]] — Agentic Workflows
-- [[llm-code-review]] — LLM Code Review
-- [[dialectical-reasoning]] — Dialectical Reasoning
-- [[github-actions-integration]] — GitHub Actions Integration
-- [[multi-agent-debate-frameworks]] — Multi-Agent Debate Frameworks
+- agentic-workflows — Agentic Workflows
+- llm-code-review — LLM Code Review
+- dialectical-reasoning — Dialectical Reasoning
+- github-actions-integration — GitHub Actions Integration
+- multi-agent-debate-frameworks — Multi-Agent Debate Frameworks
 
 ## Citations (from contributing transcripts)
 

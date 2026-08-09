@@ -66,11 +66,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: GitH
 
 ## Related concepts
 
-- [[self-directed-learning]] — Self-directed learning
-- [[retrieval-practice]] — Retrieval practice
-- [[encoding-techniques]] — Encoding techniques
-- [[skill-acquisition]] — Skill acquisition
-- [[personalized-learning]] — Personalized learning
+- self-directed-learning — Self-directed learning
+- retrieval-practice — Retrieval practice
+- encoding-techniques — Encoding techniques
+- skill-acquisition — Skill acquisition
+- personalized-learning — Personalized learning
 
 ## Citations (from contributing transcripts)
 

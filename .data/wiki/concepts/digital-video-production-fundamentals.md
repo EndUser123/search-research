@@ -230,10 +230,10 @@ Synthesized from **45 contributing transcripts** in NotebookLM notebook *high-qu
 
 ## Related concepts
 
-- [[ai-video-generation]] — AI Video Generation
-- [[chroma-sampling-standards]] — Chroma Sampling Standards
-- [[short-form-content-strategy]] — Short-Form Content Strategy
-- [[digital-color-grading]] — Digital Color Grading
+- ai-video-generation — AI Video Generation
+- chroma-sampling-standards — Chroma Sampling Standards
+- short-form-content-strategy — Short-Form Content Strategy
+- digital-color-grading — Digital Color Grading
 
 ## Citations (from contributing transcripts)
 

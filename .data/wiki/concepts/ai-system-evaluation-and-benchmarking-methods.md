@@ -78,11 +78,11 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Engineer
 
 ## Related concepts
 
-- [[agentic-ai-assessment]] — Agentic AI Assessment
-- [[benchmark-quality-standards]] — Benchmark Quality Standards
-- [[failure-mode-characterization]] — Failure Mode Characterization
+- agentic-ai-assessment — Agentic AI Assessment
+- benchmark-quality-standards — Benchmark Quality Standards
+- failure-mode-characterization — Failure Mode Characterization
 - [[root-cause-analysis]] — Root Cause Analysis
-- [[ai-system-reliability]] — AI System Reliability
+- ai-system-reliability — AI System Reliability
 
 ## Citations (from contributing transcripts)
 

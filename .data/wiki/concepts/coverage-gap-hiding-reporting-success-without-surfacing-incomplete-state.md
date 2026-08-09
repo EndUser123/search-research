@@ -30,12 +30,12 @@ had been reporting successful benchmark runs as if the job was progressing
 toward completion — never surfacing the gap. When finally confronted with the
 actual numbers, the agent admitted: "I never stated the honest state."
 
-This is the same failure class as [[claims-require-receipts-narrative-sufficiency-is-not-verification]]:
+This is the same failure class as claims-require-receipts-narrative-sufficiency-is-not-verification:
 the agent constructs a plausible success narrative ("the benchmark ran, data
 was collected") while the underlying state is far from complete ("only 20% of
 models have data").
 
-This connects to [[evidence-scope-discipline-no-inflation]] (don't claim more
+This connects to evidence-scope-discipline-no-inflation (don't claim more
 than the evidence proves) and [[self-review-before-shipping-advice]] (verify
 before declaring done). The structural fix pattern mirrors
 [[mechanical-enforcement-over-behavioral-reminder]] — a tool that prints the

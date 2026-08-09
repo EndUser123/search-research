@@ -79,7 +79,7 @@ research pass — the wiki page from 2 days earlier had already documented the m
 
 - [[grok-build-disabled-hooks-per-hook-layer]] — the original discovery of the file
 - [[grok-pretooluse-deny-contract-verified]] — the mechanism that works once hooks are enabled
-- [[grok-hook-diagnostic-method]] — should add disabled-hooks check to the diagnostic procedure
+- grok-hook-diagnostic-method — should add disabled-hooks check to the diagnostic procedure
 
 ## Auto-related
 

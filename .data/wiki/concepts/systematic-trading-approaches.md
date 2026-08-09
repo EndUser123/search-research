@@ -81,11 +81,11 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *WL: Loc
 
 ## Related concepts
 
-- [[trend-following]] — Trend Following
-- [[risk-management]] — Risk Management
-- [[position-sizing]] — Position Sizing
-- [[trading-metrics]] — Trading Metrics
-- [[rule-based-trading]] — Rule-Based Trading
+- trend-following — Trend Following
+- risk-management — Risk Management
+- position-sizing — Position Sizing
+- trading-metrics — Trading Metrics
+- rule-based-trading — Rule-Based Trading
 
 ## Citations (from contributing transcripts)
 

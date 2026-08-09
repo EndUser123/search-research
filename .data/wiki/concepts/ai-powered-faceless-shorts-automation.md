@@ -71,10 +71,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Nate Her
 
 ## Related concepts
 
-- [[no-code-workflow-automation]] — No-Code Workflow Automation
-- [[ai-content-generation-pipeline]] — AI Content Generation Pipeline
-- [[multi-platform-social-media-scheduling]] — Multi-Platform Social Media Scheduling
-- [[text-to-video-generation]] — Text-to-Video Generation
+- no-code-workflow-automation — No-Code Workflow Automation
+- ai-content-generation-pipeline — AI Content Generation Pipeline
+- multi-platform-social-media-scheduling — Multi-Platform Social Media Scheduling
+- text-to-video-generation — Text-to-Video Generation
 
 ## Citations (from contributing transcripts)
 

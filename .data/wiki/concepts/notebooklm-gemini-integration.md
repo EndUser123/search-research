@@ -91,11 +91,11 @@ Synthesized from **29 contributing transcripts** in NotebookLM notebook *WL: Not
 
 ## Related concepts
 
-- [[gemini-3.5]] — Gemini 3.5
-- [[ai-agent]] — AI Agent
-- [[autonomous-research]] — Autonomous Research
-- [[context-window]] — Context Window
-- [[gemini-notebook]] — Gemini Notebook
+- gemini-3.5 — Gemini 3.5
+- ai-agent — AI Agent
+- autonomous-research — Autonomous Research
+- context-window — Context Window
+- gemini-notebook — Gemini Notebook
 
 ## Citations (from contributing transcripts)
 

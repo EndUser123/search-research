@@ -76,10 +76,10 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[instruction-drift-mitigation]] — Instruction Drift Mitigation
-- [[model-context-protocol-integration]] — Model Context Protocol Integration
-- [[schema-reliable-terminal-communication]] — Schema-Reliable Terminal Communication
-- [[agentic-lifecycle-verification]] — Agentic Lifecycle Verification
+- instruction-drift-mitigation — Instruction Drift Mitigation
+- model-context-protocol-integration — Model Context Protocol Integration
+- schema-reliable-terminal-communication — Schema-Reliable Terminal Communication
+- agentic-lifecycle-verification — Agentic Lifecycle Verification
 
 ## Citations (from contributing transcripts)
 

@@ -80,7 +80,7 @@ retirement discipline, graph over flat retrieval).
 
 6. **Graph / linked retrieval beats flat embedding.** CodeRabbit cites 2025
    research: removing graph reasoning dropped accuracy by 6+ points. Our
-   `[[wikilinks]]` + `relations` frontmatter provides this structure.
+   `wikilinks` + `relations` frontmatter provides this structure.
    **We have the structure; we don't always use it for retrieval.**
 
 ### What people dislike
@@ -113,7 +113,7 @@ The industry has converged on 4 patterns for runtime knowledge access:
 |---------|-------------|----------------|
 | **Agent Spec** (Alibaba) | JSON/YAML config defines model, tools, KB endpoints; hot-updatable | Skills read wiki dynamically (our new pattern) |
 | **KB-as-Tool** (Kore.ai) | Wiki attached as searchable tool; agent RAGs per query | `/wiki` query in Phase 1 + Round 3 |
-| **KG-driven** (metaphacts) | Knowledge graph constrains agent outputs; traceable | `[[wikilinks]]` + `relations` provide graph structure |
+| **KG-driven** (metaphacts) | Knowledge graph constrains agent outputs; traceable | `wikilinks` + `relations` provide graph structure |
 | **Persistent memory** (Mem0) | Dynamic user-scoped memory, separate from static KB | Episodic-memory MCP + handoffs |
 
 **Key insight:** our wiki is simultaneously all four — it's a config source
@@ -128,7 +128,7 @@ aligns with the dominant industry direction.
 | "More pages = more knowledge" | Stale/duplicate pages actively destroy trust and make search worse | Need active retirement, not just append |
 | "Search solves everything" | Search hides structural debt; conflicting pages are worse than none for agents | Need canonical-page discipline with supersession markers |
 | "The wiki will keep itself current" | It will not — monotonic growth is a bug, not a feature | Need staleness detection + retirement triggers |
-| "Plain text is enough" | It is for content, but not for structure — graph links add retrieval value | Ensure every concept has ≥3 `[[wikilinks]]` |
+| "Plain text is enough" | It is for content, but not for structure — graph links add retrieval value | Ensure every concept has ≥3 `wikilinks` |
 | "Capture cost is the bottleneck" | No — retrieval cost is. 62% of devs revisit the same question within 3 months | Optimize for retrieval, not capture |
 
 ## Specific recommendations for our wiki
@@ -148,13 +148,13 @@ A periodic `/skill-prune` or health check can flag concepts where
 
 ### 2. Graph-aware retrieval
 
-When skills query the wiki dynamically, they should follow `[[wikilinks]]`
+When skills query the wiki dynamically, they should follow `wikilinks`
 and `relations` to build context, not just match keywords. This is the
 graph-guided retrieval pattern that outperforms flat embedding by 6+
 points (CodeRabbit, 2025 research).
 
 Implementation: after the initial grep, read the matching concept's
-`relations` and `[[wikilinks]]` to expand the context set.
+`relations` and `wikilinks` to expand the context set.
 
 ### 3. Retirement as a first-class operation
 

@@ -146,11 +146,11 @@ Synthesized from **29 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[llm-wiki-pattern]] — LLM Wiki Pattern
-- [[second-brain-systems]] — Second Brain Systems
-- [[claude-code-skills]] — Claude Code Skills
-- [[obsidian-vault-architecture]] — Obsidian Vault Architecture
-- [[mcp-server-integration]] — MCP Server Integration
+- llm-wiki-pattern — LLM Wiki Pattern
+- second-brain-systems — Second Brain Systems
+- claude-code-skills — Claude Code Skills
+- obsidian-vault-architecture — Obsidian Vault Architecture
+- mcp-server-integration — MCP Server Integration
 
 ## Citations (from contributing transcripts)
 

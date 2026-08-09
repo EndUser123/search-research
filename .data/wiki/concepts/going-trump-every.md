@@ -83,9 +83,9 @@ Synthesized from **24 contributing transcripts** in NotebookLM notebook *WL: Opt
 
 ## Related concepts
 
-- [[private-credit-market-dynamics]] — Private Credit Market Dynamics
-- [[election-impact-on-markets]] — Election Impact on Markets
-- [[mortgage-refinancing-constraints]] — Mortgage Refinancing Constraints
+- private-credit-market-dynamics — Private Credit Market Dynamics
+- election-impact-on-markets — Election Impact on Markets
+- mortgage-refinancing-constraints — Mortgage Refinancing Constraints
 
 ## Citations (from contributing transcripts)
 

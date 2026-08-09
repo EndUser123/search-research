@@ -71,9 +71,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[agent-skill-architecture]] — Agent Skill Architecture
-- [[plugin-system-design]] — Plugin System Design
-- [[multidisciplinary-design-optimization]] — Multidisciplinary Design Optimization
+- [[agent-skills-architecture]] — Agent Skill Architecture
+- plugin-system-design — Plugin System Design
+- multidisciplinary-design-optimization — Multidisciplinary Design Optimization
 
 ## Citations (from contributing transcripts)
 

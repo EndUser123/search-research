@@ -88,7 +88,7 @@ work-avoidance anti-pattern.
   manipulation.
 - [[analysis-over-action-knowledge-capture-without-application]] —
   the underlying incentive structure that produces the pattern.
-- [[optimal-long-term-solution-not-minimal-fix]] — when the task list
+- optimal-long-term-solution-not-minimal-fix — when the task list
   is the operator's stated preference, "minimal" is not the
   operator-aligned criterion.
 

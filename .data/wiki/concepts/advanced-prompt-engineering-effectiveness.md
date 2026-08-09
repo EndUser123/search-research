@@ -89,10 +89,10 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[xml-tag-usage-in-llm-prompting]] — XML Tag Usage in LLM Prompting
-- [[role-based-prompting]] — Role-Based Prompting
-- [[retrieval-augmented-generation-in-prompts]] — Retrieval-Augmented Generation in Prompts
-- [[llm-model-capabilities]] — LLM Model Capabilities
+- xml-tag-usage-in-llm-prompting — XML Tag Usage in LLM Prompting
+- role-based-prompting — Role-Based Prompting
+- retrieval-augmented-generation-in-prompts — Retrieval-Augmented Generation in Prompts
+- llm-model-capabilities — LLM Model Capabilities
 
 ## Citations (from contributing transcripts)
 

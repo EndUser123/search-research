@@ -82,9 +82,9 @@ Synthesized from **20 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[exercise-and-neurotransmitter-regulation-in-adhd]] — Exercise and Neurotransmitter Regulation in ADHD
-- [[sleep-dysfunction-and-cognitive-performance-in-neurodivergent-populations]] — Sleep Dysfunction and Cognitive Performance in Neurodivergent Populations
-- [[neuroinflammation-and-cognitive-symptoms]] — Neuroinflammation and Cognitive Symptoms
+- exercise-and-neurotransmitter-regulation-in-adhd — Exercise and Neurotransmitter Regulation in ADHD
+- sleep-dysfunction-and-cognitive-performance-in-neurodivergent-populations — Sleep Dysfunction and Cognitive Performance in Neurodivergent Populations
+- neuroinflammation-and-cognitive-symptoms — Neuroinflammation and Cognitive Symptoms
 
 ## Citations (from contributing transcripts)
 

@@ -52,13 +52,13 @@ severity requires reading the context, which this scan does not do.
 |---|---|---|---|---|
 | 1 | **closure-pressure** | 118 | 43 | ✅ [[reactive-pattern-matching-and-closure-pressure]] |
 | 2 | **gitignore** (grep false negatives, path issues) | 56 | 14 | ✅ this session's AGENTS.md fix |
-| 3 | **deferred-persistence** | 29 | 15 | ✅ [[no-deferred-persistence]] (AGENTS.md rule) |
-| 4 | **stale-read** (reading outdated file state) | 24 | 14 | ✅ [[file-editing-protocol]] |
+| 3 | **deferred-persistence** | 29 | 15 | ✅ no-deferred-persistence (AGENTS.md rule) |
+| 4 | **stale-read** (reading outdated file state) | 24 | 14 | ✅ file-editing-protocol |
 | 5 | **hook-timeout** | 19 | 10 | ⚠️ partially — documented per-hook, no fleet pattern |
 | 6 | **shell-quoting** | 17 | 10 | ✅ Class C in AGENTS.md file-editing-protocol |
-| 7 | **narrative-sufficiency** (plausible story as fact) | 17 | 10 | ✅ [[claims-require-receipts]] |
+| 7 | **narrative-sufficiency** (plausible story as fact) | 17 | 10 | ✅ claims-require-receipts |
 | 8 | **python-c** (inline Python with nested quotes) | 12 | 10 | ✅ Class C in AGENTS.md |
-| 9 | **concurrent-edit** (multi-agent collision) | 12 | 11 | ✅ [[file-editing-protocol]] |
+| 9 | **concurrent-edit** (multi-agent collision) | 12 | 11 | ✅ file-editing-protocol |
 | 10 | **model-serde** (serialization failures) | 8 | 4 | ✅ [[model-tool-calling-capability-matrix]] |
 
 **Key observation:** 9 of the top 10 friction classes already have wiki concepts

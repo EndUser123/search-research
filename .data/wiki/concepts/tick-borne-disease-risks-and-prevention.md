@@ -80,10 +80,10 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *WL: Geo
 
 ## Related concepts
 
-- [[lyme-disease]] — Lyme Disease
-- [[alpha-gal-syndrome]] — Alpha-Gal Syndrome
-- [[vector-borne-disease-prevention]] — Vector-Borne Disease Prevention
-- [[tick-habitat-management]] — Tick Habitat Management
+- lyme-disease — Lyme Disease
+- alpha-gal-syndrome — Alpha-Gal Syndrome
+- vector-borne-disease-prevention — Vector-Borne Disease Prevention
+- tick-habitat-management — Tick Habitat Management
 
 ## Citations (from contributing transcripts)
 

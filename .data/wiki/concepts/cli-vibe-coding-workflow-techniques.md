@@ -77,9 +77,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[vibe-coding-overview]] — Vibe Coding Overview
-- [[ai-code-generation-tools]] — AI Code Generation Tools
-- [[cli-development-workflows]] — CLI Development Workflows
+- vibe-coding-overview — Vibe Coding Overview
+- ai-code-generation-tools — AI Code Generation Tools
+- cli-development-workflows — CLI Development Workflows
 
 ## Citations (from contributing transcripts)
 

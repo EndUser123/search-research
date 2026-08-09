@@ -102,9 +102,9 @@ Synthesized from **42 contributing transcripts** in NotebookLM notebook *WebSync
 
 ## Related concepts
 
-- [[tariff-policy]] — Tariff Policy
-- [[trade-relations]] — Trade Relations
-- [[fiscal-responsibility]] — Fiscal Responsibility
+- tariff-policy — Tariff Policy
+- trade-relations — Trade Relations
+- fiscal-responsibility — Fiscal Responsibility
 
 ## Citations (from contributing transcripts)
 

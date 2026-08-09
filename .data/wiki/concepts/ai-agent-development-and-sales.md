@@ -119,11 +119,11 @@ Synthesized from **55 contributing transcripts** in NotebookLM notebook *Nate He
 
 ## Related concepts
 
-- [[multi-agent-architecture]] — Multi-Agent Architecture
-- [[voice-enabled-ai-agents]] — Voice-Enabled AI Agents
-- [[no-code-ai-development]] — No-Code AI Development
-- [[ai-agent-tools-and-integrations]] — AI Agent Tools and Integrations
-- [[ai-consulting-business-model]] — AI Consulting Business Model
+- multi-agent-architecture — Multi-Agent Architecture
+- voice-enabled-ai-agents — Voice-Enabled AI Agents
+- no-code-ai-development — No-Code AI Development
+- ai-agent-tools-and-integrations — AI Agent Tools and Integrations
+- ai-consulting-business-model — AI Consulting Business Model
 
 ## Citations (from contributing transcripts)
 

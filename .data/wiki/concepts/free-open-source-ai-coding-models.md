@@ -253,10 +253,10 @@ Synthesized from **187 contributing transcripts** in NotebookLM notebook *WL: AI
 
 ## Related concepts
 
-- [[ai-gateways]] — AI Gateways
-- [[self-improving-ai-systems]] — Self-Improving AI Systems
-- [[agentic-ai]] — Agentic AI
-- [[local-llm-deployment]] — Local LLM Deployment
+- ai-gateways — AI Gateways
+- self-improving-ai-systems — Self-Improving AI Systems
+- agentic-ai — Agentic AI
+- local-llm-deployment — Local LLM Deployment
 
 ## Citations (from contributing transcripts)
 

@@ -68,11 +68,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[ampk-activation]] — AMPK activation
-- [[mitochondrial-biogenesis]] — Mitochondrial biogenesis
-- [[peptide-stacking-protocols]] — Peptide stacking protocols
-- [[metabolic-flexibility]] — Metabolic flexibility
-- [[insulin-sensitivity]] — Insulin sensitivity
+- ampk-activation — AMPK activation
+- mitochondrial-biogenesis — Mitochondrial biogenesis
+- peptide-stacking-protocols — Peptide stacking protocols
+- metabolic-flexibility — Metabolic flexibility
+- insulin-sensitivity — Insulin sensitivity
 
 ## Citations (from contributing transcripts)
 

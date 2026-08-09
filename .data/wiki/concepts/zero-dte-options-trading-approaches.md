@@ -245,11 +245,11 @@ Synthesized from **180 contributing transcripts** in NotebookLM notebook *WL: Op
 
 ## Related concepts
 
-- [[credit-spreads]] — Credit Spreads
-- [[iron-condors]] — Iron Condors
-- [[options-greeks]] — Options Greeks
-- [[volatility-trading]] — Volatility Trading
-- [[day-trading-strategies]] — Day Trading Strategies
+- credit-spreads — Credit Spreads
+- iron-condors — Iron Condors
+- options-greeks — Options Greeks
+- volatility-trading — Volatility Trading
+- day-trading-strategies — Day Trading Strategies
 
 ## Citations (from contributing transcripts)
 

@@ -31,7 +31,7 @@ PreToolUse hook.`
   implementation work").
 - **Env vars are populated** for Python hooks: `GROK_SESSION_ID`, `GROK_HOOK_EVENT`,
   `GROK_HOOK_NAME`, `GROK_WORKSPACE_ROOT` all present. This enables per-session
-  state files keyed on `GROK_SESSION_ID` — see [[multi-terminal-hook-state-isolation]].
+  state files keyed on `GROK_SESSION_ID` — see multi-terminal-hook-state-isolation.
 - **Matcher `.*` dispatches.** The hook used `"matcher": ".*"` and fired for both
   `read_file` and `run_terminal_command` tool calls.
 - **Multiple concurrent sessions are isolated by `GROK_SESSION_ID`.** During testing,
@@ -94,18 +94,18 @@ The exec-gate architecture is buildable:
   `GROK_SESSION_ID=<unset>` in its log while Python canary E showed it populated.
   EVIDENCE_GAP: not cleanly isolated; may be a bash-on-MSYS quirk rather than a
   deterministic bash failure. Until verified, prefer Python for hooks that need
-  env vars. See [[grok-hook-python-vs-bash-reliability]].
+  env vars. See grok-hook-python-vs-bash-reliability.
 - **Passive events cannot inject context.** UserPromptSubmit/PostToolUse/Stop
   hooks fire and can write side-effect files, but their stdout is dropped entirely.
-  See [[grok-build-hook-host-ceiling]].
+  See grok-build-hook-host-ceiling.
 
 ## Related
 
-- [[grok-build-hook-host-ceiling]]
-- [[grok-hook-diagnostic-method]]
-- [[grok-hook-command-env-var-preflight]]
-- [[grok-hook-python-vs-bash-reliability]]
-- [[multi-terminal-hook-state-isolation]]
+- grok-build-hook-host-ceiling
+- grok-hook-diagnostic-method
+- grok-hook-command-env-var-preflight
+- grok-hook-python-vs-bash-reliability
+- multi-terminal-hook-state-isolation
 - [[grok-pretooluse-matcher-and-readonly-fastpath]] (companion: the failure modes that don't apply once you use Python)
 
 ## Sources

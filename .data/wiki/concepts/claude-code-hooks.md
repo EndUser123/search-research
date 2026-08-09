@@ -258,9 +258,9 @@ Synthesized from **52 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[claude-code-skills]] — Claude Code Skills
-- [[agent-loop]] — Agent Loop
-- [[claude-code-extension-layers]] — Claude Code Extension Layers
+- claude-code-skills — Claude Code Skills
+- agent-loop — Agent Loop
+- [[claude-code-extension-patterns]] — Claude Code Extension Layers
 
 ## Citations (from contributing transcripts)
 

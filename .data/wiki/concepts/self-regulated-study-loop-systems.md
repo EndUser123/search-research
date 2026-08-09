@@ -73,11 +73,11 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *_2026-01
 
 ## Related concepts
 
-- [[forgetting-curve]] — Forgetting Curve
-- [[low-intensity-high-frequency-intervention]] — Low-Intensity High-Frequency Intervention
-- [[mental-models]] — Mental Models
-- [[yerkes-dodson-law]] — Yerkes-Dodson Law
-- [[two-stage-learning-system]] — Two-Stage Learning System
+- forgetting-curve — Forgetting Curve
+- low-intensity-high-frequency-intervention — Low-Intensity High-Frequency Intervention
+- mental-models — Mental Models
+- yerkes-dodson-law — Yerkes-Dodson Law
+- two-stage-learning-system — Two-Stage Learning System
 
 ## Citations (from contributing transcripts)
 

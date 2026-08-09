@@ -1136,11 +1136,11 @@ Updated priority (from this deep-dive):
 
 ### New wiki relations (auto-related to add on wiki update)
 
-- [[anthropic-claude-code-auto-mode-fp-rate]] — empirical 0.4% FP
+- anthropic-claude-code-auto-mode-fp-rate — empirical 0.4% FP
   benchmark that backs R2's upgrade verdict
-- [[trufflehog-verifier-pattern-for-credential-debris]] — D1's
+- trufflehog-verifier-pattern-for-credential-debris — D1's
   implementation template
-- [[opencode-auto-mode-escalation-backstop-pattern]] — R2's required
+- opencode-auto-mode-escalation-backstop-pattern — R2's required
   safety mechanism for false-positive loops
-- [[scheduled-checks-composable-cadence-pattern]] — R3's integration
+- scheduled-checks-composable-cadence-pattern — R3's integration
   template (already cited via `maintain/scheduled-checks.json`)

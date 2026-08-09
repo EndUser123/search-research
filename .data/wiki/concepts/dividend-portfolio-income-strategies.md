@@ -67,11 +67,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: Opti
 
 ## Related concepts
 
-- [[options-income-strategies]] — Options Income Strategies
-- [[covered-call-writing]] — Covered Call Writing
-- [[cash-secured-puts]] — Cash-Secured Puts
-- [[retirement-portfolio-construction]] — Retirement Portfolio Construction
-- [[esg-investment-screening]] — ESG Investment Screening
+- options-income-strategies — Options Income Strategies
+- covered-call-writing — Covered Call Writing
+- cash-secured-puts — Cash-Secured Puts
+- retirement-portfolio-construction — Retirement Portfolio Construction
+- esg-investment-screening — ESG Investment Screening
 
 ## Citations (from contributing transcripts)
 

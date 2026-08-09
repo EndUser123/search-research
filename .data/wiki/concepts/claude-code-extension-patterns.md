@@ -105,9 +105,9 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Claude 
 
 - [[claude-code-hooks]] — Claude Code Hooks
 - [[claude-skills]] — Claude Skills
-- [[system-prompt-methods]] — System Prompt Methods
-- [[meta-prompts]] — Meta-Prompts
-- [[ralph-wiggum-technique]] — Ralph Wiggum Technique
+- system-prompt-methods — System Prompt Methods
+- meta-prompts — Meta-Prompts
+- ralph-wiggum-technique — Ralph Wiggum Technique
 
 ## Citations (from contributing transcripts)
 

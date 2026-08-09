@@ -92,9 +92,9 @@ Synthesized from **24 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[repository-agent-configuration]] — Repository Agent Configuration
-- [[policy-as-code-repositories]] — Policy-as-Code Repositories
-- [[ai-development-tooling]] — AI Development Tooling
+- repository-agent-configuration — Repository Agent Configuration
+- policy-as-code-repositories — Policy-as-Code Repositories
+- ai-development-tooling — AI Development Tooling
 
 ## Citations (from contributing transcripts)
 

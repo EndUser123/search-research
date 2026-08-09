@@ -57,10 +57,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: Misc
 
 ## Related concepts
 
-- [[audhd]] — AuDHD
-- [[neurodivergent-communication-styles]] — Neurodivergent Communication Styles
-- [[sensory-processing-differences]] — Sensory Processing Differences
-- [[late-diagnosis-experiences]] — Late Diagnosis Experiences
+- audhd — AuDHD
+- neurodivergent-communication-styles — Neurodivergent Communication Styles
+- sensory-processing-differences — Sensory Processing Differences
+- late-diagnosis-experiences — Late Diagnosis Experiences
 
 ## Citations (from contributing transcripts)
 

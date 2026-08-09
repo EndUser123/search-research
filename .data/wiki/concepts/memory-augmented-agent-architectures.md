@@ -119,10 +119,10 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[multi-agent-systems]] — Multi-Agent Systems
-- [[agent-evaluation-frameworks]] — Agent Evaluation Frameworks
-- [[rag-systems]] — RAG Systems
-- [[neuro-symbolic-verification]] — Neuro-Symbolic Verification
+- multi-agent-systems — Multi-Agent Systems
+- agent-evaluation-frameworks — Agent Evaluation Frameworks
+- rag-systems — RAG Systems
+- neuro-symbolic-verification — Neuro-Symbolic Verification
 
 ## Citations (from contributing transcripts)
 

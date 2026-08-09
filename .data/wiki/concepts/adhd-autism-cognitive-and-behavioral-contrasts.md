@@ -65,10 +65,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Cana
 
 ## Related concepts
 
-- [[executive-functioning-differences]] — Executive Functioning Differences
-- [[neurodivergent-sleep-patterns]] — Neurodivergent Sleep Patterns
-- [[autistic-masking]] — Autistic Masking
-- [[conversation-rehearsal-patterns]] — Conversation Rehearsal Patterns
+- executive-functioning-differences — Executive Functioning Differences
+- neurodivergent-sleep-patterns — Neurodivergent Sleep Patterns
+- autistic-masking — Autistic Masking
+- conversation-rehearsal-patterns — Conversation Rehearsal Patterns
 
 ## Citations (from contributing transcripts)
 

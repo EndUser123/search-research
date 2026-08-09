@@ -63,9 +63,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Loca
 
 ## Related concepts
 
-- [[ai-assisted-development]] — AI-Assisted Development
-- [[development-lifecycle-automation]] — Development Lifecycle Automation
-- [[pull-request-generation]] — Pull Request Generation
+- ai-assisted-development — AI-Assisted Development
+- development-lifecycle-automation — Development Lifecycle Automation
+- pull-request-generation — Pull Request Generation
 
 ## Citations (from contributing transcripts)
 

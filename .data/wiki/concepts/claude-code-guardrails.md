@@ -94,10 +94,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[claude-code-skills]] — Claude Code Skills
+- claude-code-skills — Claude Code Skills
 - [[nvidia-nemo-guardrails]] — NVIDIA NeMo Guardrails
-- [[ai-agent-configuration]] — AI Agent Configuration
-- [[prompt-management]] — Prompt Management
+- ai-agent-configuration — AI Agent Configuration
+- prompt-management — Prompt Management
 
 ## Citations (from contributing transcripts)
 

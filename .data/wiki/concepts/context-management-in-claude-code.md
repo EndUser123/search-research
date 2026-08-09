@@ -343,10 +343,10 @@ Synthesized from **73 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[ai-agent-memory]] — AI Agent Memory
-- [[subagents]] — Subagents
-- [[token-optimization]] — Token Optimization
-- [[codebase-context-selection]] — Codebase Context Selection
+- ai-agent-memory — AI Agent Memory
+- subagents — Subagents
+- token-optimization — Token Optimization
+- codebase-context-selection — Codebase Context Selection
 
 ## Citations (from contributing transcripts)
 

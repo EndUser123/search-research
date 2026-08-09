@@ -79,11 +79,11 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[claude-science]] — Claude Science
-- [[agent-orchestration]] — Agent Orchestration
-- [[prompt-engineering]] — Prompt Engineering
-- [[ai-safety-guardrails]] — AI Safety Guardrails
-- [[token-management]] — Token Management
+- claude-science — Claude Science
+- [[multi-agent-orchestration]] — Agent Orchestration
+- prompt-engineering — Prompt Engineering
+- ai-safety-guardrails — AI Safety Guardrails
+- token-management — Token Management
 
 ## Citations (from contributing transcripts)
 

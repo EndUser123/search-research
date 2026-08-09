@@ -325,11 +325,11 @@ Synthesized from **258 contributing transcripts** in NotebookLM notebook *WL: Lo
 
 ## Related concepts
 
-- [[transformer-architecture]] — Transformer Architecture
-- [[mixture-of-experts-models]] — Mixture of Experts Models
-- [[local-ai-inference]] — Local AI Inference
-- [[model-fine-tuning-techniques]] — Model Fine-Tuning Techniques
-- [[memory-efficient-model-deployment]] — Memory-Efficient Model Deployment
+- transformer-architecture — Transformer Architecture
+- mixture-of-experts-models — Mixture of Experts Models
+- local-ai-inference — Local AI Inference
+- model-fine-tuning-techniques — Model Fine-Tuning Techniques
+- memory-efficient-model-deployment — Memory-Efficient Model Deployment
 
 ## Citations (from contributing transcripts)
 

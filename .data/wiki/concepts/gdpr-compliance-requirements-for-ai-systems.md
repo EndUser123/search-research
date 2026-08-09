@@ -98,11 +98,11 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[eu-ai-act-compliance]] — EU AI Act Compliance
-- [[privacy-by-design-architecture]] — Privacy-by-Design Architecture
-- [[sensitive-data-discovery]] — Sensitive Data Discovery
-- [[high-risk-ai-system-requirements]] — High-Risk AI System Requirements
-- [[data-retention-strategy]] — Data Retention Strategy
+- eu-ai-act-compliance — EU AI Act Compliance
+- privacy-by-design-architecture — Privacy-by-Design Architecture
+- sensitive-data-discovery — Sensitive Data Discovery
+- high-risk-ai-system-requirements — High-Risk AI System Requirements
+- data-retention-strategy — Data Retention Strategy
 
 ## Citations (from contributing transcripts)
 

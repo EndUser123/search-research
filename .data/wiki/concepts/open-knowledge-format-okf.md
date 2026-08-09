@@ -80,10 +80,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Perplex
 ## Related concepts
 
 - [[retrieval-augmented-generation-(rag)]] — Retrieval Augmented Generation (RAG)
-- [[vector-databases]] — Vector Databases
+- vector-databases — Vector Databases
 - [[mcp-(model-context-protocol)]] — MCP (Model Context Protocol)
 - [[a2a-(agent-to-agent-protocol)]] — A2A (Agent-to-Agent Protocol)
-- [[llm-wiki]] — LLM Wiki
+- llm-wiki — LLM Wiki
 
 ## Citations (from contributing transcripts)
 

@@ -71,11 +71,11 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[mixture-of-experts-architecture]] — Mixture of Experts Architecture
-- [[sparse-activation]] — Sparse Activation
-- [[kimi-k2.6]] — Kimi K2.6
-- [[thinking-token-efficiency]] — Thinking Token Efficiency
-- [[open-source-coding-models]] — Open Source Coding Models
+- mixture-of-experts-architecture — Mixture of Experts Architecture
+- sparse-activation — Sparse Activation
+- kimi-k2.6 — Kimi K2.6
+- thinking-token-efficiency — Thinking Token Efficiency
+- [[free-open-source-ai-coding-models]] — Open Source Coding Models
 
 ## Citations (from contributing transcripts)
 

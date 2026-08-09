@@ -70,8 +70,8 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[bowline-knot-technique]] — Bowline Knot Technique
-- [[loose-leash-walking-method]] — Loose Leash Walking Method
+- bowline-knot-technique — Bowline Knot Technique
+- loose-leash-walking-method — Loose Leash Walking Method
 
 ## Citations (from contributing transcripts)
 

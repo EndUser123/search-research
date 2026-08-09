@@ -70,11 +70,11 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[mrna-vaccine-technology]] — mRNA Vaccine Technology
-- [[covid-19-policy-debates]] — COVID-19 Policy Debates
-- [[vaccine-safety-auditing]] — Vaccine Safety Auditing
-- [[chesterton's-fence-principle]] — Chesterton's Fence Principle
-- [[military-health-policy]] — Military Health Policy
+- mrna-vaccine-technology — mRNA Vaccine Technology
+- covid-19-policy-debates — COVID-19 Policy Debates
+- vaccine-safety-auditing — Vaccine Safety Auditing
+- chesterton's-fence-principle — Chesterton's Fence Principle
+- military-health-policy — Military Health Policy
 
 ## Citations (from contributing transcripts)
 

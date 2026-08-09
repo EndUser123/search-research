@@ -66,10 +66,10 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *WL: GitH
 
 ## Related concepts
 
-- [[circadian-rhythm-regulation]] — Circadian rhythm regulation
-- [[mitochondrial-energy-production]] — Mitochondrial energy production
-- [[near-infrared-therapy]] — Near-infrared therapy
-- [[nitric-oxide-signaling]] — Nitric oxide signaling
+- circadian-rhythm-regulation — Circadian rhythm regulation
+- mitochondrial-energy-production — Mitochondrial energy production
+- near-infrared-therapy — Near-infrared therapy
+- nitric-oxide-signaling — Nitric oxide signaling
 
 ## Citations (from contributing transcripts)
 

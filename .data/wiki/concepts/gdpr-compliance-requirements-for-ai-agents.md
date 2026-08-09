@@ -98,10 +98,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[eu-ai-act-record-keeping-requirements]] — EU AI Act Record-Keeping Requirements
-- [[sensitive-data-discovery-methods]] — Sensitive Data Discovery Methods
-- [[privacy-by-design-architecture]] — Privacy-by-Design Architecture
-- [[ai-agent-security-best-practices]] — AI Agent Security Best Practices
+- eu-ai-act-record-keeping-requirements — EU AI Act Record-Keeping Requirements
+- sensitive-data-discovery-methods — Sensitive Data Discovery Methods
+- privacy-by-design-architecture — Privacy-by-Design Architecture
+- ai-agent-security-best-practices — AI Agent Security Best Practices
 
 ## Citations (from contributing transcripts)
 

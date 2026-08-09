@@ -62,7 +62,7 @@ relations:
 considering edge cases, predictable failure modes, or integration risks. They
 produce code that handles the happy path beautifully and misses everything else.
 This is the same pattern documented locally in [[code-output-passthrough-narration-over-script-output]]
-and [[closure-pressure-model-skips-steps]] — but the question here is specifically:
+and closure-pressure-model-skips-steps — but the question here is specifically:
 what techniques make the model look around for predictable problems before shipping?
 
 **Why this research was needed:** this workspace relies on AI agents for all

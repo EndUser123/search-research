@@ -102,11 +102,11 @@ Synthesized from **31 contributing transcripts** in NotebookLM notebook *WL: Can
 
 ## Related concepts
 
-- [[peptide-based-weight-loss-interventions]] — Peptide-Based Weight Loss Interventions
-- [[zone-2-cardiovascular-training]] — Zone 2 Cardiovascular Training
-- [[dietary-consistency-for-body-composition]] — Dietary Consistency for Body Composition
-- [[ketogenic-metabolic-states]] — Ketogenic Metabolic States
-- [[glp-1-receptor-agonists-for-body-composition]] — GLP-1 Receptor Agonists for Body Composition
+- peptide-based-weight-loss-interventions — Peptide-Based Weight Loss Interventions
+- zone-2-cardiovascular-training — Zone 2 Cardiovascular Training
+- dietary-consistency-for-body-composition — Dietary Consistency for Body Composition
+- ketogenic-metabolic-states — Ketogenic Metabolic States
+- glp-1-receptor-agonists-for-body-composition — GLP-1 Receptor Agonists for Body Composition
 
 ## Citations (from contributing transcripts)
 

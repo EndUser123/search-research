@@ -243,7 +243,7 @@ benchmark data, known issues, quota recovery speed, fallback rationale).
 compatibility) and returns a ready-to-use slug. The skills were reverted from
 "run pick_model.py" back to "read the pool contract" because the pool contains
 richer context for making a judgment call than a greedy first-available
-algorithm. See [[execution-path-based-model-routing]] for the full architecture.
+algorithm. See [[execution-path-based-model-routing-grok-build]] for the full architecture.
 
 ## What this means for our workspace
 

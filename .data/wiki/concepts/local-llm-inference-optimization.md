@@ -113,11 +113,11 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Maximiz
 
 ## Related concepts
 
-- [[quantization-methods]] — Quantization methods
-- [[inference-engine-comparison]] — Inference engine comparison
-- [[vram-management]] — VRAM management
-- [[context-window-extension]] — Context window extension
-- [[local-llm-benchmarks]] — Local LLM benchmarks
+- quantization-methods — Quantization methods
+- inference-engine-comparison — Inference engine comparison
+- vram-management — VRAM management
+- context-window-extension — Context window extension
+- local-llm-benchmarks — Local LLM benchmarks
 
 ## Citations (from contributing transcripts)
 

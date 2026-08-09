@@ -43,7 +43,7 @@ be raised to irreversible-only.
 
 ## Related
 
-- [[preflight-mandate]]@related
+- preflight-mandate@related
 - [[operator-collaboration-style-and-leverage]]@related
 ## What this means for our workspace
 

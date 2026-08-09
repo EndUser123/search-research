@@ -108,9 +108,9 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Claude 
 ## Related concepts
 
 - [[claude-code-hooks]] — Claude Code Hooks
-- [[skill-configuration]] — Skill Configuration
-- [[system-prompt-methods]] — System Prompt Methods
-- [[agentic-workflows]] — Agentic Workflows
+- skill-configuration — Skill Configuration
+- system-prompt-methods — System Prompt Methods
+- agentic-workflows — Agentic Workflows
 
 ## Citations (from contributing transcripts)
 

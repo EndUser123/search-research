@@ -66,9 +66,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL: GitH
 
 ## Related concepts
 
-- [[ai-assisted-prototyping]] — AI-assisted prototyping
-- [[prompt-engineering-methods]] — Prompt engineering methods
-- [[multi-agent-ai-systems]] — Multi-agent AI systems
+- ai-assisted-prototyping — AI-assisted prototyping
+- prompt-engineering-methods — Prompt engineering methods
+- multi-agent-ai-systems — Multi-agent AI systems
 
 ## Citations (from contributing transcripts)
 

@@ -115,9 +115,9 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Masteri
 
 ## Related concepts
 
-- [[langgraph-error-handling]] — LangGraph Error Handling
-- [[mlflow-tracing]] — MLflow Tracing
-- [[agent-observability]] — Agent Observability
+- langgraph-error-handling — LangGraph Error Handling
+- mlflow-tracing — MLflow Tracing
+- agent-observability — Agent Observability
 - [[regression-testing-in-ci/cd]] — Regression Testing in CI/CD
 
 ## Citations (from contributing transcripts)

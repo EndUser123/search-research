@@ -1123,9 +1123,9 @@ Synthesized from **1064 contributing transcripts** in NotebookLM notebook *WL: M
 
 ## Related concepts
 
-- [[voice-first-ai-control]] — Voice-First AI Control
-- [[agentic-ai-systems]] — Agentic AI Systems
-- [[multi-model-orchestration]] — Multi-Model Orchestration
+- voice-first-ai-control — Voice-First AI Control
+- agentic-ai-systems — Agentic AI Systems
+- multi-model-orchestration — Multi-Model Orchestration
 
 ## Citations (from contributing transcripts)
 

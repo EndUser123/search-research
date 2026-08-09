@@ -76,10 +76,10 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *WL: Hea
 
 ## Related concepts
 
-- [[cpap-therapy-limitations]] — CPAP Therapy Limitations
-- [[breathing-pattern-dysregulation]] — Breathing Pattern Dysregulation
-- [[upper-airway-muscle-tone]] — Upper Airway Muscle Tone
-- [[incline-bed-positioning]] — Incline Bed Positioning
+- cpap-therapy-limitations — CPAP Therapy Limitations
+- breathing-pattern-dysregulation — Breathing Pattern Dysregulation
+- upper-airway-muscle-tone — Upper Airway Muscle Tone
+- incline-bed-positioning — Incline Bed Positioning
 
 ## Citations (from contributing transcripts)
 

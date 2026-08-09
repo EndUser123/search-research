@@ -67,9 +67,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[claude-code]] — Claude Code
-- [[claude-fable]] — Claude Fable
-- [[ai-collaboration-patterns]] — AI Collaboration Patterns
+- claude-code — Claude Code
+- claude-fable — Claude Fable
+- ai-collaboration-patterns — AI Collaboration Patterns
 
 ## Citations (from contributing transcripts)
 

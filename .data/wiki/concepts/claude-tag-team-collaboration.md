@@ -67,10 +67,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[claude-code]] — Claude Code
-- [[claude-fable]] — Claude Fable
-- [[claude-mythos]] — Claude Mythos
-- [[andre-karpathy-joining-anthropic]] — Andre Karpathy joining Anthropic
+- claude-code — Claude Code
+- claude-fable — Claude Fable
+- claude-mythos — Claude Mythos
+- andre-karpathy-joining-anthropic — Andre Karpathy joining Anthropic
 
 ## Citations (from contributing transcripts)
 

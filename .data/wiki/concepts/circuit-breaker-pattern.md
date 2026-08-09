@@ -81,9 +81,9 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Video Pi
 
 ## Related concepts
 
-- [[api-quota-management]] — API Quota Management
-- [[round-robin-scheduling]] — Round Robin Scheduling
-- [[oauth2-token-refresh]] — OAuth2 Token Refresh
+- api-quota-management — API Quota Management
+- round-robin-scheduling — Round Robin Scheduling
+- oauth2-token-refresh — OAuth2 Token Refresh
 
 ## Citations (from contributing transcripts)
 

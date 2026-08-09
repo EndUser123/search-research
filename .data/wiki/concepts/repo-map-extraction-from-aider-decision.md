@@ -144,7 +144,7 @@ Adding a 7th CLI to coordinate (Grok Build + Claude Code + OpenCode + PI + AGY +
 + MMX) adds coordination cost for one feature. The right move is to extract the
 capability, not the platform.
 
-See [[capability-vs-packaging-in-ai-coding-tool-selection]] for the general principle:
+See capability-vs-packaging-in-ai-coding-tool-selection for the general principle:
 when evaluating a tool for adoption, separate the capability it provides from the
 packaging it comes in. Adopt capabilities; steal packaging ideas.
 
@@ -187,5 +187,5 @@ If any of these hold, revisit the from-scratch or MCP-server-first approaches.
 
 - [[repo-map-alternatives-codebase-memory-jetbrains-context]] — the `/tp` critique and reversal
 - [[context-management-in-claude-code]] — MCP repo-map server references
-- [[capability-vs-packaging-in-ai-coding-tool-selection]] — the extraction-not-adoption principle
+- capability-vs-packaging-in-ai-coding-tool-selection — the extraction-not-adoption principle
 - [[skill-dependency-graph-research-2026]] — prior decision that AST extraction isn't worth it for the prose surface (same conclusion, different substrate)

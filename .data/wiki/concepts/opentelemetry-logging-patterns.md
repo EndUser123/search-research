@@ -383,11 +383,11 @@ Synthesized from **83 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[context-propagation]] — Context Propagation
-- [[structured-logging]] — Structured Logging
-- [[opentelemetry-collector]] — OpenTelemetry Collector
-- [[log-data-model]] — Log Data Model
-- [[distributed-tracing-integration]] — Distributed Tracing Integration
+- context-propagation — Context Propagation
+- structured-logging — Structured Logging
+- opentelemetry-collector — OpenTelemetry Collector
+- log-data-model — Log Data Model
+- distributed-tracing-integration — Distributed Tracing Integration
 
 ## Citations (from contributing transcripts)
 

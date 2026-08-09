@@ -61,9 +61,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[agent-loops]] — Agent Loops
-- [[loop-types]] — Loop Types
-- [[self-correcting-ai-workflows]] — Self-Correcting AI Workflows
+- agent-loops — Agent Loops
+- loop-types — Loop Types
+- self-correcting-ai-workflows — Self-Correcting AI Workflows
 
 ## Citations (from contributing transcripts)
 

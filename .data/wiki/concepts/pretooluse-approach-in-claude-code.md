@@ -153,9 +153,9 @@ Synthesized from **38 contributing transcripts** in NotebookLM notebook *Transcr
 
 ## Related concepts
 
-- [[redaction-approach]] — Redaction Approach
-- [[intent-detection-pattern]] — Intent Detection Pattern
-- [[settings-registration-pattern]] — Settings Registration Pattern
+- redaction-approach — Redaction Approach
+- intent-detection-pattern — Intent Detection Pattern
+- settings-registration-pattern — Settings Registration Pattern
 
 ## Citations (from contributing transcripts)
 

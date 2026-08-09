@@ -96,10 +96,10 @@ Synthesized from **34 contributing transcripts** in NotebookLM notebook *WL: Hea
 
 ## Related concepts
 
-- [[european-defense-drone-investment]] — European Defense Drone Investment
-- [[anti-drone-systems]] — Anti-Drone Systems
-- [[russian-ai-drone-tactics]] — Russian AI Drone Tactics
-- [[thermobaric-naval-weapons]] — Thermobaric Naval Weapons
+- european-defense-drone-investment — European Defense Drone Investment
+- anti-drone-systems — Anti-Drone Systems
+- russian-ai-drone-tactics — Russian AI Drone Tactics
+- thermobaric-naval-weapons — Thermobaric Naval Weapons
 
 ## Citations (from contributing transcripts)
 

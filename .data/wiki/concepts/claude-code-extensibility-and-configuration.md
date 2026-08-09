@@ -122,9 +122,9 @@ Synthesized from **17 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[claude-code-cli-commands]] — Claude Code CLI Commands
-- [[claude-code-settings]] — Claude Code Settings
-- [[claude-code-skills-system]] — Claude Code Skills System
+- claude-code-cli-commands — Claude Code CLI Commands
+- claude-code-settings — Claude Code Settings
+- claude-code-skills-system — Claude Code Skills System
 - [[claude-code-hooks]] — Claude Code Hooks
 
 ## Citations (from contributing transcripts)

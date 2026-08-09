@@ -74,9 +74,9 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WL: Mult
 
 ## Related concepts
 
-- [[quantization-aware-training]] — Quantization-aware training
-- [[mobile-ai-deployment]] — Mobile AI deployment
-- [[ternary-weight-networks]] — Ternary weight networks
+- quantization-aware-training — Quantization-aware training
+- mobile-ai-deployment — Mobile AI deployment
+- ternary-weight-networks — Ternary weight networks
 
 ## Citations (from contributing transcripts)
 

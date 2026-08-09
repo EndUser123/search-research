@@ -72,9 +72,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Engineer
 
 ## Related concepts
 
-- [[ai-coding-agent-human-oversight]] — AI Coding Agent Human Oversight
-- [[root-cause-analysis-in-software-development]] — Root Cause Analysis in Software Development
-- [[code-quality-metrics]] — Code Quality Metrics
+- ai-coding-agent-human-oversight — AI Coding Agent Human Oversight
+- root-cause-analysis-in-software-development — Root Cause Analysis in Software Development
+- code-quality-metrics — Code Quality Metrics
 
 ## Citations (from contributing transcripts)
 

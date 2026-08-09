@@ -60,8 +60,8 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *WL: Mis
 
 ## Related concepts
 
-- [[audience-engagement-techniques-in-electronic-dance-music]] — Audience engagement techniques in electronic dance music
-- [[minimal-techno-dj-mix-characteristics]] — Minimal techno DJ mix characteristics
+- audience-engagement-techniques-in-electronic-dance-music — Audience engagement techniques in electronic dance music
+- minimal-techno-dj-mix-characteristics — Minimal techno DJ mix characteristics
 
 ## Citations (from contributing transcripts)
 

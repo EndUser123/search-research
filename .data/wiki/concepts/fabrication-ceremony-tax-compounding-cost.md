@@ -87,7 +87,7 @@ The cost is justified when fabrication would otherwise ship. The cost is NOT jus
 - [[documented-deferral-substitutes-for-action]] — ceremony-as-vector instance (deferral language as substitute for action)
 - [[reactive-pattern-matching-and-closure-pressure]] — the closure pressure that drives both fabrication AND over-ceremony
 - [[trust-over-believability]] — the operator's governing principle
-- [[claims-require-receipts-narrative-sufficiency-is-not-verification]] — the receipt rule (a ceremony artifact)
+- claims-require-receipts-narrative-sufficiency-is-not-verification — the receipt rule (a ceremony artifact)
 
 ## Falsifier
 

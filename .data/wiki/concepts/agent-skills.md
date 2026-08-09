@@ -58,10 +58,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[agent-configuration]] — Agent Configuration
-- [[custom-instructions]] — Custom Instructions
-- [[tool-integration]] — Tool Integration
-- [[open-standards]] — Open Standards
+- agent-configuration — Agent Configuration
+- custom-instructions — Custom Instructions
+- tool-integration — Tool Integration
+- open-standards — Open Standards
 
 ## Citations (from contributing transcripts)
 

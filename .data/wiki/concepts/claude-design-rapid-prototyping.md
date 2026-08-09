@@ -67,9 +67,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL: Misc
 
 ## Related concepts
 
-- [[claude-code]] — Claude Code
-- [[ai-prompting-methods]] — AI Prompting Methods
-- [[rapid-prototyping]] — Rapid Prototyping
+- claude-code — Claude Code
+- ai-prompting-methods — AI Prompting Methods
+- rapid-prototyping — Rapid Prototyping
 
 ## Citations (from contributing transcripts)
 

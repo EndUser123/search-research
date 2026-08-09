@@ -111,11 +111,11 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *Adversa
 
 ## Related concepts
 
-- [[llm-agent-safety]] — LLM Agent Safety
-- [[runtime-enforcement]] — Runtime Enforcement
-- [[actor-critic-algorithms]] — Actor-Critic Algorithms
-- [[agent-memory-management]] — Agent Memory Management
-- [[software-engineering-automation]] — Software Engineering Automation
+- llm-agent-safety — LLM Agent Safety
+- runtime-enforcement — Runtime Enforcement
+- actor-critic-algorithms — Actor-Critic Algorithms
+- agent-memory-management — Agent Memory Management
+- software-engineering-automation — Software Engineering Automation
 
 ## Citations (from contributing transcripts)
 

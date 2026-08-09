@@ -158,7 +158,7 @@ or equivalent AST parser. See [[read-only-vs-mutating-command-classification]].
 - [[grok-pretooluse-deny-contract-verified]] — the mechanism verification (deny works)
 - [[hook-failure-mode-taxonomy]] — why the matcher approach fails
 - [[grok-per-hook-disable-layer-silent-suppression]] — why the plugin appeared not to fire
-- [[multi-terminal-hook-state-isolation]] — the session-keyed flag-file pattern
+- multi-terminal-hook-state-isolation — the session-keyed flag-file pattern
 
 ## Auto-related
 

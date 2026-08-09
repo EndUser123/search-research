@@ -194,4 +194,4 @@ This framework is wrong if:
 - [[best-practices-enforcement-mechanism-grok-build]] — enforcement mechanism design
 - [[code-orchestrates-model-judges-skill-scale]] — the meso/macro enforcement scales
 - [[mechanical-enforcement-over-behavioral-reminder]] — why gates beat prose
-- [[mechanical-enforcement-hierarchy]] — the promotion ladder from prompt to code
+- mechanical-enforcement-hierarchy — the promotion ladder from prompt to code

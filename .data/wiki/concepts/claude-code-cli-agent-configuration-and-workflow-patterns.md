@@ -729,11 +729,11 @@ Synthesized from **169 contributing transcripts** in NotebookLM notebook *Claude
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[multi-agent-systems]] — Multi-Agent Systems
-- [[iterative-prompting]] — Iterative Prompting
-- [[cli-agents]] — CLI Agents
-- [[subagent-architecture]] — Subagent Architecture
+- model-context-protocol — Model Context Protocol
+- multi-agent-systems — Multi-Agent Systems
+- iterative-prompting — Iterative Prompting
+- cli-agents — CLI Agents
+- subagent-architecture — Subagent Architecture
 
 ## Citations (from contributing transcripts)
 

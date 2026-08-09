@@ -67,9 +67,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[claude-code]] — Claude Code
-- [[claude-fable]] — Claude Fable
-- [[claude-mythos-5]] — Claude Mythos 5
+- claude-code — Claude Code
+- claude-fable — Claude Fable
+- claude-mythos-5 — Claude Mythos 5
 
 ## Citations (from contributing transcripts)
 

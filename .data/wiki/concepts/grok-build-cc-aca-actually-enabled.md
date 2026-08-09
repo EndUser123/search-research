@@ -32,7 +32,7 @@ The cc-aca-* suite (Claude-Code-compat advisory/check/autonomy plugins) is **act
 ## Related
 
 - [[grok-build-disabled-hooks-per-hook-layer]] — exec-gate's plugin-level hooks are individually disabled, distinct from the cc-aca-* story
-- [[grok-build-active-surface-snapshot-bugs]] — the snapshot script that should surface this enforcement state has specific defects
+- grok-build-active-surface-snapshot-bugs — the snapshot script that should surface this enforcement state has specific defects
 - [[grok-build-plan-mode-structured-thinking]] — plan mode is for thinking, not containment; cc-aca-* is the containment layer
 
 ## Auto-related

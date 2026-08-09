@@ -115,7 +115,7 @@ This concept answers the prior question: WHEN to delegate at all.
   iterative development where the reasoning chain matters stays on the
   parent. Pure "write to spec" or "run until passing" work delegates.
 - The spawn gate and quota cache infrastructure built this session
-  ([[execution-path-based-model-routing]]) remains valid as mechanical
+  ([[execution-path-based-model-routing-grok-build]]) remains valid as mechanical
   enforcement — it prevents wasted spawns on exhausted/serde-broken models
   regardless of the delegation decision
 - Pool contracts ([[coding-model-pool-tier-1-tier-2]],

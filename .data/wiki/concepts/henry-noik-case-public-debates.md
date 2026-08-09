@@ -56,9 +56,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Cana
 
 ## Related concepts
 
-- [[two-tier-policing]] — Two-Tier Policing
-- [[islamism-as-political-ideology]] — Islamism as Political Ideology
-- [[uk-political-free-speech-debates]] — UK Political Free Speech Debates
+- two-tier-policing — Two-Tier Policing
+- islamism-as-political-ideology — Islamism as Political Ideology
+- uk-political-free-speech-debates — UK Political Free Speech Debates
 
 ## Citations (from contributing transcripts)
 

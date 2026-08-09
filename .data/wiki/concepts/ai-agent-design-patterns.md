@@ -71,11 +71,11 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[agentic-transaction-processing]] — Agentic Transaction Processing
-- [[context-engineering]] — Context Engineering
-- [[agent-governance]] — Agent Governance
-- [[agent-registry-architectures]] — Agent Registry Architectures
-- [[human-agent-teaming]] — Human-Agent Teaming
+- agentic-transaction-processing — Agentic Transaction Processing
+- context-engineering — Context Engineering
+- agent-governance — Agent Governance
+- agent-registry-architectures — Agent Registry Architectures
+- human-agent-teaming — Human-Agent Teaming
 
 ## Citations (from contributing transcripts)
 

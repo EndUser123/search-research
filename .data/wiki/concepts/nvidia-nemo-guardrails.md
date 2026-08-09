@@ -91,10 +91,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[colang-language]] — Colang Language
-- [[llm-security]] — LLM Security
-- [[yaml-configuration]] — YAML Configuration
+- model-context-protocol — Model Context Protocol
+- colang-language — Colang Language
+- llm-security — LLM Security
+- yaml-configuration — YAML Configuration
 
 ## Citations (from contributing transcripts)
 

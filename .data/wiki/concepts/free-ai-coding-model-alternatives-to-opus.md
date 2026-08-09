@@ -64,9 +64,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[ai-model-cost-optimization]] — AI Model Cost Optimization
-- [[mixed-model-development-workflows]] — Mixed-Model Development Workflows
-- [[free-plugin-ecosystems-for-ai-coding]] — Free Plugin Ecosystems for AI Coding
+- ai-model-cost-optimization — AI Model Cost Optimization
+- mixed-model-development-workflows — Mixed-Model Development Workflows
+- free-plugin-ecosystems-for-ai-coding — Free Plugin Ecosystems for AI Coding
 
 ## Citations (from contributing transcripts)
 

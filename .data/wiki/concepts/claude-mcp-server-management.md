@@ -88,9 +88,9 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[claude-code-integrations]] — Claude Code Integrations
-- [[agentic-workflows]] — Agentic Workflows
+- model-context-protocol — Model Context Protocol
+- claude-code-integrations — Claude Code Integrations
+- agentic-workflows — Agentic Workflows
 
 ## Citations (from contributing transcripts)
 

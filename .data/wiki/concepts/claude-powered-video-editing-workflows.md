@@ -82,12 +82,12 @@ Synthesized from **20 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[transcript-based-editing]] — Transcript-Based Editing
-- [[higgsfield-mcp-integration]] — Higgsfield MCP Integration
-- [[ai-video-generation]] — AI Video Generation
-- [[capcut-claude-integration]] — CapCut Claude Integration
-- [[davinci-resolve-ai-plugins]] — Davinci Resolve AI Plugins
-- [[claude-code-media-skills]] — Claude Code Media Skills
+- transcript-based-editing — Transcript-Based Editing
+- higgsfield-mcp-integration — Higgsfield MCP Integration
+- ai-video-generation — AI Video Generation
+- capcut-claude-integration — CapCut Claude Integration
+- davinci-resolve-ai-plugins — Davinci Resolve AI Plugins
+- claude-code-media-skills — Claude Code Media Skills
 
 ## Citations (from contributing transcripts)
 

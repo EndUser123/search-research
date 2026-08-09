@@ -87,10 +87,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[retrieval-augmented-generation]] — Retrieval-Augmented Generation
-- [[llm-integration-patterns]] — LLM Integration Patterns
-- [[intent-multiplexing]] — Intent Multiplexing
-- [[command-pattern]] — Command Pattern
+- retrieval-augmented-generation — Retrieval-Augmented Generation
+- llm-integration-patterns — LLM Integration Patterns
+- intent-multiplexing — Intent Multiplexing
+- command-pattern — Command Pattern
 
 ## Citations (from contributing transcripts)
 

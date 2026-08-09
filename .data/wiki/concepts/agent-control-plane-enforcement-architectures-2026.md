@@ -311,7 +311,7 @@ This concept is wrong, or the research is outdated, if:
 
 ## Research threads detected
 
-- **Resolved (2026-08-04):** `[[open-agent-passport-specification]]`, `[[earned-authority-fixed-ceiling]]`, `[[codex-windows-sandbox-pattern]]` — all three deferred as separate concept files; their content is already covered in the Deep-research workflow findings sections above (OAP §, Earned Authority §, Codex §). If any topic grows large enough to warrant its own page, extract at that point.
+- **Resolved (2026-08-04):** `open-agent-passport-specification`, `earned-authority-fixed-ceiling`, `codex-windows-sandbox-pattern` — all three deferred as separate concept files; their content is already covered in the Deep-research workflow findings sections above (OAP §, Earned Authority §, Codex §). If any topic grows large enough to warrant its own page, extract at that point.
 - **Adjacent:** Microsoft ACS + AGT open-source repo should be evaluated for direct adoption
 - **Pattern:** 1st run on agent control-plane enforcement — this is the foundational concept
 - **Gap:** composability of the five layers into a single stack remains unresolved in the literature

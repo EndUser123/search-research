@@ -70,7 +70,7 @@ sources:
 RTX 5070/5080/5090 are Blackwell architecture (compute capability sm_120). This is a **hard constraint**:
 
 - Stock PyTorch pre-2.7 ships kernels only up to sm_90 (Ada Lovelace / RTX 40-series)
-- CUDA Toolkit 12.8+ is the minimum for Blackwell (NVIDIA official: [[blackwell-compatibility-guide]])
+- CUDA Toolkit 12.8+ is the minimum for Blackwell (NVIDIA's official Blackwell compatibility guide)
 - PyTorch 2.7.0 was the first stable release with native sm_120 wheels
 - PyTorch 2.1.2 (A1111 master's pin) predates Blackwell by 2+ years and **cannot address the GPU at all**
 

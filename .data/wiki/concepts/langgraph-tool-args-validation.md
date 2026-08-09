@@ -80,9 +80,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *Masterin
 
 ## Related concepts
 
-- [[langgraph-agent-architecture]] — LangGraph Agent Architecture
-- [[tool-call-validation-patterns]] — Tool Call Validation Patterns
-- [[self-correcting-ai-agents]] — Self-Correcting AI Agents
+- langgraph-agent-architecture — LangGraph Agent Architecture
+- tool-call-validation-patterns — Tool Call Validation Patterns
+- self-correcting-ai-agents — Self-Correcting AI Agents
 
 ## Citations (from contributing transcripts)
 

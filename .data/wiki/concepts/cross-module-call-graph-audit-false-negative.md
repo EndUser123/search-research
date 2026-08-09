@@ -93,7 +93,7 @@ test's scope was the actual call graph.
    Same structural failure: the verifier's scope is narrower than the
    thing being verified. The fix is the same shape: enumerate ALL
    reachable modules/repos, not just the one under edit. This is itself
-   an instance of [[evidence-scope-discipline]] — the receipt proves only
+   an instance of evidence-scope-discipline — the receipt proves only
    the scope it covers, not the scope of the claim.
 
 4. **AST audits are particularly prone to this** because they are easy

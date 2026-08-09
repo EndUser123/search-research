@@ -99,9 +99,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[json-encoding-for-llms]] — JSON encoding for LLMs
-- [[llm-token-optimization]] — LLM token optimization
-- [[data-format-comparison-for-ai-applications]] — Data format comparison for AI applications
+- json-encoding-for-llms — JSON encoding for LLMs
+- llm-token-optimization — LLM token optimization
+- data-format-comparison-for-ai-applications — Data format comparison for AI applications
 
 ## Citations (from contributing transcripts)
 

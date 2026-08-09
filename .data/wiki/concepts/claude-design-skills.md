@@ -70,9 +70,9 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[ai-prompt-engineering]] — AI Prompt Engineering
-- [[frontend-development-patterns]] — Frontend Development Patterns
-- [[design-system-implementation]] — Design System Implementation
+- ai-prompt-engineering — AI Prompt Engineering
+- frontend-development-patterns — Frontend Development Patterns
+- design-system-implementation — Design System Implementation
 
 ## Citations (from contributing transcripts)
 

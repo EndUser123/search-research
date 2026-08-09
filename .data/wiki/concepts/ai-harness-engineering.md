@@ -71,10 +71,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL: Anth
 
 ## Related concepts
 
-- [[langgraph]] — LangGraph
-- [[context-engineering]] — Context Engineering
-- [[prompt-engineering]] — Prompt Engineering
-- [[agentic-ai]] — Agentic AI
+- langgraph — LangGraph
+- context-engineering — Context Engineering
+- prompt-engineering — Prompt Engineering
+- agentic-ai — Agentic AI
 
 ## Citations (from contributing transcripts)
 

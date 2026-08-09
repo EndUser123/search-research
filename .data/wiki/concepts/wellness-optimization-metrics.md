@@ -89,9 +89,9 @@ Synthesized from **23 contributing transcripts** in NotebookLM notebook *WebSync
 
 ## Related concepts
 
-- [[stress-type-differentiation]] — Stress Type Differentiation
-- [[metabolic-health-indicators]] — Metabolic Health Indicators
-- [[cardiovascular-fitness-markers]] — Cardiovascular Fitness Markers
+- stress-type-differentiation — Stress Type Differentiation
+- metabolic-health-indicators — Metabolic Health Indicators
+- cardiovascular-fitness-markers — Cardiovascular Fitness Markers
 
 ## Citations (from contributing transcripts)
 

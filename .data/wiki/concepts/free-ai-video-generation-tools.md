@@ -252,10 +252,10 @@ Synthesized from **187 contributing transcripts** in NotebookLM notebook *[INGES
 
 ## Related concepts
 
-- [[ai-filmmaking-workflows]] — AI Filmmaking Workflows
-- [[ai-video-editing-tools]] — AI Video Editing Tools
-- [[open-source-video-generation-models]] — Open-Source Video Generation Models
-- [[real-time-video-processing]] — Real-Time Video Processing
+- ai-filmmaking-workflows — AI Filmmaking Workflows
+- ai-video-editing-tools — AI Video Editing Tools
+- open-source-video-generation-models — Open-Source Video Generation Models
+- real-time-video-processing — Real-Time Video Processing
 
 ## Citations (from contributing transcripts)
 

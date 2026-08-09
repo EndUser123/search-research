@@ -108,7 +108,7 @@ tags: [host-invariants, auth, concurrency, ...]
 |-----------|---------------|----------------|
 | Constraint table | 6-row markdown table | `grep -li "host.invariant" wiki/concepts/` + read + extract |
 | Routing table | 12-row skill mapping | `grep skill-catalog.md` + match findings against descriptions |
-| Source availability | Hardcoded "social media = skip" | Query `[[social-media-as-structured-research-data]]` for current state |
+| Source availability | Hardcoded "social media = skip" | Query `[[social-media-as-structured-research-data-for-ai-agents]]` for current state |
 | Decision frameworks | Hardcoded list | Query wiki for `[decision-frameworks]` tagged concepts |
 
 **In wiki concepts:** tag concepts with discovery-friendly tags.

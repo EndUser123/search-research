@@ -121,10 +121,10 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[multi-agent-system-architecture]] — Multi-Agent System Architecture
-- [[agent-observability-patterns]] — Agent Observability Patterns
-- [[cost-optimization-in-agentic-systems]] — Cost Optimization in Agentic Systems
-- [[autonomous-agent-benchmarks]] — Autonomous Agent Benchmarks
+- multi-agent-system-architecture — Multi-Agent System Architecture
+- agent-observability-patterns — Agent Observability Patterns
+- cost-optimization-in-agentic-systems — Cost Optimization in Agentic Systems
+- autonomous-agent-benchmarks — Autonomous Agent Benchmarks
 
 ## Citations (from contributing transcripts)
 

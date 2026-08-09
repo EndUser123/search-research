@@ -125,9 +125,9 @@ Synthesized from **64 contributing transcripts** in NotebookLM notebook *_2026-0
 
 ## Related concepts
 
-- [[agent-loop-control]] — Agent Loop Control
-- [[token-optimization]] — Token Optimization
-- [[github-agent-skills]] — GitHub Agent Skills
+- agent-loop-control — Agent Loop Control
+- token-optimization — Token Optimization
+- github-agent-skills — GitHub Agent Skills
 
 ## Citations (from contributing transcripts)
 

@@ -174,7 +174,7 @@ approach has failed and a different enforcement mechanism is needed.
 - [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — the receipt rule
 - [[evidence-first-default-and-needless-confirmation]] — the evidence-first default
 - [[mechanical-enforcement-over-behavioral-reminder]] — the structural enforcement principle
-- [[narrative-as-signal-anti-dismissal-rule]] — the narrative-closure pressure
+- narrative-as-signal-anti-dismissal-rule — the narrative-closure pressure
 - [[cohere-trial-api-quota-signals-and-failure-modes]] — the Cohere quota documentation that was available but not checked
 
 ## Receipts

@@ -66,9 +66,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[ai-implementation-consulting]] — AI Implementation Consulting
-- [[claude-code-workflows]] — Claude Code Workflows
-- [[passive-income-with-ai]] — Passive Income with AI
+- ai-implementation-consulting — AI Implementation Consulting
+- claude-code-workflows — Claude Code Workflows
+- passive-income-with-ai — Passive Income with AI
 
 ## Citations (from contributing transcripts)
 

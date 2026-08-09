@@ -102,10 +102,10 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
+- model-context-protocol — Model Context Protocol
 - [[agent-skills]] — Agent Skills
-- [[tool-selection]] — Tool Selection
-- [[structural-guardrails]] — Structural Guardrails
+- tool-selection — Tool Selection
+- structural-guardrails — Structural Guardrails
 
 ## Citations (from contributing transcripts)
 

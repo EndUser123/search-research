@@ -66,11 +66,11 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Loca
 
 ## Related concepts
 
-- [[claude-code]] — Claude Code
-- [[codex-goal-verification]] — Codex goal verification
-- [[open-weight-models]] — Open-weight models
-- [[agentic-ai-workflows]] — Agentic AI workflows
-- [[benchmark-evaluation]] — Benchmark evaluation
+- claude-code — Claude Code
+- codex-goal-verification — Codex goal verification
+- open-weight-models — Open-weight models
+- agentic-ai-workflows — Agentic AI workflows
+- benchmark-evaluation — Benchmark evaluation
 
 ## Citations (from contributing transcripts)
 

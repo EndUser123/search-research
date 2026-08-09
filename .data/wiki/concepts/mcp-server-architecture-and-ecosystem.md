@@ -80,11 +80,11 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *WL: Opt
 
 ## Related concepts
 
-- [[model-context-protocol-specification]] — Model Context Protocol Specification
-- [[claude-code-integration]] — Claude Code Integration
-- [[ai-agent-orchestration]] — AI Agent Orchestration
-- [[remote-code-execution-vulnerabilities]] — Remote Code Execution Vulnerabilities
-- [[connector-observability]] — Connector Observability
+- model-context-protocol-specification — Model Context Protocol Specification
+- claude-code-integration — Claude Code Integration
+- [[multi-agent-orchestration]] — AI Agent Orchestration
+- remote-code-execution-vulnerabilities — Remote Code Execution Vulnerabilities
+- connector-observability — Connector Observability
 
 ## Citations (from contributing transcripts)
 

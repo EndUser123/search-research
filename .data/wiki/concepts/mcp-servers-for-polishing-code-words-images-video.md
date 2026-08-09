@@ -131,7 +131,7 @@ The combined workflow would be:
 1. Agent reads Perplexity/ChatGPT tab (browser_read) → extracts video URLs
 2. Kinocut downloads/edits video, extracts key frames
 3. OpenCV MCP analyzes frames (detects what's shown, identifies charts/diagrams)
-4. [[nlm-to-wiki]] ingests transcript for text synthesis
+4. nlm-to-wiki ingests transcript for text synthesis
 5. Agent writes wiki concept combining transcript insights + visual analysis
 
 This connects to the broader [[chrome-acp-grok-build-setup-implementation]]

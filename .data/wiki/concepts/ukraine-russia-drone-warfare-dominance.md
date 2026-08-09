@@ -83,11 +83,11 @@ Synthesized from **19 contributing transcripts** in NotebookLM notebook *WL: Can
 
 ## Related concepts
 
-- [[european-defense-industrial-base]] — European Defense Industrial Base
-- [[fpv-drone-technology]] — FPV Drone Technology
-- [[counter-drone-systems]] — Counter-Drone Systems
-- [[ukraine-military-innovation]] — Ukraine Military Innovation
-- [[russian-casualties-in-ukraine-war]] — Russian Casualties in Ukraine War
+- european-defense-industrial-base — European Defense Industrial Base
+- fpv-drone-technology — FPV Drone Technology
+- counter-drone-systems — Counter-Drone Systems
+- ukraine-military-innovation — Ukraine Military Innovation
+- russian-casualties-in-ukraine-war — Russian Casualties in Ukraine War
 
 ## Citations (from contributing transcripts)
 

@@ -95,10 +95,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Video Pi
 
 ## Related concepts
 
-- [[oauth-token-refresh]] — OAuth Token Refresh
-- [[rate-limiting]] — Rate Limiting
-- [[youtube-api-quotas]] — YouTube API Quotas
-- [[sabr-streaming-protocol]] — SABR Streaming Protocol
+- oauth-token-refresh — OAuth Token Refresh
+- rate-limiting — Rate Limiting
+- youtube-api-quotas — YouTube API Quotas
+- sabr-streaming-protocol — SABR Streaming Protocol
 
 ## Citations (from contributing transcripts)
 

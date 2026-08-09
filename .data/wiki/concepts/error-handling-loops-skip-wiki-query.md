@@ -168,8 +168,7 @@ This concept is wrong if:
   in practice (i.e., agents naturally query the wiki when diagnosing tool
   errors, making this concept redundant). The 2026-07-27 incident is
   counter-evidence: the agent did not query.
-- The remediation class is identical to [[rule-not-fired-vs-rule-doesnt-
-  exist]] with no trigger-level novelty (reviewer noted the remediation class
+- The remediation class is identical to [[rule-not-fired-vs-rule-doesnt-exist]] with no trigger-level novelty (reviewer noted the remediation class
   IS shared; the novelty is at the trigger level — error-handling vs
   proposal). If future instances show agents treating diagnosis as proposal,
   this concept folds back into the parent.

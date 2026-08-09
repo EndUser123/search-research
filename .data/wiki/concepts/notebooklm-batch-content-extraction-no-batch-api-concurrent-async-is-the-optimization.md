@@ -19,7 +19,7 @@ host: grok
 cognitive_load: 2
 verification: observed
 sources:
-  - "C:/Users/brsth/AppData/Roaming/Python/Python314/site-packages/notebooklm/rpc/encoder.py:45 — encode_rpc_request returns [[inner]] (single operation, triple-nested)"
+  - "C:/Users/brsth/AppData/Roaming/Python/Python314/site-packages/notebooklm/rpc/encoder.py:45 — encode_rpc_request returns inner (single operation, triple-nested)"
   - "C:/Users/brsth/AppData/Roaming/Python/Python314/site-packages/notebooklm/_runtime/config.py:78 — DEFAULT_MAX_CONCURRENT_RPCS = 16"
   - "https://github.com/teng-lin/notebooklm-py/blob/main/docs/python-api.md — async re-entrant, asyncio.gather supported"
   - "https://github.com/Taitai54/notebooklm-export — practitioner bulk export tool, also per-source via MCP"
@@ -49,7 +49,7 @@ relations:
 
 ### The batchexecute protocol COULD batch, but the client doesn't
 
-The batchexecute RPC protocol theoretically supports multiple operations per POST body. But `encode_rpc_request` in `rpc/encoder.py:45` encodes exactly ONE: `return [[inner]]` (triple-nested single operation). The dedicated practitioner tool `Taitai54/notebooklm-export` also calls content extraction per-source (via MCP), confirming no batch API is available in practice.
+The batchexecute RPC protocol theoretically supports multiple operations per POST body. But `encode_rpc_request` in `rpc/encoder.py:45` encodes exactly ONE: `return inner` (triple-nested single operation). The dedicated practitioner tool `Taitai54/notebooklm-export` also calls content extraction per-source (via MCP), confirming no batch API is available in practice.
 
 **Receipt:** `rpc/encoder.py:45`.
 

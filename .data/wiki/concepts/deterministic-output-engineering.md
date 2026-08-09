@@ -82,10 +82,10 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[schema-reliable-terminal-communication]] — Schema-Reliable Terminal Communication
-- [[deterministic-verification-frameworks]] — Deterministic Verification Frameworks
-- [[instruction-drift-mitigation]] — Instruction Drift Mitigation
-- [[programmatic-output-validation]] — Programmatic Output Validation
+- schema-reliable-terminal-communication — Schema-Reliable Terminal Communication
+- deterministic-verification-frameworks — Deterministic Verification Frameworks
+- instruction-drift-mitigation — Instruction Drift Mitigation
+- programmatic-output-validation — Programmatic Output Validation
 
 ## Citations (from contributing transcripts)
 

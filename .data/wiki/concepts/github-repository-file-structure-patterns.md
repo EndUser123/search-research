@@ -82,11 +82,11 @@ Synthesized from **24 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[open-policy-agent]] — Open Policy Agent
-- [[semgrep-static-analysis]] — Semgrep Static Analysis
-- [[ai-guardrails]] — AI Guardrails
-- [[protocol-buffer-build-tools]] — Protocol Buffer Build Tools
-- [[event-catalog-architecture]] — Event Catalog Architecture
+- open-policy-agent — Open Policy Agent
+- semgrep-static-analysis — Semgrep Static Analysis
+- ai-guardrails — AI Guardrails
+- protocol-buffer-build-tools — Protocol Buffer Build Tools
+- event-catalog-architecture — Event Catalog Architecture
 
 ## Citations (from contributing transcripts)
 

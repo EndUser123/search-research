@@ -60,7 +60,7 @@ relations:
 └─────────────────────────────────────────┘
 ```
 
-**Layer 1 — Canonical Content Store (DURABLE):** markdown corpus, provenance metadata, frontmatter schemas, skill definitions, prompt templates, eval suites. This is what our wiki vault (`P:/.data/wiki/concepts/`) already is. It must be readable without any model — plain text, human-parseable. This aligns with [[design-graphs-solution-graphs-value-for-ai-agent-fleet]] — the wiki vault's `relations:` frontmatter and `[[wikilinks]]` are already a lightweight graph structure at the canonical layer.
+**Layer 1 — Canonical Content Store (DURABLE):** markdown corpus, provenance metadata, frontmatter schemas, skill definitions, prompt templates, eval suites. This is what our wiki vault (`P:/.data/wiki/concepts/`) already is. It must be readable without any model — plain text, human-parseable. This aligns with [[design-graphs-solution-graphs-value-for-ai-agent-fleet]] — the wiki vault's `relations:` frontmatter and `wikilinks` are already a lightweight graph structure at the canonical layer.
 
 **Layer 2 — Derived Indexes (DISPOSABLE):** vector embeddings, graph adjacency lists, FTS5 indexes, QMD indexes. All of these can be rebuilt from Layer 1. Our `build_skill_graph.py`, `qmd` index, and FTS5 search are all derived indexes. See [[codebase-knowledge-graph-mapping]] for how codebase KG tools like Graphify fit at this layer — they produce derived structural indexes, not canonical content.
 

@@ -276,10 +276,10 @@ Synthesized from **56 contributing transcripts** in NotebookLM notebook *ext-Gem
 
 ## Related concepts
 
-- [[ai-cli-tools-comparison]] — AI CLI Tools Comparison
-- [[model-context-protocol]] — Model Context Protocol
-- [[local-ai-execution]] — Local AI Execution
-- [[ai-coding-agents]] — AI Coding Agents
+- ai-cli-tools-comparison — AI CLI Tools Comparison
+- model-context-protocol — Model Context Protocol
+- local-ai-execution — Local AI Execution
+- ai-coding-agents — AI Coding Agents
 
 ## Citations (from contributing transcripts)
 

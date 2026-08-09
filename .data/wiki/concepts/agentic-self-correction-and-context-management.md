@@ -82,11 +82,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *AI Archi
 
 ## Related concepts
 
-- [[context-engineering]] — Context Engineering
-- [[inference-time-scaling]] — Inference-time Scaling
+- context-engineering — Context Engineering
+- inference-time-scaling — Inference-time Scaling
 - [[multi-agent-orchestration]] — Multi-Agent Orchestration
-- [[continual-learning]] — Continual Learning
-- [[stateful-prompts]] — Stateful Prompts
+- continual-learning — Continual Learning
+- stateful-prompts — Stateful Prompts
 
 ## Citations (from contributing transcripts)
 

@@ -65,9 +65,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[copy-trading-patterns]] — Copy Trading Patterns
-- [[tradingview-integration]] — TradingView Integration
-- [[ai-assisted-trading]] — AI-Assisted Trading
+- copy-trading-patterns — Copy Trading Patterns
+- tradingview-integration — TradingView Integration
+- ai-assisted-trading — AI-Assisted Trading
 
 ## Citations (from contributing transcripts)
 

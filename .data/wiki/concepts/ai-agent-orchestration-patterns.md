@@ -65,9 +65,9 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *WL: Ant
 
 ## Related concepts
 
-- [[autonomous-ai-research]] — Autonomous AI Research
-- [[scheduled-task-automation]] — Scheduled Task Automation
-- [[agent-feedback-systems]] — Agent Feedback Systems
+- autonomous-ai-research — Autonomous AI Research
+- scheduled-task-automation — Scheduled Task Automation
+- agent-feedback-systems — Agent Feedback Systems
 
 ## Citations (from contributing transcripts)
 

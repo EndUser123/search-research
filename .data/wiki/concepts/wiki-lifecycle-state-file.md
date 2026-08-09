@@ -194,7 +194,7 @@ python wiki_state.py status my-session
 ## Auto-related
 
 - [[grok-build-plan-mode-structured-thinking]]
-- [[i'm-going-to-create-a-hook-to-enforce-discovery-be]]
+- [[I'm-going-to-create-a-hook-to-enforce-discovery-be]]
 
 ## Sources
 

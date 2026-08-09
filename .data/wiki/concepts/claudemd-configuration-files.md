@@ -56,9 +56,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[structured-vault-organization]] — Structured Vault Organization
-- [[claude-code-skills-architecture]] — Claude Code Skills Architecture
-- [[mcp-integration-pattern]] — MCP Integration Pattern
+- structured-vault-organization — Structured Vault Organization
+- claude-code-skills-architecture — Claude Code Skills Architecture
+- mcp-integration-pattern — MCP Integration Pattern
 
 ## Citations (from contributing transcripts)
 

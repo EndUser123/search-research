@@ -71,10 +71,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Nate Her
 
 ## Related concepts
 
-- [[ai-automation-services-pricing]] — AI Automation Services Pricing
-- [[client-discovery-frameworks]] — Client Discovery Frameworks
-- [[cold-outreach-automation]] — Cold Outreach Automation
-- [[ai-hackathon-competition]] — AI Hackathon Competition
+- ai-automation-services-pricing — AI Automation Services Pricing
+- client-discovery-frameworks — Client Discovery Frameworks
+- cold-outreach-automation — Cold Outreach Automation
+- ai-hackathon-competition — AI Hackathon Competition
 
 ## Citations (from contributing transcripts)
 

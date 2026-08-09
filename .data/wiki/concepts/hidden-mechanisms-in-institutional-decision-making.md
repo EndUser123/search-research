@@ -78,9 +78,9 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *WL: Geo
 
 ## Related concepts
 
-- [[cassandra-complex-in-professional-settings]] — Cassandra Complex in Professional Settings
-- [[institutional-transparency-failures]] — Institutional Transparency Failures
-- [[calibration-meeting-dynamics]] — Calibration Meeting Dynamics
+- cassandra-complex-in-professional-settings — Cassandra Complex in Professional Settings
+- institutional-transparency-failures — Institutional Transparency Failures
+- calibration-meeting-dynamics — Calibration Meeting Dynamics
 
 ## Citations (from contributing transcripts)
 

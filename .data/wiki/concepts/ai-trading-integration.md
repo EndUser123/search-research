@@ -55,10 +55,10 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *WL: Anth
 
 ## Related concepts
 
-- [[algorithmic-trading]] — Algorithmic Trading
-- [[ai-assisted-learning]] — AI-Assisted Learning
-- [[trading-strategy-development]] — Trading Strategy Development
-- [[market-analysis-automation]] — Market Analysis Automation
+- algorithmic-trading — Algorithmic Trading
+- ai-assisted-learning — AI-Assisted Learning
+- trading-strategy-development — Trading Strategy Development
+- market-analysis-automation — Market Analysis Automation
 
 ## Citations (from contributing transcripts)
 

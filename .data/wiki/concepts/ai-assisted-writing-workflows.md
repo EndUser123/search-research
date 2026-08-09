@@ -71,10 +71,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WL: Anth
 
 ## Related concepts
 
-- [[voice-preservation-in-ai-writing]] — Voice Preservation in AI Writing
-- [[ai-writing-tool-comparison]] — AI Writing Tool Comparison
-- [[human-ai-creative-collaboration]] — Human-AI Creative Collaboration
-- [[writing-burnout-prevention]] — Writing Burnout Prevention
+- voice-preservation-in-ai-writing — Voice Preservation in AI Writing
+- ai-writing-tool-comparison — AI Writing Tool Comparison
+- human-ai-creative-collaboration — Human-AI Creative Collaboration
+- writing-burnout-prevention — Writing Burnout Prevention
 
 ## Citations (from contributing transcripts)
 

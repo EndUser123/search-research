@@ -115,7 +115,7 @@ in one line.
 **Rule:** for any CLI capability claim ("X is not supported," "no bulk
 endpoint," "must be done one at a time"), run `<cmd> --help` before asserting
 it. The receipt rule applies to negative claims about tool surface, not just
-positive ones. See [[evidence-first-default]] and [[claims-require-receipts]].
+positive ones. See evidence-first-default and claims-require-receipts.
 
 ## Gotcha 3: first-URL "Error: Failed to add URL source" is cosmetic
 

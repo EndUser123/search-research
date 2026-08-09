@@ -48,7 +48,7 @@ This is NOT a "should we rebuild the wiki" question. The existing design is soun
 ## What practitioners LIKE (patterns that work)
 
 ### 1. Atomic, densely-linked notes (Evergreen Notes / Zettelkasten)
-One idea per note, written in your own words, linked to ≥2 other notes. Andy Matuschak's framework and Luhmann's 90,000-slip Zettelkasten are the canonical proof points. The structural cost is low (titles emerge from ideas) while retrieval compounds over time. **Our wiki already implements this** — `validate_wiki_entry.py` enforces ≥3 `[[wikilinks]]`.
+One idea per note, written in your own words, linked to ≥2 other notes. Andy Matuschak's framework and Luhmann's 90,000-slip Zettelkasten are the canonical proof points. The structural cost is low (titles emerge from ideas) while retrieval compounds over time. **Our wiki already implements this** — `validate_wiki_entry.py` enforces ≥3 `wikilinks`.
 
 ### 2. Local-first plain-text + git (Karpathy's LLM-wiki pattern)
 "The wiki is just a git repo of markdown files — you get version history, branching, and collaboration for free." Two reviewers contrasted this with Notion's export pain and Roam's missing features. **Our wiki already does this** — markdown + git commits after every write.
@@ -147,7 +147,7 @@ The research validated several existing design choices:
 
 ## Receipts
 
-- `validate_wiki_entry.py` — enforces ≥3 `[[wikilinks]]`, ≥50 non-empty lines, frontmatter fields. (source: ran on this entry, PASS on structure)
+- `validate_wiki_entry.py` — enforces ≥3 `wikilinks`, ≥50 non-empty lines, frontmatter fields. (source: ran on this entry, PASS on structure)
 - `SCHEMA.md` §4 — quality gate for findings and decisions. (source: read during `/wiki` skill invocation this session)
 - `/skill-prune` SKILL.md — exists but rarely run per AGENTS.md maintenance reminders. (source: `P:\.agents\skills\skill-prune\SKILL.md`, listed in session skill catalog)
 - `P:/.data/wiki/concepts/` — ~400 concept files, no automated retirement process. (source: `Get-ChildItem` during wiki query phase)

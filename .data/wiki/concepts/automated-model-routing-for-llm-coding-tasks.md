@@ -78,10 +78,10 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[model-benchmarking]] — Model Benchmarking
-- [[openrouter]] — OpenRouter
-- [[llm-pricing-comparison]] — LLM Pricing Comparison
-- [[multi-model-api-access]] — Multi-Model API Access
+- model-benchmarking — Model Benchmarking
+- openrouter — OpenRouter
+- llm-pricing-comparison — LLM Pricing Comparison
+- multi-model-api-access — Multi-Model API Access
 
 ## Citations (from contributing transcripts)
 

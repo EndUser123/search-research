@@ -156,10 +156,10 @@ Synthesized from **93 contributing transcripts** in NotebookLM notebook *Github 
 
 ## Related concepts
 
-- [[open-source-ai-agent-frameworks]] — Open-source AI agent frameworks
-- [[github-repository-discovery]] — GitHub repository discovery
-- [[developer-productivity-tools]] — Developer productivity tools
-- [[cli-dashboard-utilities]] — CLI dashboard utilities
+- open-source-ai-agent-frameworks — Open-source AI agent frameworks
+- github-repository-discovery — GitHub repository discovery
+- developer-productivity-tools — Developer productivity tools
+- cli-dashboard-utilities — CLI dashboard utilities
 
 ## Citations (from contributing transcripts)
 

@@ -91,10 +91,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[claude-code]] — Claude Code
-- [[autonomous-ai-agents]] — Autonomous AI Agents
-- [[context-engineering]] — Context Engineering
-- [[session-management]] — Session Management
+- claude-code — Claude Code
+- [[autonomous-ai-coding-agents]] — Autonomous AI Agents
+- context-engineering — Context Engineering
+- session-management — Session Management
 
 ## Citations (from contributing transcripts)
 

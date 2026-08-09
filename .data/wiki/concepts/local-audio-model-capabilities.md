@@ -69,11 +69,11 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL: AI C
 
 ## Related concepts
 
-- [[quantization]] — Quantization
-- [[multimodal-ai]] — Multimodal AI
-- [[local-language-models]] — Local Language Models
-- [[audio-understanding]] — Audio Understanding
-- [[on-device-inference]] — On-Device Inference
+- quantization — Quantization
+- multimodal-ai — Multimodal AI
+- local-language-models — Local Language Models
+- audio-understanding — Audio Understanding
+- on-device-inference — On-Device Inference
 
 ## Citations (from contributing transcripts)
 

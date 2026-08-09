@@ -88,10 +88,10 @@ Synthesized from **23 contributing transcripts** in NotebookLM notebook *WL: Hea
 
 ## Related concepts
 
-- [[options-strategy]] — Options Strategy
-- [[market-indicators]] — Market Indicators
-- [[trading-mistakes]] — Trading Mistakes
-- [[ipos-and-market-peaks]] — IPOs and Market Peaks
+- options-strategy — Options Strategy
+- market-indicators — Market Indicators
+- trading-mistakes — Trading Mistakes
+- ipos-and-market-peaks — IPOs and Market Peaks
 
 ## Citations (from contributing transcripts)
 

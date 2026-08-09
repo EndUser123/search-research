@@ -71,9 +71,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL: Cana
 
 ## Related concepts
 
-- [[sterile-insect-technique]] — Sterile insect technique
-- [[parasitic-myiasis]] — Parasitic myiasis
-- [[agricultural-biosecurity]] — Agricultural biosecurity
+- sterile-insect-technique — Sterile insect technique
+- parasitic-myiasis — Parasitic myiasis
+- agricultural-biosecurity — Agricultural biosecurity
 
 ## Citations (from contributing transcripts)
 

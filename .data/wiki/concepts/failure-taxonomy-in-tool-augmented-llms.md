@@ -80,9 +80,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[cognitive-workspace]] — Cognitive Workspace
-- [[retrieval-augmented-generation]] — Retrieval-Augmented Generation
-- [[llm-failure-modes]] — LLM Failure Modes
+- cognitive-workspace — Cognitive Workspace
+- retrieval-augmented-generation — Retrieval-Augmented Generation
+- llm-failure-modes — LLM Failure Modes
 
 ## Citations (from contributing transcripts)
 

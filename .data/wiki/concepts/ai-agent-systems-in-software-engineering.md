@@ -225,12 +225,12 @@ Synthesized from **44 contributing transcripts** in NotebookLM notebook *Enginee
 
 ## Related concepts
 
-- [[multi-agent-workflows]] — Multi-Agent Workflows
-- [[react-pattern]] — ReAct Pattern
-- [[agent-observability]] — Agent Observability
-- [[ai-code-sandboxes]] — AI Code Sandboxes
-- [[technical-debt-in-ai-systems]] — Technical Debt in AI Systems
-- [[human-in-the-loop-ai]] — Human-in-the-Loop AI
+- multi-agent-workflows — Multi-Agent Workflows
+- react-pattern — ReAct Pattern
+- agent-observability — Agent Observability
+- ai-code-sandboxes — AI Code Sandboxes
+- technical-debt-in-ai-systems — Technical Debt in AI Systems
+- human-in-the-loop-ai — Human-in-the-Loop AI
 
 ## Citations (from contributing transcripts)
 

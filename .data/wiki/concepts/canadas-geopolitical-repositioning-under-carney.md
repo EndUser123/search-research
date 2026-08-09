@@ -383,11 +383,11 @@ Synthesized from **317 contributing transcripts** in NotebookLM notebook *WL: Gi
 
 ## Related concepts
 
-- [[usmca-trade-tensions]] — USMCA Trade Tensions
-- [[nato-alliance-dynamics]] — NATO Alliance Dynamics
-- [[canadian-carbon-pricing-policy]] — Canadian Carbon Pricing Policy
-- [[indigenous-land-rights-in-canada]] — Indigenous Land Rights in Canada
-- [[canada-europe-relations]] — Canada-Europe Relations
+- usmca-trade-tensions — USMCA Trade Tensions
+- nato-alliance-dynamics — NATO Alliance Dynamics
+- canadian-carbon-pricing-policy — Canadian Carbon Pricing Policy
+- indigenous-land-rights-in-canada — Indigenous Land Rights in Canada
+- canada-europe-relations — Canada-Europe Relations
 
 ## Citations (from contributing transcripts)
 

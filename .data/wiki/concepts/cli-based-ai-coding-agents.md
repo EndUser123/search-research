@@ -124,10 +124,10 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[ai-coding-assistants]] — AI Coding Assistants
-- [[model-context-protocol]] — Model Context Protocol
-- [[vibe-coding]] — Vibe Coding
-- [[open-source-ai-agents]] — Open Source AI Agents
+- ai-coding-assistants — AI Coding Assistants
+- model-context-protocol — Model Context Protocol
+- vibe-coding — Vibe Coding
+- open-source-ai-agents — Open Source AI Agents
 
 ## Citations (from contributing transcripts)
 

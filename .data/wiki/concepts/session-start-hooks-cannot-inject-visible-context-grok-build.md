@@ -8,8 +8,7 @@ summary: >
   line 304), stderr appears only as a hook annotation in the TUI scrollback
   (not surfaced to the operator), and there is no mechanism to inject
   visible context at session start. An AGENTS.md rule telling the LLM to
-  surface hook output is unreliable (per [[llm-instruction-non-compliance-
-  activation-gap-2026]]). The combination — passive hook + unreliable rule
+  surface hook output is unreliable (per [[llm-instruction-non-compliance-activation-gap-2026]]). The combination — passive hook + unreliable rule
   — means session-start data injection does not work with current Grok Build
   hook capabilities. This was verified empirically: a SessionStart hook was
   built, fired successfully (green ✓), but its output was invisible to the

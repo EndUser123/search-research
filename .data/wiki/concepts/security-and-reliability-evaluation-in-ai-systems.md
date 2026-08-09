@@ -71,10 +71,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Masterin
 
 ## Related concepts
 
-- [[vulnerability-taxonomy]] — Vulnerability Taxonomy
-- [[chain-of-thought-faithfulness]] — Chain-of-Thought Faithfulness
-- [[model-context-protocol-security]] — Model Context Protocol Security
-- [[ai-benchmark-standards]] — AI Benchmark Standards
+- vulnerability-taxonomy — Vulnerability Taxonomy
+- chain-of-thought-faithfulness — Chain-of-Thought Faithfulness
+- model-context-protocol-security — Model Context Protocol Security
+- ai-benchmark-standards — AI Benchmark Standards
 
 ## Citations (from contributing transcripts)
 

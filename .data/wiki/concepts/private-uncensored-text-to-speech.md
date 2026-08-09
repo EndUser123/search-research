@@ -128,7 +128,7 @@ Unlike the LLM space (where "abliterated" / "uncensored" is a marketed category 
 
 **Result:** No counterexamples found. No open-source TTS model with built-in content filters surfaced in any search. The F5-TTS GitHub issue #436 confirms the pattern (base model unfiltered, only LLM wrapper filters). Kokoro limitations (no cloning, pronunciation issues in long-form) are documented but minor and do not undermine the recommendation. All "beats ElevenLabs" claims are vendor-run — flagged but not refuted.
 
-**Wiki contradiction check:** `local-audio-ai-models.md` covers Gemma 4 audio understanding (ASR, not TTS). No contradiction. `uncensored-ai-models.md` covers uncensored LLMs — complementary, not overlapping. The dangling `[[text-to-speech-synthesis]]` wikilink target in `local-audio-ai-models.md` now resolves to this page.
+**Wiki contradiction check:** `local-audio-ai-models.md` covers Gemma 4 audio understanding (ASR, not TTS). No contradiction. `uncensored-ai-models.md` covers uncensored LLMs — complementary, not overlapping. The dangling `text-to-speech-synthesis` wikilink target in `local-audio-ai-models.md` now resolves to this page.
 
 ## Host invariant check
 
@@ -136,7 +136,7 @@ Unlike the LLM space (where "abliterated" / "uncensored" is a marketed category 
 
 ## What this means for our workspace
 
-1. **No TTS skill exists yet.** The wiki references `[[text-to-speech-synthesis]]` as a wikilink target in `local-audio-ai-models.md` but no concept existed until this page. This page resolves that dangling reference. If a TTS skill is needed (e.g., for generating audio from wiki content, handoffs, or agent outputs), the recommended starting point is **Kokoro-82M** (Apache 2.0, CPU-runnable, Python `kokoro` package — one-line install).
+1. **No TTS skill exists yet.** The wiki references `text-to-speech-synthesis` as a wikilink target in `local-audio-ai-models.md` but no concept existed until this page. This page resolves that dangling reference. If a TTS skill is needed (e.g., for generating audio from wiki content, handoffs, or agent outputs), the recommended starting point is **Kokoro-82M** (Apache 2.0, CPU-runnable, Python `kokoro` package — one-line install).
 
 2. **`mmx speech synthesize` is the current fallback.** The `tool-fallbacks.md` wiki concept lists MiniMax CLI's TTS as the speech fallback. For fully private/uncensored use, a local model (Kokoro, Piper) should be preferred over `mmx` (which routes through MiniMax's cloud API). Consider adding a local TTS entry to the tool-fallbacks table.
 

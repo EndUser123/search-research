@@ -119,9 +119,9 @@ Synthesized from **17 contributing transcripts** in NotebookLM notebook *ext-Gem
 
 ## Related concepts
 
-- [[claude-code-cli-configuration]] — Claude Code CLI Configuration
-- [[claude-code-authentication]] — Claude Code Authentication
-- [[claude-code-deployment]] — Claude Code Deployment
+- claude-code-cli-configuration — Claude Code CLI Configuration
+- claude-code-authentication — Claude Code Authentication
+- claude-code-deployment — Claude Code Deployment
 
 ## Citations (from contributing transcripts)
 

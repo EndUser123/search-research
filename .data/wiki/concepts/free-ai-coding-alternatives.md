@@ -64,9 +64,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *WL: AI C
 
 ## Related concepts
 
-- [[model-routing-strategies]] — Model routing strategies
-- [[planning-vs-implementation-workflows]] — Planning vs implementation workflows
-- [[ai-coding-subscription-alternatives]] — AI coding subscription alternatives
+- model-routing-strategies — Model routing strategies
+- planning-vs-implementation-workflows — Planning vs implementation workflows
+- ai-coding-subscription-alternatives — AI coding subscription alternatives
 
 ## Citations (from contributing transcripts)
 

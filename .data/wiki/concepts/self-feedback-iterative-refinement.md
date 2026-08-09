@@ -96,9 +96,9 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Iterati
 
 ## Related concepts
 
-- [[multi-agent-debate]] — Multi-Agent Debate
-- [[chain-of-thought-prompting]] — Chain-of-Thought Prompting
-- [[role-based-prompting]] — Role-Based Prompting
+- multi-agent-debate — Multi-Agent Debate
+- chain-of-thought-prompting — Chain-of-Thought Prompting
+- role-based-prompting — Role-Based Prompting
 
 ## Citations (from contributing transcripts)
 

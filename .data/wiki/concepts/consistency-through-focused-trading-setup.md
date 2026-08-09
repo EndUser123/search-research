@@ -57,8 +57,8 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL: Misc
 
 ## Related concepts
 
-- [[single-setup-trading-discipline]] — Single Setup Trading Discipline
-- [[trading-psychology-for-consistency]] — Trading Psychology for Consistency
+- single-setup-trading-discipline — Single Setup Trading Discipline
+- trading-psychology-for-consistency — Trading Psychology for Consistency
 
 ## Citations (from contributing transcripts)
 

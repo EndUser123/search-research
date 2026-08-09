@@ -115,10 +115,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[claude-code-cli]] — Claude Code CLI
-- [[slash-commands]] — Slash Commands
-- [[claude.md]] — CLAUDE.md
-- [[prompt-engineering]] — Prompt Engineering
+- [[claude-code-cli-tool]] — Claude Code CLI
+- slash-commands — Slash Commands
+- claude.md — CLAUDE.md
+- prompt-engineering — Prompt Engineering
 
 ## Citations (from contributing transcripts)
 

@@ -73,9 +73,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[llm-knowledge-bases]] — LLM Knowledge Bases
-- [[agents.md-documentation]] — AGENTS.md Documentation
-- [[model-context-protocol]] — Model Context Protocol
+- llm-knowledge-bases — LLM Knowledge Bases
+- agents.md-documentation — AGENTS.md Documentation
+- model-context-protocol — Model Context Protocol
 
 ## Citations (from contributing transcripts)
 

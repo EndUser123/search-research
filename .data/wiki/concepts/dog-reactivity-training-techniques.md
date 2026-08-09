@@ -68,9 +68,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *WL: Hea
 
 ## Related concepts
 
-- [[loose-leash-walking]] — Loose Leash Walking
-- [[canine-anxiety-management]] — Canine Anxiety Management
-- [[alternative-behavior-training]] — Alternative Behavior Training
+- loose-leash-walking — Loose Leash Walking
+- canine-anxiety-management — Canine Anxiety Management
+- alternative-behavior-training — Alternative Behavior Training
 
 ## Citations (from contributing transcripts)
 

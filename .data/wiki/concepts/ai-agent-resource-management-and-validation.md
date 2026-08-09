@@ -83,10 +83,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[token-limit-management]] — Token Limit Management
-- [[continuous-validation]] — Continuous Validation
-- [[ai-agent-verification]] — AI Agent Verification
-- [[swe-bench-benchmarking]] — SWE-bench Benchmarking
+- token-limit-management — Token Limit Management
+- continuous-validation — Continuous Validation
+- ai-agent-verification — AI Agent Verification
+- swe-bench-benchmarking — SWE-bench Benchmarking
 
 ## Citations (from contributing transcripts)
 

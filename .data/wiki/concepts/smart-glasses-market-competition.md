@@ -73,9 +73,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Loca
 
 ## Related concepts
 
-- [[ai-integrated-eyewear]] — AI-integrated eyewear
-- [[meta-ray-ban-competitors]] — Meta Ray-Ban competitors
-- [[smart-glasses-pricing-tiers]] — Smart glasses pricing tiers
+- ai-integrated-eyewear — AI-integrated eyewear
+- meta-ray-ban-competitors — Meta Ray-Ban competitors
+- smart-glasses-pricing-tiers — Smart glasses pricing tiers
 
 ## Citations (from contributing transcripts)
 

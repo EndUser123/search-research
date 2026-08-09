@@ -44,8 +44,7 @@ instinctive signal that the research-to-execution ratio was off.
 **The underlying pattern:** the workspace has 169 handoff directories. This
 session alone produced 8 wiki concepts and 10+ handoffs. The research
 artifact accumulation rate exceeds the execution rate. The workspace's own
-meta-assessment ([[research-vs-design-vs-architect-skills-and-www-self-
-assessment]], 2026-07-26) said "pare ceremony" — and the next day, more
+meta-assessment ([[research-vs-design-vs-architect-skills-and-www-self-assessment]], 2026-07-26) said "pare ceremony" — and the next day, more
 ceremony was produced. The pattern is self-reinforcing.
 
 ## The self-reinforcing loop
@@ -107,8 +106,8 @@ under closure pressure, but a structural gate in the /tp opportunity scan
 **Execution-first bias:** when the operator asks "is there opportunity here?"
 after research, the default disposition should be "execute one thing" —
 not "research more." The research already produced the directions; the
-opportunity is in building. This connects to [[decision-and-fix-documentation-
-rule]]: the rule says "if you just shipped something, stop and ask: did I
+opportunity is in building. This connects to decision-and-fix-documentation-
+rule: the rule says "if you just shipped something, stop and ask: did I
 document the decision?" The complementary question this pattern surfaces is:
 "if you just documented something, stop and ask: should I be executing
 instead of documenting more?"
@@ -171,6 +170,5 @@ This pattern is wrong if:
 - **/tp critique:** fresh subagent (glm-5-2, 7 tool calls) found 5 of 6
   tracks already had handoffs; cross-verified by reading qmd-fts5 and
   agents-md-refactor handoffs (both dated 2026-07-27, same day as the /www)
-- **Prior meta-assessment:** [[research-vs-design-vs-architect-skills-and-www-
-  self-assessment]] (2026-07-26) recommended paring /www ceremony one day
+- **Prior meta-assessment:** [[research-vs-design-vs-architect-skills-and-www-self-assessment]] (2026-07-26) recommended paring /www ceremony one day
   before this session produced a 500-line confirmatory /www concept

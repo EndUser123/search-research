@@ -72,10 +72,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WL: Opti
 
 ## Related concepts
 
-- [[humanoid-robot-development]] — Humanoid Robot Development
-- [[tesla-full-self-driving-technology]] — Tesla Full Self-Driving Technology
-- [[figure-ai-competition]] — Figure AI Competition
-- [[custom-ai-semiconductor-development]] — Custom AI Semiconductor Development
+- humanoid-robot-development — Humanoid Robot Development
+- tesla-full-self-driving-technology — Tesla Full Self-Driving Technology
+- figure-ai-competition — Figure AI Competition
+- custom-ai-semiconductor-development — Custom AI Semiconductor Development
 
 ## Citations (from contributing transcripts)
 

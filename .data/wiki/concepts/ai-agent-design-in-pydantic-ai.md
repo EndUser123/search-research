@@ -103,10 +103,10 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Agentic
 
 ## Related concepts
 
-- [[llm-integration-patterns]] — LLM Integration Patterns
-- [[agent-memory-management]] — Agent Memory Management
+- llm-integration-patterns — LLM Integration Patterns
+- agent-memory-management — Agent Memory Management
 - [[structured-output-validation]] — Structured Output Validation
-- [[agentic-software-development]] — Agentic Software Development
+- agentic-software-development — Agentic Software Development
 
 ## Citations (from contributing transcripts)
 

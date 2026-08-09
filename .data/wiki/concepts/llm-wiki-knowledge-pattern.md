@@ -72,11 +72,11 @@ Synthesized from **18 contributing transcripts** in NotebookLM notebook *Perplex
 
 ## Related concepts
 
-- [[open-knowledge-format]] — Open Knowledge Format
-- [[context-engineering]] — Context Engineering
-- [[retrieval-augmented-generation-alternatives]] — Retrieval Augmented Generation Alternatives
-- [[knowledge-graph-in-obsidian]] — Knowledge Graph in Obsidian
-- [[ai-agent-context-management]] — AI Agent Context Management
+- [[open-knowledge-format-okf]] — Open Knowledge Format
+- context-engineering — Context Engineering
+- retrieval-augmented-generation-alternatives — Retrieval Augmented Generation Alternatives
+- knowledge-graph-in-obsidian — Knowledge Graph in Obsidian
+- ai-agent-context-management — AI Agent Context Management
 
 ## Citations (from contributing transcripts)
 

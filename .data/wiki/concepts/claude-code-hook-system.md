@@ -305,9 +305,9 @@ Synthesized from **61 contributing transcripts** in NotebookLM notebook *Agentic
 
 ## Related concepts
 
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[agent-loop-patterns]] — Agent Loop Patterns
-- [[tool-execution-lifecycle]] — Tool Execution Lifecycle
+- claude-code-plugins — Claude Code Plugins
+- agent-loop-patterns — Agent Loop Patterns
+- tool-execution-lifecycle — Tool Execution Lifecycle
 
 ## Citations (from contributing transcripts)
 

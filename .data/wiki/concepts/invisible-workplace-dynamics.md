@@ -71,10 +71,10 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *WL: Git
 
 ## Related concepts
 
-- [[career-communication-patterns]] — Career Communication Patterns
-- [[status-perception]] — Status Perception
-- [[neurodivergent-workplace-experience]] — Neurodivergent Workplace Experience
-- [[overthinking-in-professional-contexts]] — Overthinking in Professional Contexts
+- career-communication-patterns — Career Communication Patterns
+- status-perception — Status Perception
+- neurodivergent-workplace-experience — Neurodivergent Workplace Experience
+- overthinking-in-professional-contexts — Overthinking in Professional Contexts
 
 ## Citations (from contributing transcripts)
 

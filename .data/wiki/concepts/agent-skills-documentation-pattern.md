@@ -71,9 +71,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[agent-capability-packages]] — Agent Capability Packages
-- [[plugin-architecture-pattern]] — Plugin Architecture Pattern
-- [[ai-agent-configuration-schema]] — AI Agent Configuration Schema
+- agent-capability-packages — Agent Capability Packages
+- plugin-architecture-pattern — Plugin Architecture Pattern
+- ai-agent-configuration-schema — AI Agent Configuration Schema
 
 ## Citations (from contributing transcripts)
 

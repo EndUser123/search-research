@@ -116,11 +116,11 @@ Synthesized from **14 contributing transcripts** in NotebookLM notebook *Agentic
 
 ## Related concepts
 
-- [[context-windows]] — Context Windows
+- context-windows — Context Windows
 - [[agent-skills]] — Agent Skills
-- [[model-context-protocol]] — Model Context Protocol
-- [[subagents]] — Subagents
-- [[compaction]] — Compaction
+- model-context-protocol — Model Context Protocol
+- subagents — Subagents
+- compaction — Compaction
 
 ## Citations (from contributing transcripts)
 

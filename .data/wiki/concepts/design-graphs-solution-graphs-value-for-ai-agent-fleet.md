@@ -64,7 +64,7 @@ lightweight graph — the gap is a query layer, not a graph database.
 to extend `build_skill_graph.py` into a general-purpose workspace graph
 indexer (covering wiki, ADRs, handoffs) when the "what depends on X?"
 question becomes painful enough to justify the ~200-line script. Until then,
-the existing `relations:` frontmatter + `[[wikilinks]]` + `build_skill_graph.py`
+the existing `relations:` frontmatter + `wikilinks` + `build_skill_graph.py`
 cover the most common cases.
 
 ## What exists in the field
@@ -116,7 +116,7 @@ The critique is sharp and well-documented:
 | Source | Graph data | Format |
 |--------|-----------|--------|
 | Wiki concepts | `relations: [{target, type}]` frontmatter | Typed edges: supports, contradicts, refines, supersedes, related |
-| Wiki body text | `[[wikilinks]]` | Untyped cross-references |
+| Wiki body text | `wikilinks` | Untyped cross-references |
 | ADRs | `P:\docs\adrs\ADR-NNN-*.md` | Sequential, with cross-references in body |
 | Handoffs | `P:\docs\handoffs\*/HANDOFF.md` | Cross-references to wiki, skills, other handoffs |
 | Skills | Composition tables, delegation patterns | `/www delegates to /web`, `/review calls /check` |
@@ -151,7 +151,7 @@ The optimal path is extending `build_skill_graph.py` (or building a sibling
 
 | Artifact type | Edge source | Query it enables |
 |---------------|------------|-----------------|
-| Wiki concepts | `relations:` frontmatter + `[[wikilinks]]` | "What concepts does X refine/contradict/supersede?" |
+| Wiki concepts | `relations:` frontmatter + `wikilinks` | "What concepts does X refine/contradict/supersede?" |
 | ADRs | Body cross-references + status | "What decisions are superseded? What still governs?" |
 | Handoffs | Cross-references in body | "What handoffs reference this wiki concept?" |
 | Skills | Existing `build_skill_graph.py` edges | "What skills depend on this provider?" |

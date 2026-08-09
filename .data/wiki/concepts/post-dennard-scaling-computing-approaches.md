@@ -66,10 +66,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Mult
 
 ## Related concepts
 
-- [[alternative-semiconductor-materials]] — Alternative Semiconductor Materials
-- [[orbital-computing-infrastructure]] — Orbital Computing Infrastructure
-- [[domain-specific-architectures]] — Domain-Specific Architectures
-- [[physiological-computing-interfaces]] — Physiological Computing Interfaces
+- alternative-semiconductor-materials — Alternative Semiconductor Materials
+- orbital-computing-infrastructure — Orbital Computing Infrastructure
+- domain-specific-architectures — Domain-Specific Architectures
+- physiological-computing-interfaces — Physiological Computing Interfaces
 
 ## Citations (from contributing transcripts)
 

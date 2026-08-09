@@ -79,10 +79,10 @@ Synthesized from **14 contributing transcripts** in NotebookLM notebook *WL: Opt
 
 ## Related concepts
 
-- [[counter-drone-laser-systems]] — Counter-Drone Laser Systems
-- [[collaborative-autonomy]] — Collaborative Autonomy
-- [[swarm-attack-tactics]] — Swarm Attack Tactics
-- [[autonomous-interceptors]] — Autonomous Interceptors
+- counter-drone-laser-systems — Counter-Drone Laser Systems
+- collaborative-autonomy — Collaborative Autonomy
+- swarm-attack-tactics — Swarm Attack Tactics
+- autonomous-interceptors — Autonomous Interceptors
 
 ## Citations (from contributing transcripts)
 

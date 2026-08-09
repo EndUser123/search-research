@@ -91,10 +91,10 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Agentic
 
 ## Related concepts
 
-- [[ai-agent-frameworks]] — AI Agent Frameworks
-- [[type-safe-llm-outputs]] — Type-Safe LLM Outputs
-- [[agentic-software-development]] — Agentic Software Development
-- [[claude-code-configuration]] — Claude Code Configuration
+- ai-agent-frameworks — AI Agent Frameworks
+- type-safe-llm-outputs — Type-Safe LLM Outputs
+- agentic-software-development — Agentic Software Development
+- claude-code-configuration — Claude Code Configuration
 
 ## Citations (from contributing transcripts)
 

@@ -104,10 +104,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Masteri
 
 ## Related concepts
 
-- [[claude-code-commands]] — Claude Code Commands
-- [[claude.md]] — CLAUDE.md
-- [[slash-commands]] — Slash Commands
-- [[gap-analysis]] — Gap Analysis
+- claude-code-commands — Claude Code Commands
+- claude.md — CLAUDE.md
+- slash-commands — Slash Commands
+- gap-analysis — Gap Analysis
 
 ## Citations (from contributing transcripts)
 

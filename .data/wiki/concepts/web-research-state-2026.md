@@ -53,7 +53,7 @@ Reference for what web/social research tools are usable under a "no new spend, n
 ## Related
 
 - [[grok-build-compat-layer-marketplace-plugin-skills]] — the `/web` skill from `search-research` plugin is not invocable; building a Grok-native wrapper or installing the plugin properly is required
-- [[are-there-repos-or-solutions-to-claude-code-gettin]] — adjacent: this list is platform-agnostic; that page scopes similar questions to Claude Code tooling
+- [[Are-there-repos-or-solutions-to-claude-code-gettin]] — adjacent: this list is platform-agnostic; that page scopes similar questions to Claude Code tooling
 
 ## Auto-related
 

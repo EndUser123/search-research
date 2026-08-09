@@ -92,9 +92,9 @@ Synthesized from **23 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[volatility-based-trading-strategies]] — Volatility-Based Trading Strategies
-- [[options-positioning-indicators]] — Options Positioning Indicators
-- [[historical-market-cycle-analysis]] — Historical Market Cycle Analysis
+- volatility-based-trading-strategies — Volatility-Based Trading Strategies
+- options-positioning-indicators — Options Positioning Indicators
+- historical-market-cycle-analysis — Historical Market Cycle Analysis
 
 ## Citations (from contributing transcripts)
 

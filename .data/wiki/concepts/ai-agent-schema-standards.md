@@ -115,9 +115,9 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *high-qu
 
 ## Related concepts
 
-- [[schema-optimization]] — Schema Optimization
-- [[structured-output-generation]] — Structured Output Generation
-- [[metadata-architecture]] — Metadata Architecture
+- schema-optimization — Schema Optimization
+- structured-output-generation — Structured Output Generation
+- metadata-architecture — Metadata Architecture
 
 ## Citations (from contributing transcripts)
 

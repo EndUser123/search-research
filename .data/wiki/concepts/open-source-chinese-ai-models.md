@@ -77,10 +77,10 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *WL: Not
 
 ## Related concepts
 
-- [[frontier-model-access-restrictions]] — Frontier model access restrictions
-- [[open-weight-model-benchmarks]] — Open-weight model benchmarks
-- [[ai-cost-optimization]] — AI cost optimization
-- [[chinese-ai-competitive-landscape]] — Chinese AI competitive landscape
+- frontier-model-access-restrictions — Frontier model access restrictions
+- open-weight-model-benchmarks — Open-weight model benchmarks
+- ai-cost-optimization — AI cost optimization
+- chinese-ai-competitive-landscape — Chinese AI competitive landscape
 
 ## Citations (from contributing transcripts)
 

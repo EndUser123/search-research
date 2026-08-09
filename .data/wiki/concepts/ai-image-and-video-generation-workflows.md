@@ -77,10 +77,10 @@ Synthesized from **14 contributing transcripts** in NotebookLM notebook *WL: AI 
 
 ## Related concepts
 
-- [[flow-matching]] — Flow Matching
-- [[agentic-ai-systems]] — Agentic AI Systems
-- [[lora-training]] — LoRa Training
-- [[workflow-automation]] — Workflow Automation
+- flow-matching — Flow Matching
+- agentic-ai-systems — Agentic AI Systems
+- lora-training — LoRa Training
+- workflow-automation — Workflow Automation
 
 ## Citations (from contributing transcripts)
 

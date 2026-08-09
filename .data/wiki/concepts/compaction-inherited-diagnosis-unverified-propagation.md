@@ -131,4 +131,4 @@ This pattern is wrong if:
 - [[reactive-pattern-matching-and-closure-pressure]] — the general pattern; this concept adds the compaction-boundary amplifier
 - [[fabricated-causal-chain-receipt-required]] — causal claims need receipts; compaction summaries bypass the receipt check
 - [[close-scanner-verification-gap-stale-read]] — adjacent evidence boundary (parent transcript vs child transcripts)
-- [[narrative-sufficiency-is-not-verification]] — the principle; compaction-inherited diagnosis is the cross-session instance
+- narrative-sufficiency-is-not-verification — the principle; compaction-inherited diagnosis is the cross-session instance

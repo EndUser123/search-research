@@ -69,11 +69,11 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Cana
 
 ## Related concepts
 
-- [[google-gemma-4-qat]] — Google Gemma 4 QAT
-- [[supergemma-4]] — SuperGemma-4
-- [[mixture-of-experts]] — Mixture of Experts
-- [[quantization-aware-training]] — Quantization Aware Training
-- [[local-llm-deployment]] — Local LLM Deployment
+- google-gemma-4-qat — Google Gemma 4 QAT
+- supergemma-4 — SuperGemma-4
+- mixture-of-experts — Mixture of Experts
+- quantization-aware-training — Quantization Aware Training
+- local-llm-deployment — Local LLM Deployment
 
 ## Citations (from contributing transcripts)
 

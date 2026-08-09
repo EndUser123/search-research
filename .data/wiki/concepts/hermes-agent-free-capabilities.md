@@ -135,9 +135,9 @@ Synthesized from **72 contributing transcripts** in NotebookLM notebook *WL: Mul
 
 ## Related concepts
 
-- [[hermes-agent-multi-agent-workflows]] — Hermes Agent Multi-Agent Workflows
-- [[hermes-agent-skill-system]] — Hermes Agent Skill System
-- [[hermes-agent-memory-management]] — Hermes Agent Memory Management
+- hermes-agent-multi-agent-workflows — Hermes Agent Multi-Agent Workflows
+- hermes-agent-skill-system — Hermes Agent Skill System
+- hermes-agent-memory-management — Hermes Agent Memory Management
 
 ## Citations (from contributing transcripts)
 

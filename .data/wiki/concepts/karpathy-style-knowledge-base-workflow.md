@@ -74,9 +74,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[compile-upfront-approach]] — Compile-Upfront Approach
-- [[rag-systems]] — RAG Systems
-- [[obsidian-git-sync]] — Obsidian Git Sync
+- compile-upfront-approach — Compile-Upfront Approach
+- rag-systems — RAG Systems
+- obsidian-git-sync — Obsidian Git Sync
 
 ## Citations (from contributing transcripts)
 

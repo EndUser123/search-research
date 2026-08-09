@@ -68,9 +68,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WebSync:
 
 ## Related concepts
 
-- [[weight-loss-pharmacology]] — Weight Loss Pharmacology
-- [[cardiovascular-disease-therapeutics]] — Cardiovascular Disease Therapeutics
-- [[sleep-disordered-breathing-treatment]] — Sleep-Disordered Breathing Treatment
+- weight-loss-pharmacology — Weight Loss Pharmacology
+- cardiovascular-disease-therapeutics — Cardiovascular Disease Therapeutics
+- sleep-disordered-breathing-treatment — Sleep-Disordered Breathing Treatment
 
 ## Citations (from contributing transcripts)
 

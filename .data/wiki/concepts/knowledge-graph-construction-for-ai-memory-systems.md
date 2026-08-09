@@ -80,11 +80,11 @@ Synthesized from **18 contributing transcripts** in NotebookLM notebook *WL: Ant
 
 ## Related concepts
 
-- [[graphrag]] — GraphRAG
-- [[second-brain]] — Second Brain
-- [[ai-memory-architecture]] — AI Memory Architecture
-- [[knowledge-curation]] — Knowledge Curation
-- [[rag-retrieval]] — RAG Retrieval
+- graphrag — GraphRAG
+- second-brain — Second Brain
+- ai-memory-architecture — AI Memory Architecture
+- knowledge-curation — Knowledge Curation
+- rag-retrieval — RAG Retrieval
 
 ## Citations (from contributing transcripts)
 

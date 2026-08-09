@@ -99,4 +99,4 @@ This finding is wrong if keyword checks reliably catch all content losses. Test:
 
 - [[agents-md-construction-best-practices]] — the refactor that exposed this gap
 - [[enforcement-hierarchy-and-compaction-strategy]] — the compaction framework used for the refactor
-- [[evidence-scope-discipline]] — the general principle this is a specific instance of (surface-property checks don't verify deeper properties)
+- evidence-scope-discipline — the general principle this is a specific instance of (surface-property checks don't verify deeper properties)

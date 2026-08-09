@@ -148,7 +148,7 @@ This finding is wrong if:
 2. **2026-08-04 (first correction):** Changed to "CAN inject additionalContext" based on Hindsight plugin docs. WRONG — trusted third-party claim without testing or distinguishing dispatch paths.
 3. **2026-08-05 (this version):** Reconfirmed original finding via local test. Added two-dispatch-path nuance. The original wiki concept was right all along.
 
-**Lesson:** the first correction was the [[replacement-before-investigation]] pattern — I replaced a verified finding with an unverified claim from a third-party source. The Hindsight plugin's marketing docs are not authoritative evidence about Grok Build's native hook runner.
+**Lesson:** the first correction was the [[replacement-before-investigation-pattern]] pattern — I replaced a verified finding with an unverified claim from a third-party source. The Hindsight plugin's marketing docs are not authoritative evidence about Grok Build's native hook runner.
 
 ## What this means for our workspace
 

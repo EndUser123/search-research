@@ -247,9 +247,9 @@ Synthesized from **185 contributing transcripts** in NotebookLM notebook *WL: Cl
 
 ## Related concepts
 
-- [[dynamic-workflow-patterns]] — Dynamic Workflow Patterns
-- [[claude-code-skills]] — Claude Code Skills
-- [[codebase-context-management]] — Codebase Context Management
+- dynamic-workflow-patterns — Dynamic Workflow Patterns
+- claude-code-skills — Claude Code Skills
+- codebase-context-management — Codebase Context Management
 
 ## Citations (from contributing transcripts)
 

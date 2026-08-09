@@ -88,11 +88,11 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Maximizi
 
 ## Related concepts
 
-- [[instruct-tuned-models]] — Instruct-tuned Models
-- [[fp8-quantization]] — FP8 Quantization
-- [[function-calling-models]] — Function Calling Models
-- [[mistral-architecture]] — Mistral Architecture
-- [[qwen-model-family]] — Qwen Model Family
+- instruct-tuned-models — Instruct-tuned Models
+- fp8-quantization — FP8 Quantization
+- function-calling-models — Function Calling Models
+- mistral-architecture — Mistral Architecture
+- qwen-model-family — Qwen Model Family
 
 ## Citations (from contributing transcripts)
 

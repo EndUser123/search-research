@@ -67,9 +67,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[ai-implementation-consulting]] — AI Implementation Consulting
-- [[near-passive-income-streams]] — Near-Passive Income Streams
-- [[claude-code-applications]] — Claude Code Applications
+- ai-implementation-consulting — AI Implementation Consulting
+- near-passive-income-streams — Near-Passive Income Streams
+- claude-code-applications — Claude Code Applications
 
 ## Citations (from contributing transcripts)
 

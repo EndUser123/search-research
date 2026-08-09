@@ -81,10 +81,10 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *WL: Git
 
 ## Related concepts
 
-- [[ar-display-integration]] — AR Display Integration
-- [[ai-powered-wearables]] — AI-Powered Wearables
-- [[waveguide-vs-micro-oled-displays]] — Waveguide vs Micro OLED Displays
-- [[hands-free-computing]] — Hands-free Computing
+- ar-display-integration — AR Display Integration
+- ai-powered-wearables — AI-Powered Wearables
+- waveguide-vs-micro-oled-displays — Waveguide vs Micro OLED Displays
+- hands-free-computing — Hands-free Computing
 
 ## Citations (from contributing transcripts)
 

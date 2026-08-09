@@ -187,9 +187,9 @@ Synthesized from **31 contributing transcripts** in NotebookLM notebook *Adversa
 
 ## Related concepts
 
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[agent-orchestration-patterns]] — Agent Orchestration Patterns
-- [[ai-code-review-automation]] — AI Code Review Automation
+- claude-code-plugins — Claude Code Plugins
+- [[ai-agent-orchestration-patterns]] — Agent Orchestration Patterns
+- ai-code-review-automation — AI Code Review Automation
 
 ## Citations (from contributing transcripts)
 

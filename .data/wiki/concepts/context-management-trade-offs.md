@@ -80,11 +80,11 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *Maximizi
 
 ## Related concepts
 
-- [[world-info-key-triggering]] — World Info Key Triggering
-- [[contextshift]] — ContextShift
-- [[streaming_llm]] — Streaming_LLM
-- [[ollama-configuration]] — Ollama Configuration
-- [[token-throughput-optimization]] — Token Throughput Optimization
+- world-info-key-triggering — World Info Key Triggering
+- contextshift — ContextShift
+- streaming_llm — Streaming_LLM
+- ollama-configuration — Ollama Configuration
+- token-throughput-optimization — Token Throughput Optimization
 
 ## Citations (from contributing transcripts)
 

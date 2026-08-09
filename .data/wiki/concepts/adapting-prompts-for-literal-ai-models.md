@@ -62,11 +62,11 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[prompt-engineering]] — Prompt Engineering
-- [[model-settings]] — Model Settings
-- [[context-engineering]] — Context Engineering
-- [[ai-personalization]] — AI Personalization
-- [[connected-apps]] — Connected Apps
+- Prompt Engineering
+- Model Settings
+- Context Engineering
+- AI Personalization
+- Connected Apps
 
 ## Citations (from contributing transcripts)
 

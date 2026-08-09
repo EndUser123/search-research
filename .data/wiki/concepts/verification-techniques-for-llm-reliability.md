@@ -100,10 +100,10 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *Iterati
 
 ## Related concepts
 
-- [[self-consistency]] — Self-Consistency
-- [[self-refine]] — Self-Refine
-- [[hallucination-reduction]] — Hallucination Reduction
-- [[multi-agent-system-safety]] — Multi-Agent System Safety
+- self-consistency — Self-Consistency
+- self-refine — Self-Refine
+- hallucination-reduction — Hallucination Reduction
+- multi-agent-system-safety — Multi-Agent System Safety
 
 ## Citations (from contributing transcripts)
 

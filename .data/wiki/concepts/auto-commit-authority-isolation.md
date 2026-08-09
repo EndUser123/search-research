@@ -127,8 +127,8 @@ No changes to settings.json, router.py, or any other hook. One file, ~25 lines.
 
 ## Auto-related
 
-- [[multi-terminal-git-coordination-primitives]]
-- [[adr-epistemic-deliberation-architecture-20260711]]
+- multi-terminal-git-coordination-primitives
+- adr-epistemic-deliberation-architecture-20260711
 - [[Deep-Research-with-Gemini-CLIimplementation]]
 ## Falsifier
 

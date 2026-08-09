@@ -273,10 +273,10 @@ Synthesized from **56 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[ai-coding-agents]] — AI Coding Agents
+- ai-coding-agents — AI Coding Agents
 - [[model-context-protocol-(mcp)]] — Model Context Protocol (MCP)
-- [[ollama-local-deployment]] — Ollama Local Deployment
-- [[cli-based-ai-development]] — CLI-based AI Development
+- ollama-local-deployment — Ollama Local Deployment
+- cli-based-ai-development — CLI-based AI Development
 
 ## Citations (from contributing transcripts)
 

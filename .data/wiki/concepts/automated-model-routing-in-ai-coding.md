@@ -69,9 +69,9 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *WL: AI 
 
 ## Related concepts
 
-- [[model-benchmarking]] — Model Benchmarking
-- [[api-pricing-comparison]] — API Pricing Comparison
-- [[free-tier-limitations]] — Free Tier Limitations
+- model-benchmarking — Model Benchmarking
+- api-pricing-comparison — API Pricing Comparison
+- free-tier-limitations — Free Tier Limitations
 
 ## Citations (from contributing transcripts)
 

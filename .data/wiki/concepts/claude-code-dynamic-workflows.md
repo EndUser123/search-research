@@ -327,11 +327,11 @@ Synthesized from **273 contributing transcripts** in NotebookLM notebook *WL: Ca
 
 ## Related concepts
 
-- [[claude-skills-pattern]] — Claude Skills Pattern
-- [[multi-agent-workflows]] — Multi-Agent Workflows
-- [[subagent-orchestration]] — Subagent Orchestration
-- [[data-ingestion-loops]] — Data Ingestion Loops
-- [[coding-agent-comparison]] — Coding Agent Comparison
+- claude-skills-pattern — Claude Skills Pattern
+- multi-agent-workflows — Multi-Agent Workflows
+- [[multi-agent-orchestration]] — Subagent Orchestration
+- data-ingestion-loops — Data Ingestion Loops
+- coding-agent-comparison — Coding Agent Comparison
 
 ## Citations (from contributing transcripts)
 

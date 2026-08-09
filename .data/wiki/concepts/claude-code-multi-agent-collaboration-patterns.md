@@ -417,9 +417,9 @@ Synthesized from **352 contributing transcripts** in NotebookLM notebook *WL: He
 
 ## Related concepts
 
-- [[claude-skills-architecture]] — Claude Skills Architecture
-- [[hierarchical-agent-design]] — Hierarchical Agent Design
-- [[ai-powered-development-workflows]] — AI-Powered Development Workflows
+- [[agent-skills-architecture]] — Claude Skills Architecture
+- hierarchical-agent-design — Hierarchical Agent Design
+- ai-powered-development-workflows — AI-Powered Development Workflows
 
 ## Citations (from contributing transcripts)
 

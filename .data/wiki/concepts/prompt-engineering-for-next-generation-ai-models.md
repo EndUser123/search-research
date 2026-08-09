@@ -68,10 +68,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[ai-contextual-personalization]] — AI Contextual Personalization
-- [[model-configuration-optimization]] — Model Configuration Optimization
-- [[slash-command-patterns]] — Slash Command Patterns
-- [[prompt-iteration-strategies]] — Prompt Iteration Strategies
+- ai-contextual-personalization — AI Contextual Personalization
+- model-configuration-optimization — Model Configuration Optimization
+- slash-command-patterns — Slash Command Patterns
+- prompt-iteration-strategies — Prompt Iteration Strategies
 
 ## Citations (from contributing transcripts)
 

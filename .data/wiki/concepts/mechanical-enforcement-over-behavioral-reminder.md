@@ -47,7 +47,7 @@ remembering to fire the rule under session fatigue, closure pressure, and
 context-window limits.
 
 **Why the naive fix is insufficient:** the workspace already had the
-[[decision-and-fix-documentation-rule]] which says "if you just shipped
+decision-and-fix-documentation-rule which says "if you just shipped
 something, stop and ask: did I document the decision?" That rule existed and
 did not fire. Adding another behavioral rule on top of a rule that already
 failed is the same failure class — it depends on the same mechanism (model
@@ -148,7 +148,7 @@ This decision is wrong if:
 - `P:/.agents/scripts/extract_operator_directives.py` — the mechanical extractor
 - `P:/.data/wiki/concepts/operator-model-routing-directives.md` — the durable concept
 - `~/.grok/AGENTS.md` § "Operator directive retrieval" — the retrieval gate
-- [[decision-and-fix-documentation-rule]] — the pre-existing behavioral rule that did not fire
+- decision-and-fix-documentation-rule — the pre-existing behavioral rule that did not fire
 - [[reactive-pattern-matching-and-closure-pressure]] — why behavioral rules fail under pressure
 
 ## Receipts

@@ -169,11 +169,11 @@ Synthesized from **27 contributing transcripts** in NotebookLM notebook *Maximiz
 
 ## Related concepts
 
-- [[llama.cpp]] — llama.cpp
-- [[unsloth-dynamic-quantization]] — Unsloth Dynamic Quantization
-- [[model-quantization-techniques]] — Model Quantization Techniques
-- [[hugging-face-model-hub]] — Hugging Face Model Hub
-- [[vision-language-models]] — Vision-Language Models
+- llama.cpp — llama.cpp
+- unsloth-dynamic-quantization — Unsloth Dynamic Quantization
+- model-quantization-techniques — Model Quantization Techniques
+- hugging-face-model-hub — Hugging Face Model Hub
+- vision-language-models — Vision-Language Models
 
 ## Citations (from contributing transcripts)
 

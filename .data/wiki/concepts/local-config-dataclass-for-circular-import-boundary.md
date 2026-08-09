@@ -135,7 +135,7 @@ duplication").
   evaluation but does not defer the `from close_accounting import Config`
   statement itself, which still runs at module load. The circular import
   is at the import statement, not the type annotation. (This is a
-  common confusion — see Python docs on [[python-typing-tradeoffs]],
+  common confusion — see Python docs on python-typing-tradeoffs,
   which is not yet in the wiki but worth capturing.)
 
 ## Falsifier

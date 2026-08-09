@@ -207,11 +207,11 @@ Synthesized from **42 contributing transcripts** in NotebookLM notebook *Enginee
 
 ## Related concepts
 
-- [[agent-observability]] — Agent Observability
-- [[multi-agent-architecture-patterns]] — Multi-Agent Architecture Patterns
-- [[root-cause-analysis-for-ai-systems]] — Root Cause Analysis for AI Systems
-- [[ai-agent-security]] — AI Agent Security
-- [[failure-pattern-detection]] — Failure Pattern Detection
+- agent-observability — Agent Observability
+- multi-agent-architecture-patterns — Multi-Agent Architecture Patterns
+- root-cause-analysis-for-ai-systems — Root Cause Analysis for AI Systems
+- ai-agent-security — AI Agent Security
+- failure-pattern-detection — Failure Pattern Detection
 
 ## Citations (from contributing transcripts)
 

@@ -25,7 +25,7 @@ host: both
 
 ---
 
-**CORRECTION**: An earlier version of this page (and [[grok-hook-diagnostic-method]])
+**CORRECTION**: An earlier version of this page (and grok-hook-diagnostic-method)
 claimed that user-level command hooks with `.*` matcher didn't dispatch in Grok 0.2.103.
 This was based on misreading empty log files as evidence of non-dispatch. The TUI
 scrollback annotations showed the hooks DID dispatch — they failed for two specific,
@@ -68,7 +68,7 @@ pre_tool_use
 - **What it means**: `${VAR}` in the `command` field is env-var expansion performed by
   Grok BEFORE spawning the hook process, not by the shell that runs the command. Strings
   that look like `${...}` but aren't real env vars cause a hard pre-flight failure.
-- **Lesson**: see [[grok-hook-command-env-var-preflight]].
+- **Lesson**: see grok-hook-command-env-var-preflight.
 
 ## What This Corrects
 
@@ -91,10 +91,10 @@ Prior claims now retracted:
 
 ## Related
 
-- [[grok-hook-command-env-var-preflight]]
-- [[grok-hook-diagnostic-method]]
-- [[advisory-vs-enforcing-hooks-limits]]
-- [[multi-terminal-hook-state-isolation]]
+- grok-hook-command-env-var-preflight
+- grok-hook-diagnostic-method
+- advisory-vs-enforcing-hooks-limits
+- multi-terminal-hook-state-isolation
 
 ## Auto-related
 

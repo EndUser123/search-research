@@ -108,10 +108,10 @@ Synthesized from **14 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[chain-of-thought-reasoning]] — Chain-of-Thought Reasoning
-- [[reasoning-in-large-language-models]] — Reasoning in Large Language Models
-- [[prompt-engineering]] — Prompt Engineering
-- [[agentic-ai-systems]] — Agentic AI Systems
+- [[latent-chain-of-thought-reasoning]] — Chain-of-Thought Reasoning
+- reasoning-in-large-language-models — Reasoning in Large Language Models
+- prompt-engineering — Prompt Engineering
+- agentic-ai-systems — Agentic AI Systems
 
 ## Citations (from contributing transcripts)
 

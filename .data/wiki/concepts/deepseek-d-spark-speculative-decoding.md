@@ -71,11 +71,11 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WebSync:
 
 ## Related concepts
 
-- [[speculative-decoding]] — Speculative Decoding
-- [[draft-model-training]] — Draft Model Training
-- [[token-acceptance-rate]] — Token Acceptance Rate
-- [[model-routing]] — Model Routing
-- [[self-scaffolding-llm]] — Self-Scaffolding LLM
+- speculative-decoding — Speculative Decoding
+- draft-model-training — Draft Model Training
+- token-acceptance-rate — Token Acceptance Rate
+- model-routing — Model Routing
+- self-scaffolding-llm — Self-Scaffolding LLM
 
 ## Citations (from contributing transcripts)
 

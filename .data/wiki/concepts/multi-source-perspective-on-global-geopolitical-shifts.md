@@ -281,9 +281,9 @@ Synthesized from **229 contributing transcripts** in NotebookLM notebook *WL: Ge
 
 ## Related concepts
 
-- [[international-relations-analysis]] — International Relations Analysis
-- [[geopolitical-power-shifts]] — Geopolitical Power Shifts
-- [[cross-source-information-synthesis]] — Cross-Source Information Synthesis
+- international-relations-analysis — International Relations Analysis
+- geopolitical-power-shifts — Geopolitical Power Shifts
+- cross-source-information-synthesis — Cross-Source Information Synthesis
 
 ## Citations (from contributing transcripts)
 

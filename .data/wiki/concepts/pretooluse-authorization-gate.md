@@ -224,9 +224,9 @@ Synthesized from **164 contributing transcripts** in NotebookLM notebook *Transc
 
 ## Related concepts
 
-- [[posttooluse-hooks]] — PostToolUse Hooks
-- [[skill-invocation-indicator]] — Skill Invocation Indicator
-- [[directory-policy-enforcement]] — Directory Policy Enforcement
+- posttooluse-hooks — PostToolUse Hooks
+- skill-invocation-indicator — Skill Invocation Indicator
+- directory-policy-enforcement — Directory Policy Enforcement
 
 ## Citations (from contributing transcripts)
 

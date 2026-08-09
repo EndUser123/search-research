@@ -74,10 +74,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WebSync:
 
 ## Related concepts
 
-- [[visual-plan-skill]] — Visual Plan Skill
-- [[10-framework]] — 10 Framework
-- [[claude-co-work-mcp-integration]] — Claude Co-work MCP Integration
-- [[canvas-in-gemini]] — Canvas in Gemini
+- visual-plan-skill — Visual Plan Skill
+- 10-framework — 10 Framework
+- claude-co-work-mcp-integration — Claude Co-work MCP Integration
+- canvas-in-gemini — Canvas in Gemini
 
 ## Citations (from contributing transcripts)
 

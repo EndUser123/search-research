@@ -72,7 +72,7 @@ When `close_runner` returns terminal state `blocked` with `Scanner execution=blo
 
 4. **Do NOT mark the handoff `status=resolved`.** `resolved` implies the work is done and downstream consumers can rely on it as historical reference. That framing is true for the **work**, but the close-failure disposition is *not* resolved — it's a one-time fallback. The handoff's status reflects the close-disposition, not the work-completion.
 
-5. **Verify the handoff on disk before terminating.** Per [[no-deferred-persistence]]: stated intent to write = immediate write in the same response, verified by read-back. A session that ends with "I'll write the handoff" but doesn't is worse than one that didn't try.
+5. **Verify the handoff on disk before terminating.** Per no-deferred-persistence: stated intent to write = immediate write in the same response, verified by read-back. A session that ends with "I'll write the handoff" but doesn't is worse than one that didn't try.
 
 6. **Continue to commit on-disk artifacts.** Wiki concepts, code changes, handoffs — all of those are durable and should be committed per the standard auto-commit rule. The scanner-unavailable state only blocks the *close certification*; the *work* can still be persisted.
 
@@ -173,7 +173,7 @@ This concept is wrong if:
 - [[documented-deferral-substitutes-for-action]] — pattern: session-observations handoff as the canonical substitute when automated gates cannot produce evidence
 - [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — backs rule #1: do not derive claims from session memory alone
 - [[asserting-runtime-behavior-from-memory-not-testing]] — backs rule #1: the scanner-unavailable message itself is an anti-narrative-sufficiency signal
-- [[no-deferred-persistence]] — backs rule #5: stated intent to write = immediate write in same response
+- no-deferred-persistence — backs rule #5: stated intent to write = immediate write in same response
 
 ## Auto-related
 

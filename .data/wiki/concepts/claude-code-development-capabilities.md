@@ -67,10 +67,10 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[ai-assisted-development]] — AI-Assisted Development
-- [[multi-agent-collaboration]] — Multi-Agent Collaboration
-- [[application-security-analysis]] — Application Security Analysis
-- [[web-enabled-development-tools]] — Web-Enabled Development Tools
+- ai-assisted-development — AI-Assisted Development
+- multi-agent-collaboration — Multi-Agent Collaboration
+- application-security-analysis — Application Security Analysis
+- web-enabled-development-tools — Web-Enabled Development Tools
 
 ## Citations (from contributing transcripts)
 

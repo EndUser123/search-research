@@ -66,12 +66,12 @@ Synthesized from **1 contributing transcripts** in NotebookLM notebook *Iterativ
 ## Related concepts
 
 - [[model-context-protocol-(mcp)]] — Model Context Protocol (MCP)
-- [[mcp-python-sdk]] — MCP Python SDK
-- [[prefect-horizon]] — Prefect Horizon
-- [[fastmcp-servers]] — FastMCP Servers
-- [[fastmcp-clients]] — FastMCP Clients
-- [[fastmcp-apps]] — FastMCP Apps
-- [[llms.txt]] — llms.txt
+- mcp-python-sdk — MCP Python SDK
+- prefect-horizon — Prefect Horizon
+- fastmcp-servers — FastMCP Servers
+- fastmcp-clients — FastMCP Clients
+- fastmcp-apps — FastMCP Apps
+- llms.txt — llms.txt
 
 ## Citations (from contributing transcripts)
 

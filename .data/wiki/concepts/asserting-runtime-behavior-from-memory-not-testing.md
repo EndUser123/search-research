@@ -99,7 +99,7 @@ This is a sharpening of several existing concepts:
 - [[premature-closure-narrative-sufficiency-external-approaches]] — the parent
   pattern; this is the specific instance where the "plausible narrative" is
   about how a platform/runtime behaves
-- [[narrative-as-signal-anti-dismissal-rule]] — applies the inverse: when you
+- narrative-as-signal-anti-dismissal-rule — applies the inverse: when you
   construct a narrative for "why X can't be done," that's a signal to read
   docs. Here, constructing a narrative for "why X is behaving this way" should
   be a signal to test, not assert.

@@ -69,10 +69,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[copy-trading]] — Copy Trading
-- [[tradingview]] — TradingView
-- [[model-context-protocol]] — Model Context Protocol
-- [[pine-script]] — Pine Script
+- copy-trading — Copy Trading
+- tradingview — TradingView
+- model-context-protocol — Model Context Protocol
+- pine-script — Pine Script
 
 ## Citations (from contributing transcripts)
 

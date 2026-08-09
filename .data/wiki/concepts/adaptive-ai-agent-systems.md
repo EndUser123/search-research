@@ -71,11 +71,11 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[agentic-transactions]] — Agentic Transactions
-- [[context-engineering]] — Context Engineering
-- [[ai-agent-governance]] — AI Agent Governance
-- [[agent-registry-solutions]] — Agent Registry Solutions
-- [[human-agent-collaboration]] — Human-Agent Collaboration
+- agentic-transactions — Agentic Transactions
+- context-engineering — Context Engineering
+- ai-agent-governance — AI Agent Governance
+- agent-registry-solutions — Agent Registry Solutions
+- human-agent-collaboration — Human-Agent Collaboration
 
 ## Citations (from contributing transcripts)
 

@@ -102,11 +102,11 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Deep Re
 
 ## Related concepts
 
-- [[loop-engineering]] — Loop Engineering
+- loop-engineering — Loop Engineering
 - [[agent-memory-systems]] — Agent Memory Systems
-- [[context-management]] — Context Management
-- [[verification-ladder]] — Verification Ladder
-- [[cognitive-architecture]] — Cognitive Architecture
+- context-management — Context Management
+- verification-ladder — Verification Ladder
+- cognitive-architecture — Cognitive Architecture
 
 ## Citations (from contributing transcripts)
 

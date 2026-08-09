@@ -86,11 +86,11 @@ Read this session: `cc-council/ARCHITECTURE.md`, `cc-council/README.md`, all 6 `
 ## Related
 
 - [[solo_operator_adr_best_practices]]@related — references the "ensemble approach" for second opinions
-- [[llm-as-judge-biases]]@related — position/length/self-preference biases in model judges (seed)
-- [[tournament-prompting]]@related — the compete-mode pattern itself (seed)
-- [[frame-mutation]]@related — input-side diversity technique (seed)
-- [[falsifier-gating]]@related — output-side rigor technique (seed)
-- [[cross-family-critic]]@related — error-decorrelation via orthogonal model (seed)
+- llm-as-judge-biases@related — position/length/self-preference biases in model judges (seed)
+- tournament-prompting@related — the compete-mode pattern itself (seed)
+- frame-mutation@related — input-side diversity technique (seed)
+- falsifier-gating@related — output-side rigor technique (seed)
+- cross-family-critic@related — error-decorrelation via orthogonal model (seed)
 
 ## Auto-related
 

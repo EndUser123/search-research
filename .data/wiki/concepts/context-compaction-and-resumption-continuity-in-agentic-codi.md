@@ -115,12 +115,12 @@ Synthesized from **23 contributing transcripts** in NotebookLM notebook *Agentic
 
 ## Related concepts
 
-- [[model-cascading]] — Model Cascading
-- [[deterministic-repair-protocol]] — Deterministic Repair Protocol
-- [[closed-loop-validation-architecture]] — Closed-Loop Validation Architecture
-- [[engineering-determinism]] — Engineering Determinism
-- [[git-based-tool-operations]] — Git-Based Tool Operations
-- [[test-driven-agentic-development]] — Test-Driven Agentic Development
+- model-cascading — Model Cascading
+- deterministic-repair-protocol — Deterministic Repair Protocol
+- closed-loop-validation-architecture — Closed-Loop Validation Architecture
+- engineering-determinism — Engineering Determinism
+- git-based-tool-operations — Git-Based Tool Operations
+- test-driven-agentic-development — Test-Driven Agentic Development
 
 ## Citations (from contributing transcripts)
 

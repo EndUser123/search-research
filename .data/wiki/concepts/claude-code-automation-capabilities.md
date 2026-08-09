@@ -398,11 +398,11 @@ Synthesized from **330 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[claude-co-work]] — Claude Co-work
-- [[agentic-coding-workflows]] — Agentic Coding Workflows
-- [[scheduled-task-automation]] — Scheduled Task Automation
-- [[skill-recording-system]] — Skill Recording System
-- [[second-brain-architecture]] — Second Brain Architecture
+- claude-co-work — Claude Co-work
+- agentic-coding-workflows — Agentic Coding Workflows
+- scheduled-task-automation — Scheduled Task Automation
+- skill-recording-system — Skill Recording System
+- second-brain-architecture — Second Brain Architecture
 
 ## Citations (from contributing transcripts)
 

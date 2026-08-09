@@ -93,9 +93,9 @@ Synthesized from **28 contributing transcripts** in NotebookLM notebook *WL: Mod
 
 ## Related concepts
 
-- [[smart-tv-platform-ecosystems]] — Smart TV Platform Ecosystems
-- [[streaming-device-privacy-settings]] — Streaming Device Privacy Settings
-- [[alternative-tv-launchers]] — Alternative TV Launchers
+- smart-tv-platform-ecosystems — Smart TV Platform Ecosystems
+- streaming-device-privacy-settings — Streaming Device Privacy Settings
+- alternative-tv-launchers — Alternative TV Launchers
 
 ## Citations (from contributing transcripts)
 

@@ -88,20 +88,20 @@ Synthesized from **17 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[skills]] — Skills
-- [[subagents]] — Subagents
-- [[mcp-servers]] — MCP servers
-- [[hooks]] — Hooks
-- [[commands]] — Commands
-- [[claude.md]] — CLAUDE.md
-- [[plugin-marketplaces]] — plugin marketplaces
-- [[lsp-integration]] — LSP integration
-- [[semantic-code-analysis]] — semantic code analysis
-- [[code-review-automation]] — code review automation
+- skills — Skills
+- subagents — Subagents
+- mcp-servers — MCP servers
+- hooks — Hooks
+- commands — Commands
+- claude.md — CLAUDE.md
+- plugin-marketplaces — plugin marketplaces
+- lsp-integration — LSP integration
+- semantic-code-analysis — semantic code analysis
+- code-review-automation — code review automation
 - [[security-scanning-(semgrep)]] — security scanning (Semgrep)
-- [[persistent-memory]] — persistent memory
-- [[agent-sdk]] — Agent SDK
-- [[frontend-design-skill]] — frontend design skill
+- persistent-memory — persistent memory
+- agent-sdk — Agent SDK
+- frontend-design-skill — frontend design skill
 
 ## Citations (from contributing transcripts)
 

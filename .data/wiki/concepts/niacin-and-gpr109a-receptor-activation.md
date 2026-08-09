@@ -60,10 +60,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WebSync:
 
 ## Related concepts
 
-- [[beta-hydroxybutyrate]] — Beta-hydroxybutyrate
-- [[nad-synthesis]] — NAD synthesis
-- [[ketogenic-diet]] — Ketogenic diet
-- [[anti-inflammatory-spice-combinations]] — Anti-inflammatory spice combinations
+- beta-hydroxybutyrate — Beta-hydroxybutyrate
+- nad-synthesis — NAD synthesis
+- ketogenic-diet — Ketogenic diet
+- anti-inflammatory-spice-combinations — Anti-inflammatory spice combinations
 
 ## Citations (from contributing transcripts)
 

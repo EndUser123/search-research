@@ -87,11 +87,11 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Deep Re
 
 ## Related concepts
 
-- [[loop-engineering-patterns]] — Loop Engineering Patterns
-- [[deterministic-control-planes]] — Deterministic Control Planes
-- [[coding-agent-taxonomies]] — Coding Agent Taxonomies
-- [[agentic-program-repair]] — Agentic Program Repair
-- [[specification-inference]] — Specification Inference
+- loop-engineering-patterns — Loop Engineering Patterns
+- deterministic-control-planes — Deterministic Control Planes
+- coding-agent-taxonomies — Coding Agent Taxonomies
+- agentic-program-repair — Agentic Program Repair
+- specification-inference — Specification Inference
 
 ## Citations (from contributing transcripts)
 

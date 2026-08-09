@@ -71,10 +71,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Deep Res
 
 ## Related concepts
 
-- [[agent-loop-patterns]] — Agent Loop Patterns
-- [[biomni]] — Biomni
-- [[agent-configuration-methods]] — Agent Configuration Methods
-- [[open-science-ai]] — Open Science AI
+- agent-loop-patterns — Agent Loop Patterns
+- biomni — Biomni
+- agent-configuration-methods — Agent Configuration Methods
+- open-science-ai — Open Science AI
 
 ## Citations (from contributing transcripts)
 

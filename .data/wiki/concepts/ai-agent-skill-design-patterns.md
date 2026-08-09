@@ -93,10 +93,10 @@ Synthesized from **31 contributing transcripts** in NotebookLM notebook *WL: Ant
 
 ## Related concepts
 
-- [[context-management]] — Context Management
-- [[prompt-engineering]] — Prompt Engineering
-- [[ai-agent-workflows]] — AI Agent Workflows
-- [[retrieval-augmented-generation]] — Retrieval Augmented Generation
+- context-management — Context Management
+- prompt-engineering — Prompt Engineering
+- ai-agent-workflows — AI Agent Workflows
+- retrieval-augmented-generation — Retrieval Augmented Generation
 
 ## Citations (from contributing transcripts)
 

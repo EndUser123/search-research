@@ -345,10 +345,10 @@ Synthesized from **284 contributing transcripts** in NotebookLM notebook *WL: Mi
 
 ## Related concepts
 
-- [[us-canada-trade-relations]] — US-Canada Trade Relations
-- [[alberta-separatism]] — Alberta Separatism
-- [[pete-hoekstra-controversy]] — Pete Hoekstra Controversy
-- [[oil-pipeline-politics]] — Oil Pipeline Politics
+- us-canada-trade-relations — US-Canada Trade Relations
+- alberta-separatism — Alberta Separatism
+- pete-hoekstra-controversy — Pete Hoekstra Controversy
+- oil-pipeline-politics — Oil Pipeline Politics
 
 ## Citations (from contributing transcripts)
 

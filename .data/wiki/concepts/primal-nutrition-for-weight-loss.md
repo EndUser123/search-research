@@ -64,9 +64,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Testing 
 
 ## Related concepts
 
-- [[glp-1-and-peptide-based-weight-loss-approaches]] — GLP-1 and Peptide-Based Weight Loss Approaches
-- [[metabolic-health-and-caloric-expenditure]] — Metabolic Health and Caloric Expenditure
-- [[sleep-apnea-and-cardiovascular-risk-reduction]] — Sleep Apnea and Cardiovascular Risk Reduction
+- glp-1-and-peptide-based-weight-loss-approaches — GLP-1 and Peptide-Based Weight Loss Approaches
+- metabolic-health-and-caloric-expenditure — Metabolic Health and Caloric Expenditure
+- sleep-apnea-and-cardiovascular-risk-reduction — Sleep Apnea and Cardiovascular Risk Reduction
 
 ## Citations (from contributing transcripts)
 

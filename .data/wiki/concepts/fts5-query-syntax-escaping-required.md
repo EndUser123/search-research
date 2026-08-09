@@ -121,7 +121,7 @@ This is an instance of [[reactive-pattern-matching-and-closure-pressure]]: the
 first plausible narrative ("SQL injection") felt sufficient and was recorded
 without a discriminating test. The `/why` investigation's Step 1 (verify the
 observation) + Step 5 (read the actual source) corrected it. The
-[[decision-and-fix-documentation-rule]] should have captured the preference
+decision-and-fix-documentation-rule should have captured the preference
 during the original session; the structural fix is in
 [[mechanical-enforcement-over-behavioral-reminder]].
 

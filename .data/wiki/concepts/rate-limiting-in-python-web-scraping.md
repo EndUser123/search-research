@@ -91,8 +91,8 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Video Pi
 ## Related concepts
 
 - [[circuit-breaker-pattern]] — Circuit Breaker Pattern
-- [[service-provider-interface-pattern]] — Service Provider Interface Pattern
-- [[adaptive-web-scraping]] — Adaptive Web Scraping
+- service-provider-interface-pattern — Service Provider Interface Pattern
+- adaptive-web-scraping — Adaptive Web Scraping
 
 ## Citations (from contributing transcripts)
 

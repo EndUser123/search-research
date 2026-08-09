@@ -192,8 +192,8 @@ When a Grok plugin hook doesn't fire or doesn't enforce, check in this order:
 
 - [[grok-per-hook-disable-layer-silent-suppression]]
 - [[grok-build-hook-exit-code-1-stderr-as-failure-signal]]
-- [[grok-hook-command-env-var-preflight]]
-- [[grok-hook-python-vs-bash-reliability]]
+- grok-hook-command-env-var-preflight
+- grok-hook-python-vs-bash-reliability
 - [[grok-pretooluse-deny-contract-verified]]
 - [[grok-pretooluse-matcher-and-readonly-fastpath]]
 - [[llm-judgment-hooks]]

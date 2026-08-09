@@ -77,9 +77,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *WL: Ant
 
 ## Related concepts
 
-- [[claude-co-work]] — Claude Co-work
+- claude-co-work — Claude Co-work
 - [[claude-skills]] — Claude Skills
-- [[claude-certified-architect]] — Claude Certified Architect
+- claude-certified-architect — Claude Certified Architect
 
 ## Citations (from contributing transcripts)
 

@@ -90,10 +90,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[claude-code-skills-system]] — Claude Code Skills System
-- [[claude-code-subagents]] — Claude Code Subagents
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[claude-code-session-management]] — Claude Code Session Management
+- claude-code-skills-system — Claude Code Skills System
+- claude-code-subagents — Claude Code Subagents
+- claude-code-plugins — Claude Code Plugins
+- claude-code-session-management — Claude Code Session Management
 
 ## Citations (from contributing transcripts)
 

@@ -68,10 +68,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WL: Mult
 
 ## Related concepts
 
-- [[ai-agent-architecture]] — AI Agent Architecture
-- [[self-evaluating-agents]] — Self-Evaluating Agents
-- [[agent-workflow-design]] — Agent Workflow Design
-- [[systems-design-for-ai]] — Systems Design for AI
+- ai-agent-architecture — AI Agent Architecture
+- self-evaluating-agents — Self-Evaluating Agents
+- agent-workflow-design — Agent Workflow Design
+- systems-design-for-ai — Systems Design for AI
 
 ## Citations (from contributing transcripts)
 

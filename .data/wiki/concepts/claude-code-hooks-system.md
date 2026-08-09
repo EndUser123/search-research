@@ -252,11 +252,11 @@ Synthesized from **50 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[claude-code-skills]] — Claude Code Skills
-- [[mcp-tools-integration]] — MCP Tools Integration
-- [[agent-quality-gates]] — Agent Quality Gates
-- [[destructive-command-guard]] — Destructive Command Guard
-- [[skillguard-security-audit]] — SkillGuard Security Audit
+- claude-code-skills — Claude Code Skills
+- mcp-tools-integration — MCP Tools Integration
+- agent-quality-gates — Agent Quality Gates
+- destructive-command-guard — Destructive Command Guard
+- skillguard-security-audit — SkillGuard Security Audit
 
 ## Citations (from contributing transcripts)
 

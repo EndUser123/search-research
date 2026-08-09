@@ -89,9 +89,9 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Masterin
 
 ## Related concepts
 
-- [[ai-product-analytics]] — AI Product Analytics
-- [[privacy-compliance]] — Privacy Compliance
-- [[user-consent-management]] — User Consent Management
+- ai-product-analytics — AI Product Analytics
+- privacy-compliance — Privacy Compliance
+- user-consent-management — User Consent Management
 
 ## Citations (from contributing transcripts)
 

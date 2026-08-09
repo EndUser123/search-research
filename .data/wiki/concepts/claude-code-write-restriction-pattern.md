@@ -63,9 +63,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[pretooluse-hook-validation]] — PreToolUse hook validation
-- [[claude-code-workflow-friction]] — Claude Code workflow friction
-- [[directory-path-restrictions]] — Directory path restrictions
+- pretooluse-hook-validation — PreToolUse hook validation
+- claude-code-workflow-friction — Claude Code workflow friction
+- directory-path-restrictions — Directory path restrictions
 
 ## Citations (from contributing transcripts)
 

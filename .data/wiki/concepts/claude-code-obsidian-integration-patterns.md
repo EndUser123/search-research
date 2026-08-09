@@ -81,8 +81,8 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[second-brain-note-taking]] — Second Brain Note-Taking
-- [[local-vault-knowledge-management]] — Local Vault Knowledge Management
+- second-brain-note-taking — Second Brain Note-Taking
+- local-vault-knowledge-management — Local Vault Knowledge Management
 - [[ai-assisted-writing-workflows]] — AI-Assisted Writing Workflows
 
 ## Citations (from contributing transcripts)

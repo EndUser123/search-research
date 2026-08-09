@@ -120,9 +120,9 @@ Synthesized from **59 contributing transcripts** in NotebookLM notebook *Testing
 
 ## Related concepts
 
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[agent-development-lifecycle]] — Agent Development Lifecycle
-- [[code-review-automation]] — Code Review Automation
+- claude-code-plugins — Claude Code Plugins
+- agent-development-lifecycle — Agent Development Lifecycle
+- code-review-automation — Code Review Automation
 
 ## Citations (from contributing transcripts)
 

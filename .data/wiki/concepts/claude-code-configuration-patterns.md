@@ -104,14 +104,14 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[claude.md-identity-document]] — CLAUDE.md identity document
-- [[claude-code-skills-and-sub-agents]] — Claude Code skills and sub-agents
+- model-context-protocol — Model Context Protocol
+- claude.md-identity-document — CLAUDE.md identity document
+- claude-code-skills-and-sub-agents — Claude Code skills and sub-agents
 - [[cedar-/-opa-policy-engines]] — Cedar / OPA policy engines
-- [[git-worktree]] — Git worktree
+- git-worktree — Git worktree
 - [[oauth/oidc-sso-and-jwt-based-authorization]] — OAuth/OIDC SSO and JWT-based authorization
 - [[claude-code-/compact-command]] — Claude Code /compact command
-- [[clickhouse-audit-pipeline]] — ClickHouse audit pipeline
+- clickhouse-audit-pipeline — ClickHouse audit pipeline
 
 ## Citations (from contributing transcripts)
 

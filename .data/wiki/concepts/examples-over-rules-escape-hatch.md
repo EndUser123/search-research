@@ -224,7 +224,7 @@ research to this fleet's skill composition (predominantly reasoning-heavy skills
 
 - [[skill-enforcement-layers]] @related — rules-based enforcement is the
   complement; this page is the escape hatch when rules fail
-- [[solo-operator-adr-best-practices]] @related — ADRs are rules-as-decisions;
+- [[solo_operator_adr_best_practices]] @related — ADRs are rules-as-decisions;
   the corpus method applies to prose-shaped outputs ADRs don't cover
 - [[claude-code-skill-failure-patterns]] @related — skills are the strongest
   rules encoding; this is the fallback for what skills can't capture

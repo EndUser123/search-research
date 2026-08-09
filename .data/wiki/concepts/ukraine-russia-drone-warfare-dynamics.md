@@ -97,11 +97,11 @@ Synthesized from **34 contributing transcripts** in NotebookLM notebook *WL: Git
 
 ## Related concepts
 
-- [[european-drone-investment]] — European Drone Investment
-- [[ukrainian-naval-drone-operations]] — Ukrainian Naval Drone Operations
-- [[russian-drone-civilian-targeting]] — Russian Drone Civilian Targeting
-- [[international-drone-technology-transfers]] — International Drone Technology Transfers
-- [[fiber-optic-drone-technology]] — Fiber Optic Drone Technology
+- european-drone-investment — European Drone Investment
+- ukrainian-naval-drone-operations — Ukrainian Naval Drone Operations
+- russian-drone-civilian-targeting — Russian Drone Civilian Targeting
+- international-drone-technology-transfers — International Drone Technology Transfers
+- fiber-optic-drone-technology — Fiber Optic Drone Technology
 
 ## Citations (from contributing transcripts)
 

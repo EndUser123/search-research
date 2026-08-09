@@ -113,11 +113,11 @@ Synthesized from **23 contributing transcripts** in NotebookLM notebook *Agentic
 
 ## Related concepts
 
-- [[model-cascading]] — Model Cascading
-- [[model-context-protocol]] — Model Context Protocol
-- [[epistemic-verification-layer]] — Epistemic Verification Layer
-- [[resumption-gap]] — Resumption Gap
-- [[test-driven-agentic-development]] — Test-Driven Agentic Development
+- model-cascading — Model Cascading
+- model-context-protocol — Model Context Protocol
+- epistemic-verification-layer — Epistemic Verification Layer
+- resumption-gap — Resumption Gap
+- test-driven-agentic-development — Test-Driven Agentic Development
 
 ## Citations (from contributing transcripts)
 

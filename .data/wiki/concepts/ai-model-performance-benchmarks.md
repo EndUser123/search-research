@@ -83,12 +83,12 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[claude-opus-model]] — Claude Opus Model
-- [[sonnet-model-family]] — Sonnet Model Family
-- [[glm-5.2]] — GLM 5.2
-- [[qwen-3.7-max]] — Qwen 3.7 Max
-- [[agentic-ai]] — Agentic AI
-- [[mixture-of-experts-architecture]] — Mixture of Experts Architecture
+- claude-opus-model — Claude Opus Model
+- sonnet-model-family — Sonnet Model Family
+- glm-5.2 — GLM 5.2
+- qwen-3.7-max — Qwen 3.7 Max
+- agentic-ai — Agentic AI
+- mixture-of-experts-architecture — Mixture of Experts Architecture
 
 ## Citations (from contributing transcripts)
 

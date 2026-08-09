@@ -91,16 +91,16 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Softwar
 
 ## Related concepts
 
-- [[evidence-tiers]] — Evidence Tiers
-- [[evidence-applicability]] — Evidence Applicability
-- [[4-tier-verification]] — 4-Tier Verification
-- [[artifact-audit]] — Artifact Audit
-- [[artifact-done]] — Artifact Done
-- [[hook-inventory]] — Hook Inventory
-- [[hook-audit]] — Hook Audit
-- [[docs-validate]] — Docs Validate
-- [[code-analyzer-eval0]] — Code Analyzer Eval0
-- [[my-test-skill]] — My Test Skill
+- evidence-tiers — Evidence Tiers
+- evidence-applicability — Evidence Applicability
+- 4-tier-verification — 4-Tier Verification
+- artifact-audit — Artifact Audit
+- artifact-done — Artifact Done
+- hook-inventory — Hook Inventory
+- hook-audit — Hook Audit
+- docs-validate — Docs Validate
+- code-analyzer-eval0 — Code Analyzer Eval0
+- my-test-skill — My Test Skill
 
 ## Citations (from contributing transcripts)
 

@@ -78,9 +78,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[vibe-coding-approaches]] — Vibe Coding Approaches
-- [[ai-assisted-development-tools]] — AI-Assisted Development Tools
-- [[configuration-management-in-ai-coding]] — Configuration Management in AI Coding
+- vibe-coding-approaches — Vibe Coding Approaches
+- ai-assisted-development-tools — AI-Assisted Development Tools
+- configuration-management-in-ai-coding — Configuration Management in AI Coding
 
 ## Citations (from contributing transcripts)
 

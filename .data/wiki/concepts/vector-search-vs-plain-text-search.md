@@ -70,9 +70,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *WL: Cla
 
 ## Related concepts
 
-- [[open-knowledge-format]] — Open Knowledge Format
-- [[rag-alternative-approaches]] — RAG Alternative Approaches
-- [[agent-memory-management]] — Agent Memory Management
+- [[open-knowledge-format-okf]] — Open Knowledge Format
+- rag-alternative-approaches — RAG Alternative Approaches
+- agent-memory-management — Agent Memory Management
 
 ## Citations (from contributing transcripts)
 

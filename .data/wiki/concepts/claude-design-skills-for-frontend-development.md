@@ -65,10 +65,10 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[ai-slop-patterns]] — AI Slop Patterns
-- [[design-workflow-optimization]] — Design Workflow Optimization
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[harness-architecture]] — Harness Architecture
+- ai-slop-patterns — AI Slop Patterns
+- design-workflow-optimization — Design Workflow Optimization
+- claude-code-plugins — Claude Code Plugins
+- harness-architecture — Harness Architecture
 
 ## Citations (from contributing transcripts)
 

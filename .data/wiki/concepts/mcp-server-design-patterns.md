@@ -95,9 +95,9 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[mcp-client-server-architecture]] — MCP Client-Server Architecture
-- [[toon-format]] — TOON Format
+- model-context-protocol — Model Context Protocol
+- mcp-client-server-architecture — MCP Client-Server Architecture
+- toon-format — TOON Format
 
 ## Citations (from contributing transcripts)
 

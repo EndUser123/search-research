@@ -407,16 +407,16 @@ Synthesized from **336 contributing transcripts** in NotebookLM notebook *WL: He
 
 ## Related concepts
 
-- [[peptide-based-therapeutics]] — Peptide-Based Therapeutics
-- [[carbohydrate-manipulation]] — Carbohydrate Manipulation
-- [[tendon-conditioning-protocols]] — Tendon Conditioning Protocols
-- [[metabolic-flexibility]] — Metabolic Flexibility
-- [[cardiovascular-risk-stratification]] — Cardiovascular Risk Stratification
-- [[nutrient-timing-strategies]] — Nutrient Timing Strategies
-- [[multi-receptor-agonist-pharmacology]] — Multi-Receptor Agonist Pharmacology
-- [[body-composition-methods]] — Body Composition Methods
-- [[injury-prevention-in-skills-training]] — Injury Prevention in Skills Training
-- [[supplement-quality-assessment]] — Supplement Quality Assessment
+- peptide-based-therapeutics — Peptide-Based Therapeutics
+- carbohydrate-manipulation — Carbohydrate Manipulation
+- tendon-conditioning-protocols — Tendon Conditioning Protocols
+- metabolic-flexibility — Metabolic Flexibility
+- cardiovascular-risk-stratification — Cardiovascular Risk Stratification
+- nutrient-timing-strategies — Nutrient Timing Strategies
+- multi-receptor-agonist-pharmacology — Multi-Receptor Agonist Pharmacology
+- body-composition-methods — Body Composition Methods
+- injury-prevention-in-skills-training — Injury Prevention in Skills Training
+- supplement-quality-assessment — Supplement Quality Assessment
 
 ## Citations (from contributing transcripts)
 

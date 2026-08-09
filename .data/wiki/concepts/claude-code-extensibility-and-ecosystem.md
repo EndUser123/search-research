@@ -75,9 +75,9 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Testing
 
 ## Related concepts
 
-- [[ai-coding-agents]] — AI Coding Agents
-- [[agent-orchestration-patterns]] — Agent Orchestration Patterns
-- [[skill-discovery-systems]] — Skill Discovery Systems
+- ai-coding-agents — AI Coding Agents
+- [[ai-agent-orchestration-patterns]] — Agent Orchestration Patterns
+- skill-discovery-systems — Skill Discovery Systems
 
 ## Citations (from contributing transcripts)
 

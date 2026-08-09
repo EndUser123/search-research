@@ -153,14 +153,14 @@ Synthesized from **20 contributing transcripts** in NotebookLM notebook *yt-is-w
 
 ## Related concepts
 
-- [[mandelson-ambassadorial-appointment]] — Mandelson ambassadorial appointment
-- [[uk–france-channel-crossings-deal]] — UK–France Channel crossings deal
+- mandelson-ambassadorial-appointment — Mandelson ambassadorial appointment
+- uk–france-channel-crossings-deal — UK–France Channel crossings deal
 - [[uksv-(uk-developed-vetting)]] — UKSV (UK Developed Vetting)
-- [[foreign-affairs-select-committee]] — Foreign Affairs Select Committee
-- [[intelligence-and-security-committee]] — Intelligence and Security Committee
-- [[ollie-robbins-fcdo-sacking]] — Ollie Robbins FCDO sacking
-- [[falklands-sovereignty-dispute]] — Falklands sovereignty dispute
-- [[wolverhampton-mason-street-house-fire]] — Wolverhampton Mason Street house fire
+- foreign-affairs-select-committee — Foreign Affairs Select Committee
+- intelligence-and-security-committee — Intelligence and Security Committee
+- ollie-robbins-fcdo-sacking — Ollie Robbins FCDO sacking
+- falklands-sovereignty-dispute — Falklands sovereignty dispute
+- wolverhampton-mason-street-house-fire — Wolverhampton Mason Street house fire
 
 ## Citations (from contributing transcripts)
 

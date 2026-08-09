@@ -82,8 +82,8 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *AI Archi
 
 ## Related concepts
 
-- [[mental-models]] — Mental Models
-- [[scamper-method]] — SCAMPER Method
+- mental-models — Mental Models
+- scamper-method — SCAMPER Method
 
 ## Citations (from contributing transcripts)
 

@@ -72,9 +72,9 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *WL: Mod
 
 ## Related concepts
 
-- [[windows-performance-optimization]] — Windows Performance Optimization
-- [[windows-interface-customization]] — Windows Interface Customization
-- [[operating-system-alternatives]] — Operating System Alternatives
+- windows-performance-optimization — Windows Performance Optimization
+- windows-interface-customization — Windows Interface Customization
+- operating-system-alternatives — Operating System Alternatives
 
 ## Citations (from contributing transcripts)
 

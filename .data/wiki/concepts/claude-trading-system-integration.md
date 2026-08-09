@@ -65,10 +65,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[tradingview-mcp-integration]] — TradingView MCP Integration
-- [[ai-assisted-trading]] — AI-Assisted Trading
-- [[copy-trading]] — Copy Trading
-- [[pre-market-scanner]] — Pre-Market Scanner
+- tradingview-mcp-integration — TradingView MCP Integration
+- ai-assisted-trading — AI-Assisted Trading
+- copy-trading — Copy Trading
+- pre-market-scanner — Pre-Market Scanner
 
 ## Citations (from contributing transcripts)
 

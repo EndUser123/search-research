@@ -58,7 +58,7 @@ budget that should go to analysis. The result is longer latency, more tokens,
 and often unsolicited extras (recommendations nobody asked for, "Logic Soundness
 Assessment" tables that pad the output).
 
-This is the same class as [[narrative-sufficiency-is-not-verification]] — the
+This is the same class as narrative-sufficiency-is-not-verification — the
 model constructs a plausible analytical narrative that *feels* sufficient (the
 9-step trace looks like expert work) but is mostly restatement. The trace's
 internal coherence makes it *feel* like real thinking rather than what it

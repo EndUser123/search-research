@@ -281,11 +281,11 @@ Synthesized from **218 contributing transcripts** in NotebookLM notebook *WL: Ca
 
 ## Related concepts
 
-- [[usmca-trade-negotiations]] — USMCA Trade Negotiations
-- [[canadian-trade-diversification]] — Canadian Trade Diversification
-- [[gordie-howe-international-bridge-controversy]] — Gordie Howe International Bridge Controversy
-- [[alberta-separatism-movement]] — Alberta Separatism Movement
-- [[mark-carney-leadership]] — Mark Carney Leadership
+- usmca-trade-negotiations — USMCA Trade Negotiations
+- canadian-trade-diversification — Canadian Trade Diversification
+- gordie-howe-international-bridge-controversy — Gordie Howe International Bridge Controversy
+- alberta-separatism-movement — Alberta Separatism Movement
+- mark-carney-leadership — Mark Carney Leadership
 
 ## Citations (from contributing transcripts)
 

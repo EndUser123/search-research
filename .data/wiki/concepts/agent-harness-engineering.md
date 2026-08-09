@@ -63,9 +63,9 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WL: Note
 
 ## Related concepts
 
-- [[ai-agent-sprawl]] — AI Agent Sprawl
-- [[loop-engineering]] — Loop Engineering
-- [[the-doorman-fallacy]] — The Doorman Fallacy
+- ai-agent-sprawl — AI Agent Sprawl
+- loop-engineering — Loop Engineering
+- the-doorman-fallacy — The Doorman Fallacy
 
 ## Citations (from contributing transcripts)
 

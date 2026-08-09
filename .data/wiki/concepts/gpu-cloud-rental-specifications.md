@@ -84,9 +84,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Maximizi
 
 ## Related concepts
 
-- [[gguf-quantization]] — GGUF Quantization
-- [[local-llm-inference]] — Local LLM Inference
-- [[vllm-deployment]] — vLLM Deployment
+- gguf-quantization — GGUF Quantization
+- local-llm-inference — Local LLM Inference
+- vllm-deployment — vLLM Deployment
 
 ## Citations (from contributing transcripts)
 

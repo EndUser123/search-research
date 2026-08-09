@@ -11,7 +11,7 @@ accurate_as_of_head: pending
 relations:
   - "[[trust-escalation-ladder-autonomous-agent-work]]"
   - "[[invariants-beat-environment-comfort]]"
-  - "[[evidence-driven-experiment-loop]]"
+  - "evidence-driven-experiment-loop"
   - "[[concurrent-cdp-auth-contention]]"
   - "[[chronic-git-state-hygiene-shared-tree-is-structural]]"
   - "[[solution-unit-validation-before-build]]"

@@ -65,10 +65,10 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *WL: Ant
 
 ## Related concepts
 
-- [[prompt-engineering]] — Prompt Engineering
-- [[agentic-ai]] — Agentic AI
-- [[software-factories]] — Software Factories
-- [[graph-engineering]] — Graph Engineering
+- prompt-engineering — Prompt Engineering
+- agentic-ai — Agentic AI
+- software-factories — Software Factories
+- graph-engineering — Graph Engineering
 
 ## Citations (from contributing transcripts)
 

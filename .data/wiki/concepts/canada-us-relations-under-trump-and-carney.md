@@ -367,9 +367,9 @@ Synthesized from **301 contributing transcripts** in NotebookLM notebook *WL: He
 
 ## Related concepts
 
-- [[trade-diversification-strategy]] — Trade diversification strategy
-- [[canadian-sovereignty-concerns]] — Canadian sovereignty concerns
-- [[trump-administration-trade-policy]] — Trump administration trade policy
+- trade-diversification-strategy — Trade diversification strategy
+- canadian-sovereignty-concerns — Canadian sovereignty concerns
+- trump-administration-trade-policy — Trump administration trade policy
 
 ## Citations (from contributing transcripts)
 

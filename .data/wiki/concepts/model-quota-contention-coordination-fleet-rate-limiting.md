@@ -116,7 +116,7 @@ rate-limiting per process and watchdog-based self-healing.
 ## Research threads (Phase 1)
 
 - **Prior:** this extends [[execution-path-based-model-routing-grok-build]]
-  (researched 2026-07-30) and [[auto-model-switch-on-rate-limit-20260728]]
+  (researched 2026-07-30) and auto-model-switch-on-rate-limit-20260728
   (investigated 2026-07-28). Those focused on *reactive failover*; this
   focuses on *proactive coordination* — the missing layer.
 - **Pattern:** 3rd research on the model-dispatch/rate-limit domain.

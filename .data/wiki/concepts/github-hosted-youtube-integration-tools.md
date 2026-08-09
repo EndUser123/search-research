@@ -361,11 +361,11 @@ Synthesized from **77 contributing transcripts** in NotebookLM notebook *Video P
 
 ## Related concepts
 
-- [[yt-dlp-extractors]] — yt-dlp extractors
-- [[youtube-transcript-api]] — YouTube transcript API
-- [[mcp-protocol-implementation]] — MCP protocol implementation
-- [[http-rate-limiting-patterns]] — HTTP rate limiting patterns
-- [[po-token-generation]] — PO Token generation
+- yt-dlp-extractors — yt-dlp extractors
+- youtube-transcript-api — YouTube transcript API
+- mcp-protocol-implementation — MCP protocol implementation
+- http-rate-limiting-patterns — HTTP rate limiting patterns
+- po-token-generation — PO Token generation
 
 ## Citations (from contributing transcripts)
 

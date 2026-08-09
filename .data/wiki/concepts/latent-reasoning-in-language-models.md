@@ -121,11 +121,11 @@ Synthesized from **14 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[chain-of-thought-prompting]] — Chain-of-Thought Prompting
-- [[explicit-vs-latent-reasoning]] — Explicit vs Latent Reasoning
-- [[reasoning-paradigms]] — Reasoning Paradigms
-- [[ai-agent-frameworks]] — AI Agent Frameworks
-- [[system-prompt-architectures]] — System Prompt Architectures
+- chain-of-thought-prompting — Chain-of-Thought Prompting
+- explicit-vs-latent-reasoning — Explicit vs Latent Reasoning
+- reasoning-paradigms — Reasoning Paradigms
+- ai-agent-frameworks — AI Agent Frameworks
+- system-prompt-architectures — System Prompt Architectures
 
 ## Citations (from contributing transcripts)
 

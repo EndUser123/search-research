@@ -87,9 +87,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *AI Archi
 
 ## Related concepts
 
-- [[agentic-coding]] — Agentic Coding
-- [[prompt-engineering]] — Prompt Engineering
-- [[claude-code-configuration]] — Claude Code Configuration
+- agentic-coding — Agentic Coding
+- prompt-engineering — Prompt Engineering
+- claude-code-configuration — Claude Code Configuration
 
 ## Citations (from contributing transcripts)
 

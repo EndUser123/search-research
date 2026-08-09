@@ -67,10 +67,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[agent-capability-extension]] — Agent Capability Extension
-- [[skill-installation-pattern]] — Skill Installation Pattern
-- [[codex-skills-distribution]] — Codex Skills Distribution
+- claude-code-plugins — Claude Code Plugins
+- agent-capability-extension — Agent Capability Extension
+- skill-installation-pattern — Skill Installation Pattern
+- codex-skills-distribution — Codex Skills Distribution
 
 ## Citations (from contributing transcripts)
 

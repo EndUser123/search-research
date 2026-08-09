@@ -202,5 +202,5 @@ The practical implication for the `/close` and `/why` failures:
 
 - [[structural-enforcement-for-skipped-rules-grok-build-2026]]
 - [[plausible-narratives-substitute-for-verification]]
-- [[claims-require-receipts-narrative-sufficiency-is-not-verification]]
+- claims-require-receipts-narrative-sufficiency-is-not-verification
 - [[video-to-wiki-pipeline-transcript-extraction-multimodal]]

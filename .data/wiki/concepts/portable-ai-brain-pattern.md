@@ -209,10 +209,10 @@ Synthesized from **155 contributing transcripts** in NotebookLM notebook *WebSyn
 
 ## Related concepts
 
-- [[ooda-loop-integration]] — OODA Loop Integration
-- [[okf-standard]] — OKF Standard
-- [[mcp-protocol]] — MCP Protocol
-- [[claude-code-verification-pattern]] — Claude Code Verification Pattern
+- ooda-loop-integration — OODA Loop Integration
+- okf-standard — OKF Standard
+- mcp-protocol — MCP Protocol
+- claude-code-verification-pattern — Claude Code Verification Pattern
 
 ## Citations (from contributing transcripts)
 

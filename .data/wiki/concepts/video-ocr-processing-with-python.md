@@ -80,10 +80,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Video Pi
 
 ## Related concepts
 
-- [[scene-text-recognition]] — Scene Text Recognition
-- [[speech-to-text-transcription]] — Speech-to-Text Transcription
-- [[retrieval-augmented-generation]] — Retrieval-Augmented Generation
-- [[multimodal-rag]] — Multimodal RAG
+- scene-text-recognition — Scene Text Recognition
+- speech-to-text-transcription — Speech-to-Text Transcription
+- retrieval-augmented-generation — Retrieval-Augmented Generation
+- multimodal-rag — Multimodal RAG
 
 ## Citations (from contributing transcripts)
 

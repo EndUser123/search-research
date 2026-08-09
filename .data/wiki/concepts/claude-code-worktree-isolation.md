@@ -123,8 +123,8 @@ Synthesized from **22 contributing transcripts** in NotebookLM notebook *Claude 
 ## Related concepts
 
 - [[notebooklm-cli-operational-gotchas]] — operational traps for the nlm CLI
-- [[nlm-synced]] — other concepts synced from NotebookLM
-- [[claude-code-worktree-guide:-hooks,-setup,-and-parallel-workflows]] — source notebook
+- nlm-synced — other concepts synced from NotebookLM
+- claude-code-worktree-guide:-hooks,-setup,-and-parallel-workflows — source notebook
 
 ## Receipts
 

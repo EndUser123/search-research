@@ -89,10 +89,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[claude-code-integrations]] — Claude Code Integrations
-- [[ai-agent-tooling]] — AI Agent Tooling
-- [[context-token-management]] — Context Token Management
+- model-context-protocol — Model Context Protocol
+- claude-code-integrations — Claude Code Integrations
+- ai-agent-tooling — AI Agent Tooling
+- context-token-management — Context Token Management
 
 ## Citations (from contributing transcripts)
 

@@ -58,11 +58,11 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[photobiomodulation]] — Photobiomodulation
-- [[circadian-rhythm]] — Circadian Rhythm
-- [[near-infrared-spectroscopy]] — Near Infrared Spectroscopy
-- [[mitochondrial-function]] — Mitochondrial Function
-- [[light-therapy]] — Light Therapy
+- photobiomodulation — Photobiomodulation
+- circadian-rhythm — Circadian Rhythm
+- near-infrared-spectroscopy — Near Infrared Spectroscopy
+- mitochondrial-function — Mitochondrial Function
+- light-therapy — Light Therapy
 
 ## Citations (from contributing transcripts)
 

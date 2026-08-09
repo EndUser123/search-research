@@ -122,20 +122,20 @@ Synthesized from **25 contributing transcripts** in NotebookLM notebook *Iterati
 
 ## Related concepts
 
-- [[claude-code-skills]] — Claude Code Skills
-- [[claude-code-plugin-marketplace]] — Claude Code Plugin Marketplace
+- claude-code-skills — Claude Code Skills
+- claude-code-plugin-marketplace — Claude Code Plugin Marketplace
 - [[claude-code-hooks]] — Claude Code Hooks
-- [[claude-code-subagents]] — Claude Code Subagents
-- [[github-app-authentication-for-claude-code]] — GitHub App authentication for Claude Code
-- [[claude-multimodel-multi-provider-cli]] — claude-multimodel multi-provider CLI
+- claude-code-subagents — Claude Code Subagents
+- github-app-authentication-for-claude-code — GitHub App authentication for Claude Code
+- claude-multimodel-multi-provider-cli — claude-multimodel multi-provider CLI
 - [[agent-skills-specification-(agentskills.io)]] — Agent Skills specification (agentskills.io)
 - [[anthropic-skills-repository-(anthropics/skills)]] — Anthropic Skills repository (anthropics/skills)
 - [[model-context-protocol-(mcp)-servers]] — Model Context Protocol (MCP) servers
 - [[claude-code-thinking-skills-(tjboudreaux/cc-thinking-skills)]] — Claude Code Thinking Skills (tjboudreaux/cc-thinking-skills)
 - [[glebis/claude-skills]] — glebis/claude-skills
 - [[777genius/claude-multimodel]] — 777genius/claude-multimodel
-- [[openai-codex-cli]] — OpenAI Codex CLI
-- [[anthropic-messages-api-over-https]] — Anthropic Messages API over HTTPS
+- openai-codex-cli — OpenAI Codex CLI
+- anthropic-messages-api-over-https — Anthropic Messages API over HTTPS
 
 ## Citations (from contributing transcripts)
 

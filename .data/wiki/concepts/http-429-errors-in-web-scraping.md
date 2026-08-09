@@ -100,10 +100,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Video P
 
 ## Related concepts
 
-- [[proxy-rotation]] — Proxy Rotation
-- [[rate-limiting]] — Rate Limiting
-- [[anti-bot-bypass-techniques]] — Anti-Bot Bypass Techniques
-- [[ip-rotation-strategies]] — IP Rotation Strategies
+- proxy-rotation — Proxy Rotation
+- rate-limiting — Rate Limiting
+- anti-bot-bypass-techniques — Anti-Bot Bypass Techniques
+- ip-rotation-strategies — IP Rotation Strategies
 
 ## Citations (from contributing transcripts)
 

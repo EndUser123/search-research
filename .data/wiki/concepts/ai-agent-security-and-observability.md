@@ -93,10 +93,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Engineer
 
 ## Related concepts
 
-- [[agent-credential-management]] — Agent Credential Management
+- agent-credential-management — Agent Credential Management
 - [[multi-agent-orchestration]] — Multi-Agent Orchestration
-- [[ai-agent-failure-analysis]] — AI Agent Failure Analysis
-- [[agentic-ai-patterns]] — Agentic AI Patterns
+- ai-agent-failure-analysis — AI Agent Failure Analysis
+- agentic-ai-patterns — Agentic AI Patterns
 
 ## Citations (from contributing transcripts)
 

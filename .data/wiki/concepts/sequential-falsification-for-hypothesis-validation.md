@@ -95,9 +95,9 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *Deep Re
 
 ## Related concepts
 
-- [[hypothesis-driven-science]] — Hypothesis-Driven Science
-- [[falsifiability]] — Falsifiability
-- [[context-management-in-ai-agents]] — Context Management in AI Agents
+- hypothesis-driven-science — Hypothesis-Driven Science
+- falsifiability — Falsifiability
+- context-management-in-ai-agents — Context Management in AI Agents
 - [[structured-output-validation]] — Structured Output Validation
 
 ## Citations (from contributing transcripts)

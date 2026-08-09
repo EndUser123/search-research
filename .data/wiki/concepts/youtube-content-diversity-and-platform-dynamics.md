@@ -86,10 +86,10 @@ Synthesized from **21 contributing transcripts** in NotebookLM notebook *WL: Geo
 
 ## Related concepts
 
-- [[video-content-creation]] — Video Content Creation
-- [[youtube-platform-ecosystem]] — YouTube Platform Ecosystem
-- [[digital-media-diversity]] — Digital Media Diversity
-- [[content-notebook-curation]] — Content Notebook Curation
+- video-content-creation — Video Content Creation
+- youtube-platform-ecosystem — YouTube Platform Ecosystem
+- digital-media-diversity — Digital Media Diversity
+- content-notebook-curation — Content Notebook Curation
 
 ## Citations (from contributing transcripts)
 

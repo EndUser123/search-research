@@ -129,11 +129,11 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *ext-Gem
 
 ## Related concepts
 
-- [[vibe-coding]] — Vibe Coding
-- [[ai-coding-agents]] — AI Coding Agents
-- [[cli-development-tools]] — CLI Development Tools
-- [[model-context-protocol]] — Model Context Protocol
-- [[open-source-ai-frameworks]] — Open Source AI Frameworks
+- vibe-coding — Vibe Coding
+- ai-coding-agents — AI Coding Agents
+- cli-development-tools — CLI Development Tools
+- model-context-protocol — Model Context Protocol
+- open-source-ai-frameworks — Open Source AI Frameworks
 
 ## Citations (from contributing transcripts)
 

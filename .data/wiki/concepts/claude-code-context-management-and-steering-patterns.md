@@ -148,10 +148,10 @@ Synthesized from **85 contributing transcripts** in NotebookLM notebook *WL: Cla
 
 ## Related concepts
 
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[mcp-tool-integration]] — MCP Tool Integration
-- [[agent-session-persistence]] — Agent Session Persistence
-- [[executor-advisor-pattern]] — Executor-Advisor Pattern
+- claude-code-plugins — Claude Code Plugins
+- mcp-tool-integration — MCP Tool Integration
+- agent-session-persistence — Agent Session Persistence
+- executor-advisor-pattern — Executor-Advisor Pattern
 
 ## Citations (from contributing transcripts)
 

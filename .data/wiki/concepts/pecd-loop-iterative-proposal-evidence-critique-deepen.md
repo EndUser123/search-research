@@ -151,7 +151,7 @@ This concept is wrong if:
 - [[compound-skill-improvement-patterns]] — documents skill-pair
   compositions (/tp + /review, /www + /wiki). PECD is the meta-composition
   that chains these pairs into a refinement loop.
-- [[evidence-driven-experiment-loop]] — handles evidence-gated decisions
+- evidence-driven-experiment-loop — handles evidence-gated decisions
   for experiments/benchmarks. PECD handles evidence-gated decisions for
   proposals/improvements. Same structure, different domain.
 - [[adaptive-research-depth-preventing-incomplete-www-coverage]] —

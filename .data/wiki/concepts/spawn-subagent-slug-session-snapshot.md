@@ -95,9 +95,9 @@ Skipping step 2 means the skill edit references a slug that `spawn_subagent` wil
 
 ## Auto-related
 
-- [[i'm-going-to-create-a-hook-to-enforce-discovery-be]]
+- [[I'm-going-to-create-a-hook-to-enforce-discovery-be]]
 - [[grok-build-cc-aca-actually-enabled]]
-- [[python-behavior-tree-framework-for-autonomous-llm-agents--technical-specificatio]]
+- [[Python-Behavior-Tree-Framework-for-Autonomous-LLM-Agents--Technical-Specificatio]]
 - [[wiki-lifecycle-state-file]]
 ## Falsifier
 

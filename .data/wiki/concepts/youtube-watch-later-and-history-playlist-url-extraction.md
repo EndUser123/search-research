@@ -19,7 +19,7 @@ relations:
   - "[[notebooklm-cli-operational-gotchas]]"
   - "[[nlm-to-wiki-optimization-opportunities]]"
   - "[[youtube-transcript-extraction-techniques]]"
-  - "[[nlm-bulk-ingest]]"
+  - "nlm-bulk-ingest"
   - "[[concurrent-cdp-auth-contention]]"
 sources:
   - "Jordan Cooks walkthrough (Jan 2026) — yt-dlp :ythis for history"
@@ -38,7 +38,7 @@ sources:
 **The problem:** we needed to extract YouTube Watch Later and History playlist
 URLs so we can batch-add them to our 3 NotebookLM accounts (`a.hominidae`
 paid/300-src, `troup.hominidae` free/50-src, `brsthomson` free/50-src) via
-`[[nlm-bulk-ingest]]`. The YouTube Data API v3 deliberately does not expose
+`nlm-bulk-ingest`. The YouTube Data API v3 deliberately does not expose
 watch history, and Watch Later uses an opaque playlist format that the API
 also cannot access. This concept captures what actually works in 2026 and
 what the community recommends.
@@ -198,7 +198,7 @@ yt-dlp --extractor-args "youtube:player-client=ios|web|android:external_download
        --remote-components ejs:github
 ```
 
-Add to `yt-dlp.conf` for persistence. See [[yt-dlp-ejs-requirement]] and the
+Add to `yt-dlp.conf` for persistence. See yt-dlp-ejs-requirement and the
 yt-dlp EJS wiki for details. Already documented extensively in our workspace
 chat-session sources.
 
@@ -239,7 +239,7 @@ cat wl-*.txt history-*.txt history-bulk-*.txt 2>/dev/null | sort -u > all-video-
 
 ### Step 3: Distribute across 3 accounts via nlm-bulk-ingest
 
-The `[[nlm-bulk-ingest]]` skill clusters URLs into themed notebooks under
+The `nlm-bulk-ingest` skill clusters URLs into themed notebooks under
 the per-notebook source cap. With 3 accounts:
 
 | Account | Capacity | Role |
@@ -297,7 +297,7 @@ This concept becomes wrong if:
 - [[notebooklm-cli-operational-gotchas]] — auth, cookies, bulk-add patterns
 - [[nlm-to-wiki-optimization-opportunities]] — 3-worker ceiling, multi-profile
 - [[youtube-transcript-extraction-techniques]] — transcript extraction (next step after URL extraction)
-- [[nlm-bulk-ingest]] — the clustering + batch-add skill that consumes URL lists
+- nlm-bulk-ingest — the clustering + batch-add skill that consumes URL lists
 - [[concurrent-cdp-auth-contention]] — if running concurrent extractions
 ## What this means for our workspace
 

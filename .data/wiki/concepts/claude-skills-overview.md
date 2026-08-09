@@ -158,11 +158,11 @@ Synthesized from **95 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[claude.md-files]] — CLAUDE.md Files
+- claude.md-files — CLAUDE.md Files
 - [[model-context-protocol-(mcp)]] — Model Context Protocol (MCP)
-- [[claude-subagents]] — Claude Subagents
-- [[claude-routines]] — Claude Routines
-- [[claude-connectors]] — Claude Connectors
+- claude-subagents — Claude Subagents
+- claude-routines — Claude Routines
+- claude-connectors — Claude Connectors
 
 ## Citations (from contributing transcripts)
 

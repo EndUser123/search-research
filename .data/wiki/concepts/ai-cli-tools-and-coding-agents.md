@@ -277,10 +277,10 @@ Synthesized from **56 contributing transcripts** in NotebookLM notebook *ext-Gem
 
 ## Related concepts
 
-- [[deep-research-agents]] — Deep Research Agents
-- [[claude-code]] — Claude Code
-- [[model-context-protocol]] — Model Context Protocol
-- [[ai-coding-agent-comparison]] — AI Coding Agent Comparison
+- deep-research-agents — Deep Research Agents
+- claude-code — Claude Code
+- model-context-protocol — Model Context Protocol
+- ai-coding-agent-comparison — AI Coding Agent Comparison
 
 ## Citations (from contributing transcripts)
 

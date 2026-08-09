@@ -71,9 +71,9 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *WL: Mis
 
 ## Related concepts
 
-- [[deathworlder-tropes-in-hfy-fiction]] — Deathworlder Tropes in HFY Fiction
-- [[galactic-federation-politics-in-science-fiction]] — Galactic Federation Politics in Science Fiction
-- [[human-diplomatic-anomalies-in-speculative-fiction]] — Human Diplomatic Anomalies in Speculative Fiction
+- deathworlder-tropes-in-hfy-fiction — Deathworlder Tropes in HFY Fiction
+- galactic-federation-politics-in-science-fiction — Galactic Federation Politics in Science Fiction
+- human-diplomatic-anomalies-in-speculative-fiction — Human Diplomatic Anomalies in Speculative Fiction
 
 ## Citations (from contributing transcripts)
 

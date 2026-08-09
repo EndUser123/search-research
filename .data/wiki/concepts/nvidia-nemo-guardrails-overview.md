@@ -94,10 +94,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Masterin
 
 ## Related concepts
 
-- [[model-context-protocol-security]] — Model Context Protocol Security
-- [[colang-language-guide]] — Colang Language Guide
-- [[llm-safety-toolkits]] — LLM Safety Toolkits
-- [[yaml-based-configuration-patterns]] — YAML-based Configuration Patterns
+- model-context-protocol-security — Model Context Protocol Security
+- colang-language-guide — Colang Language Guide
+- llm-safety-toolkits — LLM Safety Toolkits
+- yaml-based-configuration-patterns — YAML-based Configuration Patterns
 
 ## Citations (from contributing transcripts)
 

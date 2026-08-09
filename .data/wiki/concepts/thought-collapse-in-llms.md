@@ -80,10 +80,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[mode-collapse]] — Mode Collapse
-- [[chain-of-thought-prompting]] — Chain-of-Thought Prompting
-- [[latent-chain-of-thought]] — Latent Chain-of-Thought
-- [[verbalized-sampling]] — Verbalized Sampling
+- mode-collapse — Mode Collapse
+- chain-of-thought-prompting — Chain-of-Thought Prompting
+- latent-chain-of-thought — Latent Chain-of-Thought
+- verbalized-sampling — Verbalized Sampling
 
 ## Citations (from contributing transcripts)
 

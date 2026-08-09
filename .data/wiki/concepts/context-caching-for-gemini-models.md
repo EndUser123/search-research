@@ -94,9 +94,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *Video P
 
 ## Related concepts
 
-- [[gemini-cli]] — Gemini CLI
-- [[gemini-2.5-flash]] — Gemini 2.5 Flash
-- [[vertex-ai-generative-ai]] — Vertex AI Generative AI
+- gemini-cli — Gemini CLI
+- gemini-2.5-flash — Gemini 2.5 Flash
+- vertex-ai-generative-ai — Vertex AI Generative AI
 
 ## Citations (from contributing transcripts)
 

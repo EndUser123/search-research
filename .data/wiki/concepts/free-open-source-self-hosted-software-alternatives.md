@@ -81,11 +81,11 @@ Synthesized from **18 contributing transcripts** in NotebookLM notebook *WL: AI 
 
 ## Related concepts
 
-- [[self-hosting]] — Self-Hosting
-- [[privacy-first-computing]] — Privacy-First Computing
-- [[open-source-ai-models]] — Open-Source AI Models
-- [[api-development-tools]] — API Development Tools
-- [[home-lab-infrastructure]] — Home Lab Infrastructure
+- self-hosting — Self-Hosting
+- privacy-first-computing — Privacy-First Computing
+- open-source-ai-models — Open-Source AI Models
+- api-development-tools — API Development Tools
+- home-lab-infrastructure — Home Lab Infrastructure
 
 ## Citations (from contributing transcripts)
 

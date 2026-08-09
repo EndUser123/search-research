@@ -94,9 +94,9 @@ The skill is useful *as a procedural reference* - future skill authors can read 
 
 1. **Add a structural enforce layer (Stop hook with LLM judge) or stop documenting /grok-verify as if it fires.** The [[llm-judgment-hooks]] concept already proposes the structural fix (Layer 1 regex detects "done/fixed/verified/shipped" claims → Layer 2 LLM judge classifies block/allow/fail-open). Until that hook is built and proven to fire, the verify-before-done principle has no working implementation. Either ship the hook, or remove the prose reference to "Execute grok-verify" from /go's H6 pack.
 
-2. **Update [[agentic-sdlc-skill-lifecycle-architecture.md]] with a "compliance status" column.** Add a column to the verify-hierarchy table noting which layers are *documented* vs *actually invoked*. This makes the gap visible without requiring future sessions to rediscover it.
+2. **Update [[agentic-sdlc-skill-lifecycle-architecture]] with a "compliance status" column.** Add a column to the verify-hierarchy table noting which layers are *documented* vs *actually invoked*. This makes the gap visible without requiring future sessions to rediscover it.
 
-3. **Treat any future "instrumented verification" skill as load-bearing.** If we ship a Stop hook or similar mechanism that observes done-claims and gates them, that's load-bearing infrastructure. It deserves its own wiki concept (per [[concept-priority-tier-rules]]) and its own session-test before claiming PROVEN status. Without that, the principle remains aspirational.
+3. **Treat any future "instrumented verification" skill as load-bearing.** If we ship a Stop hook or similar mechanism that observes done-claims and gates them, that's load-bearing infrastructure. It deserves its own wiki concept (per concept-priority-tier-rules) and its own session-test before claiming PROVEN status. Without that, the principle remains aspirational.
 
 4. **Don't recommend `/grok-verify` in user-facing material without empirical observation.** When recommending a verify mechanism in handoffs or plans, the recommendation should cite a transcript where it was observed firing (a `[FACT]` with a receipt), not a SKILL.md that says it should.
 

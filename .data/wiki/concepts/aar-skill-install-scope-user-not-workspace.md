@@ -83,7 +83,7 @@ No junction exists. The workspace-scope path is genuinely wrong, not a missing i
 
 [[skill-host-applicability-convention]] covers the `host: grok | claude | both` frontmatter tag — which host a skill was written for. This concept **complements** that one by covering the orthogonal dimension: **install scope** (user vs workspace). A skill can be `host: grok` AND user-scope (like AAR), or `host: both` AND workspace-scope (like a project-specific integration skill). Both dimensions matter for path correctness.
 
-Related: [[premature-synthesis-without-reading-existing-capability]] — the AAR's own episode E13 (this path bug) was caught by the AAR's opportunity-discovery, and the fix was tracked as O1 (ACT_NOW). The path-convention error here is an instance of documentation drift: the paths were written when the skill may have lived at workspace scope, and never updated when it moved to user scope. See also [[narrative-as-signal-anti-dismissal-rule]] for the general pattern of plausible narratives substituting for verification — "the paths look right, so they must be right" is the narrative that kept this bug latent.
+Related: [[premature-synthesis-without-reading-existing-capability]] — the AAR's own episode E13 (this path bug) was caught by the AAR's opportunity-discovery, and the fix was tracked as O1 (ACT_NOW). The path-convention error here is an instance of documentation drift: the paths were written when the skill may have lived at workspace scope, and never updated when it moved to user scope. See also [[narrative-as-signal]] for the general pattern of plausible narratives substituting for verification — "the paths look right, so they must be right" is the narrative that kept this bug latent.
 
 ## Falsifier
 

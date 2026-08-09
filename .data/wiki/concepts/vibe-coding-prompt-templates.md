@@ -75,10 +75,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[prompt-engineering]] — Prompt Engineering
-- [[multi-agent-systems]] — Multi-Agent Systems
-- [[artifact-first-memory]] — Artifact-First Memory
-- [[vibe-coding]] — Vibe-Coding
+- prompt-engineering — Prompt Engineering
+- multi-agent-systems — Multi-Agent Systems
+- artifact-first-memory — Artifact-First Memory
+- vibe-coding — Vibe-Coding
 
 ## Citations (from contributing transcripts)
 

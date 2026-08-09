@@ -84,7 +84,7 @@ If it truncates at 50, you're on a free account.
   [[semantic-clustering-bounded-size]] is parameterized on this.
 - **Re-verify if the operator's account tier changes** (downgrade to free,
   upgrade to a higher tier if Google adds one).
-- **Apply the [[claims-require-receipts]] rule** to this page itself: if a
+- **Apply the claims-require-receipts rule** to this page itself: if a
   future session states "NotebookLM caps at 50" as fact, the receipt is the
   capacity test above, not this page. This page is a memory aid, not
   evidence.

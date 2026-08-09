@@ -106,11 +106,11 @@ Synthesized from **14 contributing transcripts** in NotebookLM notebook *Deep Re
 
 ## Related concepts
 
-- [[agent-harness]] — Agent Harness
-- [[loop-specification]] — Loop Specification
-- [[deterministic-control-plane]] — Deterministic Control Plane
-- [[agentic-velocity]] — Agentic Velocity
-- [[execution-traps]] — Execution Traps
+- [[pi-agent-harness]] — Agent Harness
+- loop-specification — Loop Specification
+- deterministic-control-plane — Deterministic Control Plane
+- agentic-velocity — Agentic Velocity
+- execution-traps — Execution Traps
 
 ## Citations (from contributing transcripts)
 

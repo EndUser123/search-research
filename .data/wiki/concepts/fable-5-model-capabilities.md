@@ -218,11 +218,11 @@ Synthesized from **152 contributing transcripts** in NotebookLM notebook *WL: Mo
 
 ## Related concepts
 
-- [[agentic-harness-engineering]] — Agentic Harness Engineering
-- [[model-fusion]] — Model Fusion
-- [[claude-opus-4.8]] — Claude Opus 4.8
-- [[export-control-restrictions]] — Export Control Restrictions
-- [[fable-5-cloning-technique]] — Fable 5 Cloning Technique
+- [[agent-harness-engineering]] — Agentic Harness Engineering
+- model-fusion — Model Fusion
+- claude-opus-4.8 — Claude Opus 4.8
+- export-control-restrictions — Export Control Restrictions
+- fable-5-cloning-technique — Fable 5 Cloning Technique
 
 ## Citations (from contributing transcripts)
 

@@ -78,10 +78,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[retrieval-augmented-generation]] — Retrieval-Augmented Generation
-- [[code-context-management]] — Code Context Management
-- [[software-architecture-awareness]] — Software Architecture Awareness
-- [[embedding-based-search]] — Embedding-Based Search
+- retrieval-augmented-generation — Retrieval-Augmented Generation
+- code-context-management — Code Context Management
+- software-architecture-awareness — Software Architecture Awareness
+- embedding-based-search — Embedding-Based Search
 
 ## Citations (from contributing transcripts)
 

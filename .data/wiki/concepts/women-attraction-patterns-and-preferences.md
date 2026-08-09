@@ -92,10 +92,10 @@ Synthesized from **31 contributing transcripts** in NotebookLM notebook *WL: Mis
 
 ## Related concepts
 
-- [[age-gap-relationships]] — Age Gap Relationships
-- [[dating-expectations]] — Dating Expectations
-- [[gender-dynamics-in-relationships]] — Gender Dynamics in Relationships
-- [[maturity-preferences-in-dating]] — Maturity Preferences in Dating
+- age-gap-relationships — Age Gap Relationships
+- dating-expectations — Dating Expectations
+- gender-dynamics-in-relationships — Gender Dynamics in Relationships
+- maturity-preferences-in-dating — Maturity Preferences in Dating
 
 ## Citations (from contributing transcripts)
 

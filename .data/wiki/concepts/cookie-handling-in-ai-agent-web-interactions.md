@@ -95,10 +95,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[model-context-protocol]] — Model Context Protocol
-- [[claude-code-integrations]] — Claude Code Integrations
-- [[agentic-workflows]] — Agentic Workflows
-- [[mcp-servers]] — MCP Servers
+- model-context-protocol — Model Context Protocol
+- claude-code-integrations — Claude Code Integrations
+- agentic-workflows — Agentic Workflows
+- mcp-servers — MCP Servers
 
 ## Citations (from contributing transcripts)
 

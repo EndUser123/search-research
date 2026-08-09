@@ -61,10 +61,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[fibrinogen]] — Fibrinogen
-- [[thrombin]] — Thrombin
-- [[coagulation]] — Coagulation
-- [[long-covid]] — Long COVID
+- fibrinogen — Fibrinogen
+- thrombin — Thrombin
+- coagulation — Coagulation
+- long-covid — Long COVID
 
 ## Receipts
 

@@ -72,10 +72,10 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *WL-Pilot
 
 ## Related concepts
 
-- [[ai-contextual-customization]] — AI Contextual Customization
-- [[model-reasoning-levels]] — Model Reasoning Levels
-- [[prompt-structure-optimization]] — Prompt Structure Optimization
-- [[slash-command-patterns]] — Slash Command Patterns
+- ai-contextual-customization — AI Contextual Customization
+- model-reasoning-levels — Model Reasoning Levels
+- prompt-structure-optimization — Prompt Structure Optimization
+- slash-command-patterns — Slash Command Patterns
 
 ## Citations (from contributing transcripts)
 

@@ -287,10 +287,10 @@ Synthesized from **220 contributing transcripts** in NotebookLM notebook *WL: Mi
 
 ## Related concepts
 
-- [[insulin-sensitivity-and-metabolic-health]] — Insulin Sensitivity and Metabolic Health
-- [[peptide-based-interventions-for-body-composition]] — Peptide-Based Interventions for Body Composition
-- [[age-related-muscle-preservation-strategies]] — Age-Related Muscle Preservation Strategies
-- [[nutrient-deficiency-and-chronic-inflammation]] — Nutrient Deficiency and Chronic Inflammation
+- insulin-sensitivity-and-metabolic-health — Insulin Sensitivity and Metabolic Health
+- peptide-based-interventions-for-body-composition — Peptide-Based Interventions for Body Composition
+- age-related-muscle-preservation-strategies — Age-Related Muscle Preservation Strategies
+- nutrient-deficiency-and-chronic-inflammation — Nutrient Deficiency and Chronic Inflammation
 
 ## Citations (from contributing transcripts)
 

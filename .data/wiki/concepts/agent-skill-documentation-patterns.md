@@ -72,9 +72,9 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[agent-plugin-architecture]] — Agent Plugin Architecture
-- [[capability-interface-specification]] — Capability Interface Specification
-- [[skill-distribution-registry]] — Skill Distribution Registry
+- agent-plugin-architecture — Agent Plugin Architecture
+- capability-interface-specification — Capability Interface Specification
+- skill-distribution-registry — Skill Distribution Registry
 
 ## Citations (from contributing transcripts)
 

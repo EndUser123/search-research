@@ -180,9 +180,9 @@ Synthesized from **33 contributing transcripts** in NotebookLM notebook *Video P
 
 ## Related concepts
 
-- [[multimodal-ai-processing]] — Multimodal AI Processing
+- multimodal-ai-processing — Multimodal AI Processing
 - [[retrieval-augmented-generation-(rag)]] — Retrieval-Augmented Generation (RAG)
-- [[context-window-management]] — Context Window Management
+- context-window-management — Context Window Management
 - [[vision-language-models-(vlms)]] — Vision-Language Models (VLMs)
 
 ## Citations (from contributing transcripts)

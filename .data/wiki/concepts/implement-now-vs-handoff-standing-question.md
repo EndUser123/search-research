@@ -73,7 +73,7 @@ This pattern is wrong if:
 ## Cross-references
 
 - [[completeness-over-curation-recommendation-discipline]] — show all recommendations (complementary)
-- [[closure-pressure-narrative-sufficiency-is-not-verification]] — premature closure pattern
+- closure-pressure-narrative-sufficiency-is-not-verification — premature closure pattern
 - [[asserting-runtime-behavior-from-memory-not-testing]] — verify before asserting
 
 ## Auto-related

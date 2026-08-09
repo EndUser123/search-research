@@ -92,10 +92,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[multi-agent-coordination]] — Multi-Agent Coordination
-- [[agent-evaluation-metrics]] — Agent Evaluation Metrics
-- [[agentic-ai-architecture-patterns]] — Agentic AI Architecture Patterns
-- [[tool-use-in-llm-systems]] — Tool Use in LLM Systems
+- multi-agent-coordination — Multi-Agent Coordination
+- agent-evaluation-metrics — Agent Evaluation Metrics
+- agentic-ai-architecture-patterns — Agentic AI Architecture Patterns
+- tool-use-in-llm-systems — Tool Use in LLM Systems
 
 ## Citations (from contributing transcripts)
 

@@ -75,10 +75,10 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[relationship-expectation-asymmetry]] — Relationship Expectation Asymmetry
-- [[ai-companionship-effects-on-traditional-dating]] — AI Companionship Effects on Traditional Dating
-- [[age-disparate-partner-attraction]] — Age-Disparate Partner Attraction
-- [[divorce-initiation-patterns]] — Divorce Initiation Patterns
+- relationship-expectation-asymmetry — Relationship Expectation Asymmetry
+- ai-companionship-effects-on-traditional-dating — AI Companionship Effects on Traditional Dating
+- age-disparate-partner-attraction — Age-Disparate Partner Attraction
+- divorce-initiation-patterns — Divorce Initiation Patterns
 
 ## Citations (from contributing transcripts)
 

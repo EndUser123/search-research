@@ -95,7 +95,7 @@ cognitive_load: 3
 
 ## Related wiki concepts
 
-- [[file-editing-protocol]] — the UTF-8 encoding issue this would help with
+- file-editing-protocol — the UTF-8 encoding issue this would help with
 - [[quality-gate-hook-system-implementation]] — hooks that could benefit from lazy imports and t-strings
 ## Falsifier
 

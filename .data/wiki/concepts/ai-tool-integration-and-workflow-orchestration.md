@@ -69,10 +69,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[multimodal-ai-processing]] — Multimodal AI Processing
-- [[ai-agent-architecture]] — AI Agent Architecture
-- [[cloud-based-code-execution]] — Cloud-Based Code Execution
-- [[multi-model-ensemble-methods]] — Multi-Model Ensemble Methods
+- multimodal-ai-processing — Multimodal AI Processing
+- ai-agent-architecture — AI Agent Architecture
+- cloud-based-code-execution — Cloud-Based Code Execution
+- multi-model-ensemble-methods — Multi-Model Ensemble Methods
 
 ## Citations (from contributing transcripts)
 

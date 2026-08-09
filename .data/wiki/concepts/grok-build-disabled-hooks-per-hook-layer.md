@@ -25,12 +25,12 @@ Grok Build has a two-layer hook disable model. The plugin-level disable is `[plu
   - `plugin/exec-gate/hooks:session_end[0].hooks[0]`
 - **Effect.** exec-gate plugin is enabled (provides hooks per inspect) but its SessionStart / UserPromptSubmit / PreToolUse / SessionEnd hooks are individually disabled. Without reading `disabled-hooks`, an enforcement-surface snapshot would falsely report these hooks as firing.
 - **Distinction from `[plugins] disabled`.** Plugin-level disable prevents the plugin's skills/agents/hooks/MCP from loading at all. Per-hook disable keeps the plugin and its other components active, only suppressing the specific hook entries listed.
-- **M1 active-surface-snapshot.py bug.** The M1 script does not read `~/.grok/disabled-hooks`. It reads `[plugins] enabled/disabled` and reports hooks as firing if the plugin is enabled. This is why the prior conversation's "what's actually firing" output was partially wrong — see [[grok-build-active-surface-snapshot-bugs]].
+- **M1 active-surface-snapshot.py bug.** The M1 script does not read `~/.grok/disabled-hooks`. It reads `[plugins] enabled/disabled` and reports hooks as firing if the plugin is enabled. This is why the prior conversation's "what's actually firing" output was partially wrong — see grok-build-active-surface-snapshot-bugs.
 
 ## Related
 
 - [[grok-build-cc-aca-actually-enabled]] — the cc-aca-* suite fires at plugin level without per-hook disable
-- [[grok-build-active-surface-snapshot-bugs]] — M1 should be reading this file but doesn't
+- grok-build-active-surface-snapshot-bugs — M1 should be reading this file but doesn't
 
 ## Auto-related
 

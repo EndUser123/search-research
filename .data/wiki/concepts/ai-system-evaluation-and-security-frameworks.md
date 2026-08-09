@@ -78,11 +78,11 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[ai-generated-code-security]] — AI Generated Code Security
-- [[llm-agent-evaluation]] — LLM Agent Evaluation
-- [[benchmark-methodology]] — Benchmark Methodology
-- [[ai-vulnerability-assessment]] — AI Vulnerability Assessment
-- [[protocol-governance]] — Protocol Governance
+- ai-generated-code-security — AI Generated Code Security
+- llm-agent-evaluation — LLM Agent Evaluation
+- benchmark-methodology — Benchmark Methodology
+- ai-vulnerability-assessment — AI Vulnerability Assessment
+- protocol-governance — Protocol Governance
 
 ## Citations (from contributing transcripts)
 

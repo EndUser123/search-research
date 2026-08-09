@@ -80,10 +80,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *AI Archi
 
 ## Related concepts
 
-- [[architectural-decision-making]] — Architectural Decision Making
-- [[trade-off-analysis]] — Trade-off Analysis
-- [[atam-lite-checklist]] — ATAM-Lite Checklist
-- [[technical-documentation-patterns]] — Technical Documentation Patterns
+- architectural-decision-making — Architectural Decision Making
+- trade-off-analysis — Trade-off Analysis
+- atam-lite-checklist — ATAM-Lite Checklist
+- technical-documentation-patterns — Technical Documentation Patterns
 
 ## Citations (from contributing transcripts)
 

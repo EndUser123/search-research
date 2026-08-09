@@ -310,10 +310,10 @@ Synthesized from **61 contributing transcripts** in NotebookLM notebook *Agentic
 
 ## Related concepts
 
-- [[claude-code-plugin-development]] — Claude Code Plugin Development
-- [[agent-loop-patterns]] — Agent Loop Patterns
-- [[tool-invocation-customization]] — Tool Invocation Customization
-- [[session-lifecycle-management]] — Session Lifecycle Management
+- claude-code-plugin-development — Claude Code Plugin Development
+- agent-loop-patterns — Agent Loop Patterns
+- tool-invocation-customization — Tool Invocation Customization
+- session-lifecycle-management — Session Lifecycle Management
 
 ## Citations (from contributing transcripts)
 

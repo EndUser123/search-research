@@ -69,9 +69,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *AI Archi
 
 ## Related concepts
 
-- [[ai-agent-architecture]] — AI Agent Architecture
-- [[agent-evaluation-frameworks]] — Agent Evaluation Frameworks
-- [[cli-agent-design]] — CLI Agent Design
+- ai-agent-architecture — AI Agent Architecture
+- agent-evaluation-frameworks — Agent Evaluation Frameworks
+- cli-agent-design — CLI Agent Design
 
 ## Citations (from contributing transcripts)
 

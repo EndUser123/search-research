@@ -120,10 +120,10 @@ Synthesized from **17 contributing transcripts** in NotebookLM notebook *ext-Gem
 
 ## Related concepts
 
-- [[claude-code-cli-commands]] — Claude Code CLI Commands
-- [[claude-code-cost-management]] — Claude Code Cost Management
-- [[claude-code-permissions-model]] — Claude Code Permissions Model
-- [[claude-code-skills-system]] — Claude Code Skills System
+- claude-code-cli-commands — Claude Code CLI Commands
+- claude-code-cost-management — Claude Code Cost Management
+- claude-code-permissions-model — Claude Code Permissions Model
+- claude-code-skills-system — Claude Code Skills System
 
 ## Citations (from contributing transcripts)
 

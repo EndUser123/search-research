@@ -58,9 +58,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *ext-Gemi
 
 ## Related concepts
 
-- [[autonomous-skill-pattern]] — Autonomous Skill Pattern
-- [[agent-guidance-documents]] — Agent Guidance Documents
-- [[skill-discovery-protocol]] — Skill Discovery Protocol
+- autonomous-skill-pattern — Autonomous Skill Pattern
+- agent-guidance-documents — Agent Guidance Documents
+- skill-discovery-protocol — Skill Discovery Protocol
 
 ## Citations (from contributing transcripts)
 

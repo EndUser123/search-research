@@ -137,7 +137,7 @@ User Query → Synonym Expansion → Keyword Router
 | `snippet_mode` truncation | lyonzin/knowledge-rag | MEDIUM — reduces token consumption ~72% |
 | Zero-vector corruption guard | lyonzin v3.8.1 hotfix | HIGH — same failure class as our QMD bug |
 | Lazy-loaded embeddings | lyonzin v3.8.0 | HIGH — stdio multi-process idle cost |
-| LightRAG graph+vector hybrid | olafgeibig/knowledge-mcp | MEDIUM — could leverage [[wikilink]] network |
+| LightRAG graph+vector hybrid | olafgeibig/knowledge-mcp | MEDIUM — could leverage wikilink network |
 | `evaluate_retrieval` metrics | lyonzin/knowledge-rag | HIGH — measure whether changes improve quality |
 | SPLADE sparse embeddings | r/MachineLearning consensus | LOW — emerging technique, may be premature |
 | Symmetric query expansion groups | lyonzin/knowledge-rag | MEDIUM — better than our camelCase normalization |

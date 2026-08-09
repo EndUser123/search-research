@@ -66,9 +66,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[fleet-engineering]] — Fleet Engineering
-- [[terminal-multiplexing-for-ai-agents]] — Terminal Multiplexing for AI Agents
-- [[frontier-model-benchmarking]] — Frontier Model Benchmarking
+- fleet-engineering — Fleet Engineering
+- terminal-multiplexing-for-ai-agents — Terminal Multiplexing for AI Agents
+- frontier-model-benchmarking — Frontier Model Benchmarking
 
 ## Citations (from contributing transcripts)
 

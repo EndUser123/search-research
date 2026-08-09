@@ -72,10 +72,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WL: Heal
 
 ## Related concepts
 
-- [[warburg-effect]] — Warburg Effect
-- [[glutamine-addiction-in-cancer]] — Glutamine Addiction in Cancer
-- [[drug-repurposing-for-oncology]] — Drug Repurposing for Oncology
-- [[mitochondrial-metabolic-disease-model-of-cancer]] — Mitochondrial Metabolic Disease Model of Cancer
+- warburg-effect — Warburg Effect
+- glutamine-addiction-in-cancer — Glutamine Addiction in Cancer
+- drug-repurposing-for-oncology — Drug Repurposing for Oncology
+- mitochondrial-metabolic-disease-model-of-cancer — Mitochondrial Metabolic Disease Model of Cancer
 
 ## Citations (from contributing transcripts)
 

@@ -81,10 +81,10 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[mixed-provider-ai-workflows]] — Mixed-Provider AI Workflows
-- [[open-weight-language-models]] — Open-Weight Language Models
-- [[agentic-ai-systems]] — Agentic AI Systems
-- [[mixture-of-experts-architecture]] — Mixture of Experts Architecture
+- mixed-provider-ai-workflows — Mixed-Provider AI Workflows
+- open-weight-language-models — Open-Weight Language Models
+- agentic-ai-systems — Agentic AI Systems
+- mixture-of-experts-architecture — Mixture of Experts Architecture
 
 ## Citations (from contributing transcripts)
 

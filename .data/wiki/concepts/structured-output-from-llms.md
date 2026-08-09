@@ -104,10 +104,10 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[llm-output-validation]] — LLM Output Validation
-- [[cross-platform-path-normalization]] — Cross-Platform Path Normalization
+- llm-output-validation — LLM Output Validation
+- cross-platform-path-normalization — Cross-Platform Path Normalization
 - [[agent-memory-systems]] — Agent Memory Systems
-- [[trace-dataset-evaluation]] — Trace Dataset Evaluation
+- trace-dataset-evaluation — Trace Dataset Evaluation
 
 ## Citations (from contributing transcripts)
 

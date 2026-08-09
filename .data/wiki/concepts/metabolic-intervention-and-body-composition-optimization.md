@@ -107,13 +107,13 @@ Synthesized from **35 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[mots-c-peptide-research]] — MOTS-c Peptide Research
-- [[zone-2-cardiovascular-training]] — Zone 2 Cardiovascular Training
-- [[cancer-cell-glucose-metabolism]] — Cancer Cell Glucose Metabolism
-- [[carbohydrate-manipulation-for-fat-loss]] — Carbohydrate Manipulation for Fat Loss
-- [[hormonal-response-to-caloric-restriction]] — Hormonal Response to Caloric Restriction
-- [[meal-frequency-and-adherence-strategies]] — Meal Frequency and Adherence Strategies
-- [[sedentary-behavior-modification]] — Sedentary Behavior Modification
+- mots-c-peptide-research — MOTS-c Peptide Research
+- zone-2-cardiovascular-training — Zone 2 Cardiovascular Training
+- cancer-cell-glucose-metabolism — Cancer Cell Glucose Metabolism
+- carbohydrate-manipulation-for-fat-loss — Carbohydrate Manipulation for Fat Loss
+- hormonal-response-to-caloric-restriction — Hormonal Response to Caloric Restriction
+- meal-frequency-and-adherence-strategies — Meal Frequency and Adherence Strategies
+- sedentary-behavior-modification — Sedentary Behavior Modification
 
 ## Citations (from contributing transcripts)
 

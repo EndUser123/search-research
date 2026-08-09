@@ -67,11 +67,11 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *Perplexi
 
 ## Related concepts
 
-- [[ai-second-brain]] — AI Second Brain
-- [[personal-knowledge-management]] — Personal Knowledge Management
-- [[llm-powered-documentation]] — LLM-powered Documentation
-- [[obsidian-as-a-knowledge-graph]] — Obsidian as a Knowledge Graph
-- [[claude-for-personal-productivity]] — Claude for Personal Productivity
+- ai-second-brain — AI Second Brain
+- personal-knowledge-management — Personal Knowledge Management
+- llm-powered-documentation — LLM-powered Documentation
+- obsidian-as-a-knowledge-graph — Obsidian as a Knowledge Graph
+- claude-for-personal-productivity — Claude for Personal Productivity
 
 ## Citations (from contributing transcripts)
 

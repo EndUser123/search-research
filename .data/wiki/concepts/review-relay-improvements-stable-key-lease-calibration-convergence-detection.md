@@ -98,7 +98,7 @@ implementation.
 
 The `/design` run (b1abe493) completed with **reviewer PROCEED** (0 critical/major) and **critical friend PROCEED** (round 2, 1 implementer caveat). All three improvements ship as skill-side sidecars preserving the dumb-pipe invariant (0 LoC in `src/review-relay.mjs`).
 
-**Key architectural decision:** [[adr-011-review-relay-dumb-pipe-invariant]] — ship dumb-pipe first, migrate to inspecting-pipe only on production bottleneck (≥30 days + cross-section/adaptive-lease/finding-provenance requirement materializes).
+**Key architectural decision:** adr-011-review-relay-dumb-pipe-invariant — ship dumb-pipe first, migrate to inspecting-pipe only on production bottleneck (≥30 days + cross-section/adaptive-lease/finding-provenance requirement materializes).
 
 **Implementation units:** 15 units across 4 phases (~1830 new LoC, 6 skill helpers + 8 test files, 0 relay LoC).
 

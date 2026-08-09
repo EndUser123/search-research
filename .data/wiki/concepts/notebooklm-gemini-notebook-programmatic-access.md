@@ -204,7 +204,7 @@ maintained (updated daily), and already installed. The MCP server provides
 
 ## Related
 
-- [[deep-research-systems]]@related — Deep research agent patterns
+- deep-research-systems@related — Deep research agent patterns
 - [[textual-layout-widgets-ecosystem]]@related — Example /www output that could feed NotebookLM
 ## Falsifier
 

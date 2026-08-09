@@ -78,7 +78,7 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *WL: Ant
 
 ## Related concepts
 
-- [[ai-prompting-optimization]] — AI Prompting Optimization
+- ai-prompting-optimization — AI Prompting Optimization
 - [[retrieval-augmented-generation-(rag)]] — Retrieval-Augmented Generation (RAG)
 - [[model-context-protocol-(mcp)]] — Model Context Protocol (MCP)
 

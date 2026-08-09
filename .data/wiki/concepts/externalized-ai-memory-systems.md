@@ -286,9 +286,9 @@ Synthesized from **228 contributing transcripts** in NotebookLM notebook *WL: No
 
 ## Related concepts
 
-- [[context-management-in-ai-systems]] — Context Management in AI Systems
-- [[ai-agent-workflows]] — AI Agent Workflows
-- [[cross-platform-ai-integration]] — Cross-Platform AI Integration
+- context-management-in-ai-systems — Context Management in AI Systems
+- ai-agent-workflows — AI Agent Workflows
+- cross-platform-ai-integration — Cross-Platform AI Integration
 
 ## Citations (from contributing transcripts)
 

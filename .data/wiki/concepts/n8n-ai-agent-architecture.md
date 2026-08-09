@@ -218,10 +218,10 @@ Synthesized from **156 contributing transcripts** in NotebookLM notebook *Nate H
 
 ## Related concepts
 
-- [[claude-code-skills]] — Claude Code Skills
-- [[rag-agent]] — RAG Agent
-- [[multi-agent-teams]] — Multi-Agent Teams
-- [[retrieval-augmented-generation]] — Retrieval Augmented Generation
+- claude-code-skills — Claude Code Skills
+- rag-agent — RAG Agent
+- multi-agent-teams — Multi-Agent Teams
+- retrieval-augmented-generation — Retrieval Augmented Generation
 
 ## Citations (from contributing transcripts)
 

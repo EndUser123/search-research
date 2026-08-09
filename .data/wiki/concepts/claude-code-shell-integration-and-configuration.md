@@ -94,9 +94,9 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[claude-code-skills-system]] — Claude Code Skills System
-- [[claude-code-configuration]] — Claude Code Configuration
-- [[claude-code-session-management]] — Claude Code Session Management
+- claude-code-skills-system — Claude Code Skills System
+- claude-code-configuration — Claude Code Configuration
+- claude-code-session-management — Claude Code Session Management
 
 ## Citations (from contributing transcripts)
 

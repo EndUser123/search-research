@@ -99,7 +99,7 @@ across skills would re-introduce the shared-blind-spot problem that cross-model
 spawning was designed to solve — the shared evaluator would have the same blind
 spots in all three skills.
 
-See also [[cross-model-ensemble-design-patterns-for-agent-skills]] for the
+See also [[multi-model-ensemble-design-patterns-for-agent-skills]] for the
 parallel: model diversity matters for the spawn step, evaluation diversity
 matters for the evaluate step. Both are load-bearing; neither should be
 collapsed for the sake of code reuse.

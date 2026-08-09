@@ -67,10 +67,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *WL: AI C
 
 ## Related concepts
 
-- [[claude-integration-patterns]] — Claude Integration Patterns
-- [[gemini-3.5-flash-applications]] — Gemini 3.5 Flash Applications
-- [[multimodal-ai-agents]] — Multimodal AI Agents
-- [[multi-model-council-patterns]] — Multi-Model Council Patterns
+- claude-integration-patterns — Claude Integration Patterns
+- gemini-3.5-flash-applications — Gemini 3.5 Flash Applications
+- multimodal-ai-agents — Multimodal AI Agents
+- multi-model-council-patterns — Multi-Model Council Patterns
 
 ## Citations (from contributing transcripts)
 

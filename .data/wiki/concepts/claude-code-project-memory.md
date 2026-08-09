@@ -328,9 +328,9 @@ Synthesized from **72 contributing transcripts** in NotebookLM notebook *AI Arch
 ## Related concepts
 
 - [[architecture-decision-records]] — Architecture Decision Records
-- [[active-steering-rules]] — Active Steering Rules
-- [[agentic-engineering-workflows]] — Agentic Engineering Workflows
-- [[claude-code-settings]] — Claude Code Settings
+- active-steering-rules — Active Steering Rules
+- agentic-engineering-workflows — Agentic Engineering Workflows
+- claude-code-settings — Claude Code Settings
 
 ## Citations (from contributing transcripts)
 

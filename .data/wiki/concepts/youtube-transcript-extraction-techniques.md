@@ -287,11 +287,11 @@ Synthesized from **65 contributing transcripts** in NotebookLM notebook *Video P
 
 ## Related concepts
 
-- [[youtube-data-api-v3]] — YouTube Data API v3
-- [[yt-dlp]] — yt-dlp
-- [[http-429-rate-limiting]] — HTTP 429 Rate Limiting
-- [[fallback-chain-pattern]] — Fallback Chain Pattern
-- [[proxy-rotation]] — Proxy Rotation
+- youtube-data-api-v3 — YouTube Data API v3
+- yt-dlp — yt-dlp
+- http-429-rate-limiting — HTTP 429 Rate Limiting
+- fallback-chain-pattern — Fallback Chain Pattern
+- proxy-rotation — Proxy Rotation
 
 ## Citations (from contributing transcripts)
 

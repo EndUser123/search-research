@@ -83,11 +83,11 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *
 
 ## Related concepts
 
-- [[two-tier-policing]] — Two-Tier Policing
-- [[uk-immigration-policy]] — UK Immigration Policy
-- [[asylum-seeker-integration]] — Asylum Seeker Integration
-- [[islamophobia-debates]] — Islamophobia Debates
-- [[northern-ireland-social-unrest]] — Northern Ireland Social Unrest
+- two-tier-policing — Two-Tier Policing
+- uk-immigration-policy — UK Immigration Policy
+- asylum-seeker-integration — Asylum Seeker Integration
+- islamophobia-debates — Islamophobia Debates
+- northern-ireland-social-unrest — Northern Ireland Social Unrest
 
 ## Citations (from contributing transcripts)
 

@@ -107,11 +107,11 @@ Synthesized from **25 contributing transcripts** in NotebookLM notebook *Thinkin
 
 ## Related concepts
 
-- [[git-hooks]] — Git Hooks
-- [[pre-commit-validation]] — Pre-commit Validation
-- [[ai-agent-guardrails]] — AI Agent Guardrails
-- [[write-time-linting]] — Write-time Linting
-- [[fail-closed-validation-patterns]] — Fail-closed Validation Patterns
+- git-hooks — Git Hooks
+- pre-commit-validation — Pre-commit Validation
+- ai-agent-guardrails — AI Agent Guardrails
+- write-time-linting — Write-time Linting
+- fail-closed-validation-patterns — Fail-closed Validation Patterns
 
 ## Citations (from contributing transcripts)
 

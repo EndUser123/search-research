@@ -89,10 +89,10 @@ Synthesized from **11 contributing transcripts** in NotebookLM notebook *Claude 
 
 ## Related concepts
 
-- [[role-based-prompting]] — Role-Based Prompting
-- [[rag-in-prompting]] — RAG in Prompting
-- [[llm-prompting-techniques]] — LLM Prompting Techniques
-- [[advanced-prompt-engineering]] — Advanced Prompt Engineering
+- role-based-prompting — Role-Based Prompting
+- rag-in-prompting — RAG in Prompting
+- llm-prompting-techniques — LLM Prompting Techniques
+- advanced-prompt-engineering — Advanced Prompt Engineering
 
 ## Citations (from contributing transcripts)
 

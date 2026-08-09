@@ -70,11 +70,11 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *WL: Mod
 
 ## Related concepts
 
-- [[firefox-containers]] — Firefox Containers
-- [[browser-privacy]] — Browser Privacy
-- [[privacy-focused-browsers]] — Privacy-Focused Browsers
-- [[brendan-eich]] — Brendan Eich
-- [[web-browser-alternatives]] — Web Browser Alternatives
+- firefox-containers — Firefox Containers
+- browser-privacy — Browser Privacy
+- privacy-focused-browsers — Privacy-Focused Browsers
+- brendan-eich — Brendan Eich
+- web-browser-alternatives — Web Browser Alternatives
 
 ## Citations (from contributing transcripts)
 

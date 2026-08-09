@@ -66,9 +66,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *WL: Note
 
 ## Related concepts
 
-- [[ambient-ai-assistants]] — Ambient AI Assistants
-- [[augmented-reality-displays]] — Augmented Reality Displays
-- [[wearable-translation-devices]] — Wearable Translation Devices
+- ambient-ai-assistants — Ambient AI Assistants
+- augmented-reality-displays — Augmented Reality Displays
+- wearable-translation-devices — Wearable Translation Devices
 
 ## Citations (from contributing transcripts)
 

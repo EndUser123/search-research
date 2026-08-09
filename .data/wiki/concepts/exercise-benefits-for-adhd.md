@@ -56,9 +56,9 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *WL: GitH
 
 ## Related concepts
 
-- [[adhd-and-productivity-friction]] — ADHD and Productivity Friction
-- [[neurotransmitter-regulation-in-adhd]] — Neurotransmitter Regulation in ADHD
-- [[executive-function-challenges-in-adhd]] — Executive Function Challenges in ADHD
+- adhd-and-productivity-friction — ADHD and Productivity Friction
+- neurotransmitter-regulation-in-adhd — Neurotransmitter Regulation in ADHD
+- executive-function-challenges-in-adhd — Executive Function Challenges in ADHD
 
 ## Citations (from contributing transcripts)
 

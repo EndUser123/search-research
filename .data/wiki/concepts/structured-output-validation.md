@@ -95,9 +95,9 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[claude-api-structured-outputs]] — Claude API Structured Outputs
-- [[agent-skills-overview]] — Agent Skills Overview
-- [[prompting-best-practices]] — Prompting Best Practices
+- claude-api-structured-outputs — Claude API Structured Outputs
+- agent-skills-overview — Agent Skills Overview
+- prompting-best-practices — Prompting Best Practices
 
 ## Citations (from contributing transcripts)
 

@@ -104,10 +104,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *Masteri
 
 ## Related concepts
 
-- [[bind_tools-method]] — bind_tools method
-- [[model-context-protocol-tools]] — Model Context Protocol tools
-- [[langgraph-agent-behavior]] — LangGraph agent behavior
-- [[chain-of-thought-suppression]] — Chain-of-thought suppression
+- bind_tools-method — bind_tools method
+- model-context-protocol-tools — Model Context Protocol tools
+- langgraph-agent-behavior — LangGraph agent behavior
+- chain-of-thought-suppression — Chain-of-thought suppression
 
 ## Citations (from contributing transcripts)
 

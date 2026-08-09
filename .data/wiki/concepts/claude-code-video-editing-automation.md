@@ -72,10 +72,10 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL: Clau
 
 ## Related concepts
 
-- [[video-post-production-workflows]] — Video post-production workflows
-- [[ai-assisted-content-creation]] — AI-assisted content creation
-- [[automated-media-asset-management]] — Automated media asset management
-- [[context-studio]] — Context Studio
+- video-post-production-workflows — Video post-production workflows
+- ai-assisted-content-creation — AI-assisted content creation
+- automated-media-asset-management — Automated media asset management
+- context-studio — Context Studio
 
 ## Citations (from contributing transcripts)
 

@@ -88,11 +88,11 @@ Synthesized from **18 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[self-hosting]] — Self Hosting
-- [[api-development-tools]] — API Development Tools
-- [[ai-local-deployment]] — AI Local Deployment
-- [[privacy-first-software]] — Privacy First Software
-- [[open-source-alternatives]] — Open Source Alternatives
+- self-hosting — Self Hosting
+- api-development-tools — API Development Tools
+- ai-local-deployment — AI Local Deployment
+- privacy-first-software — Privacy First Software
+- open-source-alternatives — Open Source Alternatives
 
 ## Citations (from contributing transcripts)
 

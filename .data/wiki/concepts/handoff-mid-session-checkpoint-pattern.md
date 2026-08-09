@@ -99,7 +99,7 @@ they're stronger than either alone.
 is a mechanical enforcement (invariant) replacing a behavioral reminder ("don't
 forget to update your handoff").
 
-[[handoff]] — the skill where this pattern is documented.
+handoff — the skill where this pattern is documented.
 
 ## Sources
 

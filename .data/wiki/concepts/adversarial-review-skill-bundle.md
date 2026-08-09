@@ -90,24 +90,24 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *Software
 
 ## Related concepts
 
-- [[adversarial-security]] — adversarial-security
-- [[adversarial-performance]] — adversarial-performance
-- [[adversarial-compliance]] — adversarial-compliance
-- [[adversarial-quality]] — adversarial-quality
-- [[adversarial-testing]] — adversarial-testing
-- [[adversarial-logic]] — adversarial-logic
-- [[adversarial-failure-modes]] — adversarial-failure-modes
-- [[adversarial-state-machine]] — adversarial-state-machine
-- [[adversarial-io-validation]] — adversarial-io-validation
-- [[adversarial-rca]] — adversarial-rca
-- [[code-critic]] — code-critic
-- [[qa-engineer]] — qa-engineer
-- [[health-score-computation]] — Health Score computation
-- [[gto-v2-rsn-format]] — GTO v2 RSN format
-- [[constitutional-filter]] — Constitutional Filter
+- adversarial-security — adversarial-security
+- adversarial-performance — adversarial-performance
+- adversarial-compliance — adversarial-compliance
+- adversarial-quality — adversarial-quality
+- adversarial-testing — adversarial-testing
+- adversarial-logic — adversarial-logic
+- adversarial-failure-modes — adversarial-failure-modes
+- adversarial-state-machine — adversarial-state-machine
+- adversarial-io-validation — adversarial-io-validation
+- adversarial-rca — adversarial-rca
+- code-critic — code-critic
+- qa-engineer — qa-engineer
+- health-score-computation — Health Score computation
+- gto-v2-rsn-format — GTO v2 RSN format
+- constitutional-filter — Constitutional Filter
 - [[/code-review-skill]] — /code-review skill
 - [[/critique-skill]] — /critique skill
-- [[session-persistence]] — Session persistence
+- session-persistence — Session persistence
 
 ## Citations (from contributing transcripts)
 

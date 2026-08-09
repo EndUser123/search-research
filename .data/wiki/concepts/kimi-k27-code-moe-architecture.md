@@ -73,11 +73,11 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *WL: AI C
 
 ## Related concepts
 
-- [[mixture-of-experts-architecture]] — Mixture of Experts Architecture
-- [[sparse-activation-patterns]] — Sparse Activation Patterns
-- [[kimi-k2.6-model]] — Kimi K2.6 Model
-- [[token-efficiency-optimization]] — Token Efficiency Optimization
-- [[coding-model-benchmarks]] — Coding Model Benchmarks
+- mixture-of-experts-architecture — Mixture of Experts Architecture
+- sparse-activation-patterns — Sparse Activation Patterns
+- kimi-k2.6-model — Kimi K2.6 Model
+- token-efficiency-optimization — Token Efficiency Optimization
+- coding-model-benchmarks — Coding Model Benchmarks
 
 ## Citations (from contributing transcripts)
 

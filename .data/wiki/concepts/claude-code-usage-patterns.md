@@ -77,10 +77,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *WL-Pilo
 
 ## Related concepts
 
-- [[claude-science]] — Claude Science
-- [[agent-orchestration]] — Agent Orchestration
-- [[token-limit-management]] — Token Limit Management
-- [[claude-guardrails]] — Claude Guardrails
+- claude-science — Claude Science
+- [[multi-agent-orchestration]] — Agent Orchestration
+- token-limit-management — Token Limit Management
+- [[claude-code-guardrails]] — Claude Guardrails
 
 ## Citations (from contributing transcripts)
 

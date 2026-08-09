@@ -85,11 +85,11 @@ Synthesized from **16 contributing transcripts** in NotebookLM notebook *Testing
 
 ## Related concepts
 
-- [[claude-fable-5]] — Claude Fable 5
-- [[claude-opus-4.8]] — Claude Opus 4.8
-- [[claude-sonnet-5]] — Claude Sonnet 5
-- [[arc-agi-3-benchmark]] — Arc AGI 3 Benchmark
-- [[frontier-bench]] — Frontier Bench
+- claude-fable-5 — Claude Fable 5
+- claude-opus-4.8 — Claude Opus 4.8
+- claude-sonnet-5 — Claude Sonnet 5
+- arc-agi-3-benchmark — Arc AGI 3 Benchmark
+- frontier-bench — Frontier Bench
 
 ## Citations (from contributing transcripts)
 

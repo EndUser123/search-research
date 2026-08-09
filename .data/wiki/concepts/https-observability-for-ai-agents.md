@@ -81,10 +81,10 @@ Synthesized from **7 contributing transcripts** in NotebookLM notebook *Claude C
 
 ## Related concepts
 
-- [[agent-escape-hatch-design]] — Agent Escape Hatch Design
-- [[hybrid-ai-deployment-models]] — Hybrid AI Deployment Models
-- [[ai-agent-risk-detection]] — AI Agent Risk Detection
-- [[local-first-agent-architectures]] — Local-First Agent Architectures
+- agent-escape-hatch-design — Agent Escape Hatch Design
+- hybrid-ai-deployment-models — Hybrid AI Deployment Models
+- ai-agent-risk-detection — AI Agent Risk Detection
+- local-first-agent-architectures — Local-First Agent Architectures
 
 ## Citations (from contributing transcripts)
 

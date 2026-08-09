@@ -91,7 +91,7 @@ Any shared-state file that records transport-specific findings is vulnerable to 
 ## Related concepts
 
 - [[concurrent-session-commit-collision]] — same class: concurrent sessions mutating shared state without coordination
-- [[multi-terminal-hook-state-isolation]] — hook state is session-scoped; fleet-models.json is shared workspace state
+- multi-terminal-hook-state-isolation — hook state is session-scoped; fleet-models.json is shared workspace state
 - [[invariants-beat-environment-comfort]] — the invariant (serde_broken models must stay blocked via spawn) was violated by a concurrent session
 
 ## Falsifier

@@ -402,10 +402,10 @@ Synthesized from **89 contributing transcripts** in NotebookLM notebook *Thinkin
 
 ## Related concepts
 
-- [[mcp-servers]] — MCP Servers
-- [[claude-code-configuration]] — Claude Code Configuration
-- [[agent-skills-specification]] — Agent Skills Specification
-- [[parallel-agent-execution]] — Parallel Agent Execution
+- mcp-servers — MCP Servers
+- claude-code-configuration — Claude Code Configuration
+- agent-skills-specification — Agent Skills Specification
+- parallel-agent-execution — Parallel Agent Execution
 
 ## Citations (from contributing transcripts)
 

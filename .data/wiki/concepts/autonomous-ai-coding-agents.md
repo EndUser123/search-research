@@ -95,11 +95,11 @@ Synthesized from **8 contributing transcripts** in NotebookLM notebook *Agentic 
 
 ## Related concepts
 
-- [[session-management-patterns]] — Session Management Patterns
-- [[context-engineering]] — Context Engineering
-- [[meta-prompting-techniques]] — Meta-Prompting Techniques
-- [[ai-agent-autonomy]] — AI Agent Autonomy
-- [[spec-driven-development]] — Spec-Driven Development
+- session-management-patterns — Session Management Patterns
+- context-engineering — Context Engineering
+- meta-prompting-techniques — Meta-Prompting Techniques
+- ai-agent-autonomy — AI Agent Autonomy
+- spec-driven-development — Spec-Driven Development
 
 ## Citations (from contributing transcripts)
 

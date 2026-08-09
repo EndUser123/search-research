@@ -106,10 +106,10 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[mlflow-evaluations]] — MLflow Evaluations
-- [[langgraph-cycles]] — LangGraph Cycles
-- [[agent-observability]] — Agent Observability
-- [[regression-testing]] — Regression Testing
+- mlflow-evaluations — MLflow Evaluations
+- langgraph-cycles — LangGraph Cycles
+- agent-observability — Agent Observability
+- regression-testing — Regression Testing
 
 ## Citations (from contributing transcripts)
 

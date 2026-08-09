@@ -69,9 +69,9 @@ Synthesized from **6 contributing transcripts** in NotebookLM notebook *Testing 
 
 ## Related concepts
 
-- [[kimi-k3-open-weight-model]] — Kimi K3 Open-Weight Model
-- [[mixture-of-experts-architecture]] — Mixture-of-Experts Architecture
-- [[local-ai-model-deployment]] — Local AI Model Deployment
+- kimi-k3-open-weight-model — Kimi K3 Open-Weight Model
+- mixture-of-experts-architecture — Mixture-of-Experts Architecture
+- local-ai-model-deployment — Local AI Model Deployment
 
 ## Citations (from contributing transcripts)
 
