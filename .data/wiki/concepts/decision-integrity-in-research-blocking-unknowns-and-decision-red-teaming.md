@@ -170,3 +170,89 @@ The three structural items above are the actionable subset. The remaining
 7 points are already covered by existing workspace rules — the gap is
 enforcement, not knowledge, and adding more prose rules doesn't close an
 enforcement gap.
+
+## Second-round additions (from follow-up critique)
+
+A second external LLM review of a corrected research artifact identified
+two additional patterns. Both are genuinely novel — the existing workspace
+rules cover cross-file propagation but not intra-artifact reasoning-chain
+invalidation.
+
+### 4. Revision invalidation — derived claims as cached state
+
+**The problem:** when a foundational conclusion in a research artifact
+changes, downstream statements derived from it (frontmatter summaries,
+confidence labels, recommendations, falsifiers, handoff metadata) are
+rarely invalidated and recomputed. The artifact ends up with internal
+contradictions: the body retracts a claim, but the summary still asserts
+it.
+
+**The principle:** research artifacts need state consistency just like
+software systems do. Evidence changes are state transitions. Derived
+claims are cached outputs. A changed upstream premise should invalidate
+downstream caches.
+
+```
+Evidence/assumption (changed)
+    ↓
+Finding (updated)
+    ↓ [INVALIDATED — must recompute]
+Summary (stale)
+Confidence label (stale)
+Recommendation (stale)
+Falsifier (stale)
+Metadata/frontmatter (stale)
+```
+
+**The rule:** *When evidence, an assumption, a conclusion, or a
+recommendation is materially changed or retracted in a research artifact,
+treat all derived statements as stale until revalidated. Search the entire
+artifact for the old claim, its synonyms, consequences, confidence labels,
+summaries, metadata, and downstream decisions. Recompute them from the
+new state rather than patching only the section where the correction
+arose.*
+
+**Structural enforcement: a claim ledger.** Before persisting a revised
+research artifact, produce a table proving every decision-critical claim
+has been propagated:
+
+| Claim | Current state | Previous state | Propagated? |
+|-------|--------------|----------------|-------------|
+| Side Panel is preferred | UNRESOLVED | HIGH/recommended | summary ✓, confidence ✓, falsifier ✓ |
+| Build strategy | reuse-spike | new extension | frontmatter ✓, recommendation ✓ |
+
+A claim with "Propagated? no" blocks persistence.
+
+**Relationship to existing propagation rule:** AGENTS.md's "Propagation
+check after policy/config changes" covers cross-file stale references
+(model slugs, file paths, skill names). This rule covers intra-artifact
+reasoning-chain invalidation within a single research document. Different
+layer, same principle.
+
+### 5. Reviewer feedback is a hypothesis, not authority
+
+**The problem:** when an LLM receives substantive criticism from a reviewer,
+it may immediately agree ("You were right on all five points") without
+independently verifying each point. This replaces anchoring on the original
+proposal with anchoring on the reviewer — the desired behavior is to reopen
+evidence, not to switch allegiance.
+
+```
+CORRECT:
+challenge arrives → reopen evidence → independently verify → update belief
+
+INCORRECT:
+challenge arrives → agree → adopt reviewer's position wholesale
+```
+
+**The rule:** *Reviewer feedback is a hypothesis to test, not an authority
+to obey. Independently verify substantive criticism. Classify each point as
+CONFIRMED / PARTIALLY CONFIRMED / REJECTED with evidence. Update only to
+the extent supported by evidence.*
+
+**Relationship to existing rules:** [[correction-response-discipline-
+anti-binary-swing]] covers hook and operator corrections (identify the
+narrow valid kernel, separate from overreach). This rule extends the same
+discipline to peer-review and external-LLM feedback specifically. The
+CRITIC principle (external evidence required for relabeling) applies here:
+agreement without independent verification is not validation.
