@@ -1,9 +1,9 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Last updated:** 2026-08-09 — pool-test scope, binding identity, and lane-scoped promotion clarified; live conformance remains open
-**Status:** Revision 5d — Codex red-team synthesis; Grok re-review pending; not live or conformant
-**Revision:** 5d — separates provider-pool health from code-model capability testing, aligns promotion with the common verification floor, and records the remaining Codex parity gap
+**Last updated:** 2026-08-09 — Codex benchmark artifact paths and validation status recorded; live conformance remains open
+**Status:** Revision 5e — Codex offline benchmark foundation recorded; Grok re-review pending; not live or conformant
+**Revision:** 5e — records the Codex capability/difficulty contract and evaluator artifacts, separates harness validation from live fleet evidence, and keeps pool-recovery work open
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
@@ -72,7 +72,15 @@ below; it is not a new conformance attestation.
     source, fixture hashes, and receipts exist.
 23. Corrected pool identity: shared capacity is keyed by quota pool/account and
     provider-defined scope; orchestrator and method remain route provenance and
-    are only part of the pool key when the provider exposes a separate limiter.
+   are only part of the pool key when the provider exposes a separate limiter.
+
+**Revision 5e benchmark artifact update (2026-08-09):**
+
+24. Added a Codex-owned offline capability/difficulty manifest and receipt
+    evaluator with 16 cases across capability/code_pool suites and four
+    difficulty tiers. Targeted harness tests pass; live adapter, executable
+    fixture/checker packs, provider-pool recovery tests, and paired cross-host
+    receipts remain open.
 
 ## Executive proposal
 
@@ -235,6 +243,47 @@ and candidate priority. This is a policy-conformance gap, not evidence that
 the target algorithm is live. The Codex golden-vector JS counterpart remains
 absent.
 
+A Codex-owned offline capability/difficulty benchmark foundation is now
+present, but it is not a live conformance implementation. It provides a
+deterministic manifest, receipt contract, and evaluator; it does not yet
+invoke providers, execute model-produced fixtures in a live sandbox, write
+fleet telemetry, or produce paired Codex/Grok receipts.
+
+### Codex benchmark artifacts — offline foundation (2026-08-09)
+
+The completed Codex-owned workspace artifacts are:
+
+- `P:\packages\codex-external-delegation\benchmarks\capability-difficulty\README.md`
+  — suite scope, receipt contract, offline commands, promotion rule, and
+  Grok merge points.
+- `P:\packages\codex-external-delegation\benchmarks\capability-difficulty\src\manifest.mjs`
+  — the stable 16-case manifest spanning `capability` and `code_pool` suites
+  and `easy`, `medium`, `hard`, and `expert` tiers.
+- `P:\packages\codex-external-delegation\benchmarks\capability-difficulty\src\evaluate.mjs`
+  — manifest/run validation, exact binding checks, quality-versus-blocked
+  outcome separation, per-cell aggregation, and Wilson lower bounds.
+- `P:\packages\codex-external-delegation\benchmarks\capability-difficulty\bin\capability-difficulty.mjs`
+  — offline `manifest`, `evaluate`, and `aggregate` CLI commands.
+- `P:\packages\codex-external-delegation\tests\capability-difficulty.test.mjs`
+  — 10 targeted tests covering manifest stability, promotion floors, blocked
+  quota/transport outcomes, binding scope, malformed receipts, and adversarial
+  aggregation cases.
+
+Validation recorded for this update:
+
+- From `P:\packages\codex-external-delegation`,
+  `node --test tests/capability-difficulty.test.mjs`: **10/10 passing**.
+- The package-wide `npm test` result is **143/147 passing**; the four failure
+  reports are in the existing `tests/review-relay.test.mjs` suite. This is not
+  a clean package baseline and does not invalidate the targeted benchmark
+  result.
+
+The remaining Codex benchmark work is the live provider/model adapter,
+versioned task fixtures and objective checker artifacts, native sandbox
+execution, provider-pool recovery tests, cross-host manifest/checker
+conformance, and paired live receipts. Until those exist, this foundation
+must not authorize model promotion or be described as fleet conformance.
+
 ### Evidence snapshot (2026-08-09, session 019fdf47)
 
 The following results are measured, scope-limited evidence from the current
@@ -326,15 +375,17 @@ runtime ranking. It may support promotion only when:
 4. the operator-configured lane floor is met; and
 5. promotion is scoped to the tested lane only.
 
-The operator-configured default is N=5 per lane in `fleet-models.json`.
-The policy recommendation is N>=10 for higher confidence. Both are valid
-operator choices — the contract is that the configured floor is met.
+The common policy default and promotion floor is N>=10 lane-appropriate
+verified successes per cell. An implementation configured below N=10 is
+provisional and non-conformant; it may be used only for exploratory
+calibration and must not authorize promotion or claim common-policy
+conformance.
 
 `quality_score` is a measurement, not a substitute for `verification_passed`.
 
-The initial promotion floor (HumanEval + N=5) establishes minimum
-capability. A higher acceptance tier (repository-context coding, patch
-application, tool use, independent verification) gates higher-risk work
+The existing HumanEval-style runner is a calibration signal, not sufficient
+promotion evidence. A higher acceptance tier (repository-context coding,
+patch application, tool use, independent verification) gates higher-risk work
 and is future work.
 
 ### Cohort and lifecycle flow
@@ -355,8 +406,10 @@ must not silently authorize reasoning, critic, or other lanes.
 ### Cross-host compatibility
 
 Codex and Grok should use the same problem manifest (fixture hash). Until
-a Codex executable counterpart and paired receipt exist, the Codex pool
-test is a target contract, not a verified fact.
+an executable Codex counterpart with native task execution and a paired
+receipt exist, the Codex pool test remains a target contract, not a verified
+fact. The Codex artifacts listed above currently provide the manifest and
+receipt/evaluator foundation only.
 
 ### Pool test suites
 
@@ -380,8 +433,10 @@ The trivial/standard split within a capability uses the same problems with
 different pass thresholds. The hard tier needs genuinely different problems
 (multi-file, ambiguous, real repository work) and is a separate suite.
 
-**Codex equivalent:** same problem manifests (fixture hash), native JS
-sandbox per suite, same calibration-cohort telemetry pattern.
+**Codex target:** same problem manifests (fixture hash), native JS sandbox per
+suite, and the same calibration-cohort telemetry pattern. The current Codex
+artifacts provide the offline manifest and evaluator only; native sandbox,
+live adapter, and telemetry integration remain future work.
 
 ### Method-aware testing
 
@@ -423,6 +478,40 @@ runner adds method-aware testing: run the same problems through the
 candidate's primary dispatch path, not just HTTP. Method-aware testing
 is more expensive (spawn requires the full agent infrastructure) but
 produces evidence that matches how the model is actually used.
+
+### Tool-evidence requirement for tool-loop capability
+
+A model that passes the coding pool test via HTTP has proven it can
+write standalone code. It has NOT proven it can make tool calls under
+an agent harness. Production telemetry confirms the gap: a model can
+score 98% success via direct HTTP but 23% via opencode because the
+agent harness adds tool schemas that the model cannot reliably format.
+
+**The rule:** tool-loop capability requires method-specific evidence.
+A candidate is excluded from tool-loop tasks unless it has either:
+
+1. **Calibration evidence from a tool-carrying method** (pool test run
+   via `--method opencode` or `--method spawn`), OR
+2. **Production evidence** with tool-carrying-method success rate above
+   a configured floor (default: 70%).
+
+Models with only HTTP evidence may serve `mechanical` and `reasoning`
+capabilities (no tools), but are restricted from `tool-loop` until
+they accumulate tool-carrying-method evidence.
+
+**Implementation:** the gate reads the evidence cache for the
+candidate's tool-carrying-method bindings (opencode, spawn). If none
+exist or the success rate is below the floor, the `tool-loop`
+capability is gated out. This is a read of existing telemetry -- no
+new test suite required. The method-aware pool test is the
+certification mechanism: run the coding problems via
+`--method opencode`, and if the model passes, it earns tool-loop
+eligibility.
+
+This follows the Inferbase (2026) production pattern: a model with
+no tool-use measurement is excluded from tool traffic entirely, even
+when its general scores are excellent. A strong generalist does not
+get to vouch for a capability nobody measured.
 
 ## What is shared and what remains separate
 
