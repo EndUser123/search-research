@@ -1,8 +1,8 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Status:** Revision 5 — incorporates all 35 findings from two converged relay sessions  
-**Revision:** 5 — converges both the 6-turn review (review-a4284b50b3c5-7ce08143) and the 6-turn re-review (review-48c2aaf5f35b-66380b08); ready for operator acceptance  
+**Status:** Revision 5a — incorporates all 35+3 findings from three relay sessions  
+**Revision:** 5a — converges both prior relays plus the R5 re-review (review-78ba2723102b-f5f12c38); ready for operator acceptance  
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
@@ -34,6 +34,15 @@ both relays are woven into the body.
     marked non-replayable (C-R5-07)
 11. Canonical candidate ordering (sorted by ID); weights rounded to 6 dp (C-R4-09)
 12. Missing-p90 fallback: p90 > p50_provisional > lane_median_provisional > BLOCKED (C-R5-09)
+
+**Additional fixes from R5 re-review (review-78ba2723102b-f5f12c38):**
+
+13. Fixed residual mechanical-write reference in candidate onboarding section
+    — calibration writes now explicitly use coding lane, not mechanical
+14. Fixed capacity decision table: all admissibility checks now compare against
+    demand + reserve, not bare remaining > 0
+15. Near-zero weight threshold: 0 is BLOCKED; values below 1e-6 after
+    normalization are treated as zero for safety
 
 ## Executive proposal
 
@@ -449,12 +458,13 @@ discoverable -> candidate -> safe calibration/exploration
   -> lane-specific verified evidence -> active for that lane/risk class
 ```
 
-A candidate may be calibrated on low-risk mechanical work with bounded scope,
-including an isolated worktree when the calibration task writes files. This is
-not a read-only requirement; it is a containment requirement. A candidate is
-not automatically eligible for reasoning or write-capable work. A new, free,
-or statically high-priority model must not displace an evidenced candidate
-without lane-appropriate evidence.
+A candidate may be calibrated on low-risk work in the `coding` lane (the
+only write-capable lane) with bounded scope and an isolated worktree. The
+`mechanical` lane is strictly read-only; calibration tasks that write files
+must use the `coding` lane, not `mechanical`. This is a containment
+requirement. A candidate is not automatically eligible for reasoning or
+write-capable work. A new, free, or statically high-priority model must not
+displace an evidenced candidate without lane-appropriate evidence.
 
 The operator-facing promotion control may remain one threshold per lane, but
 the threshold is not a universal raw-call rule and need not be five. The
@@ -592,13 +602,13 @@ defaults when the adapter output is ambiguous.
 
 | capacity_kind | freshness | ordinary task | bounded non-spend task | scarcity-sensitive task |
 |---|---|---|---|---|
-| `windowed_units` | fresh (<5 min) | allow if remaining > 0, apply pacing | allow | allow only if not forecast-exhausted |
+| `windowed_units` | fresh (<5 min) | allow if remaining > demand + reserve, apply pacing | allow if remaining > demand | allow only if remaining > demand + reserve and not forecast-exhausted |
 | `windowed_units` | stale (>5 min) | block until refreshed | allow if route health is clean | block |
-| `monetary_budget` | fresh | allow if remaining > cap | allow | allow only if remaining > reserve |
+| `monetary_budget` | fresh | allow if remaining > demand + cap | allow if remaining > demand | allow only if remaining > demand + reserve |
 | `monetary_budget` | stale | block until refreshed | allow | block |
-| `rate_limited_only` | live (429 health checked) | allow if no active 429/backoff | allow | allow if concurrency state admits |
+| `rate_limited_only` | live (429 health checked) | allow if no active 429/backoff | allow if concurrency state admits demand | allow if concurrency state admits demand |
 | `rate_limited_only` | stale | allow with disclosed uncertainty | allow | block |
-| `multi_pool` | fresh | check most restrictive window | allow if all relevant windows admit | allow only if all windows clear reserve |
+| `multi_pool` | fresh | check most restrictive window against demand + reserve | allow if all relevant windows admit demand | allow only if all windows clear demand + reserve |
 | `multi_pool` | stale | block until refreshed | allow if route health clean | block |
 | `unknown` | n/a | allow with disclosed uncertainty (non-spend only) | allow | block |
 
