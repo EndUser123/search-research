@@ -1,5 +1,11 @@
 # Vault Log
 
+## liveness-vs-timeout-for-agent-pipeline-polling-loops
+Source: session-2026-08-09
+Agent: grok
+Notes: Research + /tp critique: separate liveness (heartbeat) from duration (timeout); for single-host, progress-file-mtime is simpler; measure before building
+Page: P:/.data/wiki/concepts/liveness-vs-timeout-for-agent-pipeline-polling-loops.md
+
 ## orchestrator-controlled-cross-model-validation-ship-py
 Source: session-2026-08-09
 Agent: grok
