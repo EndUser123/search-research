@@ -8,14 +8,17 @@ summary: >
   tabbed sidebar: Chapters | Overview | Ask | Transcript | Links). Covers the two
   reference extensions (Links and Chapters, Trinity — both closed-source), the
   "YouTube built-in AI" chapter-generation mechanism (DOM prompt-injection into
-  the Ask/YouChat panel — real but fragile), in-browser transcript acquisition
-  (ytInitialPlayerResponse.captions + Innertube/timedtext + PO-token), native
-  chapter reading, the chrome.sidePanel API as the recommended sidebar
-  architecture, open-source clean-room references (QuickSummarize GPL v3,
-  keyFrame), and the competitor landscape. Headline finding: the "no-LLM-needed"
-  premise is only partially true; both open-source maintainers abandoned YouTube's
-  built-in AI in favor of external LLMs, so the MVP should treat Ask-panel
-  injection as a bonus, not the primary path.
+  the Ask/YouChat panel — a preferred opportunistic backend with detection +
+  timeout + validation + fallback, NOT pre-demoted). Dominant reuse candidate:
+  steipete/summarize (MIT, 6.5k stars, ~80% coverage, already solved the
+  videoId-freshness / long-video-truncation / chat-bleed bugs). In-browser
+  transcript acquisition via ytInitialPlayerResponse.captions read through
+  MAIN-world execution + Innertube/timedtext + PO-token. Native chapter reading.
+  The chrome.sidePanel vs in-page-injection container question is OPEN — needs a
+  visual test (sidePanel sits alongside the page, not in YouTube's right column).
+  Competitor landscape. Headline finding: a from-scratch build is NOT authorized
+  until a 3-gate decision spike resolves reuse feasibility and the visual
+  container before any transcript/AI work.
 agent: grok
 host: both
 cognitive_load: 3
@@ -48,7 +51,7 @@ relations:
 
 **The real question behind this research:** the operator has a ChatGPT design conversation (saved at `C:/Users/brsth/Downloads/I-would-keep-the-MVP-surprisingly-small.md`) describing a unified YouTube workspace Chrome extension — one toolbar button toggling a **persistent right-side tabbed sidebar** (Chapters | Overview | Ask | Transcript | Links | Videos). The conversation references two installed extensions (Links and Chapters, Trinity) and hinges on one **blocking claim**: that "YouTube's built-in AI" can generate chapters/summaries with *no local model and no API key*. The operator wants to implement this. This research was needed to (a) verify that blocking claim, (b) find the extensions' source/licenses, (c) ground the transcript/chapter acquisition + sidebar architecture in primary sources, and (d) surface open-source clean-room references.
 
-**What the research changed:** the blocking claim is *partially true* but materially more fragile than the conversation assumed — and *both* open-source maintainers who faced the same choice abandoned YouTube's built-in AI for external LLMs. This reshapes the MVP's risk model (see Headline finding).
+**What the research changed:** the blocking "built-in AI" claim is a real mechanism (DOM prompt-injection into YouTube's Ask/YouChat panel) but its reliability is managed operationally (detection + timeout + validation + fallback), not by refusal. The bigger finding — added in revision after operator review — is that `steipete/summarize` (MIT, 6.5k★) already implements ~80% of the target architecture and has fixed the hard bugs (stale-state on video switch, chat-bleed, long-video truncation), so a from-scratch build is **not** authorized until a reuse verdict (Gate 1A) and a visual-container test (Gate 1B) settle the two open architectural questions. See the 3-gate sequence under Recommendations.
 
 ## Workspace observations (Phase 1a)
 
@@ -151,7 +154,7 @@ nav to video B → invalidate active A → acquire context(B) → accept ONLY if
 
 [FACT, MEDIUM confidence — single primary source + general knowledge; the exact JSON key path is [INFERENCE] until verified against a live page]
 
-Creator chapters live in `ytInitialPlayerResponse` under `macroMarkersList` / the chapters array (same JSON YouTube uses to render seek-bar markers), and in `ytInitialData` engagement-panels for the visible chapter list. Auto-generated chapters occupy the same path when YouTube computed them. A content script reads these directly — **no AI involved.** Fallback: parse description timestamp lines via regex (`(\d{1,2}:\d{2}(:\d{2})?)\s+(.+)`).
+Creator chapters live in `ytInitialPlayerResponse` under `macroMarkersList` / the chapters array (same JSON YouTube uses to render seek-bar markers), and in `ytInitialData` engagement-panels for the visible chapter list. Auto-generated chapters occupy the same path when YouTube computed them. These are read via the same **MAIN-world execution + serialization** path as transcripts (see §3) — an isolated-world content script **cannot** read them directly. No AI is involved in reading them. Fallback: parse description timestamp lines via regex (`(\d{1,2}:\d{2}(:\d{2})?)\s+(.+)`).
 
 > Note: the exact key path (`macroMarkersList.macroMarkersListItem` vs engagement-panel chapter renderer) is **[INFERENCE]** — verify against a live `ytInitialPlayerResponse` dump before coding. The existence of structured chapters in that object is **[FACT]**.
 
@@ -210,13 +213,13 @@ For reference, the API facts (still useful regardless of decision):
 
 **Footprint concern:** the extension also carries a heavier **`automation/`** layer (REPL, skills, tools, debugger-backed automation) and hover-summary/slide features. A fork intended only for "Chapters | Overview | Ask | Transcript | Links" would want to strip automation/hover to reduce surface area — needs a footprint audit.
 
-**Reuse verdict — FORK (provisional, pending Gate 1A):**
+**Reuse verdict — FORK_CANDIDATE / SPIKE REQUIRED (not yet FORK):**
 - **REJECT** is clearly wrong given MIT + 6.5k★ + ~80% coverage + solved hard bugs.
 - **REUSE-as-published** can't work — the store extension has no Chapters tab and no YouTube-Ask provider; adding them requires modifying source.
 - **EXTRACT components** (`@steipete/summarize-core`) into a fresh extension is viable for the transcript/extraction layer, but the panel/state/seek modules are coupled to their panel-session architecture — clean extraction may cost more than forking.
-- **FORK** the extension, strip `automation/`/hover if unwanted, add a Chapters view + a YouTube-Ask provider, keep the MIT notice. This inherits the solved bugs (freshness, truncation, seek, SPA nav) for free. **This is the leading path**, contingent on Gate 1A confirming Chapters is additive without fighting the panel-state architecture and quantifying the stripped footprint.
+- **FORK_CANDIDATE** (leading hypothesis): fork the extension, strip `automation/`/hover if unwanted, add a Chapters view + a YouTube-Ask provider, keep the MIT notice, inherit the solved bugs (freshness, truncation, seek, SPA nav). **The verdict is CANDIDATE, not confirmed FORK**, because the two questions capable of changing it have not yet been answered. FORK is reserved for **post-Gate-1A**, once reuse feasibility is demonstrated with evidence.
 
-> ⚠️ Honest caveat: I have NOT yet confirmed whether adding a Chapters tab fits cleanly into their `panel-state`/`panel-session-store` tab model, nor measured the stripped dependency footprint. Those are the two open questions Gate 1A must close before FORK is final.
+> Honest caveat: I have NOT yet confirmed whether adding a Chapters tab fits cleanly into their `panel-state`/`panel-session-store` tab model, nor measured the stripped dependency footprint. Those are the two open questions Gate 1A must close before the verdict promotes from CANDIDATE to FORK.
 
 ### 6b. Smaller / less suitable references
 
@@ -300,16 +303,37 @@ Mechanism and source claims in this page, with their evidence basis:
 
 ## Falsifier
 
-- If `chrome.sidePanel` is removed or its toggle behavior changes in a future Chrome, recommendation 1–2 break (low likelihood; it's a stable, promoted API).
-- If YouTube removes the per-video Ask panel or hardens it against DOM prompt-injection, tier 3–4 disappear (medium likelihood; this is why they are NOT the primary path).
-- If `ytInitialPlayerResponse.captions` shape changes, transcript acquisition needs re-derivation — re-verify against a live page each build (high likelihood over time; the QuickSummarize maintainer already navigates this).
-- A live spike on real videos is the ultimate falsifier for all of the above — do that before committing to the full spec.
+- If `chrome.sidePanel` is removed or its toggle behavior changes in a future Chrome, the sidePanel-candidate option weakens — low likelihood; it's a stable, promoted API. (Note: this falsifies only the sidePanel *option*, not the in-page option; Gate 1B picks between them.)
+- If YouTube removes the per-video Ask panel or hardens it against DOM prompt-injection, the **Ask-as-preferred-opportunistic-backend** path degrades — but the detection+timeout+fallback design falls through to the configured provider, so the architecture survives (Ask becomes simply absent rather than broken).
+- If `ytInitialPlayerResponse.captions` shape changes, transcript/chapter acquisition needs re-derivation — re-verify against a live page each build (high likelihood over time; the `steipete/summarize` maintainers already navigate this).
+- If Gate 1A finds Chapters cannot be added to `steipete/summarize` without fighting its panel-state architecture, the FORK_CANDIDATE verdict degrades toward EXTRACT or REJECT.
+- If Gate 1B's visual test shows the sidePanel narrows the video and leaves recommendations in place (not the desired "turn wasted space into workspace" UX), the in-page-injection container wins despite higher DOM-maintenance cost.
+- A live spike on real videos is the ultimate falsifier for the [INFERENCE] items — do that (Gate 2/3) before committing to the full spec.
 
 ## Confidence summary
 
-- Extensions are closed-source / un-forkable: **[FACT, HIGH]**.
-- "Built-in AI" = Ask-panel/YouChat DOM prompt-injection: **[FACT, HIGH]** (changelog-stated); reliability as primary path: **disconfirmed by practitioner choices**.
-- chrome.sidePanel as recommended sidebar: **[FACT, HIGH]** (official docs + working reference).
-- Transcript acquisition methods: **[FACT, HIGH]**.
+[Recomputed 2026-08-08 to match the corrected state — prior version resurrected two retracted conclusions.]
+
+- Extensions closed-source / un-forkable (Links and Chapters, Trinity): **[FACT, HIGH]**.
+- "Built-in AI" = Ask-panel/YouChat DOM prompt-injection mechanism: **[FACT, HIGH]** (changelog-stated). Its role in the design: **preferred opportunistic backend** (detection+timeout+validation+fallback) — reliability is operationally managed, not pre-judged.
+- `steipete/summarize` reuse candidate (MIT, 6.5k★, ~80% coverage, solved hard bugs): **[FACT, HIGH]** (verified this session). Verdict: **FORK_CANDIDATE / SPIKE REQUIRED** — FORK reserved for post-Gate-1A.
+- Sidebar container (chrome.sidePanel vs in-page injection): **UNRESOLVED** — not decidable from API docs; Gate 1B visual test decides.
+- Build strategy: **reuse-decision-spike (Gate 1)** precedes any build; from-scratch is justified only if Gate 1A returns REJECT.
+- Transcript acquisition methods (MAIN-world read of `ytInitialPlayerResponse.captions` → baseUrl+`&fmt=json3`): **[FACT, HIGH]**; requires MAIN-world bridge + videoId freshness contract.
 - Exact chapter JSON key path: **[INFERENCE, MEDIUM]** — verify live before coding.
 - Competitor "accuracy %" figures: **[INFERENCE]** — vendor-sourced, treat as directional.
+
+## Claim ledger (revision-integrity sweep — 2026-08-08)
+
+Proof that the 2026-08-08 correction propagated to every derived location. Each decision-critical claim, its current vs previous state, and whether it was checked everywhere it appears. Generated by searching the whole artifact for the old phrasing and confirming none survive as current (historical/retraction records in §"Recommendations — record of revisions" are explicitly marked and do not contaminate current statements).
+
+| Decision-critical claim | Current state | Previous state | Propagated to frontmatter / decision-context / body / falsifier / confidence? |
+|---|---|---|---|
+| Sidebar container | **UNRESOLVED** (Gate 1B visual test decides) | HIGH / "recommended architecture" | ✅ frontmatter, §5, falsifier, confidence — all updated; old "recommended" survives only in §"record of revisions" (marked superseded) |
+| YouTube Ask role | **preferred opportunistic backend** (detection+timeout+validation+fallback) | "bonus path, not primary" | ✅ frontmatter, §2, falsifier, confidence — all updated; old causal claim ("practitioners abandoned") removed from frontmatter + decision-context |
+| Build strategy | **reuse-decision-spike (Gate 1)** precedes build | "CREATE new extension" | ✅ frontmatter, decision-context, §6a, §"What this means" — all updated |
+| steipete/summarize verdict | **FORK_CANDIDATE / SPIKE REQUIRED** | (not present — omission) | ✅ §6a, confidence, recommendations — added |
+| Transcript page-global access | **MAIN-world bridge required** + videoId freshness contract | "content script reads directly" | ✅ §3, §4 (native chapters had the same bug), falsifier — all updated |
+| Causal claim "maintainers abandoned Ask as fragile" | **RETRACTED** (no receipt; their choices reflect design philosophy, not Ask-fragility) | asserted as the highest-value finding | ✅ frontmatter, decision-context, §2, confidence — all instances removed or reframed |
+
+This ledger is the structural fix for the failure mode the operator named: **revision treated as local text editing rather than dependency invalidation.** See `[[research-artifact-revision-invalidation]]` for the durable rule.
