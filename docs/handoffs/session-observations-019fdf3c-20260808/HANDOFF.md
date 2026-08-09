@@ -51,10 +51,18 @@ Also fixed: pre-existing test_ship_orchestrator.py import failures (16 errors fr
 
 ## 6. Open workstreams for next session
 
-- Address remaining review risks (items 4-7 from latest /todo): hash separator (DONE), pause-phase gate-check (DONE), session-id validation (DONE), lazy imports (deferred)
-- /www research backlog: 7 items in handoff
+**Priority order (from /tp session-end analysis):**
+
+1. **Lazy phase imports** (ship_orchestrator.py) — all 12 phases imported eagerly at module load. One broken import breaks ALL subcommands. Convert to lazy imports (like the run_all pattern at line 233). ~30 min, single file.
+2. **xfail mock rewrite** (test_ship_orchestrator.py::test_flags_already_shipped) — mock git responses don't match detect phase's evolved query sequence (diff-tree, porcelain, multiple log calls). Needs full mock rewrite. ~20 min, single file.
+3. **www research backlog** — 7 items in `docs/handoffs/www-research-backlog-20260808/HANDOFF.md`. R5-R7 are quick verifications (<30 min each); R1-R4 are multi-hour sessions.
+4. **Close scanner gate format** — the continuation-coverage gate wants a ledger file with disposition assignments. Not blocking work; just prevents /close from emitting a clean CLOSE COMPLETE.
+5. **215 open handoffs** — velocity signal, not hygiene. Batch-close via `/close --coverage` when making changes.
+
+**Already shipped (not in this list):**
+- Hash separator (DONE), pause-phase gate-check (DONE), session-id validation (DONE)
 - Dream triage: all 4 proposals triaged (3 promoted, 1 deferred)
-- 215 open handoffs (velocity signal, not hygiene)
+- All enforcement infrastructure, tests, wiki concepts, AAR
 
 ## 7. Commits
 
