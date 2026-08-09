@@ -22,7 +22,7 @@ export const DEFAULT_REGISTRY_ROOT = "P:/tmp/review-relay/registry";
 export const DEFAULT_SESSION_ROOT = "P:/tmp/review-relay/sessions";
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
-const DEFAULT_LEASE_SECONDS = 120;
+const DEFAULT_LEASE_SECONDS = 600; // 10 min — Gerrit CI amplification research shows 5-20x overhead; 120s was too tight for LLM review turns
 const DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60;
 const DEFAULT_ORPHAN_GRACE_SECONDS = 30;
 // New reviews are unbounded by turn count. An explicit max_turns value remains
