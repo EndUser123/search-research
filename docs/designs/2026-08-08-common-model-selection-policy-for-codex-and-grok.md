@@ -383,6 +383,47 @@ different pass thresholds. The hard tier needs genuinely different problems
 **Codex equivalent:** same problem manifests (fixture hash), native JS
 sandbox per suite, same calibration-cohort telemetry pattern.
 
+### Method-aware testing
+
+The invocation method changes quality, not just speed. Production
+telemetry shows dramatic success-rate variation across methods for the
+same model:
+
+| Model | HTTP success | PI success | opencode success |
+|---|---|---|---|
+| `nim-openai-gpt-oss-20b` | 0.980 | 0.918 | 0.233 |
+| `cohere-command-a-reasoning` | 0.960 | 0.680 | 0.600 |
+| `zen-deepseek-v4-flash-free` | 0.943 | 0.374 | 0.741 |
+
+A model that writes correct code via direct HTTP can fail via opencode
+because the agent harness adds tool schemas, system prompts, and context
+management that change the model's behavior. This is the "tool-calling
+reliability is not predicted by general quality" finding from production
+practice (Inferbase 2026).
+
+**Implication for pool testing:** the binding fingerprint includes
+`invocation_method`. Pool test evidence is only valid for the method
+tested. A model that passes the HTTP pool test has not proven it can
+perform via spawn, PI, or opencode.
+
+**Test the primary method.** Each candidate's `dispatch_paths` declares
+the runtime method order (e.g., `["spawn", "pi", "http"]`). The pool
+test should run through the primary method — the one the runtime will
+try first. Testing only via HTTP (as the v1 runner does) proves HTTP
+capability but not spawn/PI/opencode capability.
+
+**Method-specific failure modes:**
+- HTTP: raw model output, no wrapper — tests model quality directly
+- PI: subprocess with system prompt injection — tests model + prompt compat
+- opencode: full agent scaffolding with tool schemas — tests tool-call format reliability
+- spawn: full Grok Build agent loop with tools, worktree, hooks — tests the complete binding
+
+The v1 pool test runner uses HTTP for speed and simplicity. The v2
+runner adds method-aware testing: run the same problems through the
+candidate's primary dispatch path, not just HTTP. Method-aware testing
+is more expensive (spawn requires the full agent infrastructure) but
+produces evidence that matches how the model is actually used.
+
 ## What is shared and what remains separate
 
 ### Shared
