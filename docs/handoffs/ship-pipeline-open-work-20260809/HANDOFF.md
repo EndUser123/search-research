@@ -61,8 +61,18 @@ has_code_files=True but no findings file.
 now hard-blocks (return 2 + state blocked) on broken tamper-evident chain.
 
 **B4.** Polling-loop timeout has no retry cap — re-invocation retries
-indefinitely with no exponential backoff. Fix: add retry counter and hard
-block after N timeouts. (STILL OPEN — affects responsiveness, not integrity)
+indefinitely with no exponential backoff. **RESEARCHED (commit 80b9bbd)** —
+see [[liveness-vs-timeout-for-agent-pipeline-polling-loops]]. The /www+/tp
+research found: (a) for single-host scale, the progress-file-mtime pattern is
+simpler than full heartbeats, BUT (b) hunk-log-mtime produces false positives
+on read-heavy phases (review agents reasoning without editing), and (c) the
+problem may be hypothetical — no measured incidents of legitimate premature
+cutoff. **Recommended action:** first MEASURE whether the problem exists
+(check `_timed_out_<phase>` markers in state files). If no incidents, increase
+`poll_timeout` default from 600s to 1800s (one config change) and close this
+item. If incidents exist, implement the progress-sidecar pattern (agent touches
+a progress file every 30s; polling loop checks mtime with 180s liveness timeout
++ 1800s overall backstop).
 - File: `~/.grok/skills/ship-py/__lib/phases/run_all.py`
 
 ### Track C: Stop hook regex (from ship-py-hardening Finding 11)
