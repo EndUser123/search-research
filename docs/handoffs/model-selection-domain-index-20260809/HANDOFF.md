@@ -308,4 +308,4 @@ The model-selection system has three live layers:
 
 **New open item:**
 
-- The golden-vector executable conformance gate is a shared requirement (both hosts). Grok's verifier fails during selector invocation; Codex's is absent. This is a blocker for live activation that was not visible when the original handoff was written.
+- ~~The golden-vector executable conformance gate is a shared requirement (both hosts). Grok's verifier fails during selector invocation; Codex's is absent.~~ **RESOLVED on Grok side (2026-08-09, commit `c55646d`):** root cause was a one-line registry construction bug in `invoke_selector()`. All 25 golden vectors now pass. Status changed from SKELETON to EXECUTABLE. The Codex JS counterpart remains the operator/Codex side to ship.
