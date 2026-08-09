@@ -324,7 +324,9 @@ The model-selection system has three live layers:
 
 **What remains open (Gap D — Step 2+):**
 
-- ~~**Quota capacity adapter** — `_quota_headroom()` is still a type-based heuristic.~~ **Step 1 RESOLVED (2026-08-09, commit `6a6d10f`):** `capacity_adapter.py` reads the live fleet quota cache, normalizes to R5b adapter shape, implements the decision table as a 5th gate. `_quota_headroom()` removed from scoring (capacity is gate-only per R5b fix #2). Live test confirms exhausted providers (cohere at pct=0) are correctly blocked. **Remaining Step 2+:** demand estimation (token counting), pricing data for monetary_budget, adaptive reserve from demand forecast. These are features blocked on data that doesn't exist yet.
+- ~~**Quota capacity adapter** — `_quota_headroom()` is still a type-based heuristic.~~ **Step 1 RESOLVED (2026-08-09, commit `6a6d10f`):** `capacity_adapter.py` reads the live fleet quota cache, normalizes to R5b adapter shape, implements the decision table as a 5th gate. `_quota_headroom()` removed from scoring (capacity is gate-only per R5b fix #2). Live test confirms exhausted providers (cohere at pct=0) are correctly blocked. **Remaining Step 2+:** demand estimation (token counting), pricing data for monetary_budget, adaptive reserve from demand forecast.
+
+**Evidence key matching fix (2026-08-09, commit `abee719`):** the evidence cache has 865 groups but only 5/32 candidates matched due to key mismatches. Fixed `_lookup_evidence_in_cache()` with model name aliases, dispatch-path fallback, case-insensitive matching. `compute_score()` now uses success_rate as quality proxy. 8/20 active candidates now have evidence reaching the scorer.
 
 **Verification:**
 - 25/25 golden vectors pass (all 3 changes verified)
