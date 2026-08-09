@@ -194,8 +194,11 @@ def test_non_text_files_do_not_consume_cap(tmp_path: Path) -> None:
     assert names == {"real.py"}, f"non-text files enqueued: {names}"
 
 
-def test_cap_does_not_abandon_later_scopes(tmp_path: Path) -> None:
-    """Hitting the cap in scope 1 must not prevent scope 2 from being walked."""
+def test_cap_records_error_and_returns_partial(tmp_path: Path) -> None:
+    """Cap-hit records the error flag and returns the partial result.
+    The global cap stops collection from all scopes once hit — this test
+    confirms the error is recorded (not lost in an early return) and the
+    partial file list is returned cleanly."""
     scope1 = tmp_path / "big"
     scope1.mkdir()
     for i in range(10):
@@ -205,8 +208,16 @@ def test_cap_does_not_abandon_later_scopes(tmp_path: Path) -> None:
     (scope2 / "important.py").write_text("# b\n", encoding="utf-8")
 
     files, errors = _walk_files([scope1, scope2], max_files=5)
-    # Cap is global; once hit, collection stops. The fix is that cap_hit uses
-    # break (not return), so the function still returns cleanly with the error
-    # flag rather than discarding the partial result via an early return path.
     assert "file_limit_reached:5" in errors
     assert len(files) == 5
+
+
+def test_claude_plugin_dir_stays_authoritative() -> None:
+    """.claude-plugin/ is a source root (plugin manifests), not derived state."""
+    f = Path("P:/packages/foo/.claude-plugin/plugin.json")
+    assert not _is_derived_component(".claude-plugin"), (
+        ".claude-plugin wrongly treated as derived — plugin manifests would be pruned"
+    )
+    assert _is_authority_candidate(_classification(f)), (
+        ".claude-plugin/plugin.json not classified as candidate_source"
+    )

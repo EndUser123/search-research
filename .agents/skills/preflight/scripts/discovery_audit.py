@@ -15,6 +15,7 @@ SCHEMA_VERSION = "source-discovery.v1"
 TEXT_SUFFIXES = {
     ".json", ".jsonl", ".md", ".py", ".ps1", ".sh", ".toml", ".yaml", ".yml",
     ".txt", ".ini", ".cfg", ".xml", ".js", ".ts",
+    ".bat", ".cmd", ".psm1", ".psd1",
 }
 SKIP_DIRS = {
     # build / packaging output
@@ -40,6 +41,7 @@ SKIP_DIRS = {
 # finite, stable set and are exempted here.
 _DOT_SCOPE_ROOTS = frozenset({
     ".claude", ".grok", ".agents", ".data", ".claude-marketplace",
+    ".claude-plugin",
 })
 
 # Non-dotted directory component names that are derived runtime state or build
