@@ -3,6 +3,13 @@
 ## Status
 OPEN — design needed
 
+## Changelog
+
+| Date | Session | Action |
+|------|---------|--------|
+| 2026-08-08T22:00 | 019fe25d | created — split from bundled handoff; dispatch path narrowed to HTTP/Pi |
+| 2026-08-09T04:30 | 019fe25d | updated — cold-start prompt added; acceptance criteria clarified; Singh heuristic split to separate handoff |
+
 ## Related handoff (coordination)
 Session 019fe403 shipped ship-py Phase 1 + Phase 2 enhancements. The review
 phase was modified (P2-1: PAUSE_INSTRUCTIONS now mandates cross-model
