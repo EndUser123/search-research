@@ -33,9 +33,17 @@ Grok Build documents `GROK_SESSION_ID` as an environment variable set for
 hooks:
 
 > | `GROK_SESSION_ID` | The unique identifier of the current Grok session. |
-> — `~/.grok/docs/user-guide/10-hooks.md`
+> — `~/.grok/docs/user-guide/10-hooks.md:318` (under "Runner-injected variables (always available)")
+>
+> These variables are set by the hook runner for **every** hook.
+> — ibid, line 314
 
-**It is not populated.** Verified 2026-08-08:
+And at line 440:
+
+> Hooks receive `$GROK_EVENT`, `$GROK_MESSAGE`, and `$GROK_SESSION_ID` in the environment.
+
+**The documented contract is not fulfilled by the runtime.** Verified
+2026-08-08:
 
 ```powershell
 > $env:GROK_SESSION_ID
@@ -51,6 +59,21 @@ session_id = os.environ.get("GROK_SESSION_ID") or os.environ.get("CLAUDE_SESSION
 ```
 
 The result: `# Active Surface — Grok Build Session unknown-session`.
+
+**This is a platform bug, not a workspace coding error.** 121 files across
+the workspace reference `GROK_SESSION_ID`. They were all correctly coding
+against the documented API. The spread is proportional to how fundamental
+session identity is to multi-terminal isolation — every hook, scanner, and
+enforcement mechanism needs it.
+
+### Provenance: where the pattern came from
+
+The pattern did NOT originate from agents inventing an assumption. It came
+from reading the official Grok Build documentation and coding to the
+documented contract. The docs say `GROK_SESSION_ID` is "always available"
+(runner-injected, line 314) and "set by the hook runner for every hook"
+(line 313). The workspace followed the spec; the runtime didn't implement
+it. This is a **doc-vs-runtime discrepancy**, not a workspace design error.
 
 ## Where the session ID IS available
 
