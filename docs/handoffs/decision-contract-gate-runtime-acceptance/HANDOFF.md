@@ -1,13 +1,19 @@
 ---
 title: Decision-contract gate — fresh-session runtime acceptance test
-status: OPEN
+status: SUPERSEDED
 created: 2026-08-08
-last_updated_at: 2026-08-08T23:59:00Z
+last_updated_at: 2026-08-09T00:35:00Z
 assignee: grok
 session_origin: 019fdf3d-a0bd-7062-abc4-24dcf064ae49
+superseded_by: P:/docs/handoffs/epistemic-control-system-runtime-acceptance/HANDOFF.md
 ---
 
-# Decision-contract gate: fresh-session runtime acceptance
+# Decision-contract gate: fresh-session runtime acceptance (SUPERSEDED)
+
+**This handoff is superseded** by the system-level acceptance matrix at
+`P:/docs/handoffs/epistemic-control-system-runtime-acceptance/HANDOFF.md`,
+which tests all three gates together (decision, reviewer, revision) including
+composition and applicability-boundary probes.
 
 ## Context
 
