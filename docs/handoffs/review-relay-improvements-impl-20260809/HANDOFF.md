@@ -73,10 +73,16 @@ Run convergence weight validation against ≥3 historical sessions from `P:/.dat
 
 ### Phase 2 — partner adoption (default-on)
 
+**Pre-Phase-2 gates (mandatory — added via /risk 2026-08-09):**
+
+1. **Behavioral adoption test (risk #1 mitigation).** Before U-5 (partner prompt update) lands, run one dry-run partner turn with `previous_findings_path` populated. Verify the partner LLM actually reads `findings.jsonl` and produces a state transition in its scratchpad. If the partner ignores the sidecar, the partner prompt needs redesign BEFORE ship — not after. Cost: ~15 min.
+2. **`opts.session_id` default-on (risk #2 mitigation).** When U-3 (`split.mjs`) ships in Phase 3, the `opts.session_id` parameter MUST default to `${process.pid}-${Date.now()}` if not provided — NOT null. DEC-10 specified opt-in for backward compat, but this is a single-operator home-project workspace with no external consumers to preserve compat with. The opt-in default optimizes for a constraint that doesn't apply here. Cost: 1 line in `split.mjs`.
+3. **Phase 1.5 completion trailer.** Phase 2 commits MUST NOT land without a `phase-1.5-complete` trailer in the commit message. This makes the skip-visible pattern mechanically detectable. Cost: 0 (contract).
+
 | Unit | Description | Files | Est LoC |
 |---|---|---|---|
 | **U-4** | SKILL.md documentation (3 new sub-sections: finding lifecycle, convergence score, per-section parallel review) | Modify: `~/.grok/skills/review-relay/SKILL.md` | ~180 |
-| **U-5** | Partner prompt update with concrete `{{previous_findings_path}}` template + test | Modify: `~/.grok/skills/review/SKILL.md`; New: `tests/test_partner_prompt_template.mjs` | ~30 + ~50 test |
+| **U-5** | Partner prompt update with concrete `{{previous_findings_path}}` template + test. **PRECONDITION: behavioral adoption test (Pre-Phase-2 gate #1) must pass first.** | Modify: `~/.grok/skills/review/SKILL.md`; New: `tests/test_partner_prompt_template.mjs` | ~30 + ~50 test |
 | **U-12** | Partner adoption instrumentation (logs `read_attempted: true` to scratchpad) | New: helper in partner prompt or skill hook | ~40 |
 
 **Adoption metric:** ≥95% of partner turns read `previous_findings_path` (when non-null) within 30 days of Phase 2 ship.
