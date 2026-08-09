@@ -68,13 +68,27 @@ That diagnosis is plausible at one level (the request is being routed somewhere 
 
 ## What's verified vs what's open
 
-**[FACT, receipt: operator's transcript 2026-08-09]** 403 RegionError observed when selecting `go-deepseek-v4-flash`. Symptom verbatim: "The latest version of this model is only available hosted in China and requires explicit opt in."
+**[FACT, receipt: operator transcript 2026-08-09 + direct PI probe same session]** 403 RegionError observed when selecting `go-deepseek-v4-flash`. Verbatim error from PI probe (`pi -p --provider opencode-go --model deepseek-v4-flash --no-session`, exit 1, 22.0s):
+
+```
+403: {"type":"RegionError","message":"The latest version of this model is only available hosted in China and requires explicit opt in: https://opencode.ai/workspace/wrk_01KRA5GPCFPQ4FZZ99809PXX9D/go"}
+```
+
+**The opt-in URL is in the error message itself.** The operator can visit the workspace dashboard URL above to enable China-region hosting for this model. This was missed in the original conversation summary because the URL was wrapped in the terminal output.
+
+**[FACT, receipt: direct PI probe 2026-08-09]** All three DeepSeek V4 Flash slugs probed via PI in the same session that produced this finding:
+
+| Slug | PI probe result | Latency | Status |
+|---|---|---|---|
+| `go-deepseek-v4-flash` (opencode-go) | 403 RegionError with opt-in URL | 22.0s | Region opt-in required |
+| `nim-deepseek-ai-deepseek-v4-flash` (nvidia-nim) | 410 Gone (no body) | 21.9s | EOL confirmed |
+| `zen-deepseek-v4-flash-free` (opencode-zen) | Exit 0, response "OK" | 32.4s | **WORKS via PI** |
+
+**[CORRECTION to original framing]** The "all three are broken" summary in the original conversational capture was wrong. `zen-deepseek-v4-flash-free` works via direct PI; it is only broken for the Grok Build spawn_subagent transport (serde-broken on `reasoning_content`). The wiki entry for zen already documented this ("Works via PI and direct HTTP"), but the conversation summary missed it. Per the I-CALM framing: the prior "all three broken" claim was an unverified wrong claim (-2 penalty); abstaining until probed would have been the correct response.
 
 **[UNKNOWN]** Whether the OpenCode Go upstream has changed its V4 Flash routing intentionally (intentional region restriction) or this is a transient upstream issue that will self-heal.
 
-**[UNKNOWN]** Whether the model works through the CLI fallback path (`agy`, `codex exec -m deepseek-v4-flash`) instead of the Grok Build spawn_subagent path.
-
-**[UNKNOWN]** Whether enabling "China region opt-in" on the OpenCode Go account resolves the issue, or whether that opt-in is only available to certain account tiers.
+**[UNKNOWN]** Whether enabling "China region opt-in" at the workspace URL above resolves the issue, or whether that opt-in is only available to certain account tiers. The URL is the workspace dashboard — visiting it should reveal what tier/gate is required.
 
 **[UNKNOWN]** The exact upstream change that triggered this — no release notes or changelog checked yet. Probing the OpenCode Go model catalog and comparing to the fleet-models.json entry's current state is the next step.
 
