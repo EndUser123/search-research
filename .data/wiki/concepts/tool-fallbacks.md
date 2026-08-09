@@ -2,7 +2,7 @@
 title: "Tool fallbacks: known-broken combinations and CLI fallbacks"
 slug: tool-fallbacks
 created: 2026-07-18
-updated: 2026-08-05
+updated: 2026-08-08
 tags: [tool-fallbacks, model-pool, spawn-subagent, cli-fallback, mcp, rate-limit, transferable-technique]
 host: grok
 summary: >
@@ -129,6 +129,7 @@ Provisional entries -- each must be re-tested before promoting to "Known-broken"
 | mmx CLI (benchmark) | "33% success" was `caller_error` — FileNotFoundError (PATH) + missing `--message` flag. | Model is 100% reliable when called correctly. Resolved in telemetry. |
 | codex CLI (benchmark) | "50% success" was `transport_error` — FileNotFoundError (PATH). | Same — reliable when PATH is correct. |
 | codex CLI (/tp critique) | TRANSIENT: codex auto-loaded `review-packet-runner` skill which triggered `discovery_audit.py` preflight with 20K file scope. Exceeded /tp's 600s timeout (still running preflight when killed). 480 lines JSON captured, no critique produced. | For /tp via codex: (a) increase timeout to 900s+, (b) pass narrower scope hint in prompt, or (c) skip codex for /tp and rely on spawn + agy. Context-dependent — codex works fine for direct code review. |
+| codex CLI (flag error) | STRUCTURAL: `codex exec --approval-mode full-auto` fails with "unexpected argument '--approval-mode' found" on codex-cli 0.146.1 (2026-08-08, session 019fe25d). The flag may have been renamed or removed in this version. | Use `codex exec -q "<prompt>"` without `--approval-mode`. Check `codex exec --help` for the current flag name before constructing invocations. |
 
 ### MCP tool failures (parent-agent tools)
 
