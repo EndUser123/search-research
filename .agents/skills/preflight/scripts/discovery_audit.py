@@ -17,9 +17,55 @@ TEXT_SUFFIXES = {
     ".txt", ".ini", ".cfg", ".xml", ".js", ".ts",
 }
 SKIP_DIRS = {
-    ".git", "__pycache__", ".pytest_cache", "node_modules", ".ruff_cache",
-    ".mypy_cache", ".tox", "dist", "build",
+    # build / packaging output
+    "node_modules", "site-packages", "__pycache__", "dist", "build",
+    "target", "out", "htmlcov",
+    # virtualenvs
+    ".venv", "venv", "env",
+    # linter / test caches
+    ".pytest_cache", ".ruff_cache", ".mypy_cache", ".tox", ".nox", ".coverage",
+    # workspace runtime / session / telemetry
+    ".session", "sessions", "session_data", ".state", "state", "logs",
+    "memtrace", ".tmp", "tmp", ".locks", ".benchmarks", ".deepeval",
+    "marketplace-cache", "relocations", "plugin-data", "implement-memory",
+    "vendor", "exports",
+    # vcs / ide
+    ".git", ".idea", ".vscode", ".codex",
 }
+
+# Dotted directory names that are WORKSPACE SCOPE ROOTS, not derived state.
+# Everything else starting with "." is treated as cache/config/state. This is
+# the durable backstop: new tooling-introduced hidden dirs (.cache, .newtool)
+# are non-authoritative without per-dir maintenance. Workspace roots are a
+# finite, stable set and are exempted here.
+_DOT_SCOPE_ROOTS = frozenset({
+    ".claude", ".grok", ".agents", ".data", ".claude-marketplace",
+})
+
+# Non-dotted directory component names that are derived runtime state or build
+# output. Enumerated from a filesystem scan of this workspace; kept in sync
+# with SKIP_DIRS. Used by _classification so that files inside these dirs are
+# never treated as authority candidates even if they slip past the walk prune.
+_DERIVED_COMPONENTS = frozenset({
+    "node_modules", "site-packages", "__pycache__", "dist", "build",
+    "target", "out", "htmlcov", "venv", "env",
+    "sessions", "session_data", "state", "logs", "memtrace",
+    "tmp", "vendor", "exports",
+    "marketplace-cache", "relocations", "plugin-data", "implement-memory",
+    "worktrees",
+})
+
+
+def _is_derived_component(part: str) -> bool:
+    """Whether a path component marks the file as non-authoritative derived state."""
+    if part in _DERIVED_COMPONENTS:
+        return True
+    # Durable backstop: any hidden directory (dot-prefix) that is NOT a known
+    # workspace scope root is cache/config/state. Catches future tooling dirs
+    # (.cache, .nox, .mypy_cache, .newtool) without per-dir maintenance.
+    if part.startswith(".") and part != "." and part not in _DOT_SCOPE_ROOTS:
+        return True
+    return False
 
 
 def _now() -> str:
@@ -36,6 +82,7 @@ def _safe_text(path: Path, limit: int = 2_000_000) -> str:
 def _walk_files(scopes: Iterable[Path], max_files: int) -> tuple[list[Path], list[str]]:
     files: list[Path] = []
     errors: list[str] = []
+    cap_hit = False
     for scope in scopes:
         if not scope.exists():
             errors.append(f"missing_scope:{scope}")
@@ -45,29 +92,48 @@ def _walk_files(scopes: Iterable[Path], max_files: int) -> tuple[list[Path], lis
             continue
         try:
             for path in scope.rglob("*"):
-                if any(part in SKIP_DIRS for part in path.parts):
+                if cap_hit:
+                    break
+                # Unified prune: any derived component (state/cache/venv/worktree/
+                # dot-dir-backstop) is skipped at walk time, keeping the walk and
+                # the classifier on the same source of truth so they cannot drift.
+                if any(_is_derived_component(part.lower()) for part in path.parts):
                     continue
-                if path.is_file():
-                    files.append(path)
-                    if len(files) >= max_files:
-                        errors.append(f"file_limit_reached:{max_files}")
-                        return files, errors
+                if not path.is_file():
+                    continue
+                # Suffix-filter at enqueue: non-text files (binaries, lockfiles,
+                # images, .pyc, .so) cannot be inspected as text and cannot
+                # define a default. Skipping them prevents derived trees
+                # (venvs, build output) from exhausting the file cap and
+                # causing silent inventory loss of later scopes.
+                if path.suffix.lower() not in TEXT_SUFFIXES:
+                    continue
+                files.append(path)
+                if len(files) >= max_files:
+                    errors.append(f"file_limit_reached:{max_files}")
+                    cap_hit = True
+                    break
         except OSError as exc:
             errors.append(f"walk_error:{scope}:{type(exc).__name__}:{exc}")
     return files, errors
 
 
 def _classification(path: Path) -> str:
+    parts = [p.lower() for p in path.parts]
     text = str(path).replace("\\", "/").lower()
+    # Specific derived labels (kept for packet readability)
     if "/plugins/cache/" in text or "/.claude/plugins/cache/" in text:
         return "cache"
     if "/.worktrees/" in text or "/worktrees/" in text:
         return "worktree"
+    # Any derived component (state, cache, venv, session, dot-dir-backstop)
+    # routes to runtime_state so it can never manufacture a conflict.
+    if any(_is_derived_component(p) for p in parts):
+        if "/.evidence/" in text or "/test" in text:
+            return "test_or_evidence"
+        return "runtime_state"
     if "/.evidence/" in text or "/test" in text:
         return "test_or_evidence"
-    if ("/.artifacts/" in text or "/state/" in text or "/.state/" in text
-            or "/logs/" in text or "/session_data/" in text):
-        return "runtime_state"
     if "/docs/" in text or text.endswith(".md"):
         return "documentation_or_plan"
     return "candidate_source"
