@@ -344,3 +344,30 @@ Rules 11-12 address level 2. Items 6-9 address level 4 — the systemic layer
 where the rules become structural constraints, not behavioral hopes. The
 honest assessment: items 6-9 are the ones that would have prevented the
 original failure. Rules 11-12 are the ones that fix it once discovered.
+
+## Mechanical enforcement layer (built 2026-08-08)
+
+The deepest layer from the external LLM's analysis — moving from "LLM should
+remember epistemic discipline" to "the system makes epistemically invalid
+transitions difficult" — is now implemented as a deterministic Stop hook:
+
+- **Validator** (`hooks/scripts/decision_contract.py`): parses YAML
+  decision-contract artifacts and checks state-transition invariants.
+  Does NOT make research judgments — only checks whether the evidence
+  contract for the claimed state is satisfied.
+- **Stop hook** (`hooks/Stop_decision_contract_gate.py`): detects
+  decision artifacts in model output and blocks invalid transitions
+  with precise error messages. Keys on artifact shape, not skill name.
+- **`/www` template** (`skills/www/SKILL.md` Step 3.1b): text template
+  replaced with structured YAML artifact template.
+
+**Five invariants mechanically enforced:**
+1. OPEN decision-reversing unknowns → DECISION_READY blocked (must be SPIKE_REQUIRED)
+2. All 4 discovery classes (direct, adjacent, capability, workspace) must have real receipts
+3. Search-completeness falsifier must be executed with receipts
+4. Evidence type must match claim type (live_ui claim needs live_ui evidence, not document)
+5. Receipts must be real citations, not placeholders
+
+SPIKE_REQUIRED remains the costless fallback — the gate never blocks it.
+30 unit tests + 6 acceptance tests through real hook dispatch path.
+Commit: `8677fbc` in `~/.grok`.
