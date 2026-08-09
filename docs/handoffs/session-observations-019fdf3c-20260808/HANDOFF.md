@@ -66,8 +66,8 @@ Also fixed: pre-existing test_ship_orchestrator.py import failures (16 errors fr
 
 ## 7. Commits
 
-C: repo — `fb883cb` (latest), 14 commits this session
-P: repo — `da58a13` (latest), ~10 commits this session
+C: repo — `1481915` (latest push), ~20 commits this session
+P: repo — `ea5f698` (latest push), ~15 commits this session
 
 Both pushed to origin/main.
 
@@ -77,4 +77,10 @@ Both pushed to origin/main.
 - Continues from: 019fdf3c first compaction (batch defect cleanup + hash-binding system)
 - /check PASS receipt: P:/.artifacts/console_668caa69-25cc-4550-b52a-6d4f/grok-check/20260808-153617-921/check-state.md
 - /ship-py SHIP VERIFIED: all 12 phases passed
+- /aar completed: P:/.artifacts/grok-aar/console_console_668caa69-25cc-4550-b52a-6d4f/20260808-close/aar-report.md
 - Enforcement measurement: P:/tmp/enforcement_measurement.json (412 sessions, subagent task 019fe336)
+
+## 9. Related handoffs
+
+- `hash-binding-followup-20260808/` — W1 (dirty-tree hash, shipped), W2 (rotation, shipped), W3 (script-level receipts, blocked)
+- `www-research-backlog-20260808/` — 7 research items (R5-R7 verified, R1-R4 multi-hour)
