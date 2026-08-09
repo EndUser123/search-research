@@ -1,16 +1,16 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Status:** Revision 5b — incorporates all 40 findings from four relay sessions  
-**Revision:** 5b — converges all relay sessions (review-a4284b50b3c5-7ce08143, review-48c2aaf5f35b-66380b08, review-78ba2723102b-f5f12c38, review-2dee25098f99-7fbe1e16, review-dd27d4099861-f8f99394); ready for operator acceptance  
+**Status:** Revision 5b — incorporates all 42 findings from six relay sessions  
+**Revision:** 5b — converges all relay sessions (review-a4284b50b3c5-7ce08143, review-48c2aaf5f35b-66380b08, review-78ba2723102b-f5f12c38, review-2dee25098f99-7fbe1e16, review-dd27d4099861-f8f99394, review-f05015dbd989-4f58d01b); ready for operator acceptance  
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
 ## Revision 5 change log
 
-This revision incorporates all 35 findings from two 6-turn cross-orchestrator
-review relays, both converged with zero disputes. The correction items from
-both relays are woven into the body.
+This revision incorporates all 42 findings from six cross-orchestrator review
+relay sessions (all converged, zero disputes). The correction items from
+all sessions are woven into the body.
 
 **Key changes from Revision 4:**
 
@@ -229,6 +229,7 @@ be mechanical or reasoning):
 | `reasoning` | `weighted_pool` | epsilon=0.1 (safe only) | No | Planning, debugging, architecture, ambiguous coding, synthesis, single-model critique |
 | `coding` | `weighted_pool` | epsilon=0.0 | Yes (worktree) | All write-capable work including bounded coding with complete specification and independent verification |
 | `critic` | `diverse_panel` | epsilon=0.0 | No | Multi-model red-team or cross-check |
+| `calibration` | `weighted_pool` | epsilon=0.1 | Yes (worktree, bounded scope only) | Safe onboarding for candidate-lifecycle models; bounded scope, isolated worktree, mandatory verification. Not eligible for normal routing. |
 
 All tasks that write files — including bounded coding — must use the `coding`
 lane with worktree isolation. The `mechanical` lane is strictly read-only;
@@ -877,8 +878,8 @@ evidence for all of the following:
 
 ## Operator acceptance
 
-This proposal (Revision 5b) is the output of five cross-orchestrator review
-relay sessions (all converged, zero disputes across 40 total findings).
+This proposal (Revision 5b) is the output of six cross-orchestrator review
+relay sessions (all converged, zero disputes across 42 total findings).
 The proposal is offered for operator acceptance.
 
 **Acceptance means:** proceed to native implementation planning in both
