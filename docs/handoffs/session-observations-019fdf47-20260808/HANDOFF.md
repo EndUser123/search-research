@@ -1,8 +1,8 @@
 ---
-title: "Session observations: model-selection defect fix + error taxonomy + continuation pipeline"
+title: "Session observations: model-selection defect fix + error taxonomy + continuation pipeline + review relay"
 session: 019fdf47-6ec5-7b82-b363-a256a98cb5fc
 date: 2026-08-08
-status: CLOSED
+status: open
 host: grok
 ---
 
@@ -62,3 +62,51 @@ P:/ repo:
 - 0381a80: refactor 6 seams
 
 Both repos pushed to origin.
+
+---
+
+## Revision 1 — 20260809T050000Z (session 019fdf47)
+
+**Trigger:** auto-update — session continued well past original handoff with significant new work.
+
+**What changed since the original:**
+
+### 4. Review relay: 7+ sessions, 42 findings, 0 disputes
+- Ran the common model-selection policy proposal through 7+ relay sessions between Codex and Grok
+- Total: 42 findings, 0 disputes across ~20 turns
+- Proposal went from Revision 3 → Revision 5b incorporating all findings
+- Key findings: expected-verified-time objective needs all-attempt estimator, v1 algorithm contract needs executable formulas, candidate lifecycle gate needed (7 candidate models with zero evidence in active pool), panel capacity reservation needed, binding fingerprint for evidence segmentation, per-orchestrator quarantine files
+
+### 5. Review-relay controller improvements
+- **Stable review key**: registry bucket changed from content-hash to path-derived key (`rk-<pathHash>`). Editing the proposal between turns now continues the same session instead of creating a new one.
+- **Lease duration**: 120s → 600s based on Gerrit CI amplification research (5-20x overhead for dependency-linked reviews)
+- **Convergence heuristic**: added to skill — tracks finding deltas (converged/stuck/active)
+- **Codex invocation prefix**: documented `$review-relay` for Codex vs `/review-relay` for Grok
+
+### 6. Class C quoting guard hook
+- New PreToolUse hook (`PreToolUse_class_c_quoting_guard.py`) that blocks multi-line/nested-quote `python -c` payloads
+- Structural enforcement of the AGENTS.md Class C rule (~50% prose compliance ceiling)
+- 11 tests pass
+
+### 7. claude-mem hook fix
+- Set `$HOME` and `$SHELL` user environment variables on Windows (claude-mem plugin requires them)
+
+### 8. /www research on review-relay improvements
+- Researched multi-agent review coordination patterns (POIROT, ReviewingAgents, GPT Researcher, Gerrit relation chains)
+- Wiki concept: `review-relay-improvements-stable-key-lease-calibration-convergence-detection.md`
+- Identified 3 future improvements needing /design: finding lifecycle tracking, continuous convergence score, per-section parallel review
+
+### 9. Design handoff for fresh session
+- `P:\docs\handoffs\review-relay-design-20260809\HANDOFF.md` — design target + all research findings
+
+**Additional commits since original:**
+- P:/: 16822db, 02d7506, c3ce9d3, f400d86, 5887b8d, a240d29, 84f7180, 745de79, a21c20c, 8016db4
+- ~/.grok: 977e35b through 5e7cd1d (20+ commits)
+
+**Status update:** re-opened — significant new work added. The relay review of the model-selection policy is the dominant work stream of this session's second half.
+
+**New open items:**
+- Relay session `review-e1afec0b3278-ee319065` has Codex turn 3 pending on Revision 5b
+- Design handoff at `review-relay-design-20260809` ready for fresh session `/design` run
+- Stop-hook auto-write path for richer continuation capture still not built (flagged by /tp)
+- Class C quoting guard needs testing after hooks reload (narrowed bracket detection to f-string subscripts only)
