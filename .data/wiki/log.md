@@ -1,5 +1,11 @@
 # Vault Log
 
+## good-tests-vs-coverage-tests-the-mutation-discriminator
+Source: session-2026-08-09
+Agent: grok
+Notes: Concept: what distinguishes a good test from a coverage test (delete-the-impl discriminator); worked examples from ship-py
+Page: P:/.data/wiki/concepts/good-tests-vs-coverage-tests-the-mutation-discriminator.md
+
 ## --title
 Source: Mechanical tool output is a hypothesis, not a measurement: the method-vs-evidence receipt distinction
 Agent: --source
