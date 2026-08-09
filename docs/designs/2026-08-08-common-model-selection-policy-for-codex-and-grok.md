@@ -1,18 +1,19 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Last updated:** 2026-08-09 — recovery contract and evidence scope hardened; live conformance remains open
-**Status:** Revision 5c — canonical design accepted for implementation planning; not live or conformant
-**Revision:** 5c — hardens quota-recovery semantics and reconciles the 2026-08-09 evidence snapshot; the 5b relay sessions remain the review provenance and implementation gates remain open
+**Last updated:** 2026-08-09 — pool-test scope, binding identity, and lane-scoped promotion clarified; live conformance remains open
+**Status:** Revision 5d — Codex red-team synthesis; Grok re-review pending; not live or conformant
+**Revision:** 5d — separates provider-pool health from code-model capability testing, aligns promotion with the common verification floor, and records the remaining Codex parity gap
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
 ## Revision 5 change log
 
 Revision 5b incorporated all 42 findings from six cross-orchestrator review
-relay sessions (all converged, zero disputes). Revision 5c preserves that
-baseline and adds the quota-recovery contract, evidence-scope corrections,
-and explicit acceptance tests below.
+relay sessions (all converged, zero disputes). Revision 5c preserved that
+baseline and added the quota-recovery contract, evidence-scope corrections,
+and explicit acceptance tests. Revision 5d adds the Codex red-team synthesis
+below; it is not a new conformance attestation.
 
 **Key changes from Revision 4:**
 
@@ -55,6 +56,23 @@ and explicit acceptance tests below.
     permanent block or an unbounded retry loop.
 18. Reconciled the evidence snapshot to distinguish targeted passing tests,
     collection-blocked suites, embedded golden vectors, and live-path evidence.
+
+**Revision 5d red-team synthesis (2026-08-09):**
+
+19. Split provider-pool health/recovery tests from code-model capability tests;
+    neither suite is allowed to stand in for the other.
+20. Reconciled the pool promotion rule with the common default of N>=10
+    lane-appropriate verified successes and the authoritative
+    `verification_passed` state; the current Grok N=5 default remains a gap.
+21. Required full binding identity (`orchestrator`, `invocation_method`,
+    provider, model, route, verifier, and quota pool/account) for pool tests;
+    a model-only argument is insufficient evidence identity.
+22. Made promotion lane/risk scoped and downgraded the claimed Codex pool-test
+    equivalent/shared fixture from current fact to a target until executable
+    source, fixture hashes, and receipts exist.
+23. Corrected pool identity: shared capacity is keyed by quota pool/account and
+    provider-defined scope; orchestrator and method remain route provenance and
+    are only part of the pool key when the provider exposes a separate limiter.
 
 ## Executive proposal
 
@@ -253,94 +271,154 @@ implementation as provisional or non-conformant until every acceptance gate
 has current, path-specific evidence. Passing unit tests alone is not
 acceptance.
 
-## Pool test certification (lane-specific capability gate)
+## Pool health and code-model pool certification
 
-Each lane has a standardized test suite that produces the `quality_score > 0`
-telemetry records required for verified-success promotion. Pool tests are
-bounded, safe, and produce calibration-cohort evidence — they are the
-mechanism that connects candidate lifecycle to real capability verification.
+The term **pool test** was overloaded in earlier revisions. The policy now
+separates two suites and a third evidence source:
 
-### What problem pool tests solve
+| Suite/source | Primary question | Identity key | Produces | May authorize |
+|---|---|---|---|---|
+| Provider-pool health/recovery | Can this quota pool safely serve this request now or recover later? | `quota_pool` + provider account + provider-defined scope | Capacity, recovery, reservation, and retry receipts | Capacity admission only |
+| Code-model capability | Can this exact model binding perform coding work under its harness? | Full binding fingerprint + lane | Calibration `verification_passed` and quality evidence | Lane/risk-scoped promotion |
+| Production code-lane evidence | How well does it perform real work? | Full binding fingerprint + task cohort | Routing-eligible quality, latency, and verification evidence | Runtime ranking after policy gates |
 
-The promotion pipeline (`check_promotion()` in `circuit_breaker.py`) requires
-N≥5 verified-success records per lane to promote a candidate from `candidate`
-to `active`. A verified success is: identity match + `success=True` +
-`quality_score > 0` + no `error_type`. But production telemetry has
-`quality_score=0.0` everywhere because the spawn dispatcher records
-success/failure, not output quality. Pool tests are the quality-score
-producer: they run standardized problems, score the output objectively, and
-write telemetry records with `quality_score = fraction_passed`.
+The first suite must not be treated as a model-quality benchmark. The second
+must not be treated as proof that a provider pool is healthy. The third must
+not be substituted with either calibration suite.
 
-### Coding pool tests
+### Provider-pool health and recovery suite
 
-HumanEval-style code generation problems with sandboxed execution. Each
-problem has:
-- A **prompt**: function signature + docstring + examples
-- A **test**: assert statements that verify correctness
+This suite is keyed by the actual quota owner, not merely a provider label:
 
-The model's output is extracted (markdown code block parsing), concatenated
-with the test, and executed in a subprocess sandbox. Pass = exit code 0,
-fail = non-zero exit or timeout. The scoring is binary per problem
-(0.0 or 1.0); the aggregate quality score is `passes / total`.
-
-Implementation: `~/.grok/skills/model-benchmark/scripts/pool_test.py`.
-Reuses the existing `CodeExecTier` problems from `benchmark_tiers.py` and
-the `telemetry.log_call()` SQLite writer.
-
-### Cohort design
-
-Pool test telemetry uses `task_domain: "calibration-coding"`. This feeds two
-paths differently:
-
-| Path | Effect |
-|------|--------|
-| `check_promotion()` | Calibration records with `quality_score > 0` and `success=True` count toward the promotion threshold |
-| Runtime scoring (`_evidence_for()`) | Calibration evidence has `routing_eligible: false`, so pool-test quality scores do NOT influence runtime selection |
-
-This is intentional: pool-test scores are synthetic (standardized problems),
-not production performance. Pool tests certify that a model CAN do the job
-(promotion gate); production telemetry determines how WELL it does real work
-(runtime ranking).
-
-### Lifecycle flow
-
-```
-1. New model enters registry as lifecycle=candidate
-2. Operator runs: python pool_test.py --model <id> --lane coding
-3. Pool test produces N telemetry records (one per problem, quality_score per problem)
-4. evidence_accumulator --compute groups them
-5. check_promotion() counts verified successes >= threshold → promotes to active
-6. Once active, production spawns accumulate real evidence that influences runtime scoring
-7. Periodic re-certification (weekly/monthly) catches model drift
+```text
+quota_pool + provider_account + provider_defined_scope
 ```
 
-### Codex equivalent
+The capacity identity is shared when Codex and Grok consume the same provider
+pool. Every observation still records the orchestrator, invocation method,
+route, and binding that observed it. Those route fields become part of the
+capacity key only when the provider explicitly exposes a method- or
+orchestrator-specific limiter nested under the pool scope. This prevents both
+false isolation of shared quota and false merging of independent limits.
 
-Codex implements the same pattern in JS:
-- HumanEval problems (shared `CODE_PROBLEMS` fixture — both hosts use the same test set)
-- Sandboxed execution (Node `vm` or subprocess)
-- Calibration-cohort telemetry with `task_domain: "calibration-coding"`
-- `check_promotion()` equivalent counts verified successes
+It verifies, preferably with synthetic fixtures and only bounded live probes:
 
-The test problems MUST be the same across both hosts so a model certified
-on Grok meets the same standard as one certified on Codex. The shared
-fixture is the compatibility boundary — the execution sandbox is native
-per host.
+- fresh and stale observations, provider units, reset timestamps, and demand;
+- concurrency and queue admission;
+- short `429` backoff and retry-after handling;
+- multi-hour and monthly exhaustion;
+- reset timestamp passing without fresh recovery evidence;
+- independent multi-pool exhaustion;
+- confirmed route retirement; and
+- reservation ownership, release, crash recovery, and bounded retry budget.
+
+Pool-health fixtures produce capacity/recovery receipts, not `quality_score`
+or model-promotion evidence. A live capability call must pass the capacity
+gate, reserve its provider-unit demand, and record the pool snapshot before
+dispatch. Reset and retry behavior should be tested without spending live
+quota whenever a synthetic adapter fixture can prove the same state machine.
+
+### Code-model capability suite
+
+This suite certifies one exact binding in one lane. A target invocation must
+resolve an immutable canonical binding, not accept an ambiguous model name:
+
+```text
+orchestrator + invocation_method + provider + model + route
+  + verifier + harness/config provenance + quota_pool/account
+```
+
+The runner may accept a short model alias only when it resolves to exactly one
+binding and records the resolved identity and fingerprint before telemetry is
+written. A model-only record is not sufficient evidence.
+
+The current Grok artifact at
+`~/.grok/skills/model-benchmark/scripts/pool_test.py` is a bounded,
+HumanEval-style coding calibration runner. It currently uses Grok/HTTP
+invocation metadata, executes code in a sandbox, and records the
+`calibration-coding` cohort. That is useful calibration evidence, but it does
+not prove repository-context coding, patch application, tool use, independent
+verification, or production reliability. Those require a separate code-pool
+acceptance suite.
+
+Calibration evidence remains `routing_eligible: false` and must not influence
+runtime ranking. It may support promotion only when every authoritative
+condition holds:
+
+1. exact binding identity and lane match;
+2. `success=true` and explicit `verification_passed`;
+3. no timeout, malformed-output, identity, or scope error;
+4. the operator-configured lane floor is met; and
+5. promotion is scoped to the tested lane and risk class.
+
+The operator-configured default is currently N=5 per lane in
+`fleet-models.json`. The policy recommendation is N>=10 for higher
+confidence; the operator may choose a lower floor for faster promotion
+with less evidence, or a higher floor for more conservative promotion.
+Both values are valid operator choices — the contract is that the
+configured floor is met, not that a specific number is used.
+
+`quality_score` is a measurement, not a substitute for
+`verification_passed`.
+
+The current Grok pool test (HumanEval-style function generation with
+sandboxed execution) is a valid calibration signal for initial promotion.
+It proves the model can write correct standalone code. It does not prove
+repository-context coding, patch application, or tool use — those require
+a higher acceptance tier that gates higher-risk work. The initial
+promotion floor (N=5) establishes minimum capability; the higher tier
+(future work) establishes production readiness for complex coding tasks.
+
+The code-pool acceptance suite should add, where relevant:
+
+- repository-context understanding;
+- patch correctness and application;
+- compile/test execution and independent verification;
+- tool and result-contract handling;
+- timeout, malformed-output, and scope-violation behavior; and
+- total time to a verified result, with p50/p90 components recorded.
+
+### Cohort and lifecycle flow
+
+```text
+1. New binding enters the registry as lifecycle=candidate.
+2. Provider-pool health admits a bounded calibration request.
+3. Code-model capability tests produce exact-binding calibration records.
+4. Only verification_passed records count toward the configured lane floor.
+5. Promotion grants active eligibility for the tested lane/risk class only.
+6. Production calls produce separate routing-eligible evidence for ranking.
+7. Periodic re-certification repeats both relevant health and capability gates.
+```
+
+`active` must not be interpreted as globally eligible. The registry or
+selector must expose and enforce `eligible_lanes` and, where needed,
+`eligible_risk_classes`. Coding calibration must not silently authorize
+reasoning, critic, or other lanes.
+
+### Cross-host compatibility
+
+Codex and Grok may use the same problem manifest, but identical problem text
+alone does not prove equivalent certification. The compatibility artifact must
+include a fixture-manifest hash plus host-specific parser, sandbox, verifier,
+result-contract, and binding receipts. Until a current executable Codex
+counterpart and paired receipt exist, the Codex implementation is a target
+contract, not a verified fact.
 
 ### Lane expansion
 
-For v1, only the coding pool test exists. The same pattern extends to other
-lanes:
+The current concrete artifact covers coding calibration only. The target
+pattern extends to other lanes:
 
 | Lane | Test type | Scoring |
 |------|-----------|---------|
-| coding | HumanEval code generation + sandboxed execution | Binary pass/fail per problem |
-| reasoning | Analysis tasks with known-correct conclusions | Rubric score 0.0-1.0 |
+| coding | Code generation plus sandboxed execution and repository-style acceptance | Verified pass/fail plus quality metrics |
+| reasoning | Analysis tasks with known-correct conclusions | Rubric score plus verification state |
 | mechanical | Extraction/formatting tasks with expected output | Exact match |
-| critic | Code review tasks with planted bugs | Recall (fraction of bugs found) |
+| critic | Code review tasks with planted bugs | Recall plus verification state |
 
-Each lane's pool test is a separate runner, but all share the same
-telemetry pipeline, cohort design, and promotion gate.
+Each lane has a separate runner and fixture manifest, while the telemetry
+pipeline, binding identity, capacity gate, and promotion-state vocabulary are
+shared.
 
 ## What is shared and what remains separate
 
@@ -1117,9 +1195,11 @@ evidence for all of the following:
    rate-limited/unknown state per the capacity decision table. Static
    quota-class multipliers do not count as capacity evidence.
 4. **Candidate gating:** normal reasoning and write selection require
-   lifecycle=active and lane-appropriate verified evidence with
-   verification_passed state. Safe calibration is isolated, bounded, and
-   the only lane that admits candidate-lifecycle records.
+   lifecycle=active, an enforced eligible lane/risk scope, and lane-appropriate
+   verified evidence with `verification_passed` state. Safe calibration is
+   isolated, bounded, and the only lane that admits candidate-lifecycle
+   records. The common default is N>=10 lane-appropriate verified successes;
+   any lower implementation threshold is provisional and non-conformant.
 5. **Failure scope:** quarantine/cooldown records are per-orchestrator,
    exact-binding scoped, old unscoped records expire via reprobe_after TTL,
    and the normalized action matrix is tested against harness, provider, and
@@ -1139,19 +1219,29 @@ evidence for all of the following:
    inputs, rejection reasons, replay fields, and verification outcome. Unit
    tests alone do not satisfy this gate.
 10. **Recovery:** temporary backoff, multi-hour reset, monthly reset,
-    post-reset reprobe, independent multi-pool exhaustion, and confirmed route
-    retirement are tested through the native selectors. Results expose
-    `recovery_state`, `retryable`, `retry_after`, `deferred_until`,
-    `reprobe_at`, recovery ownership, and bounded retry state. A retry after a
-    defer horizon requires a fresh observation; elapsed time alone is not
-    evidence of recovery.
+     post-reset reprobe, independent multi-pool exhaustion, and confirmed route
+     retirement are tested through the native selectors. Results expose
+     `recovery_state`, `retryable`, `retry_after`, `deferred_until`,
+     `reprobe_at`, recovery ownership, and bounded retry state. A retry after a
+     defer horizon requires a fresh observation; elapsed time alone is not
+     evidence of recovery.
+11. **Pool-test separation and identity:** provider-pool health/recovery tests
+    are separate from code-model capability tests and production code-lane
+    evidence. Each live test records the full binding fingerprint, quota pool
+    or account, capacity reservation, fixture manifest, verifier, and
+    orchestrator/method identity. Pool health cannot promote a model, and
+    calibration cannot rank production routing. Synthetic reset fixtures are
+    used where possible; live tests are bounded by the capacity gate and retry
+    budget.
 
 ## Operator acceptance
 
-This proposal (Revision 5c) preserves the output of six cross-orchestrator
-review relay sessions (all converged, zero disputes across 42 total findings)
-and adds a targeted recovery/evidence hardening update. Relay convergence is
-review provenance; it is not evidence that either live selector is conformant.
+This proposal (Revision 5d) preserves the output of six cross-orchestrator
+review relay sessions (all converged, zero disputes across 42 total findings),
+adds the targeted recovery/evidence hardening update, and records the Codex
+red-team findings on pool-test scope and promotion identity. The Revision 5d
+partner re-review is pending. Relay convergence is review provenance; it is
+not evidence that either live selector is conformant.
 
 The proposal is offered for operator acceptance as an implementation-planning
 contract, not as authorization to activate live routing.
