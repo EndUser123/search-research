@@ -47,7 +47,7 @@ challenge).
 ## Root cause
 
 This is a **closure-pressure** failure at the design-choice level. The
-`[[optimal-long-term-solution-not-minimal-fix]]` rule fires at the solution
+`/optimal-long-term-solution-not-minimal-fix` rule fires at the solution
 level ("is approach A or B better?") but not at the design-choice level ("is
 a numeric threshold the right gate mechanism, or should it be category-based?
 should it always run, or be conditional?"). The agent accepts the first
@@ -101,7 +101,7 @@ solution granularity.
 
 | Existing rule | What it covers | What this adds |
 |---|---|---|
-| [[optimal-long-term-solution-not-minimal-fix]] | Solution-level: "is approach A or B better?" | Design-choice-level: "is a threshold the right gate? should it always run?" |
+| /optimal-long-term-solution-not-minimal-fix | Solution-level: "is approach A or B better?" | Design-choice-level: "is a threshold the right gate? should it always run?" |
 | "Rejected alternatives visible" (AGENTS.md) | Solution-level alternatives | Per-decision alternatives at design-choice granularity |
 | "Alternatives before architectural implementation" (AGENTS.md) | Fires before implementation waves | Fires during design generation, before the proposal is complete |
 | [[invariants-beat-environment-comfort]] | Host invariants as a principle | Applied as a checklist question per design choice |
