@@ -1,7 +1,7 @@
 # HANDOFF: Orchestrator-controlled cross-model validation for ship-py
 
 ## Status
-OPEN — design needed
+CLOSED — implemented 2026-08-09 (commit 6f7d324 in ~/.grok)
 
 ## Changelog
 
