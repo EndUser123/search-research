@@ -5,6 +5,8 @@ Or:  python tests/test_synthesize_context.py
 """
 import sys
 import os
+import json
+from types import SimpleNamespace
 
 # Add scripts dir to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
@@ -19,6 +21,30 @@ from synthesize_subtopics import (
     synth_cluster,
 )
 import synthesize_subtopics as _ss
+
+
+def test_call_mmx_uses_file_input_for_large_windows_prompts(monkeypatch, tmp_path):
+    seen = {}
+
+    def fake_run(cmd, **_kwargs):
+        seen["cmd"] = cmd
+        path = cmd[cmd.index("--messages-file") + 1]
+        seen["messages"] = json.loads(open(path, encoding="utf-8").read())
+        return SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({"base_resp": {"status_code": 0}, "content": [{"text": "ok"}]}),
+            stderr="",
+        )
+
+    monkeypatch.setattr(_ss, "_resolve_mmx_cmd", lambda: ["mmx"])
+    monkeypatch.setattr(_ss.subprocess, "run", fake_run)
+
+    text, error = _ss.call_mmx("X" * 100_000, None, timeout=1)
+
+    assert error == ""
+    assert text == "ok"
+    assert "--message" not in seen["cmd"]
+    assert seen["messages"] == [{"role": "user", "content": "X" * 100_000}]
 
 
 # --- split_with_overlap tests ---

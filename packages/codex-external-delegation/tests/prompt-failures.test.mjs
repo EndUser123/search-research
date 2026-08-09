@@ -28,6 +28,18 @@ test("renders all handoff controls and the result marker", () => {
   assert.match(prompt, /<external-delegation-result>/);
 });
 
+test("renders structured output types and typed examples", () => {
+  const prompt = renderPrompt({
+    ...packet,
+    output_schema: {
+      required: ["answer"],
+      properties: { answer: { type: "array" } },
+    },
+  });
+  assert.match(prompt, /Required output field types:\n- answer: array/);
+  assert.match(prompt, /result_payload.*\[\]/);
+});
+
 test("reports the isolated worktree as the worker working directory", () => {
   const prompt = renderPrompt({ ...packet, isolated_cwd: "P:/tmp/task/packages/repo" });
   assert.match(prompt, /Working directory: P:\/tmp\/task\/packages\/repo/);

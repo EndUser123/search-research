@@ -3,18 +3,18 @@
 
 Replaces v2's extract.py (which triggered NotebookLM Report + Data-Table
 synthesis). v3 exports the *primary* content: the raw transcript of each
-source via `nlm source content <source_id>`. Transcripts are written to
+source via the YTIS direct source-fulltext client. Transcripts are written to
 `wiki/sources/transcripts/<source_id>.md` with provenance frontmatter, per
 the wiki SCHEMA rule that sources/ holds verbatim material and concepts/
 holds distilled synthesis.
 
-The export primitive is verified correct: NotebookLM's `nlm source content`
-returns the raw indexed text of each source (the actual transcript), not an
-LLM synthesis. See [[video-to-wiki-pipeline-transcript-extraction-multimodal]]
-§ "Export raw transcripts, don't synthesize at the source".
+The export primitive returns the raw indexed text of each source (the actual
+transcript), not an LLM synthesis. See
+[[video-to-wiki-pipeline-transcript-extraction-multimodal]] § "Export raw
+transcripts, don't synthesize at the source".
 
 Usage:
-  python export_transcripts.py --notebook <uuid> --profile a.hominidae \\
+  python export_transcripts.py --notebook <uuid> --account-profile a.hominidae \\
       --out P:/.data/wiki/sources/transcripts/
 
 Crash-resumable: sources whose transcript file already exists are skipped
@@ -31,6 +31,16 @@ import sys
 import time
 from datetime import date
 from pathlib import Path
+from typing import Any
+
+from ytis_nlm import (
+    account_client,
+    ensure_account_session,
+    get_source_content,
+    get_source_content_from_client,
+    list_sources as list_canonical_sources,
+    list_sources_from_client,
+)
 
 
 def run(cmd: list[str], timeout: int = 180) -> tuple[int, str, str]:
@@ -45,58 +55,47 @@ def log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True, file=sys.stderr)
 
 
-def list_sources(notebook_id: str, profile: str) -> list[dict]:
-    """Return the notebook's sources via `nlm source list --json`.
-
-    Handles both list and {"sources": [...]} envelope shapes (defensive
-    against nlm version drift — sync.py uses the same dual-shape parse).
-    """
-    rc, out, err = run(["nlm", "source", "list", notebook_id,
-                        "--profile", profile, "--json"], timeout=180)
-    if rc != 0:
-        log(f"  source list failed rc={rc}: {(err or out).strip()[:300]}")
-        return []
+def list_sources(notebook_id: str, profile: str, client: Any | None = None) -> list[dict]:
+    """Return sources through the YTIS canonical direct client."""
     try:
-        data = json.loads(out)
-        return data if isinstance(data, list) else data.get("sources", [])
-    except json.JSONDecodeError:
-        log(f"  source list output not JSON: {out.strip()[:200]}")
-        return []
+        if client is not None:
+            return list_sources_from_client(client, notebook_id)
+        return list_canonical_sources(profile, notebook_id, worker_id="wiki-yt-export-list")
+    except Exception as exc:
+        log(f"  canonical source list failed: {str(exc)[:300]}")
+        raise
 
 
-def fetch_content(source_id: str, profile: str) -> tuple[str, str]:
+def fetch_content(
+    source_id: str,
+    profile: str,
+    notebook_id: str,
+    client: Any | None = None,
+) -> tuple[str, str]:
     """Fetch raw transcript for one source.
 
-    Returns (content_text, error_message). Tries --json first (structured),
-    falls back to plain text. `nlm source content` returns the raw indexed
-    text — verified against yt-nlm/SKILL.md which documents this as the
-    correct extraction primitive.
+    Returns (content_text, error_message) through the package-owned direct
+    client. The notebook ID is required by the direct API even though the
+    legacy CLI accepted only a globally unique source ID.
     """
-    # Try structured first
-    rc, out, err = run(["nlm", "source", "content", source_id,
-                        "--profile", profile, "--json"], timeout=120)
-    if rc == 0 and out.strip():
-        try:
-            data = json.loads(out)
-            # Common envelope keys across nlm versions
-            for key in ("content", "text", "body", "transcript", "data"):
-                val = data.get(key) if isinstance(data, dict) else None
-                if isinstance(val, str) and val.strip():
-                    return val, ""
-            # If the JSON IS the content (a bare string) or has no known key,
-            # dump the parsed object as the transcript text.
-            if isinstance(data, str):
-                return data, ""
-            # Structured but unknown shape — fall through to text mode for fidelity
-        except json.JSONDecodeError:
-            pass  # not JSON; treat stdout as raw text below
-
-    # Plain text fallback
-    rc, out, err = run(["nlm", "source", "content", source_id,
-                        "--profile", profile], timeout=120)
-    if rc == 0 and out.strip():
-        return out, ""
-    return "", (err or out or f"rc={rc}").strip()[:300]
+    try:
+        if client is not None:
+            content = get_source_content_from_client(client, notebook_id, source_id)
+        else:
+            content = get_source_content(
+                profile,
+                notebook_id,
+                source_id,
+                worker_id=f"wiki-yt-export-{source_id[:8]}",
+            )
+        if content.strip():
+            return content, ""
+        return "", "canonical source content was empty"
+    except Exception as exc:
+        marker = f"{type(exc).__name__}: {exc}".lower()
+        if "autherror" in marker or "authentication" in marker or "not authenticated" in marker:
+            raise RuntimeError(f"canonical account authentication failed: {exc}") from exc
+        return "", f"canonical source content failed: {type(exc).__name__}: {str(exc)[:240]}"
 
 
 def fetch_via_ytdlp(source: dict) -> tuple[str, str]:
@@ -190,9 +189,10 @@ def build_transcript_md(source: dict, notebook_id: str, content: str) -> str:
     return "\n".join(fm) + content.rstrip() + "\n"
 
 
-def export_notebook(notebook_id: str, profile: str, out_dir: Path,
-                    spacing: float, force: bool, limit: int | None) -> dict:
-    sources = list_sources(notebook_id, profile)
+def _export_notebook(notebook_id: str, profile: str, out_dir: Path,
+                     spacing: float, force: bool, limit: int | None,
+                     client: Any) -> dict:
+    sources = list_sources(notebook_id, profile, client=client)
     if not sources:
         log(f"FATAL: no sources for notebook {notebook_id}")
         return {"notebook_id": notebook_id, "exported": 0, "skipped": 0, "failed": 0, "errors": ["no sources"]}
@@ -201,13 +201,6 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
     if limit:
         sources = sources[:limit]
         log(f"  --limit {limit}: processing first {len(sources)}")
-
-    # Pre-flight auth check — fail fast if NLM auth is expired
-    if sources:
-        rc_check, _, err_check = run(["nlm", "notebook", "list", "--json"], timeout=30)
-        if rc_check != 0:
-            log(f"  ⚠ NLM auth may be expired (notebook list rc={rc_check}). "
-                f"Run: nlm login --profile {profile}")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     exported = skipped = failed = 0
@@ -258,7 +251,7 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
                 pass  # fail-through to NLM
 
         if not content:
-            content, err = fetch_content(sid, profile)
+            content, err = fetch_content(sid, profile, notebook_id, client=client)
         if not content:
             # yt-dlp fallback for sources NotebookLM failed to index (status=3).
             # Recovers the video ID from URL-shaped titles; fetches auto-captions.
@@ -313,10 +306,39 @@ def export_notebook(notebook_id: str, profile: str, out_dir: Path,
     }
 
 
+def export_notebook(notebook_id: str, profile: str, out_dir: Path,
+                    spacing: float, force: bool, limit: int | None) -> dict:
+    """Probe once, then reuse one canonical client for the whole export."""
+    try:
+        probe = ensure_account_session(profile, worker_id="wiki-yt-export-preflight")
+    except Exception as exc:
+        log(f"FATAL canonical auth probe failed for account '{profile}': {exc}")
+        return {"notebook_id": notebook_id, "exported": 0, "skipped": 0,
+                "failed": 0, "auth_failed": True, "errors": [str(exc)]}
+    if not probe.ok:
+        message = (
+            f"canonical auth unavailable for account '{profile}': {probe.reason}; "
+            "non-interactive durable repair was attempted"
+        )
+        log(f"FATAL {message}")
+        return {"notebook_id": notebook_id, "exported": 0, "skipped": 0,
+                "failed": 0, "auth_failed": True, "errors": [message]}
+
+    try:
+        with account_client(profile, worker_id=f"wiki-yt-export-{notebook_id[:8]}") as client:
+            return _export_notebook(notebook_id, profile, out_dir, spacing, force, limit, client)
+    except Exception as exc:
+        message = f"canonical export client failed: {type(exc).__name__}: {str(exc)[:300]}"
+        log(f"FATAL {message}")
+        return {"notebook_id": notebook_id, "exported": 0, "skipped": 0,
+                "failed": 0, "fatal_error": True, "errors": [message]}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--notebook", required=True)
-    ap.add_argument("--profile", default="a.hominidae")
+    ap.add_argument("--profile", "--account-profile", dest="profile", default="a.hominidae",
+                    help="exact account identity (a.hominidae, troup.hominidae, or brsthomson)")
     ap.add_argument("--out", type=Path, default=Path("P:/.data/wiki/sources/transcripts"))
     ap.add_argument("--spacing", type=float, default=1.5, help="seconds between source content calls")
     ap.add_argument("--force", action="store_true", help="re-export even if transcript file exists")
@@ -326,6 +348,8 @@ def main() -> int:
     result = export_notebook(args.notebook, args.profile, args.out,
                              args.spacing, args.force, args.limit)
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if result.get("auth_failed") or result.get("fatal_error"):
+        return 2
     return 0 if result["failed"] == 0 else 5
 
 

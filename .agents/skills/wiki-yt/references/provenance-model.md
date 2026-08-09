@@ -67,7 +67,8 @@ NotebookLM assigns when you bulk-add a URL) back to the original URL in
 expose a "source URL → source UUID" mapping directly. The current
 implementation stops at hop 3 and documents the cluster's URL list in
 the cluster record; an operator following provenance can manually match
-by re-listing sources via `nlm source list <nb>` and matching titles.
+by re-listing sources through the canonical YTIS direct client and matching
+titles.
 
 ## Falsifiability across the chain
 

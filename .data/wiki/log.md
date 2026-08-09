@@ -1,5 +1,11 @@
 # Vault Log
 
+## --title
+Source: Denylist drift: workspace scanners must use allowlist classification, not denylist
+Agent: --source
+Notes: session-2026-08-09
+Page: --path
+
 ## liveness-vs-timeout-for-agent-pipeline-polling-loops
 Source: session-2026-08-09
 Agent: grok

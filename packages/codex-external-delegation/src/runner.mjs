@@ -115,6 +115,8 @@ function createResult(packet, attempt, details) {
     worker: packet.worker,
     provider: packet.requested_provider || null,
     model: packet.model,
+    invocation_method: packet.invocation_method || (packet.worker === "pi" ? "pi" : packet.worker),
+    orchestrator: packet.orchestrator || "codex",
     attempt,
     exit_code: details.exitCode,
     timed_out: details.timedOut,

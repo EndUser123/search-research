@@ -70,6 +70,8 @@ export function buildHistoryEntry(packet, result, { startedAt, endedAt, artifact
     worker: result?.worker || packet?.worker || null,
     provider: result?.provider || packet?.requested_provider || null,
     model: result?.model || packet?.model || null,
+    invocation_method: result?.invocation_method || packet?.invocation_method || (result?.worker || packet?.worker) || null,
+    orchestrator: result?.orchestrator || packet?.orchestrator || "codex",
     started_at: new Date(startedMs).toISOString(),
     ended_at: new Date(endedMs).toISOString(),
     duration_ms: Math.max(0, endedMs - startedMs),

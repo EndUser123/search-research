@@ -4,7 +4,7 @@ Quick reference, common questions, and troubleshooting for the wiki-yt
 skill. Loaded on demand; SKILL.md carries the entry-point summary.
 
 All commands run from `P:/.agents/skills/wiki-yt/scripts/`. The default
-profile is `a.hominidae` (= `a.hominidae@gmail.com` on this host).
+account identity is `a.hominidae` (= `a.hominidae@gmail.com` on this host).
 
 ## Quick reference
 
@@ -20,7 +20,9 @@ profile is `a.hominidae` (= `a.hominidae@gmail.com` on this host).
 | Disk usage per notebook | `python maintenance.py --disk-report` |
 | Fix stale manifest slugs | `python maintenance.py --fix-stale-slugs --confirm` |
 | Prune a deleted notebook's state | `python maintenance.py --prune-notebook <uuid> --confirm` |
-| Recover from auth expiry | `nlm login --profile a.hominidae` (silent CDP, ~10s, no browser interaction) |
+| Check canonical auth | `python -c "from ytis_nlm import probe_account_session; print(probe_account_session('a.hominidae'))"` |
+| Repair canonical auth | `python -c "from ytis_nlm import ensure_account_session; print(ensure_account_session('a.hominidae'))"` (non-interactive durable repair) |
+| Repair all exact YTIS accounts | `python P:/packages/yt-is/bin/csf-nlm-auth --all` (credential-free JSON; exit 2 if any account remains unavailable) |
 | Bulk ingestion (queue worker) | `python scripts/bin/queue_sync.py --worker --worker-id w1` |
 | Enqueue from both accounts | `python scripts/bin/queue_sync.py --enqueue --all-profiles` |
 | Check bulk queue status | `python scripts/bin/queue_sync.py --status` |
@@ -60,22 +62,22 @@ per account**. This host has three NotebookLM accounts (`a.hominidae` = paid,
 `troup.hominidae` = free, `brsthomson` = free), so you can run
 up to 9 workers total (3 per account). The NotebookLM API degrades above 3
 sessions per account (yt-is benchmark: 3+3 workers hit 4,123 VPH; 4+4
-regressed to 1,150 VPH). Set `config.workers` in the queue file to the total
-number of worker processes you launch.
+regressed to 1,150 VPH). Pass `--workers` when enqueueing to set the global
+queue capacity; per-account limits are enforced independently.
 
 **How do I use the free accounts?** Use `--all-profiles` on enqueue to
 discover notebooks from all three accounts. Each notebook is tagged with its
-source profile; workers automatically use the correct one. The free accounts
-(`troup.hominidae`, `brsthomson`) each have a
-50-source-per-notebook limit. One-time setup: if auth expires and silent
-re-auth fails, run `nlm login --profile <name>` and sign in as the
-respective account in the browser window.
+exact account identity; workers automatically use the correct canonical
+storage file. The free accounts (`troup.hominidae`, `brsthomson`) each have a
+50-source-per-notebook limit. If a probe fails, the bridge attempts the
+matching durable master-token repair and, when needed, the established
+account-specific headless CDP bootstrap. Do not sign in through a shared
+browser or run the legacy CLI from a queue worker.
 
-**Can I run `sync.py --all` alongside queue workers?** **No.** Each
-`nlm login --profile a.hominidae` call invalidates the previous CDP session.
-Two drivers both calling `nlm login` will silently invalidate each other,
-producing 0-page failures. Use the queue worker as the single parallel
-driver — do not mix it with `--all` or manual `sync.py` runs.
+**Can I run `sync.py --all` alongside queue workers?** The old CDP login
+contention no longer applies because the runtime uses direct clients and
+canonical account files. Still respect the measured per-account concurrency
+limit and do not run two jobs against the same notebook state concurrently.
 
 **Where does the data live?**
 
@@ -91,23 +93,21 @@ driver — do not mix it with `--all` or manual `sync.py` runs.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `✗ Authentication Error: Authentication expired` | nlm cookie session expired | `nlm login --profile a.hominidae` — silent CDP re-auth, ~10s, **no browser interaction needed**. Do NOT escalate to the operator; this is agent-performable. ([[notebooklm-cli-operational-gotchas]] Gotcha 1) |
-| `nlm login --check` returns `network_error` | The probe lies; auth is probably fine | Ignore the probe. Run `nlm login --profile a.hominidae` to silently refresh, or just retry the operation. |
-| Status table shows 0 notebooks | Auth expired before list call | `nlm login --profile a.hominidae`, then re-run `--status` |
+| `Authentication expired` or canonical probe failure | Stored account session is expired, mismatched, or unusable | The bridge attempts the exact account's durable master-token/CDP repair. If it remains unavailable, inspect the account-specific reason; no interactive login or cross-account fallback is attempted. |
+| Status table shows 0 notebooks | Canonical probe/list failed or no notebooks meet the filter | Check the probe result and account identity; do not infer auth recovery from an empty list. |
 | Export produces 0 transcripts but source list works | (rare) all sources already exported and `--force` not set | `python export_transcripts.py --notebook <id> --force` to re-export |
 | Clustering produces 1 giant cluster | Too few transcripts or `--min-cluster-size` too high for the input | Normal for tiny notebooks; real notebooks (50+ sources) produce 5-15 clusters. Lower `--min-cluster-size` for small test runs. |
 | Synthesis returns no JSON (parse fail) | LLM wrapped output in prose or hit `stop_reason: length` | Re-run; if persistent, switch `--synth-backend dgemma` or narrow input via `--max-members` |
 | Pages fail `validate_wiki_entry.py` (too thin) | Synthesis produced <40 lines or <3 wikilinks | Inspect staging dir; re-run synthesis with a different backend or raise `--max-members` for richer input |
 | Manifest has stale `concept_slugs` after manual page deletion | Pages were removed but manifest wasn't updated | `python maintenance.py --fix-stale-slugs --confirm` |
 | Transcripts exist for a notebook that's gone from NotebookLM | Notebook was deleted in the UI | `python maintenance.py --remove-orphaned-transcripts --confirm` (or `--prune-notebook <id> --confirm` to also clear manifest + concept pages) |
-| `qmd` not found / reconcile warns | qmd CLI missing or not on PATH | Non-fatal — reconcile continues without dedup; pages may duplicate existing concepts. Install qmd to restore the `refines` branching. |
-| Queue worker produces 0 pages for every notebook | **Auth contention:** another sync driver (old `bulk_sync.py`, manual `sync.py --all`) is running concurrently and both call `nlm login`, invalidating each other's CDP session | Kill the other driver (`Get-Process python` → find the old PID). Verify only queue workers are running. Re-run `--retry-failed`. See [[concurrent-cdp-auth-contention]]. |
-| Export returns rc=5 for some sources | Individual source fetch failure (status=3, video unavailable) | **Non-fatal** — logged and skipped. Sync continues with remaining sources. Only rc=2 (auth/no-sources) aborts. |
-| Worker log shows "synced_0_pages" but citation coverage > 0% | Classification bug: `"0 pages" in stderr` matches any log line containing that string, not just the actual write verdict | Check the concept pages dir for the notebook — pages may have been written despite the misclassification. (Pending fix in `queue_sync.py`.) |
-| `nlm login` hangs at "Waiting for sign-in" for 300s, or fails "Chrome is already running" | **Stale port-map PID:** a previous login was interrupted, leaving a dead Chrome PID on port 9222 | Kill stray Chrome (`Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" \| Where-Object { $_.CommandLine -match 'remote-debugging-port=9222' } \| Stop-Process -Force`), clear `~/.notebooklm-mcp-cli/chrome-port-map.json`, retry `nlm login`. See [[concurrent-cdp-auth-contention]] § "stale Chrome port-map PID". |
+| `qmd` not found / reconcile fails | qmd CLI missing or not on PATH | Sync fails closed before writing a completion manifest; install qmd or fix the reconcile stage, then retry. |
+| Queue worker produces 0 pages for every notebook | Canonical auth failure, direct-client error, or stale queue state | Inspect the worker's canonical probe/error, verify the queue item's exact account identity, and retry only after the account probe passes. |
+| Export returns rc=5 for some sources | Individual source fetch failure (status=3, video unavailable) | **Partial, not success** — transcripts are preserved, but sync does not write a manifest or rename the notebook; queue retry is required. |
+| Worker log shows `synced_0_pages` | The sync returned zero valid pages | The worker records a retryable failure; it never records completion for zero pages. |
+| Legacy CLI/CDP login error | A retired auth path was invoked | Do not repair it inside wiki-yt. Use `ensure_account_session()` and inspect the durable YTIS auth result instead. |
 
-**The auth-recovery recipe is agent-performable.** The single most common
-failure mode (expired session) has a ~10s silent recovery that does NOT
-require operator intervention. If you hit "Authentication expired," run
-`nlm login --profile a.hominidae` and retry — do not report it as a blocker. See
-[[notebooklm-cli-operational-gotchas]] Gotcha 1 for the full receipt.
+**Authentication is an account-scoped durable boundary.** A static storage file
+is not proof of a live session. The runtime performs a probe and attempts only
+the matching non-interactive repair path; it fails closed when that path cannot
+prove the account is usable.

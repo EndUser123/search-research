@@ -1,4 +1,5 @@
-import { readFile, rename, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { dirname, join, relative, resolve } from "node:path";
@@ -11,6 +12,84 @@ function pythonCommand() { return process.env.CODEX_PI_PYTHON || "python"; }
 function cleanupScriptPath() { return process.env.CODEX_PI_WORKTREE_CLEANUP || join(dirname(helperPath()), "worktree_cleanup.py"); }
 function metadataPath(stateDir, taskId) { return join(stateDir, "worktree-tasks", `${taskId}.json`); }
 function samePath(left, right) { return resolve(left).toLowerCase() === resolve(right).toLowerCase(); }
+
+async function replaceFile(temporary, destination) {
+  let lastError;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await rename(temporary, destination);
+      return;
+    } catch (error) {
+      lastError = error;
+      // Windows rename does not replace an existing destination. Move the
+      // completed destination aside before retrying. The backup makes the
+      // short replacement window recoverable after a process crash.
+      if (!(["EPERM", "EEXIST"].includes(error.code))) throw error;
+      const backup = `${destination}.bak-${process.pid}-${randomUUID()}`;
+      let backedUp = false;
+      try {
+        await rename(destination, backup);
+        backedUp = true;
+      } catch (renameError) {
+        if (renameError.code !== "ENOENT") throw renameError;
+      }
+      try {
+        await rename(temporary, destination);
+        if (backedUp) await unlink(backup).catch(() => {});
+        return;
+      } catch (replaceError) {
+        lastError = replaceError;
+        if (backedUp) {
+          // Restore only when the destination is still absent. If another
+          // updater won, leave its newer result in place and retry ours.
+          try {
+            await rename(backup, destination);
+          } catch (restoreError) {
+            if (restoreError.code !== "EEXIST" && restoreError.code !== "EPERM") throw restoreError;
+          }
+        }
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 2));
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function readMetadata(metadataFile) {
+  try {
+    return JSON.parse(await readFile(metadataFile, "utf8"));
+  } catch (error) {
+    if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    const directory = dirname(metadataFile);
+    const basename = metadataFile.split(/[\\/]/).at(-1);
+    let names;
+    try {
+      names = await readdir(directory);
+    } catch {
+      throw error;
+    }
+    const candidates = [];
+    for (const name of names) {
+      if (!name.startsWith(`${basename}.tmp-`) && !name.startsWith(`${basename}.bak-`)) continue;
+      const path = join(directory, name);
+      try {
+        const value = JSON.parse(await readFile(path, "utf8"));
+        if (value?.schema === "worktree-task.v1" && value.task_id) {
+          candidates.push({
+            path,
+            value,
+            priority: name.startsWith(`${basename}.tmp-`) ? 2 : 1,
+            mtime: (await stat(path)).mtimeMs,
+          });
+        }
+      } catch { /* ignore incomplete staging files */ }
+    }
+    candidates.sort((left, right) => right.priority - left.priority || right.mtime - left.mtime);
+    if (!candidates.length) throw error;
+    await replaceFile(candidates[0].path, metadataFile);
+    return candidates[0].value;
+  }
+}
 
 async function gitWorktrees(repoRoot) {
   const { stdout } = await execFileAsync("git", ["-C", repoRoot, "worktree", "list", "--porcelain"], { windowsHide: true, maxBuffer: 1024 * 1024 });
@@ -36,7 +115,7 @@ export async function provisionWorktree({ taskId, title, objective = "", repoRoo
   try { await execFileAsync(pythonCommand(), args, { windowsHide: true, maxBuffer: 1024 * 1024 }); }
   catch (error) { throw new Error(`worktree provisioning failed: ${error.stderr || error.message}`); }
   const metadataFile = metadataPath(stateDir, taskId);
-  const metadata = JSON.parse(await readFile(metadataFile, "utf8"));
+  const metadata = await readMetadata(metadataFile);
   if (metadata.schema !== "worktree-task.v1" || metadata.task_id !== taskId) throw new Error("worktree metadata contract mismatch");
   if (!samePath(metadata.repo_root, gitRepoRoot) || samePath(metadata.worktree_path, gitRepoRoot)) throw new Error("worktree metadata repository identity mismatch");
   const isolatedCwd = logicalRelative ? join(metadata.worktree_path, logicalRelative) : metadata.worktree_path;
@@ -54,7 +133,7 @@ export async function provisionWorktree({ taskId, title, objective = "", repoRoo
 export async function validateWorktree({ isolatedCwd, repoRoot, taskId, stateDir } = {}) {
   if (!isolatedCwd || !repoRoot || !taskId || !stateDir) return { ok: false, reason: "missing_worktree_identity" };
   try {
-    const metadata = JSON.parse(await readFile(metadataPath(stateDir, taskId), "utf8"));
+    const metadata = await readMetadata(metadataPath(stateDir, taskId));
     const logicalRelative = metadata.logical_relative || "";
     const expectedIsolatedCwd = logicalRelative ? join(metadata.worktree_path, logicalRelative) : metadata.worktree_path;
     const git = (await gitWorktrees(metadata.repo_root)).find((entry) => samePath(entry.path, metadata.worktree_path));
@@ -64,14 +143,21 @@ export async function validateWorktree({ isolatedCwd, repoRoot, taskId, stateDir
 }
 
 async function updateMetadata(metadataFile, updates) {
-  const metadata = JSON.parse(await readFile(metadataFile, "utf8"));
+  const metadata = await readMetadata(metadataFile);
   if (metadata.schema !== "worktree-task.v1" || metadata.task_id !== updates.task_id) {
     throw new Error("worktree metadata contract mismatch during lifecycle update");
   }
   const next = { ...metadata, ...updates, updated_at: new Date().toISOString() };
-  const temporary = `${metadataFile}.tmp-${process.pid}`;
-  await writeFile(temporary, JSON.stringify(next, null, 2), "utf8");
-  await rename(temporary, metadataFile);
+  // A process can update multiple worktree records concurrently. A PID-only
+  // temp name lets those updates overwrite each other's staging file.
+  const temporary = `${metadataFile}.tmp-${process.pid}-${randomUUID()}`;
+  await writeFile(temporary, JSON.stringify(next, null, 2), { encoding: "utf8", flag: "wx" });
+  try {
+    await replaceFile(temporary, metadataFile);
+  } catch (error) {
+    try { await unlink(temporary); } catch { /* best effort cleanup */ }
+    throw error;
+  }
   return next;
 }
 

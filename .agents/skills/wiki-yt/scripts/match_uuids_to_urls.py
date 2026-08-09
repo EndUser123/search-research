@@ -7,13 +7,14 @@ the title is preserved. To close the 4-hop provenance chain (concept → noteboo
 
 Strategy:
   1. Load cluster's videos from clusters.json (each has title + url).
-  2. Load notebook's sources from `nlm source list --json` (each has id + title).
+2. Load notebook's sources through the canonical YTIS direct client (each has
+   id + title).
   3. Build a title → URL index from clusters.json.
   4. For each source UUID, look up by exact title match; fall back to fuzzy.
 
 Usage:
   python match_uuids_to_urls.py --notebook <uuid> --cluster-id <id> \\
-      --clusters-json clusters.json --profile a.hominidae
+      --clusters-json clusters.json --account-profile a.hominidae
 """
 from __future__ import annotations
 
@@ -23,6 +24,8 @@ import subprocess
 import sys
 from difflib import SequenceMatcher
 from pathlib import Path
+
+from ytis_nlm import ensure_account_session, list_sources as list_canonical_sources
 
 
 def run(cmd: list[str], timeout: int = 120) -> tuple[int, str, str]:
@@ -57,15 +60,13 @@ def extract_url_if_urllike(text: str) -> str | None:
 
 
 def list_sources(notebook_id: str, profile: str) -> list[dict]:
-    rc, out, _ = run(["nlm", "source", "list", notebook_id,
-                       "--profile", profile, "--json"], timeout=120)
-    if rc != 0:
-        return []
     try:
-        data = json.loads(out)
-        return data if isinstance(data, list) else data.get("sources", [])
-    except json.JSONDecodeError:
-        return []
+        return list_canonical_sources(profile, notebook_id, worker_id="wiki-yt-match")
+    except Exception as exc:
+        raise RuntimeError(
+            f"canonical source list failed for notebook {notebook_id}: "
+            f"{type(exc).__name__}: {str(exc)[:300]}"
+        ) from exc
 
 
 def build_title_index(clusters: list[dict], cluster_id: int) -> dict[str, dict]:
@@ -125,7 +126,8 @@ def main() -> int:
     ap.add_argument("--notebook", required=True)
     ap.add_argument("--cluster-id", type=int, required=True)
     ap.add_argument("--clusters-json", type=Path, required=True)
-    ap.add_argument("--profile", default="a.hominidae")
+    ap.add_argument("--profile", "--account-profile", dest="profile", default="a.hominidae",
+                    help="exact account identity (a.hominidae, troup.hominidae, or brsthomson)")
     ap.add_argument("--threshold", type=float, default=0.85,
                     help="Fuzzy-match threshold (0-1); below this, UUID is unmatched")
     ap.add_argument("-o", "--output", type=Path, help="Output JSON (default: stdout)")
@@ -138,7 +140,15 @@ def main() -> int:
         return 2
     print(f"Index: {len(index['title'])} videos, {len(index.get('url', {}))} URLs in cluster {args.cluster_id}", file=sys.stderr)
 
-    sources = list_sources(args.notebook, args.profile)
+    try:
+        probe = ensure_account_session(args.profile, worker_id="wiki-yt-match-preflight")
+        if not probe.ok:
+            print(f"FATAL: canonical auth unavailable: {probe.reason}", file=sys.stderr)
+            return 2
+        sources = list_sources(args.notebook, args.profile)
+    except RuntimeError as exc:
+        print(f"FATAL: {exc}", file=sys.stderr)
+        return 2
     print(f"Sources: {len(sources)} in notebook {args.notebook}", file=sys.stderr)
 
     matches = []

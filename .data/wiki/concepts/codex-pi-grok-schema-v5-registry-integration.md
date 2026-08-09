@@ -34,7 +34,7 @@ relations:
 
 The first attempted Codex/Pi review was blocked before any worker call. The
 active registry at `C:/Users/brsth/.grok/skills/model-quota/scripts/fleet-models.json`
-was schema 5 with 14 flat-pool candidates, while the Codex selector searched
+was schema 5 with 32 flat-pool candidates (26 Grok-owned and 6 Codex-owned), while the Codex selector searched
 the retired v4 `models` and `lanes` structures. The same boundary also exposed
 provider naming differences (`nim`/`zen` in Grok versus `nvidia-nim`/`opencode-zen`
 in Pi), so a model-name-only lookup would have been unsafe.
@@ -51,7 +51,8 @@ Use schema 5 as the only live registry contract. The Codex selector now:
 1. requires `schema_version: 5` and `candidates`;
 2. matches a candidate by its explicit registry id;
 3. checks provider identity through a small explicit alias table;
-4. requires `dispatch_paths` to contain `pi`;
+4. requires `dispatch_paths` to contain `pi` and requires a Codex candidate's
+   primary `dispatch_path`/`transport` binding to be `pi`;
 5. gates non-active lifecycle states and `excluded` policy;
 6. verifies the exact Pi provider/model and expected base URL in
    `~/.pi/agent/models.json`; and
@@ -78,11 +79,11 @@ deriving a provider from a model name: the same model family can exist in
 multiple provider pools, and Pi’s configured provider id is part of the
 runtime identity.
 
-Using `dispatch_paths` rather than the primary `dispatch_path` is intentional.
-The live registry can say that Grok’s primary path is `spawn` while Pi is also
-an allowed path. Conversely, `serde_broken` and
-`tool_grounded_spawn_broken` are not global Pi failures; the adapter does not
-apply those spawn-only views to a Pi route.
+`dispatch_paths` remains the set of capabilities, but it is not sufficient as
+the Codex binding. Codex-owned candidates must explicitly name Pi as their
+primary path; Grok-owned entries may still use `spawn` as their primary path.
+Conversely, `serde_broken` and `tool_grounded_spawn_broken` are not global Pi
+failures; the adapter does not apply those spawn-only views to a Pi route.
 
 ## What public projects contributed
 
@@ -141,15 +142,20 @@ Local implementation receipts:
 
 Fresh verification receipts:
 
-* Codex package suite: 103/103 tests passed.
-* Grok model-quota registry/schema tests: 28 passed.
-* Grok model-benchmark tests: 54 passed; benchmark module import succeeded.
+* Codex package suite: 109/109 tests passed.
+* Full model-quota and model-benchmark suites: 444 passed, 3 migration tests
+  skipped because the historical v4 backup is absent.
 * Active registry schema validator passed.
 * Registry writer dry-run passed without applying a live write.
 * `external-delegation check --worker pi` found Pi 0.82.1.
-* The real CLI route selected `nvidia-nim/deepseek-ai/deepseek-v4-flash`
-  provisionally from the active registry and Pi config; no external worker
-  call was made during this repair.
+* The live raw-Pi NVIDIA Nemotron cohort passed 3/3 mechanical prompts with a
+  current-cohort median of 5,136.5 ms; the live Codex-runner-Pi cohort passed
+  3/3 with a current-cohort median of 13,444.0 ms.
+* A live NVIDIA DeepSeek Flash probe reached Pi and returned `410 status code
+  (no body)`; this remains model/endpoint evidence, not a provider-wide
+  outage claim.
+* The real route CLI emitted a selected Pi packet, including the explicit
+  `(provider, model, invocation_method, orchestrator)` identity.
 
 ## What this means for our workspace
 
@@ -160,11 +166,11 @@ result-contract smoke through the real runner. Record Codex/Pi evidence under
 the four-part identity `(provider, model, invocation_method, orchestrator)`;
 Grok/spawn evidence remains separate.
 
-The current `model-benchmark` write-back code still deserves a separate,
-identity-aware review before enabling registry promotion for new benchmark
-data. Until that is implemented, keep benchmark measurements in telemetry or
-sequestered artifacts and do not treat a successful writer dry-run as proof
-that benchmark evidence has been promoted.
+The retired benchmark write-back path no longer mutates the v5 registry. The
+benchmark runner records real results only in the authoritative SQLite
+telemetry store, keeps dry-run results out of telemetry, and keys evidence by
+the four-part identity. Benchmark measurements remain sequestered evidence;
+the active router does not promote them automatically.
 
 ## Falsifier
 
@@ -184,7 +190,7 @@ adapter.
 | The old selector caused the blocked route | verified_fact | Selector only read v4 keys; v5 regression was red before patch | Reproduce route before/after adapter | high | A different failure remains with v5 | Keep RCA scoped |
 | Grok/spawn evidence must not rank Codex/Pi | verified_fact | Four-part identity contract and adapter guard | Add mismatched evidence fixture; assert no latency rank | high | Shared evidence is explicitly identity-bound | Permit only matching evidence |
 | Checked public repos provide patterns, not a drop-in | inference | Worktrunk, Overstory, MCO, Gas Town, Git docs | Re-run repository comparison when scope expands | medium | Exact maintained Codex/Pi registry adapter found | Reuse only matching components |
-| Benchmark write-back is safe for v5 promotion | unsupported | Current benchmark writer is v4-shaped | Audit and test identity-aware promotion path | low | Dedicated v5 evidence writer passes | Keep promotion disabled |
+| Legacy benchmark write-back cannot mutate live v5 routing | verified_fact | Legacy v4 write-back functions and flag were removed; benchmark runner writes identity-aware SQLite telemetry only | Run benchmark CLI help, inspect SQLite rows, and assert registry hash is unchanged | high | A live command mutates `fleet-models.json` | Keep benchmark evidence sequestered |
 
 ## Related
 

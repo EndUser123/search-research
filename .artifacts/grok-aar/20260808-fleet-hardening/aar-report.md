@@ -9,7 +9,7 @@
 
 ## Verdict
 
-**PARTIAL COMPLETION.** The continuation successfully turned the AAR-driven fleet hardening that began in the prior session into durable code: gate false-positive fixes, ship-py session-scoping, the meta-checkpoint deadlock fix, stale-wiki corrections, and three architecture subagent dispatches. The session also surfaced and partially fixed the **stale-doc-trust failure pattern** (treated wiki as ground truth instead of cross-referencing the live MCP connection list in session-start context). However, the session ended with **5 background subagents still running** that were never waited-on before close, breaking the [[wait-all-before-conclude-gate]].
+**PARTIAL COMPLETION.** The continuation successfully turned the AAR-driven fleet hardening that began in the prior session into durable code: gate false-positive fixes, ship-py session-scoping, the meta-checkpoint deadlock fix, stale-wiki corrections, and three architecture subagent dispatches. The session also surfaced and partially fixed the **stale-doc-trust failure pattern** (treated wiki as ground truth instead of cross-referencing the live MCP connection list in session-start context). However, the session ended with **5 background subagents still running** that were never waited-on before close, breaking the /wait-all-before-conclude-gate.
 
 **Most important lesson:** A persisted wiki concept about system state (key set, MCP server enabled) can drift from live reality. The structural fix is *not* to keep patching suppressors and updating individual docs — it is to make the **drift detectable** (credential_drift_detector.py was the right answer, dispatched at session-end).
 
@@ -22,7 +22,7 @@
 ### HIGH — Five background subagents never waited on before session end (E9, F1)
 
 - **What happened:** At session line 419, five subagents were dispatched in parallel: credential-drift-detector, semantic-intent-classifier, gate-satisfiability-tests, ship_orchestrator refactor, quality_gate refactor, scan_functions refactor. At session line 446 (terminal turn), `meta.status` for all five remained `"running"`. No `wait_commands_or_subagents` or `get_command_or_subagent_output` was issued before the session ended.
-- **Why it matters:** Subagent results, if they landed after the orchestrator died, are orphaned; if they landed and were never read, their work is silent. This violates [[wait-all-before-conclude-gate]] in SKILL.md. The gate-satisfiability test commit `41f99c2` shows that at least one subagent *did* finish and was auto-committed by its child session, but the others may not have. The architecture-builds themselves may be partially complete.
+- **Why it matters:** Subagent results, if they landed after the orchestrator died, are orphaned; if they landed and were never read, their work is silent. This violates /wait-all-before-conclude-gate in SKILL.md. The gate-satisfiability test commit `41f99c2` shows that at least one subagent *did* finish and was auto-committed by its child session, but the others may not have. The architecture-builds themselves may be partially complete.
 - **What to do:** On session start, run `python ~/.grok/skills/aar/__lib/list_running_subagents.py` (or equivalent) and either wait on each subagent to completion, read the committed artifacts, or formally abandon. Subagent results should be cited in the final report by event_id, not by commit hash.
 - **Where in this report:** §Material episodes E9, §Open work (must do before next close).
 
@@ -322,7 +322,7 @@ Sorted by expected value × confidence:
 
 - **O1 → AGENTS.md rule** (already there): "search before proposing" — but extend to "verify live state before grounding in wiki."
 - **O2 → skill-dev test fixture** — add bias/confabulation false-positive test cases from this session's diagnostic text.
-- **O6 → AGENTS.md rule + Stop hook** — "wait-all-before-conclude" — `[[wait-all-before-conclude-gate]]` already documented; needs enforcement.
+- **O6 → AGENTS.md rule + Stop hook** — "wait-all-before-conclude" — `/wait-all-before-conclude-gate` already documented; needs enforcement.
 
 ---
 

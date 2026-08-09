@@ -4,10 +4,33 @@ function list(value) {
   return Array.isArray(value) && value.length > 0 ? value.map((item) => `- ${item}`).join("\n") : "- none specified";
 }
 
+function schemaExample(type) {
+  if (type === "array") return [];
+  if (type === "object") return {};
+  if (type === "number" || type === "integer") return 0;
+  if (type === "boolean") return false;
+  return type === "string" ? "" : null;
+}
+
+function outputSchemaDetails(schema) {
+  const properties = schema?.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) return [];
+  return Object.entries(properties).map(([name, definition]) => ({
+    name,
+    type: definition?.type || "unspecified",
+  }));
+}
+
 export function renderPrompt(packet) {
+  const schemaDetails = outputSchemaDetails(packet.output_schema);
   const resultExample = {
     status: "ok",
-    result_payload: Object.fromEntries((packet.output_schema.required ?? []).map((key) => [key, null])),
+    result_payload: Object.fromEntries((packet.output_schema.required ?? []).map((key) => [
+      key,
+      schemaDetails.find((entry) => entry.name === key)?.type
+        ? schemaExample(schemaDetails.find((entry) => entry.name === key).type)
+        : null,
+    ])),
   };
 
   return [
@@ -28,6 +51,10 @@ export function renderPrompt(packet) {
     "",
     "Required output fields:",
     list(packet.output_schema.required),
+    ...(schemaDetails.length > 0 ? [
+      "Required output field types:",
+      schemaDetails.map(({ name, type }) => `- ${name}: ${type}`).join("\n"),
+    ] : []),
     "",
     "Verification commands to run or report as unavailable:",
     list(packet.verification.commands),

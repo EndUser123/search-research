@@ -26,6 +26,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -176,7 +177,13 @@ def _resolve_mmx_cmd() -> list[str]:
 
 def call_mmx(prompt: str, model: str | None, timeout: int) -> tuple[str, str]:
     """Call mmx text chat, return (text, error)."""
-    cmd = _resolve_mmx_cmd() + ["text", "chat", "--message", prompt,
+    # Passing a full transcript prompt as --message exceeds Windows' process
+    # command-line limit. Use the CLI's JSON-file input instead; its documented
+    # stdin shorthand resolves to /dev/stdin, which is not available on Windows.
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump([{"role": "user", "content": prompt}], f, ensure_ascii=False)
+        messages_path = f.name
+    cmd = _resolve_mmx_cmd() + ["text", "chat", "--messages-file", messages_path,
                                 "--output", "json", "--non-interactive", "--timeout", str(timeout)]
     if model:
         cmd.extend(["--model", model])
@@ -184,6 +191,11 @@ def call_mmx(prompt: str, model: str | None, timeout: int) -> tuple[str, str]:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 30, encoding="utf-8")
     except subprocess.TimeoutExpired:
         return "", "mmx timeout"
+    finally:
+        try:
+            os.unlink(messages_path)
+        except FileNotFoundError:
+            pass
     if r.returncode != 0:
         return "", f"mmx rc={r.returncode}: {r.stderr.strip()[:200]}"
     try:

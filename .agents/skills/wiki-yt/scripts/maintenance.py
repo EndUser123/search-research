@@ -11,7 +11,7 @@ Default mode is read-only audit. Fixes require explicit flags + --confirm.
 
 Usage:
   # Audit (read-only, safe) — report all mismatches
-  python maintenance.py --audit --profile a.hominidae
+  python maintenance.py --audit --account-profile a.hominidae
 
   # Fix stale manifest concept_slugs (pages deleted but slugs remain)
   python maintenance.py --fix-stale-slugs --confirm
@@ -38,6 +38,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+from ytis_nlm import ensure_account_session, list_notebooks as list_canonical_notebooks
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 WIKI_VAULT = Path("P:/.data/wiki")
@@ -77,17 +79,20 @@ def save_manifest(m: dict) -> None:
     os.replace(tmp, SYNC_MANIFEST)
 
 
-def list_notebooks(profile: str) -> set[str]:
-    """Return the set of notebook IDs currently visible to the account."""
-    rc, out, _ = run(["nlm", "notebook", "list", "--profile", profile, "--json"], timeout=120)
-    if rc != 0:
-        return set()
+def list_notebooks(profile: str) -> set[str] | None:
+    """Return live notebook IDs, or None when the live view is unavailable."""
     try:
-        data = json.loads(out)
-        nbs = data if isinstance(data, list) else data.get("notebooks", [])
-        return {n.get("id") for n in nbs if n.get("id")}
-    except json.JSONDecodeError:
-        return set()
+        probe = ensure_account_session(profile, worker_id="wiki-yt-maintenance")
+        if not probe.ok:
+            raise RuntimeError(f"canonical auth unavailable: {probe.reason}")
+        return {
+            n.get("id")
+            for n in list_canonical_notebooks(profile, worker_id="wiki-yt-maintenance-list")
+            if n.get("id")
+        }
+    except Exception as exc:
+        log(f"canonical notebook list failed: {str(exc)[:240]}")
+        return None
 
 
 def transcript_notebook_id(path: Path) -> str | None:
@@ -131,7 +136,8 @@ def audit(profile: str) -> dict:
     manifest = load_manifest()
     live_notebooks = list_notebooks(profile)
     report = {
-        "live_notebook_count": len(live_notebooks),
+        "live_notebooks_available": live_notebooks is not None,
+        "live_notebook_count": len(live_notebooks) if live_notebooks is not None else None,
         "tracked_notebook_count": len(manifest.get("notebooks", {})),
         "stale_slugs": [],          # manifest concept_slugs whose pages don't exist
         "orphaned_transcripts": [],  # transcripts whose notebook is gone from NotebookLM
@@ -153,7 +159,7 @@ def audit(profile: str) -> dict:
     if TRANSCRIPTS_DIR.exists():
         for f in TRANSCRIPTS_DIR.glob("*.md"):
             nid = transcript_notebook_id(f)
-            if nid and live_notebooks and nid not in live_notebooks:
+            if nid and live_notebooks is not None and nid not in live_notebooks:
                 report["orphaned_transcripts"].append({
                     "file": f.name, "notebook_id": nid,
                 })
@@ -161,7 +167,7 @@ def audit(profile: str) -> dict:
                 report["untracked_transcripts"] += 1
 
     # 3. Orphaned manifest entries
-    if live_notebooks:
+    if live_notebooks is not None:
         for nb_id in manifest.get("notebooks", {}):
             if nb_id not in live_notebooks:
                 report["orphaned_manifest_entries"].append(nb_id)
@@ -171,7 +177,10 @@ def audit(profile: str) -> dict:
 
 def print_audit(report: dict) -> None:
     print("\n=== wiki-yt audit ===\n")
-    print(f"Live notebooks in NotebookLM: {report['live_notebook_count']}")
+    if report.get("live_notebooks_available"):
+        print(f"Live notebooks in NotebookLM: {report['live_notebook_count']}")
+    else:
+        print("Live notebooks in NotebookLM: UNAVAILABLE (no orphan decisions made)")
     print(f"Tracked in manifest:          {report['tracked_notebook_count']}")
     print()
     if report["stale_slugs"]:
@@ -243,9 +252,9 @@ def remove_orphaned_transcripts(confirm: bool) -> int:
     """Remove transcripts whose notebook is no longer in NotebookLM."""
     # Requires live notebook list; caller passes profile via global
     live = list_notebooks(GLOBAL_PROFILE)
-    if not live:
+    if live is None:
         log("Cannot verify orphan status: live notebook list unavailable.")
-        return 0
+        return 2
     removed = 0
     if not TRANSCRIPTS_DIR.exists():
         log("No transcripts directory.")
@@ -373,7 +382,8 @@ def main() -> int:
     ap.add_argument("--prune-notebook", metavar="UUID", help="remove ALL state for a notebook")
     ap.add_argument("--all-fixes", action="store_true", help="run fix-stale-slugs + remove-orphaned-transcripts")
     ap.add_argument("--disk-report", action="store_true")
-    ap.add_argument("--profile", default="a.hominidae")
+    ap.add_argument("--profile", "--account-profile", dest="profile", default="a.hominidae",
+                    help="exact account identity (a.hominidae, troup.hominidae, or brsthomson)")
     ap.add_argument("--confirm", action="store_true",
                     help="required to apply any destructive change (default is dry-run)")
     args = ap.parse_args()
@@ -385,9 +395,12 @@ def main() -> int:
                 args.prune_notebook, args.all_fixes, args.disk_report]):
         args.audit = True
 
+    exit_code = 0
     if args.audit or args.all_fixes:
         report = audit(args.profile)
         print_audit(report)
+        if not report.get("live_notebooks_available"):
+            exit_code = 2
 
     if args.disk_report:
         disk_report()
@@ -396,12 +409,12 @@ def main() -> int:
         fix_stale_slugs(args.confirm)
 
     if args.remove_orphaned_transcripts or args.all_fixes:
-        remove_orphaned_transcripts(args.confirm)
+        exit_code = max(exit_code, remove_orphaned_transcripts(args.confirm))
 
     if args.prune_notebook:
         prune_notebook(args.prune_notebook, args.confirm)
 
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

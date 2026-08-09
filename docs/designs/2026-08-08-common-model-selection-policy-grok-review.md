@@ -3,7 +3,12 @@
 **Date:** 2026-08-08
 **Reviewer:** Grok Build
 **Target:** `P:/docs/designs/2026-08-08-common-model-selection-policy-for-codex-and-grok.md` (Revision 2)
-**Status:** PROCEED WITH 5 CORRECTIONS — see acceptance criteria below
+**Status:** Historical review of Revision 2 — superseded by Revision 5b; retain for audit traceability
+**Current authority:** [Revision 5b](P:/docs/designs/2026-08-08-common-model-selection-policy-for-codex-and-grok.md)
+
+This review records the evidence and risks found against Revision 2. Its
+recommendations are not the current policy; use Revision 5b for present
+decisions and implementation gates.
 
 ---
 

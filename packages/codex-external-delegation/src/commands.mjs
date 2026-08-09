@@ -10,6 +10,15 @@ function quoteCmdArg(value) {
   return `"${text.replace(/(["^])/g, "^$1")}"`;
 }
 
+const THINKING_TASK_TYPES = new Set(["reasoning", "planning", "debugging", "critique", "review", "architecture"]);
+
+function thinkingLevel(packet) {
+  if (packet.thinking !== undefined && packet.thinking !== null) return packet.thinking;
+  const taskHints = [packet.task_type, packet.task_class, packet.role]
+    .map((value) => String(value || "").toLowerCase());
+  return taskHints.some((value) => THINKING_TASK_TYPES.has(value)) ? "low" : "off";
+}
+
 export function spawnSpec(command, args, { platform = process.platform, comspec = process.env.ComSpec || "cmd.exe" } = {}) {
   if (platform !== "win32") return { command, args };
   return {
@@ -33,7 +42,10 @@ export function buildCommand(packet, prompt, { platform = process.platform } = {
       args.push("--provider", packet.requested_provider);
     }
     if (packet.mode === "read_only") {
-      args.push("--thinking", "off", "--tools", "read,grep,find,ls");
+      // Read-only controls tool/filesystem mutation. It must not disable model
+      // reasoning: some providers reject requests that explicitly turn off
+      // reasoning for reasoning-required models.
+      args.push("--thinking", thinkingLevel(packet), "--tools", "read,grep,find,ls");
     } else {
       // Keep Pi's write lane limited to file-editing primitives. Verification
       // commands belong to the parent; enabling bash here would let a worker

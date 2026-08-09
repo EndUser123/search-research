@@ -3,13 +3,13 @@
 
 Usage:
   # Single notebook (canonical case)
-  python sync.py --notebook <uuid> --profile a.hominidae
+  python sync.py --notebook <uuid> --account-profile a.hominidae
 
   # All notebooks (sequential)
-  python sync.py --all --profile a.hominidae --state sync-state.json
+  python sync.py --all --account-profile a.hominidae --state sync-state.json
 
   # From nlm-bulk-ingest clusters.json (round-trip)
-  python sync.py --from-clusters clusters.json --profile a.hominidae --state sync-state.json
+  python sync.py --from-clusters clusters.json --account-profile a.hominidae --state sync-state.json
 
   # Dry run (export + cluster + synthesize + reconcile, no page writes)
   python sync.py --notebook <uuid> --dry-run
@@ -36,6 +36,14 @@ import time
 from datetime import date
 from pathlib import Path
 
+from ytis_nlm import (
+    ensure_account_session,
+    get_notebook,
+    list_notebooks as list_nlm_notebooks,
+    list_sources,
+    rename_notebook,
+)
+
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = SKILL_ROOT / "scripts"
 WIKI_VAULT = Path("P:/.data/wiki")
@@ -55,41 +63,41 @@ def run(cmd: list[str], timeout: int = 1800, capture: bool = True) -> tuple[int,
 
 
 def ensure_auth(profile: str) -> bool:
-    rc, _, _ = run(["nlm", "notebook", "list", "--profile", profile, "--quiet"], timeout=60)
-    if rc == 0:
-        return True
-    log(f"Auth expired; silent re-auth via profile '{profile}'...")
-    rc2, _, err = run(["nlm", "login", "--profile", profile], timeout=300)
-    if rc2 != 0:
-        log(f"  re-auth failed: {err.strip()[:200]}")
+    """Validate and durably repair canonical auth without user interaction."""
+    try:
+        probe = ensure_account_session(profile, worker_id="wiki-yt-coordinator")
+    except Exception as exc:  # fail closed with an actionable operator message
+        log(f"FATAL canonical auth probe failed for account '{profile}': {exc}")
         return False
-    rc3, _, _ = run(["nlm", "notebook", "list", "--profile", profile, "--quiet"], timeout=60)
-    return rc3 == 0
+    if probe.ok:
+        return True
+    log(
+        f"FATAL canonical auth unavailable for account '{profile}': {probe.reason}; "
+        "non-interactive durable repair was attempted; no user login was requested"
+    )
+    return False
 
 
 def notebook_title(nb_id: str, profile: str) -> str:
-    rc, out, _ = run(["nlm", "notebook", "get", nb_id, "--profile", profile, "--json"], timeout=60)
-    if rc != 0:
-        return nb_id
     try:
-        return json.loads(out).get("title", nb_id)
-    except json.JSONDecodeError:
+        data = get_notebook(profile, nb_id, worker_id="wiki-yt-title")
+    except Exception:
         return nb_id
+    return data.get("title", nb_id) or nb_id
 
 
 def source_id_snapshot(nb_id: str, profile: str) -> tuple[list[str], str]:
     """Return (sorted source_ids, hash) for re-sync gating."""
-    rc, out, _ = run(["nlm", "source", "list", nb_id, "--profile", profile, "--json"], timeout=120)
-    if rc != 0:
-        return [], ""
     try:
-        data = json.loads(out)
-        sources = data.get("sources", []) if isinstance(data, dict) else data
-        ids = sorted([s.get("id") for s in sources if s.get("id")])
-        h = hashlib.sha1("|".join(ids).encode("utf-8")).hexdigest()
-        return ids, h
-    except json.JSONDecodeError:
-        return [], ""
+        sources = list_sources(profile, nb_id, worker_id="wiki-yt-snapshot")
+    except Exception as exc:
+        raise RuntimeError(
+            f"canonical source snapshot failed for notebook {nb_id}: "
+            f"{type(exc).__name__}: {str(exc)[:300]}"
+        ) from exc
+    ids = sorted([s.get("id") for s in sources if s.get("id")])
+    h = hashlib.sha1("|".join(ids).encode("utf-8")).hexdigest()
+    return ids, h
 
 
 def load_manifest() -> dict:
@@ -124,7 +132,12 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
     log(f"=== Sync: {title} ({nb_id}) ===")
 
     # Stage A0: re-sync gate
-    source_ids, source_hash = source_id_snapshot(nb_id, profile)
+    try:
+        source_ids, source_hash = source_id_snapshot(nb_id, profile)
+    except RuntimeError as exc:
+        log(f"FATAL {exc}")
+        return {"notebook_id": nb_id, "title": title,
+                "status": "source_snapshot_failed", "error": str(exc)}
     manifest = load_manifest()
     prior = manifest["notebooks"].get(nb_id, {})
     if prior.get("source_hash") == source_hash and source_hash:
@@ -137,35 +150,37 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
     # Stage A: export transcripts (v3 — raw source content, not Report synthesis)
     log("Stage A: export transcripts...")
     rc, out, err = run(
-        ["python", str(SCRIPTS / "export_transcripts.py"),
-         "--notebook", nb_id, "--profile", profile,
+            ["python", str(SCRIPTS / "export_transcripts.py"),
+         "--notebook", nb_id, "--account-profile", profile,
          "--out", str(transcripts_dir)], timeout=5400)
-    # rc=0: all succeeded. rc=5: partial failure (some sources couldn't be fetched —
-    # common for status=3 sources that NotebookLM failed to index). Non-fatal: the
-    # succeeded transcripts are still valuable; crash-resume handles gaps on re-run.
-    # Only rc=2 (fatal: no sources / auth failure) aborts the pipeline.
-    if rc == 2:
-        log(f"FATAL export_transcripts rc={rc}: {err[:400]}")
-        return {"notebook_id": nb_id, "title": title, "status": "export_failed", "error": err[:400]}
-    if rc == 5:
-        log("WARN export_transcripts rc=5 (partial failure — some sources status=3); continuing with succeeded transcripts")
-    elif rc != 0:
-        log(f"WARN export_transcripts rc={rc}: {err[:300]}; continuing")
-    export_result = json.loads(out)
+    try:
+        export_result = json.loads(out)
+    except json.JSONDecodeError:
+        log(f"FATAL export_transcripts returned invalid JSON (rc={rc}): {err[:400]}")
+        return {"notebook_id": nb_id, "title": title, "status": "export_failed",
+                "error": f"invalid export result (rc={rc})"}
     n_exported = export_result.get("exported", 0)
     n_skipped = export_result.get("skipped", 0)
     n_failed = export_result.get("failed", 0)
     log(f"  exported {n_exported} new, {n_skipped} already present, {n_failed} failed (status=3/unrecoverable)")
+    if rc != 0 or export_result.get("auth_failed") or export_result.get("fatal_error"):
+        status = "export_partial" if rc == 5 and n_exported + n_skipped else "export_failed"
+        log(f"FATAL export_transcripts rc={rc}; preserving transcripts but not advancing the notebook")
+        return {"notebook_id": nb_id, "title": title, "status": status,
+                "exported": n_exported, "skipped": n_skipped, "failed": n_failed,
+                "error": (err or "; ".join(export_result.get("errors", [])))[:400]}
 
     # Stage A2 (optional): vision enrichment (high-scene-change videos only)
     if enrich_vision:
         log("Stage A2: vision enrichment (high-scene-change only)...")
         rc, out, err = run(
             ["python", str(SCRIPTS / "enrich_vision.py"),
-             "--notebook", nb_id, "--profile", profile,
+             "--notebook", nb_id, "--account-profile", profile,
              "--transcripts-dir", str(transcripts_dir)], timeout=7200)
         if rc != 0:
-            log(f"WARN enrich_vision rc={rc}: {err[:300]}; continuing without vision")
+            log(f"FATAL enrich_vision rc={rc}: {err[:300]}")
+            return {"notebook_id": nb_id, "title": title, "status": "vision_failed",
+                    "error": err[:400], "transcripts_exported": n_exported}
         else:
             vis = json.loads(out)
             log(f"  enriched {vis.get('enriched', 0)}, skipped {vis.get('skipped_low_density', 0)}")
@@ -203,7 +218,9 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
             synth_cmd.extend(["--backend", synth_backend])
         rc, out, err = run(synth_cmd, timeout=3600)
         if rc != 0:
-            log(f"WARN synthesize rc={rc}: {err[:300]} (partial output may exist)")
+            log(f"FATAL synthesize rc={rc}: {err[:300]}")
+            return {"notebook_id": nb_id, "title": title, "status": "synthesis_failed",
+                    "error": err[:400], "transcripts_exported": n_exported}
         concepts = json.loads(concepts_path.read_text(encoding="utf-8"))
         log(f"  synthesized {len(concepts)} concept pages")
         if not concepts:
@@ -215,8 +232,9 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
             ["python", str(SCRIPTS / "reconcile.py"),
              "--input", str(concepts_path)], timeout=300)
         if rc != 0:
-            log(f"WARN reconcile rc={rc}: {err[:300]}; continuing without dedup")
-            out = concepts_path.read_text(encoding="utf-8")
+            log(f"FATAL reconcile rc={rc}: {err[:300]}")
+            return {"notebook_id": nb_id, "title": title, "status": "reconcile_failed",
+                    "error": err[:400], "transcripts_exported": n_exported}
         reconciled_path = tmp_dir / "reconciled.json"
         reconciled_path.write_text(out, encoding="utf-8")
         reconciled = json.loads(out)
@@ -249,6 +267,11 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         n_written = len(write_summary["written"])
         n_failed = len(write_summary["failed"])
         log(f"  wrote {n_written} pages; {n_failed} failed validation")
+        if rc == 5 or n_failed:
+            log("FATAL page validation was incomplete; no manifest or [INGESTED] rename will be written")
+            return {"notebook_id": nb_id, "title": title, "status": "partial_write",
+                    "written": n_written, "failed_validation": n_failed,
+                    "staging": str(staging), "transcripts_exported": n_exported}
 
         # Stage F: auto-link + log + manifest
         log("Stage F: auto-link + log + manifest...")
@@ -271,15 +294,14 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         if not title.startswith("[INGESTED]"):
             log("Stage G: rename notebook with [INGESTED] prefix...")
             new_title = f"[INGESTED] - {title}"
-            rc, _, err = run(["nlm", "notebook", "rename", nb_id, new_title,
-                              "--profile", profile], timeout=60)
-            if rc == 0:
+            try:
+                rename_notebook(profile, nb_id, new_title, worker_id="wiki-yt-rename")
                 log(f"  renamed: {title} → {new_title}")
                 manifest["notebooks"][nb_id]["original_title"] = title
                 manifest["notebooks"][nb_id]["title"] = new_title
                 save_manifest(manifest)
-            else:
-                log(f"WARN rename rc={rc}: {err[:200]}; continuing")
+            except Exception as exc:
+                log(f"WARN canonical rename failed: {str(exc)[:200]}; continuing")
         else:
             log("Stage G: already prefixed [INGESTED], skipping rename")
 
@@ -287,7 +309,7 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
         log("Stage H: generate pipeline report...")
         sync_duration = time.time() - sync_start_time if sync_start_time else None
         report_cmd = ["python", str(SCRIPTS / "report.py"),
-                      "--notebook", nb_id, "--profile", profile]
+                      "--notebook", nb_id, "--account-profile", profile]
         if sync_duration:
             report_cmd.extend(["--duration", str(sync_duration)])
         rc, out, _ = run(report_cmd, timeout=120)
@@ -347,14 +369,13 @@ def save_state(state: dict, path: Path | None) -> None:
 
 def list_notebooks(profile: str) -> list[dict]:
     """Return the account's notebooks (id, title, source_count)."""
-    rc, out, _ = run(["nlm", "notebook", "list", "--profile", profile, "--json"], timeout=120)
-    if rc != 0:
-        return []
     try:
-        data = json.loads(out)
-        return data if isinstance(data, list) else data.get("notebooks", [])
-    except json.JSONDecodeError:
-        return []
+        return list_nlm_notebooks(profile, worker_id="wiki-yt-list")
+    except Exception as exc:
+        raise RuntimeError(
+            f"canonical notebook list failed for {profile}: "
+            f"{type(exc).__name__}: {str(exc)[:300]}"
+        ) from exc
 
 
 def notebook_status(profile: str, min_sources: int = 10) -> list[dict]:
@@ -398,7 +419,11 @@ def notebook_status(profile: str, min_sources: int = 10) -> list[dict]:
 
 def print_status(profile: str, min_sources: int) -> int:
     """Print notebook sync status as a table; return 0."""
-    rows = notebook_status(profile, min_sources)
+    try:
+        rows = notebook_status(profile, min_sources)
+    except RuntimeError as exc:
+        log(f"FATAL {exc}")
+        return 2
     if not rows:
         log("No notebooks found (or none meet --min-sources threshold).")
         return 0
@@ -411,7 +436,7 @@ def print_status(profile: str, min_sources: int) -> int:
     print(f"\n{len(rows)} notebooks (>= {min_sources} sources). "
           f"Synced: {sum(1 for r in rows if r['synced'])}. "
           f"Run `python sync.py --notebook <id>` to sync one, or `--all` for everything.")
-    return 0
+    return 5 if run_failed else 0
 
 
 def main() -> int:
@@ -422,7 +447,8 @@ def main() -> int:
     g.add_argument("--from-clusters", type=Path, metavar="CLUSTERS_JSON")
     g.add_argument("--status", action="store_true",
                    help="print notebook sync status table and exit (also the default when no target given)")
-    ap.add_argument("--profile", default="a.hominidae")
+    ap.add_argument("--profile", "--account-profile", dest="profile", default="a.hominidae",
+                    help="exact account identity (a.hominidae, troup.hominidae, or brsthomson)")
     ap.add_argument("--state", type=Path, help="resume-state file for --all / --from-clusters")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--min-sources", type=int, default=10,
@@ -476,19 +502,15 @@ def main() -> int:
         if not notebooks:
             return 2
     else:  # --all
-        rc, out, _ = run(["nlm", "notebook", "list", "--profile", args.profile, "--json"], timeout=120)
-        if rc != 0:
-            log("FATAL: notebook list failed")
-            return 2
         try:
-            data = json.loads(out)
-            nbs = data if isinstance(data, list) else data.get("notebooks", [])
-            notebooks = [n.get("id") for n in nbs if n.get("id")]
-        except json.JSONDecodeError:
-            log("FATAL: notebook list output not JSON")
+            nbs = list_nlm_notebooks(args.profile, worker_id="wiki-yt-all")
+        except Exception as exc:
+            log(f"FATAL: canonical notebook list failed: {exc}")
             return 2
+        notebooks = [n.get("id") for n in nbs if n.get("id")]
 
     log(f"=== {len(notebooks)} notebook(s) to sync ===")
+    run_failed = 0
     for nb_id in notebooks:
         if nb_id in state.get("synced", []):
             log(f"SKIP (already in state.synced): {nb_id}")
@@ -502,13 +524,14 @@ def main() -> int:
             state.setdefault("synced", []).append(nb_id)
         else:
             state.setdefault("failed", []).append(nb_id)
+            run_failed += 1
         save_state(state, args.state)
 
     log("=== Pipeline complete ===")
     log(f"Synced: {len(state.get('synced', []))}/{len(notebooks)}")
     if state.get("failed"):
         log(f"Failed: {state['failed']}")
-    return 0
+    return 1 if run_failed else 0
 
 
 if __name__ == "__main__":

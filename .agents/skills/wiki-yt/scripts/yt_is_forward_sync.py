@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Forward-sync provider: check yt-is cache before calling NotebookLM.
 
-Before wiki-yt calls `nlm source content` for a YouTube source, this
+Before wiki-yt calls the direct NotebookLM source-fulltext API for a YouTube source, this
 provider checks yt-is `transcript_cache` for a matching video_id via the
 title bridge. If found, reads from cache (skips NLM fetch). If not found,
 returns empty — the caller falls through to NotebookLM as before.

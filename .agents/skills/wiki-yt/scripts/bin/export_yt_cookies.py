@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export nlm profile cookies to Netscape cookies.txt for yt-dlp isolation.
+"""Export canonical account cookies to Netscape cookies.txt for yt-dlp isolation.
 
 Each nlm profile (a.hominidae, troup.hominidae, brsthomson) has its own
 independent Google session cookies. These work for YouTube as well as
@@ -13,20 +13,23 @@ giving us:
 3. Per-account auth: each Google account's cookies are separate
 
 Usage:
-  python export_yt_cookies.py --profile a.hominidae -o cookies-a.hominidae.txt
+  python export_yt_cookies.py --account-profile a.hominidae -o cookies-a.hominidae.txt
   python export_yt_cookies.py --all
 
 Output files go to P:/.data/yt-is/state/cookies/ (durable, not tmp).
 """
 from __future__ import annotations
 import argparse
-import json
 import os
 import sys
 import time
 from pathlib import Path
 
-NLM_ROOT = Path.home() / ".notebooklm-mcp-cli"
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+from ytis_nlm import load_canonical_cookies
+
 OUTPUT_DIR = Path("P:/.data/yt-is/state/cookies")
 
 PROFILES = ["a.hominidae", "troup.hominidae", "brsthomson"]
@@ -66,23 +69,32 @@ def cookies_json_to_netscape(cookies_json: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def export_profile(profile: str, output_dir: Path) -> Path:
-    """Export one profile's cookies to Netscape format."""
-    cookies_path = NLM_ROOT / "profiles" / profile / "cookies.json"
-    if not cookies_path.exists():
-        print(f"  [skip] {profile}: cookies.json not found", flush=True)
+def export_profile(profile: str, output_dir: Path | None = None,
+                   output_path: Path | None = None) -> Path | None:
+    """Export one canonical account's cookies to Netscape format."""
+    try:
+        cookies = load_canonical_cookies(profile)
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f"  [skip] {profile}: canonical storage unavailable ({exc})", flush=True)
         return None
-
-    cookies = json.loads(cookies_path.read_text(encoding="utf-8"))
     netscape_text = cookies_json_to_netscape(cookies)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"cookies-{profile}.txt"
+    if output_path is None:
+        output_dir = output_dir or OUTPUT_DIR
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"cookies-{profile}.txt"
+    else:
+        output_path = output_path.expanduser()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Atomic write
-    tmp = output_path.with_suffix(".tmp")
+    tmp = output_path.with_name(output_path.name + ".tmp")
     tmp.write_text(netscape_text, encoding="utf-8")
     os.replace(tmp, output_path)
+    try:
+        os.chmod(output_path, 0o600)
+    except OSError:
+        pass
 
     print(f"  [ok] {profile}: {len(cookies)} cookies -> {output_path}", flush=True)
     return output_path
@@ -90,7 +102,8 @@ def export_profile(profile: str, output_dir: Path) -> Path:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--profile", default=None, help="Single profile to export")
+    ap.add_argument("--profile", "--account-profile", dest="profile", default=None,
+                    help="Single exact account identity to export")
     ap.add_argument("--all", action="store_true", help="Export all configured profiles")
     ap.add_argument("-o", "--output", default=None, help="Output file (single profile only)")
     ap.add_argument("--output-dir", default=str(OUTPUT_DIR), help="Output directory")
@@ -99,19 +112,24 @@ def main():
     output_dir = Path(args.output_dir)
 
     if args.all:
+        if args.output:
+            ap.error("--output/-o is only valid with --profile")
         print(f"Exporting all {len(PROFILES)} profiles to {output_dir}/", flush=True)
+        failures = 0
         for p in PROFILES:
-            export_profile(p, output_dir)
+            if export_profile(p, output_dir) is None:
+                failures += 1
         print(f"\nDone. Cookie files at {output_dir}/", flush=True)
         print("Use with yt-dlp: --cookies <file>", flush=True)
+        return 2 if failures else 0
     elif args.profile:
-        out = args.output or str(output_dir / f"cookies-{args.profile}.txt")
-        export_profile(args.profile, Path(out).parent if args.output else output_dir)
-        if args.output:
-            print(f"Output: {out}", flush=True)
+        output_path = Path(args.output) if args.output else None
+        result = export_profile(args.profile, output_dir, output_path=output_path)
+        return 0 if result is not None else 2
     else:
         ap.print_help()
+        return 2
 
 
 if __name__ == "__main__":
-    sys.exit(main() if callable(main) else 0)
+    sys.exit(main())

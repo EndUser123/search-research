@@ -23,7 +23,7 @@ made that decision. The agent infers the decision from its own research or
 analysis conclusions, then promotes the inference to the authority level
 of an operator decision.
 
-This is a specific, high-signal instance of the broader [[claims-require-receipts]]
+This is a specific, high-signal instance of the broader /claims-require-receipts
 failure class. The general rule says "cite a receipt for every causal claim."
 This pattern says: a `## Decision` section without an operator-stated decision
 is a fabricated receipt — the most dangerous kind, because it looks authoritative.
@@ -60,7 +60,7 @@ prefers sounding decisive over admitting the decision belongs to someone else.
 
 ## Prevention
 
-The [[claims-require-receipts]] rule already covers this at the general
+The /claims-require-receipts rule already covers this at the general
 level. The specific enforcement for wiki concepts:
 
 1. Every `## Decision` section must cite its source: "Operator decision
@@ -78,13 +78,13 @@ This pattern is wrong if:
   (then agent-authored `## Decision` sections are legitimate)
 - The instances are all from one model family (then it's a training artifact,
   not a general pattern)
-- The rate drops to zero after the [[claims-require-receipts]] rule is
+- The rate drops to zero after the /claims-require-receipts rule is
   mechanically enforced (then the general rule was sufficient and this
   specific concept adds no value)
 
 ## Relations
 
-- [[claims-require-receipts]] — the general rule this instantiates
+- /claims-require-receipts — the general rule this instantiates
 - [[narrative-sufficiency-awareness-enforcement-gap-2026]] — same closure-pressure pathway
 - [[theatrical-contrition-and-over-apologetic-response-patterns]] — same root cause (preference for closure)
 - [[evidence-first-default-and-needless-confirmation]] — the fix: state evidence before claims

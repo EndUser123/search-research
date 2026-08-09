@@ -48,13 +48,13 @@ URL list → nlm-bulk-ingest → 15 notebooks → wiki-yt → ~5-15 sub-topic
 ```
 INPUT                     AUTH + SNAPSHOT
 ──notebook <id>           ────────────────
-──all                     ensure auth (CDP silent re-auth)
+──all                     read-only canonical account/session probe
 ──from-clusters <path>    snapshot current source_ids for re-sync gate
                                           │
                                           ▼
                           EXPORT TRANSCRIPTS (Stage A)
                           ─────────────────────────────
-                          for each source: nlm source content <id>
+                          for each source: YTIS direct source fulltext API
                             → raw transcript (NOT NotebookLM synthesis)
                           → wiki/sources/transcripts/<source_id>.md
                             (provenance frontmatter; crash-resumable)
@@ -130,18 +130,18 @@ python P:/.agents/skills/wiki-yt/scripts/sync.py --status --min-sources 50
 # Sync one notebook (the canonical case)
 python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --notebook <uuid> \
-    --profile a.hominidae
+    --account-profile a.hominidae
 
 # Sync all notebooks (sequential; ~10-30 min each)
 python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --all \
-    --profile a.hominidae \
+    --account-profile a.hominidae \
     --state sync-state.json
 
 # Round-trip from nlm-bulk-ingest output
 python P:/.agents/skills/wiki-yt/scripts/sync.py \
     --from-clusters clusters.json \
-    --profile codex \
+    --account-profile a.hominidae \
     --state sync-state.json
 
 # Dry run — export + cluster + synthesize + reconcile, no page writes
@@ -184,15 +184,17 @@ Do not auto-run `--all` without explicit operator confirmation — 87
 notebooks at ~15-25 min each is multi-hour work.
 
 For the full cheat-sheet, FAQ, and troubleshooting table, see
-`references/help.md` (or run `/wiki-yt -h`). Key pointer: auth expiry
-recovers silently via `nlm login --profile a.hominidae` (~10s, no operator
-intervention).
+`references/help.md` (or run `/wiki-yt -h`). Authentication is fail-closed and
+durably non-interactive: the bridge probes the exact canonical account, then
+refreshes it from the account's master token or uses the established dedicated
+headless CDP bootstrap path. It never invokes a shared/default-profile login or
+asks the operator to sign in during a pipeline run.
 
 ## Decision points
 
 | Decision | Default | When to change |
 |---|---|---|
-| Extraction primitive | Raw transcript export (`nlm source content`) | — (v2 Report+Data-Table was wrong; superseded) |
+| Extraction primitive | YTIS direct source fulltext API (raw indexed transcript) | — (v2 Report+Data-Table was wrong; superseded) |
 | Sub-topic cluster count | 10 (`--max-subtopics`) | 5-15 range; raise for broader themes, lower for granular concepts |
 | HDBSCAN min_cluster_size | 5 (transcript-tuned) | Higher (8-15) for notebooks with many sources; see `cluster_transcripts.py --min-cluster-size` |
 | Synthesis LLM backend | mmx (MiniMax-M2.7) | `--synth-backend dgemma` for the free fallback; switch if pages are thin |
@@ -202,7 +204,7 @@ intervention).
 | Vision enrichment | Off (opt-in `--enrich-vision`) | Enable for notebooks with visual content (tutorials, demos); talking-head videos auto-skip |
 | Scene-change threshold | 10 keyframes | `enrich_vision.py --threshold`; lower to enrich more videos |
 | Similarity threshold for `refines` | 0.75 (cosine on embeddings) | `--threshold 0.85` for stricter matching |
-| Notebook profile | `a.hominidae` on this host | Matches `[[nlm-bulk-ingest]]` default |
+| Notebook account | `a.hominidae` on this host | Exact identity; `--profile` is a compatibility alias for `--account-profile` |
 
 ## Provenance model (4-hop chain)
 
@@ -244,14 +246,14 @@ processes claim items, sync them, and report results.
 
 ```bash
 # Populate the queue from NotebookLM (notebooks with ≥50 sources)
-python scripts/bin/queue_sync.py --enqueue --profile a.hominidae
+python scripts/bin/queue_sync.py --enqueue --account-profile a.hominidae
 
 # Populate from BOTH accounts (paid + free) in one call
-python scripts/bin/queue_sync.py --enqueue --all-profiles
+python scripts/bin/queue_sync.py --enqueue --all-profiles --workers 9
 
 # Start a worker (run 2-3 of these in separate terminals)
-python scripts/bin/queue_sync.py --worker --worker-id w1 --profile a.hominidae
-python scripts/bin/queue_sync.py --worker --worker-id w2 --profile a.hominidae
+python scripts/bin/queue_sync.py --worker --worker-id w1 --account-profile a.hominidae
+python scripts/bin/queue_sync.py --worker --worker-id w2 --account-profile a.hominidae
 
 # Check progress
 python scripts/bin/queue_sync.py --status
@@ -260,9 +262,10 @@ python scripts/bin/queue_sync.py --status
 python scripts/bin/queue_sync.py --retry-failed
 ```
 
-**Multi-profile support (two NotebookLM accounts):**
+**Account identities and canonical auth:**
 
-This host has two NotebookLM accounts configured as named profiles:
+This host has three NotebookLM accounts. They are exact external identities,
+not worker labels or CLI profile stores:
 
 | Profile | Email | Tier | Max sources/notebook |
 |---------|-------|------|---------------------|
@@ -270,65 +273,74 @@ This host has two NotebookLM accounts configured as named profiles:
 | `troup.hominidae` | troup.hominidae@gmail.com | Free | 50 |
 | `brsthomson` | brsthomson@hotmail.com | Free | 50 |
 
-Each profile is an independent CDP session — they do NOT contend for auth.
-Workers can freely process notebooks from either account. Use `--all-profiles`
-on enqueue to discover notebooks from all three accounts. Each notebook in the
-queue is tagged with its source profile; workers automatically pass the
-correct profile to `sync.py`.
+The active bridge resolves these identities to the YTIS-owned storage files:
+
+| Account | Canonical storage |
+|---|---|
+| `a.hominidae` | `P:/.data/yt-is/nlm-auth/storage_state.json` |
+| `troup.hominidae` | `P:/.data/yt-is/nlm-auth/storage_state_troup_hominidae.json` |
+| `brsthomson` | `P:/.data/yt-is/nlm-auth/storage_state_brsthomson.json` |
+
+`scripts/ytis_nlm.py` is the only wiki-yt auth bridge. It imports the
+package-owned YTIS resolver, validates the embedded account email, repairs the
+exact account through `ensure_account_session()`, and opens the direct
+`notebooklm-py` client. A worker label can be used for telemetry only; it never
+selects auth state. The durable master-token files live under
+`P:/.data/yt-is/nlm-auth/master-tokens/` and are never shared between accounts.
+
+Use `--all-profiles` to discover notebooks from all three accounts. Each queue
+item retains its exact account identity and workers pass it to `sync.py` as
+`--account-profile`.
 
 **Worker ceiling: 3 concurrent workers per account.** The NotebookLM API
 degrades above 3 concurrent sessions per account. With 3 accounts (1 paid + 2
 free), you can run up to 9 workers total (3 per account). The yt-is benchmark
 measured 4,123 VPH at 3+3 workers on one account; 4+4 regressed to 1,150 VPH.
-Set `config.workers` in the queue file to the total number of worker
-processes you launch. See [[nlm-to-wiki-optimization-opportunities]].
+Set the total queue capacity with `--workers` when enqueueing (or edit
+`config.workers` deliberately before launching workers). The queue enforces
+both this global ceiling and each account's `max_workers` limit under its lock;
+starting extra worker processes does not bypass either limit. See
+[[nlm-to-wiki-optimization-opportunities]].
 
-**One-time setup for free profiles:** the profiles were created by copying
-credentials from yt-is worker profiles. If auth expires and silent CDP
-re-auth fails (Chrome hangs at "Waiting for sign-in"), the likely cause is a
-stale Chrome port-map PID. Recovery recipe:
-```bash
-# 1. Kill stray Chrome on port 9222
-Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -match 'remote-debugging-port=9222' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+**Durable authentication:** an expired or unusable canonical session triggers
+the account-specific non-interactive repair path. It first uses the matching
+master token and then, only when no token exists, the established dedicated
+headless CDP family. If both fail, the pipeline stops with the exact account
+and reason; it does not open a login window, invoke the legacy `nlm` CLI, copy a
+different account's storage, or infer success from a static file check.
 
-# 2. Clear the port map
-python -c "import json; from pathlib import Path; p = Path.home() / '.notebooklm-mcp-cli' / 'chrome-port-map.json'; p.write_text(json.dumps({}))"
-
-# 3. Retry login (should complete silently if Chrome has a saved session)
-nlm login --profile troup.hominidae
-nlm login --profile brsthomson
-```
-All three profiles authenticated 2026-07-28 on nlm v0.9.4. See
-[[concurrent-cdp-auth-contention]] for the full stale-PID pattern.
-
-**⚠ Auth contention (critical):** never run two different sync drivers
-concurrently (e.g., `sync.py --all` alongside queue workers). Each
-`nlm login --profile a.hominidae` call invalidates the previous CDP session.
-Two drivers both calling `nlm login` will silently invalidate each other's
-auth, producing 0-page failures with no error. The queue worker is the
-single approved parallel driver — do not mix it with `--all` or manual
-`sync.py` runs. See [[concurrent-cdp-auth-contention]].
+Multiple workers may use separate canonical account files, subject to the
+account's measured concurrency limits. The direct client removes the old CDP
+login-contention mechanism, but it does not authorize unlimited concurrency.
 
 **Durable locations:** the queue file lives at
 `P:/.data/wiki/_state/nlm-sync/queue.json` (not `P:/tmp/` — other agents
-clean tmp). The worker script lives at
+clean tmp). Claims contain the exact account, lease ID, worker ID, UTC start
+time, epoch start time, and PID. A worker reclaims only expired ISO/epoch
+leases; legacy time-only claims are retained rather than guessed. The worker
+script lives at
 `P:/.agents/skills/wiki-yt/scripts/bin/queue_sync.py`.
 
 ## Operational gotchas (inherited)
 
-All the [[notebooklm-cli-operational-gotchas]] apply:
-- `nlm login --check` lies about auth; `nlm login --profile <name>` recovers silently
-- `nlm source content` is rate-limited; export_transcripts paces at 1.5s spacing by default (`--spacing`)
-- `nlm source content` returns the raw indexed text — no AI processing; this is the correct v3 primitive
-- **rc=5 from export is non-fatal:** individual source failures (rc=5) are logged and skipped; the sync continues. Only rc=2 (no sources / auth failure) aborts.
+The direct-client operational rules apply:
+- `ensure_account_session()` is the auth gate; it attempts account-scoped
+  master-token repair and exceptional dedicated-CDP bootstrap, then fails
+  closed if the exact account remains unavailable.
+- Source fulltext calls are rate-limited; `export_transcripts` paces at 1.5s spacing by default (`--spacing`).
+- Source fulltext returns raw indexed text — no AI processing; this is the correct v3 primitive.
+- **rc=5 from export is partial, not success:** completed transcripts are
+  preserved for resume, but sync does not cluster, write a manifest, rename
+  the notebook, or mark it complete. The queue records a retryable failure.
 - Large notebooks (191+ sources) take ~5-10 min to export; crash-resumable (re-run skips completed sources)
 
 ## Validation gate
 
 Every page MUST pass `validate_wiki_entry.py` before the sync reports success.
 The validator is the wiki skill's mandatory gate. Pages that fail are held in
-a staging dir and reported at the end of sync; the operator decides whether to
-fix or discard.
+a staging dir, the sync returns nonzero, and no manifest or `[INGESTED]` rename
+is written. Already-written valid pages remain durable and the queue retries
+the notebook without treating the partial result as complete.
 
 ## Re-sync semantics
 
@@ -337,6 +349,8 @@ The sync manifest at `P:/.data/wiki/_state/nlm-sync-manifest.json` records
 
 - Source IDs unchanged → skip export entirely, report "no new sources"
 - Source IDs changed → re-export + re-cluster + re-synthesize, then dedup
+- A source-list failure is distinct from an empty source list and fails closed;
+  it never creates an empty hash that can accidentally authorize a skip.
   against existing pages (refines any that already exist from prior sync)
 
 This makes `wiki-yt sync` idempotent and safe to schedule.

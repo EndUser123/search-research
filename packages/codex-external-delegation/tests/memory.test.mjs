@@ -59,6 +59,8 @@ test("successful live runner result writes one history entry with real identity"
   assert.equal(history.entries.length, 1);
   assert.equal(history.entries[0].task_type, "mechanical_edit");
   assert.equal(history.entries[0].model, "test-model");
+  assert.equal(history.entries[0].invocation_method, "opencode");
+  assert.equal(history.entries[0].orchestrator, "codex");
   assert.equal(history.entries[0].timeout, false);
   assert.equal(history.entries[0].verification.status, "pass");
   assert.ok(history.entries[0].duration_ms >= 0);

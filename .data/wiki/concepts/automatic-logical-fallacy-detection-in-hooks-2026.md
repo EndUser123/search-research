@@ -191,8 +191,8 @@ tested on workspace. Potential follow-up research target.]
 
 - **Recommendation: use narrow receipt-based detection, not generic fallacy
   classification** — no counterexample found. The workspace already does this
-  ([[fabricated-causal-chain-receipt-required]], [[ship-receipt-mechanical-
-  generation-from-per-check-results]]). The research confirms the architecture.
+  ([[fabricated-causal-chain-receipt-required]], /ship-receipt-mechanical-
+  generation-from-per-check-results). The research confirms the architecture.
 - **Recommendation: fail-open advisory, not blocking** — no counterexample.
   [[narrative-as-signal]] explicitly endorses this: the signal triggers
   investigation, it doesn't replace it.
@@ -263,8 +263,8 @@ tested on workspace. Potential follow-up research target.]
 ## What this means for our workspace
 
 The workspace already has the right architecture. The existing receipt-based
-gates ([[fabricated-causal-chain-receipt-required]], [[ship-receipt-mechanical-
-generation-from-per-check-results]], the Stop-hook quality gate) ARE the
+gates ([[fabricated-causal-chain-receipt-required]], /ship-receipt-mechanical-
+generation-from-per-check-results, the Stop-hook quality gate) ARE the
 viable implementation of "fallacy detection in hooks." They detect specific
 reasoning-error patterns (causal claim without receipt, completion claim
 without verification) with binary evidence and high precision.

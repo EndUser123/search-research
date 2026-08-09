@@ -1,1 +1,0 @@
-python P:\tmp_sec_review\write_findings.py

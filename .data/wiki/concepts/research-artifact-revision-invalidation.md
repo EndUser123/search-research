@@ -156,7 +156,7 @@ Same threshold as `[[problem-first-systems-decomposition]]`'s "when NOT to apply
 
 - **`[[narrative-as-signal]]`** — Rule 11's parent: a plausible story (here, "I fixed it") is not verification. The sweep + ledger is the receipt.
 - **`[[correction-response-discipline-anti-binary-swing]]`** — Rule 12's parent: decompose corrections, classify, don't binary-swing. Rule 12 specializes it to research-review.
-- **`[[evidence-scope-discipline-no-inflation]]`** — a strong umbrella claim than the weakest subclaim is forbidden; Rule 11 ensures the umbrella gets recomputed when a subclaim changes.
+- **`/evidence-scope-discipline-no-inflation`** — a strong umbrella claim than the weakest subclaim is forbidden; Rule 11 ensures the umbrella gets recomputed when a subclaim changes.
 - **`[[self-review-before-shipping-advice]]`** — the sweep IS the self-review, scoped to revision propagation.
 - **Claims-require-receipts (AGENTS.md)** — the claim ledger is the receipt that the propagation actually happened.
 

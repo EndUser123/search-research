@@ -53,6 +53,8 @@ export function compilePacket(input = {}) {
     requested_model: selectedModel,
     requested_agent: requestedAgent,
     worker: selectedWorker,
+    invocation_method: input.invocation_method || selection?.invocation_method || (selectedWorker === "pi" ? "pi" : selectedWorker),
+    orchestrator: input.orchestrator || selection?.orchestrator || "codex",
     model: selectedModel,
     agent: input.agent || requestedAgent,
     objective: input.objective || "",

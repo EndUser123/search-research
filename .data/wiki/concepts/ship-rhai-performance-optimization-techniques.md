@@ -430,7 +430,7 @@ workspace — would need evaluation before adoption.
   pattern for Rhai's constraint.
 - **Agent consolidation:** validated by [[agent-consolidation-in-parallel-workflows]]
   (9→3 agents eliminated rate-limit collisions). No counterexample.
-- **Python orchestrator path:** the [[ship-py-mandatory-step-gate]] handoff
+- **Python orchestrator path:** the /ship-py-mandatory-step-gate handoff
   documents the LLM-skip-phase problem (LLM ran detect, jumped to SHIP DONE).
   This is a counterexample for the *enforcement* dimension, not the
   *performance* dimension. The performance advantage of Python-direct

@@ -155,6 +155,8 @@ test("compiles a complete versioned packet and hashes authoritative inputs", () 
   assert.equal(packet.requested_agent, null);
   assert.equal(packet.agent, null);
   assert.equal(packet.failure_policy, "halt_no_automatic_fallback");
+  assert.equal(packet.invocation_method, "pi");
+  assert.equal(packet.orchestrator, "codex");
   assert.equal(packet.packet_hash, hashPacket(packet));
   const changed = { ...packet, objective: "List exports of module X." };
   assert.notEqual(packet.packet_hash, hashPacket(changed));

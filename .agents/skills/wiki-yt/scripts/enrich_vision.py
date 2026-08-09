@@ -17,7 +17,7 @@ timestamps so the cost-free metadata is captured and the expensive vision
 step is operator-gated.
 
 Usage:
-  python enrich_vision.py --notebook <uuid> --profile a.hominidae \\
+  python enrich_vision.py --notebook <uuid> --account-profile a.hominidae \\
       --transcripts-dir P:/.data/wiki/sources/transcripts/ --threshold 10
 """
 from __future__ import annotations
@@ -32,6 +32,8 @@ import tempfile
 import time
 from datetime import date
 from pathlib import Path
+
+from ytis_nlm import ensure_account_session, list_sources as list_canonical_sources
 
 CRV_RUN = Path("P:/packages/.claude-marketplace/plugins/cc-skills-media/skills/video-vision/scripts/crv_run.py")
 
@@ -49,14 +51,13 @@ def log(msg: str) -> None:
 
 
 def list_sources(notebook_id: str, profile: str) -> list[dict]:
-    rc, out, _ = run(["nlm", "source", "list", notebook_id, "--profile", profile, "--json"], timeout=180)
-    if rc != 0:
-        return []
     try:
-        data = json.loads(out)
-        return data if isinstance(data, list) else data.get("sources", [])
-    except json.JSONDecodeError:
-        return []
+        return list_canonical_sources(profile, notebook_id, worker_id="wiki-yt-vision")
+    except Exception as exc:
+        raise RuntimeError(
+            f"canonical source list failed for notebook {notebook_id}: "
+            f"{type(exc).__name__}: {str(exc)[:300]}"
+        ) from exc
 
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
@@ -121,23 +122,33 @@ def append_visual_section(path: Path, frame_count: int, frames_dir: Path,
 
 def enrich_notebook(notebook_id: str, profile: str, transcripts_dir: Path,
                     threshold: int, scene: float, limit: int | None) -> dict:
+    try:
+        probe = ensure_account_session(profile, worker_id="wiki-yt-vision-preflight")
+    except Exception as exc:
+        return {"notebook_id": notebook_id, "enriched": 0, "skipped_low_density": 0,
+                "failed": 0, "auth_failed": True, "fatal_error": True,
+                "errors": [f"auth probe failed: {type(exc).__name__}: {str(exc)[:300]}"]}
+    if not probe.ok:
+        return {"notebook_id": notebook_id, "enriched": 0, "skipped_low_density": 0,
+                "failed": 0, "auth_failed": True, "fatal_error": True,
+                "errors": [f"auth unavailable: {probe.reason}"]}
     if not CRV_RUN.exists():
         log(f"FATAL: crv_run.py not found at {CRV_RUN}")
         return {"notebook_id": notebook_id, "enriched": 0, "skipped_low_density": 0, "failed": 0,
-                "errors": ["crv_run.py missing"]}
+                "fatal_error": True, "errors": ["crv_run.py missing"]}
 
     # Verify crv readiness once
     rc, out, _ = run(["python", str(CRV_RUN), "--check"], timeout=30)
     if rc != 0:
         log(f"FATAL: crv not READY: {out.strip()[:200]}")
         return {"notebook_id": notebook_id, "enriched": 0, "skipped_low_density": 0, "failed": 0,
-                "errors": ["crv not ready"]}
+                "fatal_error": True, "errors": ["crv not ready"]}
 
     sources = list_sources(notebook_id, profile)
     if not sources:
         log(f"FATAL: no sources for notebook {notebook_id}")
         return {"notebook_id": notebook_id, "enriched": 0, "skipped_low_density": 0, "failed": 0,
-                "errors": ["no sources"]}
+                "fatal_error": True, "errors": ["no sources"]}
 
     if limit:
         sources = sources[:limit]
@@ -190,16 +201,24 @@ def enrich_notebook(notebook_id: str, profile: str, transcripts_dir: Path,
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--notebook", required=True)
-    ap.add_argument("--profile", default="a.hominidae")
+    ap.add_argument("--profile", "--account-profile", dest="profile", default="a.hominidae",
+                    help="exact account identity (a.hominidae, troup.hominidae, or brsthomson)")
     ap.add_argument("--transcripts-dir", type=Path, default=Path("P:/.data/wiki/sources/transcripts"))
     ap.add_argument("--threshold", type=int, default=10, help="scene-change keyframe count above which a video is enriched")
     ap.add_argument("--scene", type=float, default=0.30, help="ffmpeg perceptual scene-change filter threshold")
     ap.add_argument("--limit", type=int, default=None, help="process only first N sources (testing)")
     args = ap.parse_args()
 
-    result = enrich_notebook(args.notebook, args.profile, args.transcripts_dir,
-                             args.threshold, args.scene, args.limit)
+    try:
+        result = enrich_notebook(args.notebook, args.profile, args.transcripts_dir,
+                                 args.threshold, args.scene, args.limit)
+    except RuntimeError as exc:
+        result = {"notebook_id": args.notebook, "enriched": 0,
+                  "skipped_low_density": 0, "failed": 0,
+                  "fatal_error": True, "errors": [str(exc)]}
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if result.get("auth_failed") or result.get("fatal_error"):
+        return 2
     return 0 if result["failed"] == 0 else 5
 
 

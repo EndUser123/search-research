@@ -77,6 +77,37 @@ test("builds safe read-only commands for PI and OpenCode", () => {
   assert.equal(pi.stdin, "do the task");
 });
 
+test("keeps read-only tools while enabling thinking for reasoning tasks", () => {
+  const mechanical = buildCommand({
+    ...basePacket,
+    worker: "pi",
+    model: "inclusionai/ling-3.0-flash:free",
+    requested_provider: "openrouter",
+    task_type: "mechanical",
+  }, "do the task");
+  assert.equal(mechanical.args[mechanical.args.indexOf("--thinking") + 1], "off");
+
+  const reasoning = buildCommand({
+    ...basePacket,
+    worker: "pi",
+    model: "arcee-ai/trinity-large-thinking",
+    requested_provider: "openrouter",
+    task_type: "reasoning",
+  }, "do the task");
+  assert.equal(reasoning.args[reasoning.args.indexOf("--thinking") + 1], "low");
+  assert.equal(reasoning.args[reasoning.args.indexOf("--tools") + 1], "read,grep,find,ls");
+
+  const explicit = buildCommand({
+    ...basePacket,
+    worker: "pi",
+    model: "arcee-ai/trinity-large-thinking",
+    requested_provider: "openrouter",
+    task_type: "reasoning",
+    thinking: "high",
+  }, "do the task");
+  assert.equal(explicit.args[explicit.args.indexOf("--thinking") + 1], "high");
+});
+
 test("wraps Windows command files through cmd.exe without enabling a shell", () => {
   const launch = spawnSpec("opencode.cmd", ["--version"], { platform: "win32", comspec: "C:\\Windows\\System32\\cmd.exe" });
   assert.equal(launch.command, "C:\\Windows\\System32\\cmd.exe");

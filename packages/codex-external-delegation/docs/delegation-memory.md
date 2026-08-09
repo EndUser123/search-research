@@ -33,10 +33,17 @@ pre-worker blocked results, worker failures, timeouts, and successful results.
 `started_at`, `ended_at`, and `duration_ms` are measured by the runner in the
 current process. Provider/model, task type/class, failure class, contract
 status, attempt, timeout, identifiers, artifact identity, and worktree/scope
-outcomes come from the current packet/result. Token and cost fields are
+outcomes come from the current packet/result. Entries also preserve the
+complete runtime identity: `provider`, `model`, `invocation_method`, and
+`orchestrator`. Token and cost fields are
 omitted unless numeric values were actually reported in the result or its
 payload usage object. No history entry is considered current for routing;
 freshness is the entry timestamp, not a cached selection snapshot.
+
+Worktree lifecycle metadata uses a unique per-update staging file. On Windows,
+replacement is retried through a temporary backup because rename does not
+overwrite an existing file; a valid staged file is recovered on the next
+lifecycle read if the process ends during replacement.
 
 ## Failure and recovery
 

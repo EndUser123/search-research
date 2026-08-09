@@ -79,7 +79,10 @@ still an explicit new invocation, never an automatic batch fallback.
 - Pi read-only runs allow only read/search/list tools. Pi write runs allow only
   file-editing tools (read, grep, find, ls, edit, write); shell and
   network-capable tools remain disabled, so verification commands belong to
-  Codex after the worker returns.
+  Codex after the worker returns. Read-only is a filesystem/tool-scope
+  restriction, not a reasoning restriction: reasoning/planning/debugging-like
+  packets receive a conservative thinking level, while mechanical packets
+  remain fast by default and explicit packet thinking always wins.
 - Write packets require both `write_scope` and `isolated_cwd`; otherwise the bridge blocks before spawning a worker.
 - A write packet with `worktree_request` may provision a task worktree through
   the shared lifecycle helper; the bridge verifies its Git registration and
