@@ -35,7 +35,17 @@ relations:
     type: related
   - target: wiki/concepts/multi-llm-aggregator-landscape.md
     type: related
+  - target: wiki/concepts/playwright-connectovercdp-not-ruled-out.md
+    type: refined-by
 ---
+
+> **Refined 2026-08-09** by [[playwright-connectovercdp-not-ruled-out]]: §5's
+> rejection of "Playwright" was at the wrong abstraction level — it rejected
+> wrappers built on Playwright (agent-browser, BrowserPilot), not Playwright's
+> own `connectOverCDP()` which attaches to existing authenticated Chrome
+> sessions. The SSE capture findings here remain valid; only the alternatives
+> assessment overreached. See the refinement for the full correction and the
+> deeper framing finding.
 
 # CDP Network interception and SSE capture for LLM chat interfaces
 

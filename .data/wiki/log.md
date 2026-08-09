@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: playwright-connectovercdp-not-ruled-out
+Agent: --action
+Notes: created
+Page: --summary
+
 ## --title
 Source: llm-uncertainty-hedging-detection-research-landscape — extension: hook feedback loops and context stripping
 Agent: --source
