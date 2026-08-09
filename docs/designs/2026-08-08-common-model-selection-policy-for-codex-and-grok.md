@@ -1,9 +1,9 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Last updated:** 2026-08-09 — Codex benchmark artifact paths and validation status recorded; live conformance remains open
-**Status:** Revision 5e — Codex offline benchmark foundation recorded; Grok re-review pending; not live or conformant
-**Revision:** 5e — records the Codex capability/difficulty contract and evaluator artifacts, separates harness validation from live fleet evidence, and keeps pool-recovery work open
+**Last updated:** 2026-08-09 — direct red-team hardening applied; live conformance remains open
+**Status:** Revision 5f — direct red-team hardening applied; no new cross-host relay attestation; not live or conformant
+**Revision:** 5f — makes task/risk/capacity identity explicit, closes tool-evidence and replay ambiguities, and hardens recovery semantics
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
 
@@ -12,8 +12,9 @@
 Revision 5b incorporated all 42 findings from six cross-orchestrator review
 relay sessions (all converged, zero disputes). Revision 5c preserved that
 baseline and added the quota-recovery contract, evidence-scope corrections,
-and explicit acceptance tests. Revision 5d adds the Codex red-team synthesis
-below; it is not a new conformance attestation.
+and explicit acceptance tests. Revision 5d and 5e record the earlier Codex
+red-team synthesis and benchmark-artifact inventory. Revision 5f applies the
+latest direct red-team hardening below; it is not a new conformance attestation.
 
 **Key changes from Revision 4:**
 
@@ -81,6 +82,28 @@ below; it is not a new conformance attestation.
     difficulty tiers. Targeted harness tests pass; live adapter, executable
     fixture/checker packs, provider-pool recovery tests, and paired cross-host
     receipts remain open.
+
+**Revision 5f direct red-team hardening (2026-08-09):**
+
+25. Separated task-fit dimensions (`capability`, `difficulty`) from the
+    caller-supplied `risk_class` and `spend_class` gates, with explicit defaults
+    and ambiguity escalation.
+26. Distinguished provider, model, route, invocation method, orchestrator,
+    harness, verifier, and quota-pool/account identity; a provider name is not
+    allowed to stand in for a capacity pool.
+27. Made tool-loop promotion require method-specific, checker-backed evidence
+    with an exact method identity, complete tool trace, N>=10 samples, and a
+    Wilson lower-bound floor; raw success rates and HTTP-only results do not
+    transfer into tool-loop eligibility.
+28. Corrected the pool-suite contract so difficulty is represented by task
+    cohorts, not thresholds alone, and clarified the host-specific status of
+    the Grok and Codex benchmark artifacts.
+29. Made weighted-pool rounding, diverse-panel sampling, requested panel size,
+    and reservation failure behavior deterministic and unambiguous.
+30. Added idempotent bounded resubmission, side-effect retry protection, and
+    UTC/provider-clock rules for reset and reprobe timestamps.
+31. Prevented adapters from using `rate_limited_only` as a catch-all for
+    unknown quota semantics; unknown capacity remains explicitly unknown.
 
 ## Executive proposal
 
@@ -214,10 +237,11 @@ standing conformance attestation.
   implementation evidence is still missing for temporary backoff, multi-hour
   or monthly resets, post-reset refresh, and confirmed route retirement.
 
-- **Unknown-capacity rule** — missing or stale capacity for mapped providers is
-  admitted for ordinary work, but the selector does not yet pass task
-  class/spend semantics into the capacity decision. This does not satisfy the
-  unknown-capacity rule that limits disclosed uncertainty to non-spend work.
+- **Unknown-capacity rule** — the current implementation admits missing or
+  stale capacity for ordinary work, but the selector does not yet pass task
+  class/spend semantics into the capacity decision. That is an implementation
+  defect and does not satisfy the policy rule that limits disclosed uncertainty
+  to bounded non-spend work.
 
 - **Receipt fields** — current receipts do not yet expose every target field.
   Missing capacity, latency, evidence, or verification values remain explicit
@@ -326,23 +350,49 @@ There are three separate things that must not be conflated:
 
 | What | Primary question | Identity key | Produces | May authorize |
 |---|---|---|---|---|
-| Provider capacity health | Can this provider's API serve requests right now? | Provider (API key + endpoint) | Capacity state (fresh/stale/exhausted/unknown) | Capacity admission only |
-| Code-model capability | Can this exact model binding perform coding work? | Binding fingerprint + lane | Calibration `verification_passed` and quality evidence | Lane-scoped promotion |
+| Provider capacity health | Can this identified capacity scope serve requests right now? | `capacity_pool_id` + account + endpoint + window | Capacity state (fresh/stale/exhausted/unknown) | Capacity admission only |
+| Code-model capability | Can this exact model binding perform coding work? | Binding fingerprint + capability/difficulty cohort | Calibration `verification_passed` and quality evidence | Cohort-scoped promotion |
 | Production evidence | How well does it perform real work? | Binding fingerprint + task cohort | Routing-eligible quality, latency, verification | Runtime ranking |
 
 Capacity health is not model quality. Capability is not capacity health.
 Production evidence is neither calibration suite.
 
+### Identity axes and capacity scope
+
+The selector must keep four identities separate. A provider, model, method,
+and orchestrator are not interchangeable labels:
+
+| Identity | Required meaning | May be reused as evidence for |
+|---|---|---|
+| Task contract | `capability + difficulty + risk_class + spend_class + write_intent` | Only the same or an explicitly broader, safer task cohort |
+| Execution binding | `orchestrator + invocation_method + provider + model + route + harness/prompt/result/verifier contracts` | The exact binding fingerprint only |
+| Capacity scope | `capacity_pool_id + account_id + endpoint + window_id/unit` | The same independently limiting pool/window only |
+| Evidence cohort | Binding fingerprint + task contract + fixture/checker manifest | Runtime ranking only when the cohort is routing-eligible |
+
+`provider` identifies the route owner; it does not prove that all models or
+accounts under that provider share one limiter. The adapter must emit a stable
+`capacity_pool_id` (and, when applicable, `account_id` and `window_id`) for
+each independently limiting pool. If that scope cannot be established, the
+capacity state is `unknown`; it must not be silently treated as a shared pool
+or as `rate_limited_only`.
+
+The task contract is part of the selection input and receipt. A result from a
+read-only reasoning task cannot silently promote a write-capable tool-loop
+binding, and a capacity observation for one account cannot authorize another
+account merely because the provider and model names match.
+
 ### Provider capacity health
 
-Each provider entry in the registry corresponds to one API key and one
-rate limit. In the current fleet, provider = pool — one NVIDIA key, one
-Cohere key, one OpenRouter key. The capacity gate checks whether the
-provider's current quota state admits the request.
+The registry may currently configure one API key per provider, but the policy
+does not infer `provider = capacity_pool`. The adapter must prove which models,
+routes, accounts, and windows share a limiter and emit that scope explicitly.
+The capacity gate checks the identified pool's current state against the
+request's task contract and demand.
 
-Two models on the same provider share the same rate limit. Exhausting
-the NVIDIA quota on one model exhausts it for all NVIDIA models. The
-capacity gate treats them as one bucket.
+Two models share a rate limit only when their normalized `capacity_pool_id`,
+account, endpoint, and limiting window establish that fact. Exhausting one
+pool may affect every model in that pool, but must not quarantine unrelated
+models merely because their provider names match.
 
 What this covers:
 - fresh vs stale capacity observations
@@ -352,10 +402,12 @@ What this covers:
 
 ### Code-model capability suite
 
-This suite certifies one exact binding in one lane:
+This suite certifies one exact execution binding in one capability/difficulty
+cohort:
 
 ```text
-orchestrator + invocation_method + provider + model + lane
+orchestrator + invocation_method + provider + model + route + harness +
+verifier + capability/difficulty cohort + capacity scope
 ```
 
 The runner may accept a short model alias only when it resolves to exactly
@@ -363,8 +415,9 @@ one binding and records the resolved identity before telemetry is written.
 
 The current Grok artifact (`pool_test.py`) is a HumanEval-style coding
 calibration runner: 13 code generation problems, sandboxed execution,
-binary pass/fail scoring. It is a valid calibration signal for initial
-promotion — it proves the model can write correct standalone code.
+binary pass/fail scoring. It provides a provisional standalone-code
+calibration signal; it does not by itself prove tool-loop capability or clear
+the common N>=10/Wilson promotion gate.
 
 Calibration evidence has `routing_eligible: false` and must not influence
 runtime ranking. It may support promotion only when:
@@ -400,38 +453,58 @@ and is future work.
 7. Periodic re-certification repeats capability gates.
 ```
 
-`active` must not be interpreted as globally eligible. Coding calibration
-must not silently authorize reasoning, critic, or other lanes.
+`active` must not be interpreted as globally eligible. Tool-loop calibration
+must not silently authorize reasoning, diverse-panel, or other capabilities.
+The legacy `coding` and `critic` labels are aliases only.
 
 ### Cross-host compatibility
 
 Codex and Grok should use the same problem manifest (fixture hash). Until
 an executable Codex counterpart with native task execution and a paired
-receipt exist, the Codex pool test remains a target contract, not a verified
-fact. The Codex artifacts listed above currently provide the manifest and
-receipt/evaluator foundation only.
+receipt exist, the Codex capability/difficulty suite remains a target
+contract, not a verified fact. The Codex artifacts listed above currently
+provide the manifest and receipt/evaluator foundation only.
 
-### Pool test suites
+### Capability/difficulty suites and provider-pool suites
 
-Each capability needs its own pool test suite to produce calibration
-evidence. Difficulty tiers within a capability use the same suite with
-different pass thresholds.
+There are two different test families, and the names must not be collapsed:
 
-| Suite | Capability | Difficulty | What it tests | Scoring | Status |
+1. **Capability/difficulty suites** evaluate an exact execution binding on
+   labeled task cohorts. They can produce lane-scoped model capability
+   evidence, but they do not prove quota or provider capacity.
+2. **Provider-pool health/recovery suites** evaluate an identified capacity
+   scope (`capacity_pool_id`, account, endpoint, and window). They can prove
+   admission, backoff, reset, reprobe, and retirement behavior, but they do
+   not promote a model or prove task quality.
+
+Capability/difficulty suites need distinct task cohorts and objective checkers.
+Difficulty must not be represented only by changing a pass threshold over the
+same easy cases. A suite may reuse explicit anchor cases for regression
+coverage, but those cases do not count as independent evidence for multiple
+difficulty tiers.
+
+| Suite | Capability | Difficulty | What it tests | Scoring | Current status |
 |---|---|---|---|---|---|
-| Coding pool test | tool-loop | trivial + standard | HumanEval function generation + sandboxed execution | Binary pass/fail, threshold: trivial >=80%, standard >=50% | Built (13 problems) |
-| Coding acceptance test | tool-loop | hard | Repository context, multi-file patches, tool use, verification | Verified pass/fail + quality metrics | Future work |
-| Mechanical pool test | mechanical | trivial + standard | Extraction, formatting, structured output with expected output | Exact match, threshold: trivial >=80%, standard >=50% | Future work |
-| Reasoning pool test | reasoning | trivial + standard | Analysis tasks with known-correct conclusions | Rubric score + verification state | Future work |
-| Reasoning deep test | reasoning | hard | Architecture, root-cause from ambiguous symptoms | Rubric score + verification state | Future work |
+| Coding capability calibration | tool-loop | trivial + standard | Standalone code generation plus sandboxed execution | Objective pass/fail with `verification_passed`; floor is lane policy, not a substitute for evidence | Grok HTTP-only runner built (13 cases); Codex offline 16-case manifest/evaluator only |
+| Coding acceptance test | tool-loop | hard | Repository context, multi-file patches, tool use, and independent verification | Verified pass/fail plus quality metrics and tool trace | Future work |
+| Mechanical capability calibration | mechanical | trivial + standard | Extraction, formatting, and structured output with expected output | Exact match plus verifier receipt | Future work |
+| Reasoning capability calibration | reasoning | trivial + standard | Analysis tasks with known-correct conclusions | Rubric score plus verification state | Future work |
+| Reasoning deep/panel test | reasoning | hard | Architecture and root-cause analysis from ambiguous symptoms | Rubric score, verification state, and family-diversity receipt where panelized | Future work |
+| Provider-pool admission and recovery | capacity health | n/a | Current admission, reserve accounting, temporary backoff, and bounded retry | Immediate decision plus scoped capacity receipt | Future work; separate from capability suites |
+| Provider-pool reset/reprobe | capacity health | n/a | Multi-hour/monthly reset, post-reset reprobe, stale observation, and unknown scope | State transition receipt plus fresh-observation proof | Future work; separate from capability suites |
+| Provider-pool retirement/multi-pool | capacity health | n/a | Independent window exhaustion and confirmed route retirement | Per-pool decision plus terminal/non-terminal outcome | Future work; separate from capability suites |
 
-Each suite reuses the same infrastructure: `pool_test.py` runner pattern,
-`telemetry.log_call()` with `calibration-<capability>` task_domain,
-`evidence_accumulator` cohort tagging, and `check_promotion()` threshold.
+Each host may use native runner infrastructure, but the shared receipt must
+retain the fixture-manifest hash, task/difficulty cohort, exact binding
+fingerprint, verifier/checker version, and explicit verification state.
+Grok's `pool_test.py`/`telemetry.log_call()` path and Codex's JS evaluator are
+not interchangeable evidence merely because their case IDs look similar.
 
-The trivial/standard split within a capability uses the same problems with
-different pass thresholds. The hard tier needs genuinely different problems
-(multi-file, ambiguous, real repository work) and is a separate suite.
+The trivial/standard tiers require distinct, labeled task cohorts with
+objective differences in context, ambiguity, tool interaction, or verification
+burden. The hard tier needs genuinely different problems (multi-file,
+ambiguous, real repository work) and is a separate suite. Threshold changes
+alone never turn a trivial fixture into standard or hard evidence.
 
 **Codex target:** same problem manifests (fixture hash), native JS sandbox per
 suite, and the same calibration-cohort telemetry pattern. The current Codex
@@ -450,6 +523,12 @@ same model:
 | `cohere-command-a-reasoning` | 0.960 | 0.680 | 0.600 |
 | `zen-deepseek-v4-flash-free` | 0.943 | 0.374 | 0.741 |
 
+**Evidence status:** these values are illustrative historical observations,
+not current promotion evidence. This document does not attach the raw receipt
+paths, sample/cohort definitions, dates, verifier versions, or binding hashes
+needed to audit them. They must not set a policy floor or authorize routing
+until method-specific receipts with that evidence are available.
+
 A model that writes correct code via direct HTTP can fail via opencode
 because the agent harness adds tool schemas, system prompts, and context
 management that change the model's behavior. This is the "tool-calling
@@ -462,10 +541,12 @@ tested. A model that passes the HTTP pool test has not proven it can
 perform via spawn, PI, or opencode.
 
 **Test the primary method.** Each candidate's `dispatch_paths` declares
-the runtime method order (e.g., `["spawn", "pi", "http"]`). The pool
-test should run through the primary method — the one the runtime will
-try first. Testing only via HTTP (as the v1 runner does) proves HTTP
-capability but not spawn/PI/opencode capability.
+the runtime method order (e.g., `["spawn", "pi", "http"]`). The capability
+suite should run through the primary method — the one the runtime will try
+first — and record that exact binding. Testing only via HTTP (as the v1 runner
+does) proves HTTP capability but not spawn/PI/opencode capability. A fallback
+method is a new execution binding: evidence from the primary method must not
+silently authorize it.
 
 **Method-specific failure modes:**
 - HTTP: raw model output, no wrapper — tests model quality directly
@@ -474,7 +555,7 @@ capability but not spawn/PI/opencode capability.
 - spawn: full Grok Build agent loop with tools, worktree, hooks — tests the complete binding
 
 The v1 pool test runner uses HTTP for speed and simplicity. The v2
-runner adds method-aware testing: run the same problems through the
+runner adds method-aware testing: run the same labeled task cohorts through the
 candidate's primary dispatch path, not just HTTP. Method-aware testing
 is more expensive (spawn requires the full agent infrastructure) but
 produces evidence that matches how the model is actually used.
@@ -487,31 +568,79 @@ an agent harness. Production telemetry confirms the gap: a model can
 score 98% success via direct HTTP but 23% via opencode because the
 agent harness adds tool schemas that the model cannot reliably format.
 
-**The rule:** tool-loop capability requires method-specific evidence.
-A candidate is excluded from tool-loop tasks unless it has either:
+**The rule:** tool-loop capability requires method-specific, checker-backed
+evidence. A candidate is excluded from tool-loop tasks unless it has either:
 
-1. **Calibration evidence from a tool-carrying method** (pool test run
-   via `--method opencode` or `--method spawn`), OR
-2. **Production evidence** with tool-carrying-method success rate above
-   a configured floor (default: 70%).
+1. **Calibration evidence from the exact tool-carrying method** used by the
+   route (for example, a pool test run via `--method opencode`, `--method pi`,
+   or `--method spawn`), OR
+2. **Production evidence** from that exact method with at least N>=10 valid
+   verified attempts and a Wilson lower bound at or above the configured
+   tool-loop floor (default: 75% policy default).
+
+For either path, the receipt must include the exact binding fingerprint,
+`fixture_manifest_hash` or production cohort ID, `checker_version`,
+`method_contract_hash`, `tool_trace_complete`, and `verification_passed`.
+For cases whose contract requires a tool action, `tool_trace_complete` must
+also prove the expected tool action occurred in the declared sandbox or
+worktree. A raw success rate, an HTTP-only receipt, or a result without a
+complete tool trace cannot clear this gate.
 
 Models with only HTTP evidence may serve `mechanical` and `reasoning`
 capabilities (no tools), but are restricted from `tool-loop` until
 they accumulate tool-carrying-method evidence.
 
-**Implementation:** the gate reads the evidence cache for the
-candidate's tool-carrying-method bindings (opencode, spawn). If none
-exist or the success rate is below the floor, the `tool-loop`
-capability is gated out. This is a read of existing telemetry -- no
-new test suite required. The method-aware pool test is the
-certification mechanism: run the coding problems via
-`--method opencode`, and if the model passes, it earns tool-loop
-eligibility.
+**Implementation:** the gate reads the evidence cache for the candidate's
+exact tool-carrying-method binding. If no qualifying cohort exists, if its
+Wilson lower bound is below the floor, or if the tool trace/checker evidence is
+incomplete, the `tool-loop` capability is gated out. Existing production
+receipts may satisfy the rule only when they already contain the required
+fields; otherwise a method-aware calibration suite is required. A method-aware
+pool test is the certification mechanism for the calibration path: run the
+coding problems through the route's primary tool-carrying method and retain
+the resolved method, checker, trace, and sandbox identity.
 
-This follows the Inferbase (2026) production pattern: a model with
-no tool-use measurement is excluded from tool traffic entirely, even
-when its general scores are excellent. A strong generalist does not
-get to vouch for a capability nobody measured.
+The safety rule is simple: a model with no qualifying tool-use measurement is
+excluded from tool traffic even when its general scores are excellent. A
+generalist cannot vouch for a capability that nobody measured under the
+actual method and verifier.
+
+### Grok acceptance of R5f hardening (session 019fdf47, 2026-08-09)
+
+Grok accepts the R5f hardening with three operational clarifications:
+
+1. **Identity shorthand.** The 12-field identity contract is correct for
+   the policy. In practice, most fields are constant across the fleet
+   (same orchestrator, same harness version, same verifier). The
+   implementation may use shorthand (omitting constant fields from
+   per-record telemetry) as long as the constant values are declared
+   once in the registry and the receipt can reconstruct the full
+   identity. The discriminating fields for evidence segmentation are
+   provider + model + invocation_method + capability cohort.
+
+2. **Provisional fallback.** "A fallback method is a new execution
+   binding" is architecturally correct. Operationally, when the
+   primary method is temporarily unavailable and a fallback method
+   lacks independent certification, the selector should allow
+   provisional fallback with an uncertainty disclosure in the receipt
+   — not hard-block the task. The provisionally-selected model is
+   flagged as `method_fallback_unverified` and the production telemetry
+   from that call feeds the fallback method's evidence cohort. Hard-
+   blocking creates an availability failure that the operator did not
+   intend.
+
+3. **Difficulty cohort sizing.** "Difficulty must be represented by
+   distinct task cohorts" requires enough problems per tier to reach
+   the N>=10 floor. The current suites have 5 trivial + 3 standard
+   mechanical problems and 4 trivial + 4 standard reasoning problems.
+   These are insufficient for independent per-tier promotion. The
+   implementation will use combined-tier promotion (trivial+standard
+   pooled) until each tier has >=10 problems, at which point per-tier
+   promotion activates. This is labeled as provisional.
+
+These are operational allowances, not policy changes. The target
+contract remains as R5f specifies; the implementation converges
+toward it as the problem banks grow.
 
 ## What is shared and what remains separate
 
@@ -584,13 +713,14 @@ Task classification is the first policy decision. It must be authoritative,
 deterministic, and shared between both hosts to prevent divergence at the
 first gate.
 
-### Two classification dimensions
+### Task-fit dimensions and policy gates
 
-Research and production practice (Inferbase 2026, Morph 2026, RouteLLM,
-FrugalGPT, Agent-as-a-Router arXiv 2606.22902) have converged on two
-independent classification dimensions. Earlier revisions conflated them
-into fixed "lanes" (coding, reasoning, mechanical, critic), which broke
-down when task complexity varied within a single lane.
+Capability and difficulty are the two task-fit dimensions. Earlier revisions
+conflated them into fixed "lanes" (coding, reasoning, mechanical, critic),
+which broke down when task complexity varied within a single lane. The caller
+also supplies two non-interchangeable policy gates—execution risk and spend
+sensitivity—because the capacity table cannot safely infer either one from
+capability alone.
 
 **Dimension 1: Capability required** — what kind of work is this?
 
@@ -618,6 +748,22 @@ Difficulty is applied within a capability band. A trivial coding task
 `tool-loop` capability, but the former can use a cheap model and the
 latter needs the best available.
 
+**Policy gate 1: execution risk and write intent**
+
+| `risk_class` | Meaning | Required control |
+|---|---|---|
+| `safe_read` | Read-only, reversible, low-impact work | Normal gates and bounded exploration may apply |
+| `isolated_write` | Writes confined to an authorized isolated worktree or sandbox | Exact tool-loop evidence and worktree identity required |
+| `high_impact` | Production, credential, destructive, or otherwise consequential work | No exploration; explicit operator/task authorization and strongest evidence |
+
+**Policy gate 2: spend/capacity sensitivity**
+
+| `spend_class` | Meaning | Capacity implication |
+|---|---|---|
+| `non_spend` | No monetary charge and no protected scarce pool is consumed | Bounded non-spend rules may apply |
+| `bounded_spend` | Automatic use is allowed under a declared per-task and aggregate budget | Require a current budget/capacity decision |
+| `scarcity_sensitive` | Consumes a protected, unique, or reset-bound pool | Require reserve-aware admission; no exploration or silent retry |
+
 ### Legacy lane mapping
 
 The v1 lanes map to the new two-dimensional classification:
@@ -637,9 +783,13 @@ is a lifecycle state (candidate onboarding), not a task classification.
 ### Classification authority
 
 The task classification is determined by the **dispatching skill or
-caller**, not by the selector. The selector receives the capability and
-difficulty as inputs; it does not infer them from the prompt content.
-If the caller does not specify, the default is `reasoning` / `standard`.
+caller**, not by the selector. The selector receives capability, difficulty,
+risk, write intent, and spend class as inputs; it does not infer them from the
+prompt content. If the caller does not specify, the safe default is
+`reasoning` / `standard` / `safe_read` / `non_spend`. Any declared write intent
+escalates capability to `tool-loop` and risk to at least `isolated_write`.
+Unknown spend sensitivity escalates to `scarcity_sensitive`; it must not be
+silently treated as `non_spend`.
 
 ### Ambiguity handling
 
@@ -650,12 +800,14 @@ it" could be mechanical or reasoning):
 2. If the caller is ambiguous, the **higher-capability** classification
    is used (reasoning over mechanical, tool-loop over reasoning).
 3. For write-capable tasks, ambiguity always resolves to `tool-loop`.
-4. The receipt records the declared classification, the ambiguity
-   resolution (if any), and the classifier provenance.
+4. If risk or spend sensitivity is ambiguous, resolve upward to
+   `high_impact` or `scarcity_sensitive` respectively.
+5. The receipt records the declared classification, the ambiguity resolution
+   (if any), and the classifier provenance.
 
-All tasks that write files must use the `tool-loop` capability with
-worktree isolation. The `mechanical` capability is strictly read-only;
-no exceptions.
+All tasks that write files must use the `tool-loop` capability with worktree
+isolation and `risk_class=isolated_write` or higher. The `mechanical`
+capability is strictly read-only; no exceptions.
 
 ## V1 algorithm contract
 
@@ -671,12 +823,20 @@ verified successes before a candidate is considered to have "cleared" the
 floor. Candidates with fewer than 10 samples are `provisional` regardless
 of their raw success rate.
 
-| Lane | Default floor | Minimum samples |
+| Capability/cohort | Default floor | Minimum samples |
 |------|--------------|-----------------|
 | `mechanical` | 80% | 10 |
 | `reasoning` | 70% | 10 |
-| `coding` | 75% | 10 |
-| `critic` | 70% | 10 |
+| `tool-loop` | 75% | 10 |
+| `reasoning + diverse_panel` | 70% | 10 |
+
+The floor is compared against the one-sided Wilson lower bound, not the raw
+success rate. A candidate clears promotion only when it has at least N>=10
+lane/cohort-appropriate `verification_passed` samples, the lower bound meets
+the configured floor, and no identity, scope, timeout, malformed-output, or
+verification gate is violated. Legacy `coding` and `critic` field names may be
+retained for compatibility, but they map to `tool-loop` and
+`reasoning + diverse_panel` and must not create a second evidence cohort.
 
 ### Deterministic mode (mechanical lane)
 
@@ -699,7 +859,7 @@ Exploration (epsilon=0.05 for mechanical safe lanes only): with probability
 epsilon, select a random eligible candidate instead of the top-ranked one.
 Exploration is disabled for write-capable or high-risk work.
 
-### Weighted-pool mode (reasoning, coding lanes)
+### Weighted-pool mode (reasoning, tool-loop lanes)
 
 ```text
 eligible = candidates that pass all gates
@@ -740,8 +900,10 @@ if total <= 1e-6:
     return BLOCKED("all eligible candidates have zero or near-zero effective weight")
 weights = [weight(c) / total for c in eligible]
 
-# Round weights to 6 decimal places for deterministic replay
-weights = [round(w, 6) for w in weights]
+# Round weights to 6 decimal places for deterministic replay. Use a canonical
+# largest-remainder adjustment in sorted candidate-ID order so the final
+# vector is non-negative and sums exactly to 1.0 after serialization.
+weights = largest_remainder_round(weights, decimals=6, order=stable_candidate_id)
 
 selected = weighted_random_choice(eligible, weights, seed=random_seed)
 ```
@@ -753,15 +915,17 @@ selected = weighted_random_choice(eligible, weights, seed=random_seed)
 3. Neither available: use lane median, label `latency_source: "lane_median_provisional"`
 4. Lane median unavailable: BLOCKED
 
-**Tie-breaking:** if two candidates have weights within 5% of each other,
-prefer the candidate with higher verified-success lower bound, then stable
-candidate ID.
+**Tie-breaking:** weighted selection remains random; a near-equal weight does
+not silently become deterministic selection. The higher verified-success lower
+bound and stable candidate ID are tie-breakers only for deterministic ranking
+or `highest_weight` selection (such as panel member choice). Candidate order
+is still canonical for serialization and replay.
 
 Exploration (epsilon=0.1 for reasoning safe lanes): with probability
-epsilon, select a random eligible candidate. Disabled for write-capable
-(`coding` lane).
+   epsilon, select a random eligible candidate. Disabled for write-capable
+   (`tool-loop` capability).
 
-### Diverse-panel mode (critic lane)
+### Diverse-panel mode (reasoning panel)
 
 ```text
 # model_family is an explicit registry field (e.g., "deepseek-v4", "nemotron-3")
@@ -770,6 +934,8 @@ epsilon, select a random eligible candidate. Disabled for write-capable
 families_available = distinct(model_family(c) for c in eligible)
 
 MINIMUM_PANEL_QUORUM = 2  # distinct model_families required
+if requested_size < MINIMUM_PANEL_QUORUM:
+    return BLOCKED("requested panel size cannot satisfy independent quorum")
 if len(families_available) < MINIMUM_PANEL_QUORUM:
     if operator_preauthorized_degraded:
         return DEGRADED_PANEL(reduced_diversity_receipt)
@@ -777,7 +943,8 @@ if len(families_available) < MINIMUM_PANEL_QUORUM:
         return BLOCKED("insufficient model_family diversity for independent critique")
 
 panel = []
-for family in sample(families_available, min(requested_size, len(families_available))):
+panel_size = min(requested_size, len(families_available))
+for family in sample(sorted(families_available), panel_size, seed=random_seed):
     best_in_family = highest_weight(eligible where model_family == family)
     panel.append(best_in_family)
 
@@ -792,8 +959,13 @@ reservation = CapacityReservation(
 # Reservation holds until dispatch consumes it or TTL expires.
 # Crash recovery: reservation auto-expires via TTL.
 if not acquire_reservation(reservation):
-    return BLOCKED("capacity reservation failed for panel") or
-    staggered_dispatch(panel)  # sequential fallback, disclosed in receipt
+    if operator_preauthorized_degraded:
+        return DEGRADED_PANEL(
+            panel,
+            mode="staggered_dispatch",
+            reason="capacity reservation failed",
+        )
+    return BLOCKED("capacity reservation failed for panel")
 ```
 
 **Capacity demand estimation:** demand is provider-unit-specific, not a
@@ -812,7 +984,10 @@ upstream model do not provide critique independence.
 
 **Reservation failure:** fail-closed by default. The operator may pre-authorize
 degraded mode (reduced diversity, staggered dispatch, or single-model fallback)
-for specific task types. Degraded mode is always disclosed in the receipt.
+for specific task types. `operator_preauthorized_degraded` must name the task
+policy and permitted degradation; it is never inferred from provider failure.
+Degraded mode is always disclosed in the receipt and cannot be used to claim
+full panel-quorum evidence.
 
 ## Common eligibility gates
 
@@ -826,7 +1001,7 @@ Ranking never happens before these gates:
 4. The provider endpoint and transport are currently usable.
 5. **Lifecycle gate:** the candidate's lifecycle is `active` for the requested
    lane and risk class. A `candidate` lifecycle record is eligible ONLY for
-   the safe-calibration lane. Normal reasoning, coding, or write-capable
+   the safe-calibration lane. Normal reasoning, tool-loop, or write-capable
    selection requires lifecycle=active. This gate is enforced by the
    selector, not by policy text alone.
 6. Current quota, rate-limit, and concurrency state admits the call.
@@ -848,7 +1023,7 @@ verification_passed          # verification was executed and passed
 Only `verification_passed` counts toward a promotion threshold. Lane-floor
 eligibility rules:
 
-| Verification state | Counts toward promotion? | Eligible for reasoning/coding? | Eligible for calibration? |
+| Verification state | Counts toward promotion? | Eligible for reasoning/tool-loop? | Eligible for calibration? |
 |---|---|---|---|
 | `verification_passed` | Yes | Yes (if sample sufficient) | Yes |
 | `verification_not_applicable` | No | No (treat as unverified) | Yes (bounded scope only) |
@@ -882,13 +1057,14 @@ discoverable -> candidate -> safe calibration/exploration
   -> lane-specific verified evidence -> active for that lane/risk class
 ```
 
-A candidate may be calibrated on low-risk work in the `coding` lane (the
-only write-capable lane) with bounded scope and an isolated worktree. The
-`mechanical` lane is strictly read-only; calibration tasks that write files
-must use the `coding` lane, not `mechanical`. This is a containment
+A candidate may be calibrated on low-risk work in the `tool-loop` capability
+(the only write-capable capability) with bounded scope and an isolated
+worktree. The `mechanical` capability is strictly read-only; calibration tasks
+that write files must use `tool-loop`, not `mechanical`. This is a containment
 requirement. A candidate is not automatically eligible for reasoning or
 write-capable work. A new, free, or statically high-priority model must not
-displace an evidenced candidate without lane-appropriate evidence.
+displace an evidenced candidate without capability- and cohort-appropriate
+evidence.
 
 The operator-facing promotion control may remain one threshold per lane, but
 the threshold is not a universal raw-call rule and need not be five. The
@@ -1000,10 +1176,17 @@ which capacity model it can observe.
 - **multi-pool:** several independently limiting windows or pools;
 - **unknown:** no trustworthy remaining, reset, or rate signal is available.
 
+An adapter may report `rate_limited_only` only when it can observe live
+rate-limit, concurrency, queue, or retry-after behavior and has evidence that
+no remaining-window or monetary-budget semantics are being omitted. Missing
+quota data is not proof of rate-limited-only capacity; when the limiter kind
+or scope is uncertain, report `unknown` and disclose the missing signal.
+
 The normalized adapter result should expose, when available:
 
 ```text
 capacity_kind
+capacity_pool_id + account_id + window_id
 usable_now
 capacity_risk
 recovery_state
@@ -1021,6 +1204,7 @@ reprobe_at
 recovery_owner
 retry_budget
 observed_at
+provider_observed_at + provider_clock_skew
 source and freshness
 unknown_reason
 ```
@@ -1031,20 +1215,28 @@ Admissibility is determined by the following table, keyed by capacity_kind
 and freshness. This table is normative — the selector does not invent
 defaults when the adapter output is ambiguous.
 
-| capacity_kind | freshness | ordinary task | bounded non-spend task | scarcity-sensitive task |
+`ordinary_auto_dispatch` means an automatically dispatched task whose declared
+spend and risk policy permits normal capacity use. `bounded_non_spend` means no
+monetary charge is incurred and the task is within the caller's bounded
+non-spend budget. `scarcity_sensitive` covers protected, unique, reset-bound,
+or otherwise reserved capacity. The caller must provide this class; the
+selector must not infer it from the model name.
+
+| capacity_kind | freshness | ordinary_auto_dispatch | bounded_non_spend | scarcity-sensitive task |
 |---|---|---|---|---|
 | `windowed_units` | fresh (<5 min) | allow if remaining > demand + reserve, apply pacing | allow if remaining > demand | allow only if remaining > demand + reserve and not forecast-exhausted |
 | `windowed_units` | stale (>5 min) | block until refreshed | allow if route health is clean | block |
 | `monetary_budget` | fresh | allow if remaining > demand + reserve | allow if remaining > demand | allow only if remaining > demand + reserve |
 | `monetary_budget` | stale | block until refreshed | allow | block |
 | `rate_limited_only` | live (429 health checked) | allow if no active 429/backoff | allow if concurrency state admits demand | allow if concurrency state admits demand |
-| `rate_limited_only` | stale | allow with disclosed uncertainty | allow | block |
+| `rate_limited_only` | stale | block until refreshed | allow only if current route health admits demand and the caller's policy is bounded non-spend | block |
 | `multi_pool` | fresh | check most restrictive window against demand + reserve | allow if all relevant windows admit demand | allow only if all windows clear demand + reserve |
 | `multi_pool` | stale | block until refreshed | allow if route health clean | block |
-| `unknown` | n/a | allow with disclosed uncertainty (non-spend only) | allow | block |
+| `unknown` | n/a | block unless the caller explicitly classifies the task as bounded non-spend | allow only with current route health and a bounded non-spend policy | block |
 
 **Confirmed exhaustion or retry-after:** always blocks until the stated expiry
-or a fresh provider observation overrides it.
+or an explicit fresh provider observation supersedes it. Elapsed time alone is
+never evidence that the route recovered.
 
 ### Capacity recovery and resubmission contract
 
@@ -1075,6 +1267,23 @@ Every deferred result records `recovery_owner` (parent or named queue),
 recovery owner or budget is supplied, the safe result is `BLOCKED` with an
 operator-visible reason. This preserves the no-automatic-fallback policy while
 still making a temporary failure retryable and observable.
+
+Each resubmission also records a new `dispatch_attempt_id`, the original
+`task_id`, a stable idempotency key (when the provider supports one), and any
+`reservation_id`. The original attempt is immutable. A side-effecting
+tool-loop task must not be retried unless the caller proves the
+previous dispatch did not start or supplies an idempotent operation key;
+otherwise the result is `BLOCKED` for operator judgment. Queue ownership must
+deduplicate the same task/binding/recovery window and consume one retry budget
+atomically, so a crashed worker or two pollers cannot create duplicate writes.
+
+All `observed_at`, `reset_at`, `deferred_until`, and `reprobe_at` values are
+RFC3339 UTC timestamps. Adapters should retain the provider-reported timestamp
+and local receipt time, plus a clock-skew estimate where available. An invalid,
+ambiguous, or materially skewed reset timestamp produces `unknown` or
+`reset_pending`, not an immediate retry. If the reset horizon has already
+passed, the selector must still return `reprobe_at` until a fresh observation
+proves `available`.
 
 The conformance suite must cover at least: a short 429 backoff, a multi-hour
 reset, a monthly quota reset, a reset whose timestamp passes without fresh
@@ -1116,6 +1325,11 @@ allowable burn rate =
   / time until reset
 ```
 
+If `time until reset <= 0`, do not divide by zero or infer that quota is
+available. Transition the window to `reset_pending`, return `reprobe_at`, and
+require a fresh provider observation before ordinary or scarcity-sensitive
+dispatch.
+
 For a seven-day quota window, 100% / 7 is approximately 14.3% per day. A
 15%-per-day figure is a useful alert heuristic, not a hard routing target. A
 protected reserve should normally be demand-forecast based: expected
@@ -1149,8 +1363,13 @@ It is a capacity control, not a model-quality tier.
 
 Every selection receipt should record:
 
-- task lane, declared lane, ambiguity resolution (if any), and selection mode;
+- task contract (`capability`, `difficulty`, `risk_class`, `spend_class`, and
+  write intent), ambiguity resolution (if any), classifier provenance, and
+  selection mode, plus a canonical `task_contract_hash`;
 - selected provider, model, invocation method, orchestrator, and binding fingerprint;
+- resolved route, harness/prompt/result/verifier contract hashes,
+  `method_contract_hash`, and the `capacity_pool_id`/account/window scope used
+  for admission;
 - eligible candidates and rejection reasons (including lifecycle gate rejections);
 - capability, policy, lifecycle, and capacity decisions;
 - evidence cohort, binding fingerprint, sample count, freshness, and confidence;
@@ -1159,11 +1378,13 @@ Every selection receipt should record:
   window/pacing state used;
 - cost policy decision, without invented cost values;
 - alternatives considered;
+- `task_id`, `dispatch_attempt_id`, and `reservation_id` when capacity was
+  reserved; recovery owner and retry budget when dispatch was deferred;
 - **Replay fields (mandatory for weighted_pool and diverse_panel):**
   - `algorithm_version`: e.g., "v1"
   - `random_seed`: the PRNG seed used for weighted selection
   - `prng_version`: PRNG algorithm identifier
-  - `normalized_weights`: the weight vector applied to eligible candidates, in canonical candidate ordering (sorted by candidate ID), rounded to 6 decimal places
+  - `normalized_weights`: the weight vector applied to eligible candidates, in canonical candidate ordering (sorted by candidate ID), rounded to 6 decimal places and required to sum exactly to 1.0 after largest-remainder rounding
   - `exploration_triggered`: boolean, whether exploration was activated
   - `exploration_draw`: the random value that determined exploration (if triggered)
   - `evidence_snapshot_hash`: hash of the evidence state used for this decision
@@ -1359,7 +1580,7 @@ evidence for all of the following:
      defer horizon requires a fresh observation; elapsed time alone is not
      evidence of recovery.
 11. **Pool-test separation and identity:** provider-pool health/recovery tests
-    are separate from code-model capability tests and production code-lane
+     are separate from capability/difficulty tests and production tool-loop
     evidence. Each live test records the full binding fingerprint, quota pool
     or account, capacity reservation, fixture manifest, verifier, and
     orchestrator/method identity. Pool health cannot promote a model, and
@@ -1369,12 +1590,13 @@ evidence for all of the following:
 
 ## Operator acceptance
 
-This proposal (Revision 5d) preserves the output of six cross-orchestrator
+This proposal (Revision 5f) preserves the output of six cross-orchestrator
 review relay sessions (all converged, zero disputes across 42 total findings),
-adds the targeted recovery/evidence hardening update, and records the Codex
-red-team findings on pool-test scope and promotion identity. The Revision 5d
-partner re-review is pending. Relay convergence is review provenance; it is
-not evidence that either live selector is conformant.
+adds the targeted recovery/evidence hardening update, and records the direct
+red-team findings on pool-test scope, promotion identity, evidence cohorts,
+and recovery semantics. No new cross-host relay re-review has been performed
+for Revision 5f. Review convergence is provenance; it is not evidence that
+either live selector is conformant.
 
 The proposal is offered for operator acceptance as an implementation-planning
 contract, not as authorization to activate live routing.
