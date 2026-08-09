@@ -3,15 +3,15 @@ thread_id: ship-pipeline-open-work-20260809
 parent_handoff_path: none
 current_session_id: 019fe4c1-43c3-7432-b211-926e806dd7a6
 produced_at: 2026-08-09T00:00:00Z
-last_updated_at: 2026-08-09T00:00:00Z
-status: OPEN
+last_updated_at: 2026-08-09T12:00:00Z
+status: CLOSED
 handoff_type: implementation_plan
 ---
 
 # HANDOFF: ship-pipeline open work (consolidated 2026-08-09)
 
 ## Status
-OPEN — 3 items remain (A3 test isolation, B4 timeout, D1-D4 Phase 2 polish).
+CLOSED — all remaining items shipped (session 019fe4c1, 2026-08-09).
 The anti-fabrication architecture is complete (all 3 specification-gaming
 layers that the original fraud exploited are closed). What remains is test
 hygiene, timeout tuning, and Phase 2 feature polish — none of which affects
@@ -136,3 +136,25 @@ What remains (A3, B4, D1-D4) is hygiene, tuning, and polish — not integrity ga
 - [[making-llm-agents-honestly-execute-skills-solution-stack]] — solution families
 - [[specification-gaming-in-llm-agent-pipelines]] — diagnosis
 - [[design-choice-audit-challenge-every-decision-against-first-principles]] — Track D4
+
+## Execution Status
+
+Updated: 2026-08-09T12:00:00Z
+Session: 019fe4c1-43c3-7432-b211-926e806dd7a6
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 1 | Integration test: cross-validate on real diff | ✅ DONE | `cross-validate --session-id 019fe4c1` produced validator-findings.json with correct Pydantic shape, state transitioned to risk, fail-open worked for unresolvable model |
+| 2 | B4: measure timeout incidents + bump | ✅ DONE | Zero `_timed_out` markers across all .artifacts sessions; poll_timeout bumped 600→1800 in run_all.py:11,176 + ship_orchestrator.py:305 (commit 8876725) |
+| 3 | A3: test state isolation | ✅ DONE | tests/conftest.py with autouse tmp_artifacts fixture; 7 leaked test state dirs cleaned (commit 8876725) |
+| 4 | D2: enrich changelog in publish | ✅ DONE | _generate_changelog_entry now includes git log --oneline commit subjects per repo (commit d3ff5e3) |
+| 5 | D3: design-check false-positive heuristic | ✅ DONE | _FILENAME_STOPWORDS filter added to _find_design_doc filename fallback (commit d3ff5e3) |
+| 6 | D4: design-choice audit in AGENTS.md | ✅ DONE | New section at AGENTS.md:1440 documenting CONCEPT/SCOPE/FIT/ALTERNATIVES per-decision check (commit d3ff5e3) |
+
+### Key findings during execution
+
+- **Integration test validates the complete cross-validate dispatch chain.** The phase reads review_findings from state, selects a real model via pick_model.py, attempts pi dispatch, and writes validator-findings.json regardless of model availability (fail-open). The `review_titles_seen` field correctly captured both review finding titles from injected state.
+- **B4 hypothesis confirmed: no premature cutoffs.** Zero `_timed_out_<phase>` markers across all ship-py state directories. The 600s timeout was never the binding constraint. Bumped to 1800s for headroom on legitimate long-running spawns.
+- **D1 (Phase 2 tests) was already shipped** in a prior session (test_phase2_features.py, 16 tests, commit a11b927). Handoff text was stale — D1 is not a remaining item.
+- **Known limitation persists:** 2 of 3 critic-lane models fail-open in cross-validate because `resolve_pi_invocation` lacks verified pi mappings. Only `nim-openai-gpt-oss-20b` is in the fallback table. Adding the other 2 requires live `pi --list-models` verification per model.
