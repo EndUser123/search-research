@@ -256,3 +256,91 @@ narrow valid kernel, separate from overreach). This rule extends the same
 discipline to peer-review and external-LLM feedback specifically. The
 CRITIC principle (external evidence required for relabeling) applies here:
 agreement without independent verification is not validation.
+
+## Third-round additions (from deeper root-cause analysis)
+
+A third external LLM review identified that rules 11-12 fix what happens
+*after* a bad conclusion is discovered, but not what *prevents reaching it*
+in the first place. The systemic root cause: important epistemic rules exist
+mostly as advisory prose rather than enforced state transitions and evidence
+contracts. Four additions address the upstream causes.
+
+### 6. Decision state machine — making "provisional" structurally impossible
+
+**The problem:** qualifiers like "provisional," "likely," and "probably" are
+used to disguise that a recommendation has crossed an evidence boundary.
+"FORK (provisional), but two decisive things haven't been checked" is a
+contradiction that prose rules cannot prevent.
+
+**The fix:** an explicit decision state machine with transition conditions:
+
+```
+DISCOVERY → CANDIDATE_IDENTIFIED → EVIDENCE_INCOMPLETE → SPIKE_REQUIRED → CANDIDATE_VALIDATED → DECISION_READY → terminal state
+```
+
+Unknowns capable of reversing the choice prevent transition to DECISION_READY.
+This is now enforced in `/www` Step 3.1b as the recommendation field's
+constraint — the only legal output when a blocking unknown exists is
+`SPIKE_REQUIRED`.
+
+### 7. Search-completeness falsifier — discover the killer counterexample
+
+**The problem:** the decision-level red-team (item 3) asks "what would make
+this unnecessary?" but doesn't require *searching for it*. The agent names the
+counterexample, then proceeds without running the search that would find it.
+
+**The fix:** before closing discovery, (1) name what existing thing would
+reverse the decision, (2) formulate the search most likely to find it,
+(3) run that search, (4) only then close discovery. This is now enforced in
+`/www` Step 3.1b.
+
+### 8. Evidence scope: receipt type must match claim type
+
+**The problem:** "Claims require receipts" doesn't specify that the receipt
+type must match the claim type. Reading a file line proves the file says X,
+but does not prove the runtime behavior is Y. "I independently verified it"
+can become ritualized when the verification method is mismatched.
+
+**The fix:** receipt type must match claim type:
+- Textual/source claims → source-file receipts
+- Code-mechanism claims → code-path evidence
+- Runtime claims → live runtime evidence
+- UX claims → observation in the real UI
+- Causal claims → evidence capable of distinguishing competing explanations
+
+Now an AGENTS.md hard rule.
+
+### 9. Decision gate invariant — no NEW without evidenced reuse discovery
+
+**The problem:** the existing "search before proposing" rule exists but was
+violated inside a research task. Adding another prose reminder doesn't fix
+the underlying problem — the agent searched within the proposed solution frame
+and felt research was complete.
+
+**The fix:** a transition invariant, not an instruction: no NEW/BUILD/FORK
+recommendation may be emitted until reuse/alternative discovery has evidence
+of completion across 5 dimensions (direct products, adjacent products,
+capability-level implementations, platform-native mechanisms, existing
+workspace solutions). If the search was product-shaped only, the only legal
+output is `DISCOVERY_INCOMPLETE` or `SPIKE_REQUIRED`. Now an AGENTS.md hard
+rule and enforced via the Decision Integrity Check's "Alternatives discovered"
+and "Best reusable candidate" fields.
+
+## Root-cause hierarchy
+
+The three rounds of external critique map to a clean hierarchy:
+
+```
+Surface errors (missed repo, overclaimed causality, stale revisions)
+    ↓
+Immediate cognitive causes (solution-frame anchoring, inference inflation)
+    ↓
+Process cause (research optimized for validating, not comparing decision space)
+    ↓
+Systemic cause (rules as advisory prose, not enforced state transitions)
+```
+
+Rules 11-12 address level 2. Items 6-9 address level 4 — the systemic layer
+where the rules become structural constraints, not behavioral hopes. The
+honest assessment: items 6-9 are the ones that would have prevented the
+original failure. Rules 11-12 are the ones that fix it once discovered.
