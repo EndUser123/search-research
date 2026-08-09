@@ -322,9 +322,9 @@ The model-selection system has three live layers:
 2. **p90 fallback chain (Gap A)** — `_latency_p50()` → `_latency_p90()` implements R5b fix #12 (`p90 > p50_provisional > lane_median > BLOCKED`). `compute_score()` now uses p90 valid-result latency. (Commit `b6b985f`)
 3. **Quarantine scope (Gap C)** — `QuarantineRecord` gains `orchestrator` and `invocation_method` fields. Transport and model quarantine creation sites populate them from the candidate. Backward compatible. (Commit `b6b985f`)
 
-**What remains open (Gap D):**
+**What remains open (Gap D — Step 2+):**
 
-- **Quota capacity adapter** — `_quota_headroom()` is still a type-based heuristic (subscription/free_tier/flat_rate/rate_limited → fixed headroom values). R5b wants a provider-capacity adapter that checks `remaining > demand + reserve` using provider-unit-specific data (tokens, requests, money). This needs live quota data integration from `fleet_quota.py` — it's a feature addition, not a conformance fix.
+- ~~**Quota capacity adapter** — `_quota_headroom()` is still a type-based heuristic.~~ **Step 1 RESOLVED (2026-08-09, commit `6a6d10f`):** `capacity_adapter.py` reads the live fleet quota cache, normalizes to R5b adapter shape, implements the decision table as a 5th gate. `_quota_headroom()` removed from scoring (capacity is gate-only per R5b fix #2). Live test confirms exhausted providers (cohere at pct=0) are correctly blocked. **Remaining Step 2+:** demand estimation (token counting), pricing data for monetary_budget, adaptive reserve from demand forecast. These are features blocked on data that doesn't exist yet.
 
 **Verification:**
 - 25/25 golden vectors pass (all 3 changes verified)
