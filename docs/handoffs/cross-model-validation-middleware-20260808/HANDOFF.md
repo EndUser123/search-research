@@ -3,6 +3,16 @@
 ## Status
 OPEN — design needed
 
+## Related handoff (coordination)
+Session 019fe403 shipped ship-py Phase 1 + Phase 2 enhancements. The review
+phase was modified (P2-1: PAUSE_INSTRUCTIONS now mandates cross-model
+diversity). This handoff's work **supersedes P2-1** — if the orchestrator
+directly spawns validators, the PAUSE_INSTRUCTIONS edit becomes unnecessary.
+
+**After this work lands, check:** `P:/docs/handoffs/ship-py-phase2-functionality-composition-20260809/HANDOFF.md`
+for remaining open items (tests for Phase 2 features, changelog enrichment,
+design-check heuristic, AGENTS.md rule for design-choice audit).
+
 ## Objective
 Move the LLM out of the evidence-production path for ship-py's review phase by having the orchestrator spawn a cross-family pool model via direct HTTP or Pi subprocess, capture its output, and write the findings from that output. The LLM never touches the findings file.
 
