@@ -9511,3 +9511,5 @@ d)
 - 2026-08-10 — added [[closure-pressure-assumes-framing-is-right]]: chronic pattern (2 surface forms, 1 governing assumption); structural fix via verdict-vocabulary hook. Source: session-2026-08-09 AAR + /insight.
 
 - 2026-08-10 — added [[behavioral-adoption-test-before-ship]] (test LLM behavior pre-ship, not post-ship metric); fixed [[closure-pressure-assumes-framing-is-right]] refines link to canonical concept. Source: session-2026-08-09 AAR + /risk.
+
+- 2026-08-10 — added [[tool-fallbacks]] via wiki_postwrite.py canonical runner.

@@ -3,6 +3,7 @@ title: "Tool fallbacks: known-broken combinations and CLI fallbacks"
 slug: tool-fallbacks
 created: 2026-07-18
 updated: 2026-08-10
+last_verified: 2026-08-10
 tags: [tool-fallbacks, model-pool, spawn-subagent, cli-fallback, mcp, rate-limit, transferable-technique]
 host: grok
 agent: grok
@@ -13,6 +14,9 @@ summary: >
   Records observed failures only (optimistic bias: assume working unless listed).
   Each entry cross-references wiki authority for root cause. When this table
   and a wiki concept disagree, the wiki concept wins — update this table.
+  **Staleness rule (added 2026-08-10):** entries with `last_verified` >30 days
+  for fast-moving categories (model routing, quota, region policy) should be
+  re-probed before asserting as current state. See [[prior-session-fact-vs-this-session-fact-pattern]].
 sources:
   - "Session-observed failures across sessions 019f9a89–019fe36e (2026-07 to 2026-08)"
 relations:
