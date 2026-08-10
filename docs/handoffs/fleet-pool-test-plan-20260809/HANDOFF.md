@@ -22,7 +22,7 @@ Updated as testing progresses. Check before running.
 |---|---|---|---|---|
 | cerebras | 2 | n/a | SKIP | Provider excluded by operator |
 | cohere | 3 | 0% | BLOCKED | Quota exhausted — reset pending |
-| groq | 3 | n/a | SKIP | Provider excluded by operator |
+| groq | 3 | n/a | SKIP | Provider excluded by operator. Free tier TPM cap (6,000-8,000) blocks all production spawns — Grok Build system prompt alone is ~54K tokens. Pool test could work (short prompts) but model can't be promoted to active production use until TPM limit resolved. Verified 2026-07-29: all 3 models fail instantly with HTTP 413. |
 | minimax | 1 | 48% | PENDING | |
 | nim | 2 | n/a (shares nvidia) | PARTIAL | nim-openai-gpt-oss-20b tested (18/18 pass); nim-deepseek-v4-flash returns 410 Gone |
 | nvidia | 6 | n/a | PENDING | |
