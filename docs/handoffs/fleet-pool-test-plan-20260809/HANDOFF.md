@@ -142,6 +142,8 @@ Capacity at 69% — should be testable.
 3. Promote candidates that pass the floor (>=5 problems) to active
 4. Run discrimination report (--report flag) once 2+ models tested
 5. Run method-aware testing (pi, opencode) for tool-evidence requirement
+6. **Fix selector recommending dead models** — or-ling-3-flash-free (404 paywalled), zen-deepseek-v4-flash-free (401 disabled), nim-deepseek-v4-flash (410 gone) are still in the active pool and get recommended by pick_model.py. Need either: (a) per-model health probe that detects 4xx as model-level failure, or (b) mark these lifecycle=retired in fleet-models.json, or (c) add a model-availability gate alongside the capacity gate. The /review skill hit this in production: "Both model slugs failed."
+7. **Fix exact-match scorer for verbose models** — minimax-m3 wraps output in `<think>` tags. The scorer can't extract the answer. Need a `<think>` stripper or "last line / last number" extraction before exact-match comparison.
 
 ## Falsifier
 
