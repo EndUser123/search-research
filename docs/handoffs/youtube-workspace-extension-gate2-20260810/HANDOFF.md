@@ -6,10 +6,10 @@ parent_session: 019fea30-500e-7b83-abac-d737446e86fb
 current_terminal_id: 019fea30-500e-7b83-abac-d737446e86fb
 produced_at: 2026-08-10T07:20:00Z
 last_updated_by: 019fea30-500e-7b83-abac-d737446e86fb
-last_updated_at: 2026-08-10T07:20:00Z
+last_updated_at: 2026-08-10T07:35:00Z
 status: open
 handoff_type: investigation
-accurate_as_of_head: d1a89915c01f59d9d51170dd0bbfce0cb5fde7a7
+accurate_as_of_head: 24ae1f7d1618a2bf5b1911a70c014dbf5d53a4f0
 ---
 
 # Handoff — YouTube Workspace Sidebar Extension: Gate 2 Acquisition Spike
@@ -92,7 +92,7 @@ This means: G2-06 must produce **structured diagnostic records** at every reject
 - **in scope:** Load a throw-away extension skeleton in the operator's Chrome (or use the chrome-devtools MCP to inject MAIN-world eval as a stand-in for the extension's `chrome.scripting.executeScript`). Run against at least two real YouTube watch pages (e.g., `v=Sx5-xt8tH_M` which has native chapters; another with no chapters). Capture the full MAIN-world response from `window.ytInitialPlayerResponse`.
 - **out of scope:** Building the actual extension UI. Caching. Chapter display. AI generation.
 - **files / anchors:** `P:/tmp/summarize-audit/apps/chrome-extension/src/lib/youtube-page-transcript.ts` (reuse the reader pattern; extend to expose chapter path).
-- **acceptance:** A live dump of `ytInitialPlayerResponse` from the MAIN world, captured as a structured artifact (JSON file or console record). The response includes the caption source structure (`captions.playerCaptionsTracklistRenderer.captionTracks`) and a discoverable chapter path.
+- **acceptance:** A live dump of `ytInitialPlayerResponse` from the MAIN world, captured as a structured artifact (JSON file or console record). The response includes the caption source structure (`captions.playerCaptionsTracklistRenderer.captionTracks`) and a discoverable chapter path. **At least one of the two real YouTube watch pages must be ≥60 minutes long** to exercise long-video transcript truncation (one of the "hard bugs" Summarize's CHANGELOG documents — the operator's acceptance contract explicitly requires long-video coverage per the research concept's Gate 2 test matrix). **The VideoContext stamped with the acquisition result must carry provenance fields**: `videoId`, `chapterSource` (one of `native | auto | desc | ai`), `transcriptSource` (one of `timedtext | innertube | whisper`), and `contextVersion` (monotonic integer bumped on each re-acquisition). The provenance fields must be observable in the dumped artifact.
 - **falsifier:** If the MAIN-world reader fails to access `ytInitialPlayerResponse` (CSP or other restriction), Gate 2 is `BLOCKED: acquisition path not reachable from MAIN world`. Mitigation: a content-script-injected `<script>` tag as an alternative MAIN-world bridge.
 - **verification level required:** LIVE_BEHAVIOR (real Chrome, real YouTube, no synthetic fixtures)
 
@@ -217,3 +217,4 @@ This means: G2-06 must produce **structured diagnostic records** at every reject
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-10T07:20 | 019fea30... | created. Gate 2 prep. Inherits Gate 1 EXTRACT + IN_PAGE_SECONDARY decisions. 6 task packets defined. Operator-directed acceptance bar (structured diagnostic for stale rejection) added to G2-06. Ready for fresh session `/go`. |
+| 2026-08-10T07:35 | 019fea30... | acceptance-contract tightening on G2-01: (1) long-video coverage requirement (≥60 min) per the research concept's Gate 2 test matrix; (2) mandatory provenance fields on the VideoContext (`videoId`, `chapterSource`, `transcriptSource`, `contextVersion`). Operator applied the two /review suggestions (DOC-G2-003, DOC-G2-004) before launching the Gate 2 spike; the two ordinary nits (DOC-G2-001, DOC-G2-002) were explicitly skipped. Receipt-identity-provenance concern recorded in a separate deferred-reliability handoff (`P:/docs/handoffs/receipt-identity-provenance-unverified-20260810/HANDOFF.md`). Handoff is frozen for the fresh session's `/go`. |
