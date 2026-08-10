@@ -1,6 +1,6 @@
 ---
 title: "directory_policy.json reconciliation: fix-as-doc vs Grok-side enforcement"
-status: OPEN
+status: RESOLVED
 created: 2026-08-08
 session: 019fe3ff-afbc-71c1-b2a3-3cfbccfd2bc7
 assignee: unassigned

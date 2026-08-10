@@ -1,7 +1,7 @@
 # HANDOFF: directory_policy.json gap — identified but not wired
 
 ## Status
-OPEN — investigation + implementation needed
+RESOLVED 2026-08-10 — shared loader created (scripts/directory_policy_loader.py), Grok PreToolUse enforcement wired (PreToolUse_directory_policy.py), /maintain Step 2e consumes loader (duplicate blocklist removed). See commit 4472d65. Follow-ups: run_terminal_command root mutation enforcement, live verification after reload.
 
 ## Objective
 Wire the directory-policy hook into Grok Build's live dispatch. The hook was identified by a sibling session (019fdf3d) as existing in config but not in active dispatch. It needs to be either activated or removed.
