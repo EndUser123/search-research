@@ -1,15 +1,15 @@
 ---
 thread_id: 5dd97700-52ec-4da2-95a8-075bf504d082
 parent_handoff_path: none
-current_session_id: 019fe36e-7cb5-7003-b7dd-f94396165026
-parent_session: none
-current_terminal_id: 019fe36e-7cb5-7003-b7dd-f94396165026
+current_session_id: 019fea30-500e-7b83-abac-d737446e86fb
+parent_session: 019fe36e-7cb5-7003-b7dd-f94396165026
+current_terminal_id: 019fea30-500e-7b83-abac-d737446e86fb
 produced_at: 2026-08-10T05:45:00Z
-last_updated_by: 019fe36e-7cb5-7003-b7dd-f94396165026
-last_updated_at: 2026-08-10T05:45:00Z
-status: open
+last_updated_by: 019fea30-500e-7b83-abac-d737446e86fb
+last_updated_at: 2026-08-10T07:08:00Z
+status: resolved
 handoff_type: investigation
-accurate_as_of_head: 30be829fbb81fc415759b9b91636ab4a1173289f
+accurate_as_of_head: cc8aba6eea9f9ce7e1ee6b069049f1fcdbf1b490
 ---
 
 # Handoff — YouTube Workspace Sidebar Extension: Gate 1 Decision Spike
@@ -22,7 +22,7 @@ Determine whether to FORK, EXTRACT, or REJECT `steipete/summarize` as the founda
 
 ## Status
 
-OPEN — ready to implement Gate 1. All research complete; no code written yet.
+RESOLVED — Gate 1 settled (2026-08-10, session 019fea30...). Both decisions recorded with evidence. Gate 2 spike is the next session's work; this handoff is the durable record of the Gate 1 outcome.
 
 ## Producing context
 
@@ -59,43 +59,85 @@ OPEN — ready to implement Gate 1. All research complete; no code written yet.
 
 ## Task packets
 
-### G1A-01 — `steipete/summarize` reuse audit
+### G1A-01 — `steipete/summarize` reuse audit — ✅ RESOLVED (EXTRACT)
 
 - goal: Determine FORK / EXTRACT / REJECT with evidence.
-- in scope: Clone the repo, read `apps/chrome-extension/src/entrypoints/background/panel-state.ts` and `panel-session-store.ts` to determine whether a Chapters view fits additively into the tab model. Measure the stripped dependency footprint (what's the bundle size if `automation/` and hover features are removed?).
-- out of scope: Building the Chapters feature. Writing any extension code. Gate 2/3 work.
-- files / anchors: `apps/chrome-extension/src/entrypoints/background/panel-state.ts`, `panel-session-store.ts`, `lib/seek.ts`, `manifest.json` (in the repo, not local yet).
-- acceptance: A written verdict (FORK / EXTRACT / REJECT) with: (a) evidence that Chapters fits or fights the tab model, (b) measured stripped footprint, (c) what's inherited for free vs what must be built.
-- falsifier: If Chapters cannot be added without modifying the panel-session architecture (not just adding a tab), FORK degrades toward EXTRACT or REJECT.
-- verification level required: STATIC_INSPECTION
+- status: **RESOLVED 2026-08-10** — verdict **EXTRACT** (with the correction that the source is the extension's internal `lib/` + `entrypoints/background/`, NOT the published `@steipete/summarize-core`).
+- evidence collected this session:
+  - Cloned `steipete/summarize` `--depth 1` to `P:/tmp/summarize-audit`. LICENSE = MIT (Copyright Peter Steinberger).
+  - Read `apps/chrome-extension/src/entrypoints/sidepanel/panel-state-store.ts` — `PanelState` has `summaryMarkdown`, `slides`, `chat`; **NO tab/view model exists**. The only "transcript" concept is `slidesText.mode: "transcript"` (a slide-deck text-source toggle), not a standalone view.
+  - Read `apps/chrome-extension/src/entrypoints/sidepanel/index.html` — **NO `<nav>`/tab bar**; it is a single summary area with a controls drawer.
+  - `grep 'chapter|macroMarkers|chapters'` across `apps/chrome-extension/src/` returns **NONE** — Chapters is not a first-class concept anywhere. (Promotes research concept [INFERENCE] to [FACT].)
+  - Read `apps/chrome-extension/src/lib/youtube-page-transcript.ts` (357 lines) — already implements MAIN-world `chrome.scripting.executeScript({ world: "MAIN" })` for caption source read + timedtext fetch. The single most valuable reusable asset; needs only an extension to expose the chapter JSON path.
+  - Read `apps/chrome-extension/src/lib/seek.ts` (40 lines) — clean dual-path seek (`<video>.currentTime` then `document.getElementById('movie_player').seekTo()`). No modification required.
+  - Read `apps/chrome-extension/src/entrypoints/background/panel-session-store.ts` — per-tab/per-URL cache invalidation (`cached.url !== url → invalidate`), inflight URL tracking, AbortController plumbing. The CHANGELOG entries the research concept quoted are real (verified by source).
+  - Read `packages/core/package.json` — `@steipete/summarize-core` is a **server-side Node library** (`@mozilla/readability`, `linkedom`, `sanitize-html`, `undici`, `ffmpeg-wasm`, `node ≥ 24`). It does **not** include the MV3 extension pieces. The handoff's original EXTRACT option ("use `@steipete/summarize-core` for transcript/extraction") was based on a stale assumption; the correct EXTRACT source is the extension's internal files.
+  - Entanglement check (grep `sidepanel|automation|repl|userscripts` across `lib/` and `background/`, excluding self-imports): only `direct-prompts.ts` (capability-flag branch), `panel-contracts.ts` (declares `automationEnabled` field), `settings.ts` (stores toggle) in `lib/` — all trivial boolean references. In `background/`, only `runtime-actions.ts` deeply imports `../../automation/{artifacts-store,native-input-guard}` — that one file must be rewritten; everything else (`panel-session-store.ts`, `panel-state.ts`, `panel-cache-runtime.ts`, `extract-cache.ts`, `listeners.ts`, `panel-message-router.ts`, `panel-runtime.ts`, `content-script-bridge.ts`, `youtube-transcript.ts`) is clean of sidepanel/automation imports.
+- outcome: See D1 in "Resolved decisions" above. EXTRACT keeps the solved-bug layer without inheriting the wrong-product UI.
+- falsifier check: Chapters fits additively in our NEW UI (not Summarize's). Pass. Stripped footprint is significantly lighter than a full fork (we keep ~13 files ≈ 2.5k LOC from the extension source and build a new UI). Pass.
 
-### G1B-01 — Visual container test
+### G1B-01 — Visual container test — ✅ RESOLVED (IN_PAGE_SECONDARY)
 
 - goal: Decide `chrome.sidePanel` vs in-page injection based on real visual evidence.
-- in scope: Build two throwaway mockups with placeholder chapter rows only: (A) `chrome.sidePanel` with minimal HTML, (B) minimal in-page div injected into YouTube's `#secondary` column. Screenshot both in real YouTube in: normal mode, theater mode, sidebar open, sidebar closed. Compare actual video size and recommendation-column behavior.
-- out of scope: Transcript acquisition. AI. Chapters generation. Clickable timestamps. Any functionality beyond placeholder rows.
-- files / anchors: Two throwaway `manifest.json` + minimal content scripts. Not committed to the workspace — throwaway spikes.
-- acceptance: Screenshots showing both containers in all 4 YouTube modes, with a written verdict: which container matches the "turn wasted recommendation space into a workspace" experience from the design conversation.
-- falsifier: If `chrome.sidePanel` narrows the video and leaves recommendations in place (not the desired UX), in-page injection wins despite higher maintenance cost.
-- verification level required: LIVE_BEHAVIOR
+- status: **RESOLVED 2026-08-10** — verdict **IN_PAGE_SECONDARY**. Visual test was possible (chrome-devtools + chrome MCPs connected), so this is **not** `VISUAL_TEST_BLOCKED`. Real measurements captured against a live YouTube watch page.
+- evidence collected this session:
+  - Used the operator's existing YouTube tab (pageId 10, CNN Fareed Zakaria, `v=Sx5-xt8tH_M`, 24:48, native chapters present, YouTube's own "Chapters / ✦ Ask / Transcript" engagement tabs present).
+  - For the side-panel simulation: used the separate clean `chrome` MCP browser at viewport 1100×900 (since the operator's window is maximized and unmaximizing would be intrusive). YouTube is public; no auth needed for layout testing.
+  - Default-mode baseline (viewport 1502px): video 1032px, `#primary` 1048px, `#secondary` 418px (recommendations column on the right). Theater mode tested too (video spans 1483px, `#secondary` pushed below).
+  - In-page injection: workspace mock (402px, tabs row "Chapters | Overview | Ask | Transcript | Links" + 7 placeholder chapter rows) inserted into `#secondary`; recommendation children hidden. Result: **video unchanged at 1032px**, workspace cleanly displaces recommendations. Screenshot captured.
+  - Side-panel simulation (viewport 1100×900): **video shrinks to ~715px (~31% reduction), recommendations column STILL VISIBLE on the right (~340px) with full thumbnail list**. Screenshot captured.
+  - Toggle behavior acknowledged: chrome.sidePanel has the cleaner one-click toggle (native, survives SPA nav); in-page needs extension-managed show/hide + SPA re-render handling (mitigated by Summarize's `listeners.ts` patterns and the stable `#secondary` anchor).
+- outcome: See D2 in "Resolved decisions" above. The product thesis ("turn wasted recommendation space into a useful video workspace") is decisively served by IN_PAGE_SECONDARY and not by chrome.sidePanel.
+- falsifier check: chrome.sidePanel DID narrow the video and leave recommendations in place. The exact failure mode the research concept flagged. Pass.
 
-## Open decisions
+## Resolved decisions (Gate 1 outcome, 2026-08-10)
 
-### D1: FORK vs EXTRACT vs REJECT
+### D1: EXTRACT (resolved)
 
 - **Question:** Do we fork `steipete/summarize`, extract its core library, or build clean-room?
-- **Options:** (1) FORK — strip automation/hover, add Chapters + YouTube-Ask, keep MIT notice. (2) EXTRACT — use `@steipete/summarize-core` npm package for transcript/extraction, build fresh panel. (3) REJECT — clean-room build.
-- **Selection criterion:** lowest total cost (inherited solved bugs + additive work) without architectural fighting.
-- **Currently leading:** FORK (provisional — subject to G1A-01 evidence).
-- **What would change the lead:** If Chapters fights the panel-session tab model, or the stripped footprint is too heavy, EXTRACT becomes viable.
+- **Verdict:** **EXTRACT** — but with a correction to the framing in the original task packets. The source is the **extension's internal `apps/chrome-extension/src/lib/` + `entrypoints/background/`**, NOT the published `@steipete/summarize-core` npm package. The published core is a server-side Node library (`@mozilla/readability`, `linkedom`, `sanitize-html`, `undici`, `ffmpeg-wasm`, `node ≥ 24`) and does **not** contain the MV3 extension pieces (MAIN-world bridge, seek, panel-session-store, listeners). The extension's valuable reusable code lives inside the extension source tree.
+- **Modules retained (extracted from `apps/chrome-extension/src/`):**
+  - `lib/youtube-page-transcript.ts` — MAIN-world `chrome.scripting.executeScript({ world: "MAIN" })` reader of YouTube caption source + timedtext fetch. Extend (do not modify) to expose the chapter JSON path (`macroMarkersList` / engagement-panel chapter renderer).
+  - `lib/seek.ts` — clean dual-path seek (`<video>.currentTime` first, then `document.getElementById('movie_player').seekTo()`).
+  - `entrypoints/background/panel-session-store.ts` — per-tab/per-URL cache invalidation + inflight URL tracking + AbortController plumbing. Adapt to per-`videoId`.
+  - `entrypoints/background/extract-cache.ts`, `panel-cache-runtime.ts`, `panel-state.ts`, `panel-message-router.ts`, `panel-runtime.ts`, `content-script-bridge.ts`, `youtube-transcript.ts`, `listeners.ts` — background layer (strip automation/hover/slides fields).
+  - `lib/settings.ts`, `lib/panel-contracts.ts` — settings + contract patterns (strip automation fields).
+  - `apps/chrome-extension/wxt.config.ts` — WXT setup, MV3 manifest with `sidePanel` permission, `<all_urls>`, optional `nativeMessaging`/`userScripts`/`debugger`. Inherit wholesale.
+- **Modules removed (REJECTED):**
+  - ALL of `entrypoints/sidepanel/` (~80 modules: summary view, slides view, chat view, slides-renderer, slides-stream, slides-summary, slide-images, slides-text, chat-controller, chat-runtime, chat-agent-loop, chat-history-*, model-presets, setup-*, typography-controller, presentation-runtime, drawer-controls, header-controller, metrics-controller, appearance-controls). Wrong product shape — summary-centric single-view, no tab model. Adding Chapters would require replacing the entire sidepanel UI; that's not a fork, it's a rewrite of the UI layer.
+  - ALL of `automation/` + `entrypoints/automation.content.ts` + `background/hover-controller.ts` + `entrypoints/hover.content.ts` — REPL, element picker, debugger-backed native input, hover summaries.
+  - Slides layer: `entrypoints/background/browser-slides*`, `browser-ai-slides-runtime.ts`, `browser-ai-summary-runtime.ts`, `browser-ai-recursive-summary.ts`, `browser-ai-snapshot-runtime.ts`, `browser-ai-contracts.ts`, `browser-slides-context.ts`, `panel-slides-context.ts`, `browser-media*`, `youtube-local-transcript.ts` (Whisper transcription), `entrypoints/offscreen/*` (Whisper/transformers).
+  - Daemon bridge: `lib/direct-provider/*`, `lib/daemon-*`, `lib/daemon-fetch.ts`, `lib/daemon-payload.ts`, `lib/daemon-permission.ts`, `lib/daemon-policy.ts`, `lib/daemon-recovery.ts`, `lib/daemon-status.ts`, `lib/daemon-url.ts`, `background/daemon-client.ts`, `panel-summary-daemon.ts`, `runtime-actions.ts` (deep automation imports).
+  - `entrypoints/options/*` — write a minimal options page.
+  - `lib/slides-*`, `lib/browser-panel-cache.ts`, `lib/browser-summary.ts`, `lib/browser-url-content.ts`, `lib/automation-capabilities.ts`, `lib/extension-logs.ts`, `lib/metrics.ts`, `lib/model-routing.ts`, `lib/options-tabs.ts`, `lib/theme.ts`, `lib/status.ts`, `lib/slides-text.ts`, `lib/slides-presentation.ts`, `lib/token.ts`, `lib/header.ts`, `lib/combo.ts` — UI/token/theme/log infrastructure tied to summary/slides UX.
+- **Modules added (new, our product):**
+  - Tabbed sidepanel (or in-page UI per D2): `Chapters | Overview | Ask | Transcript | Links`
+  - `background/chapters.ts` — read `macroMarkersList` / engagement-panel chapter renderer via MAIN-world + description-timestamp regex fallback (`(\d{1,2}:\d{2}(:\d{2})?)\s+(.+)`)
+  - `background/video-context.ts` — shared `VideoContext` (videoId, url, title, duration, chapters, chapterSource, transcript, transcriptSource, overview, askSession, links, contextVersion) with freshness contract `response.videoId === activeVideoId`
+  - `background/youtube-ask-provider.ts` — opportunistic YouTube Ask-panel provider (Gate 3)
+  - `background/links.ts` — extract links from description (Gate 3)
+  - `lib/video-context-store.ts` — adapter from extracted `panel-session-store.ts` to per-`videoId` VideoContext
+- **Chapters additivity:** ADDITIVE in the most additive possible sense. Because we are NOT reusing Summarize's sidepanel UI, our tab model is native to our new UI. Chapters is a first-class tab from day one; no fighting an existing summary-centric `PanelState`. The research concept's [INFERENCE] that Chapters is absent is now **[FACT]** (grep `chapter|macroMarkers|chapters` across `apps/chrome-extension/src/` returns NONE).
+- **Largest risk:** The extracted `panel-session-store.ts` is keyed by `tabId`/`windowId` and invalidated by URL. Our `VideoContext` is keyed by `videoId`. The adaptation is straightforward (cache by `videoId`, invalidate on nav) but is a semantic shift from "one summary run per tab" to "one VideoContext per videoId." Gate 2 spike will surface any hidden coupling.
+- **Strongest falsifier:** If a deeper trace of the background files reveals hidden imports from `sidepanel/` or `automation/` that the grep above missed (probability low; only boolean-flag references and `runtime-actions.ts` were found, and `runtime-actions.ts` is already planned for rewrite), EXTRACT degrades toward **REJECT** with a manual port of the two clearly-self-contained lib pieces (`youtube-page-transcript.ts`, `seek.ts`).
+- **Why not FORK:** The sidepanel UI is the wrong product shape (summary-centric, no tab model). Gutting it to add our tab model is a rewrite of the UI layer, not a fork. FORK would mean inheriting 19 slides modules, 20+ automation modules, the chat-agent-loop, and the summary/slides state model — all to throw most of it away. EXTRACT keeps the solved-bug layer (MAIN-world, seek, freshness, cache, listeners) without inheriting the wrong-product UI.
+- **Why not REJECT:** REJECT would force rebuilding solved infrastructure (MAIN-world bridge, seek, freshness contract, per-tab cache invalidation) — the exact failure mode the research concept and AGENTS.md rules ("reuse before rebuild") exist to prevent. The reusable layer is too valuable to ignore.
 
-### D2: chrome.sidePanel vs in-page injection
+### D2: IN_PAGE_SECONDARY (resolved)
 
 - **Question:** Which visual container?
-- **Options:** (A) `chrome.sidePanel` (browser-level, alongside page, clean API, no DOM-fighting). (B) In-page injection (DOM div in YouTube's `#secondary`, displaces recommendations, fights SPA re-renders).
-- **Selection criterion:** matches the product vision ("turn wasted recommendation space into workspace") with acceptable maintenance cost.
-- **Currently leading:** UNRESOLVED — requires visual test (G1B-01). Cannot be decided from API docs.
-- **What would change the lead:** Screenshots showing whether sidePanel leaves recommendations in place (bad) or narrows the video unacceptably (bad).
+- **Verdict:** **IN_PAGE_SECONDARY** (Trinity-style DOM injection into YouTube's `#secondary` column).
+- **Empirical evidence (real YouTube watch page test, not `VISUAL_TEST_BLOCKED`):**
+  - Test video: CNN Fareed Zakaria, "Trump, China, Europe, AI & tariffs" (`v=Sx5-xt8tH_M`), 24:48, native chapters present, YouTube's own "Chapters / ✦ Ask / Transcript" engagement tabs present.
+  - Default-mode baseline (viewport 1502px): video 1032px wide, `#secondary` 418px recommendations column on the right.
+  - In-page injection: workspace (402px, tabs row "Chapters | Overview | Ask | Transcript | Links" + 7 placeholder chapter rows) displaces the recommendations column. **Video unchanged at 1032px.**
+  - Side-panel simulation (separate clean Chrome browser at viewport 1100×900, simulating `chrome.sidePanel` consuming ~400px of a ~1500px window): video shrinks to ~715px (~31% reduction). **Recommendations column STILL VISIBLE on the right (~340px)** with full thumbnail list — the wasted space was not replaced; the video shrank AND recs remain.
+- **Product tradeoff:** chrome.sidePanel has the cleaner toggle (`setPanelBehavior({openPanelOnActionClick:true})`, survives SPA nav natively, no DOM-fighting). In-page injection needs extension-managed show/hide and must fight YouTube's SPA re-renders (the `yt-navigate-finish` event, MutationObservers on `#secondary`). The product thesis ("turn wasted recommendation space into a useful video workspace") is decisively served by in-page and not by chrome.sidePanel — chrome.sidePanel shrinks the video and leaves recs intact, achieving neither the workspace-instead-of-recs experience nor the full-video experience. The product value of in-page outweighs its maintenance cost, given:
+  1. Summarize's `listeners.ts` already solves SPA-nav refresh in this exact context.
+  2. The workspace can be anchored to YouTube's own `#secondary` slot (the same slot YouTube uses for Chapters/Ask/Transcript engagement panels) — a first-party-stable anchor.
+  3. The product value (full-width video + useful workspace replacing recs) is exactly what the design conversation described.
+- **Maintenance cost acknowledgment:** In-page injection's higher DOM-maintenance cost is the real trade-off. Falsifier: if YouTube's `#secondary` becomes unstable or the SPA-nav cost proves unacceptable in Gate 2, this verdict degrades toward CHROME_SIDE_PANEL with a redesigned product thesis (narrower workspace beside the video rather than displacing recs).
+- **Theater mode:** Both containers behave coherently in theater (recommendations pushed below video). In-page injection puts the workspace below the video, displacing recs. chrome.sidePanel narrows the window further in theater; recs below shrink, video above shrinks. The default-mode comparison is the decisive one because that's where the "wasted right column" thesis is most testable; theater-mode behavior is a straightforward extension of the same finding.
 
 ## Hard constraints
 
@@ -131,12 +173,18 @@ OPEN — ready to implement Gate 1. All research complete; no code written yet.
 5. Load both in Chrome, navigate to a real YouTube video, screenshot in normal/theater/sidebar-open/sidebar-closed modes.
 6. Write the verdict: FORK/EXTRACT/REJECT + sidePanel/in-page. Post as a revision to the research concept.
 
+## Gate 1 outcome (summary)
+
+- **D1: EXTRACT** — reuse surface is ~13 files from `apps/chrome-extension/src/lib/` + `entrypoints/background/`. NOT the published `@steipete/summarize-core` (which is server-side). The Summarize sidepanel UI is the wrong product shape (summary-centric, no tab model) and is REJECTED along with automation/REPL/slides/daemon layers.
+- **D2: IN_PAGE_SECONDARY** — empirically verified against a real YouTube watch page. In-page preserves the 1032px video width and replaces the recommendations column with the workspace; chrome.sidePanel shrinks the video to ~715px and leaves recommendations intact. Product thesis ("turn wasted recommendation space into a workspace") achieved by IN_PAGE_SECONDARY, not by chrome.sidePanel.
+- **Decision: `READY_FOR_GATE_2`** — Gate 2 is a bounded **runtime falsification spike** (NOT an implementation phase) scoped to six items: live MAIN-world acquisition, native chapter path, description fallback, real seeking, `#secondary` SPA remounting, stale-result rejection. Success criterion: real video A → authoritative `videoId` → real chapters/transcript → stamped `VideoContext` → rendered in `#secondary` → click real timestamp → real `movie_player.seekTo()` → navigate A→B→Back during acquisition → stale A result demonstrably cannot mutate B.
+- **Do NOT broaden Gate 2** beyond those six items. If they pass, most of the dangerous architectural uncertainty is gone. If they fail, we learn *where* before spending effort on Overview, Ask, Links, provider abstraction, or UI polish.
+
 ## Suggested next invocation
 
-- `/refine` if G1A or G1B findings need tightening into implementation-ready task packets before Gate 2.
-- `/design` if the container decision triggers a design-doc need (unlikely — the visual test settles it).
-- `/go` after Gate 1 settles and Gate 2 task packets are defined.
-- `/wiki` to update the research concept with Gate 1 outcomes (revision block).
+- The **following session** should execute the bounded Gate 2 spike. Open a new handoff (e.g. `P:/docs/handoffs/youtube-workspace-extension-gate2-20260810/HANDOFF.md`) and run `/go` against it. Gate 2 inherits the EXTRACT + IN_PAGE_SECONDARY decisions from this handoff; it does NOT re-decide them.
+- `/wiki` (later, after Gate 2 / Gate 3 outcomes) to update `youtube-workspace-sidebar-extension-build-research.md` with the Gate 1 revision block (and ultimately the Gate 2/3 revision blocks when those land). The revision must propagate to frontmatter summary, decision-context, recommendations, falsifier, and confidence per the research concept's claim ledger.
+- `/handoff` (Gate 3) only after Gate 2 passes — YouTube Ask-panel opportunistic provider with detection + timeout + validation + fallback.
 
 ## Last user message (verbatim)
 
@@ -159,3 +207,4 @@ OPEN — ready to implement Gate 1. All research complete; no code written yet.
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-10T05:45 | 019fe36e... | created |
+| 2026-08-10T07:08 | 019fea30... | Gate 1 resolved. D1 = EXTRACT (from `apps/chrome-extension/src/{lib,entrypoints/background}/`, not the published `summarize-core`). D2 = IN_PAGE_SECONDARY (empirically verified). Status → resolved. Task packets G1A-01 and G1B-01 marked resolved. Frontmatter timestamps + `accurate_as_of_head` updated. STOPPED — Gate 2 spike is the next session's work. |
