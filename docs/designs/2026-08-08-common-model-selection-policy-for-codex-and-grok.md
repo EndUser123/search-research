@@ -1,11 +1,11 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Last updated:** 2026-08-09 — direct red-team hardening applied; live conformance remains open
-**Status:** Revision 5f — direct red-team hardening applied; no new cross-host relay attestation; not live or conformant
-**Revision:** 5f — makes task/risk/capacity identity explicit, closes tool-evidence and replay ambiguities, and hardens recovery semantics
+**Last updated:** 2026-08-10 — shared effort/thinking contract added; live conformance remains open
+**Status:** Revision 5g — shared effort/thinking contract added; no new cross-host relay attestation; not live or conformant
+**Revision:** 5g — aligns effort levels across Grok and Codex/Pi, separates effort from orchestration packs and token limits, and defines comparable benchmark cohorts
 **Audience:** Grok Build and Codex maintainers  
-**Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, and the boundary between Codex and Grok orchestration.
+**Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, shared effort/thinking controls, and the boundary between Codex and Grok orchestration.
 
 ## Revision 5 change log
 
@@ -104,6 +104,20 @@ latest direct red-team hardening below; it is not a new conformance attestation.
     UTC/provider-clock rules for reset and reprobe timestamps.
 31. Prevented adapters from using `rate_limited_only` as a catch-all for
     unknown quota semantics; unknown capacity remains explicitly unknown.
+
+**Revision 5g shared effort/thinking update (2026-08-10):**
+
+32. Added a common `low|medium|high|xhigh` execution-effort vocabulary aligned
+    to the Grok phase matrix and Codex/Pi native thinking controls; separated
+    it from capability, difficulty, risk, spend, H0-H6 orchestration packs,
+    provider quota, and token limits.
+33. Added fixed primary-effort, sensitivity, and explicit no-thinking control
+    cohorts so benchmark results are comparable without treating a token cap
+    or a retry as a thinking-level change.
+34. Required requested/effective/native effort, support/clamping, run
+    condition, exact command, and watchdog evidence in benchmark receipts;
+    prior off/low Codex/Pi refresh results are retained as historical
+    diagnostics and are not promoted under the new common contract.
 
 ## Executive proposal
 
@@ -560,6 +574,97 @@ candidate's primary dispatch path, not just HTTP. Method-aware testing
 is more expensive (spawn requires the full agent infrastructure) but
 produces evidence that matches how the model is actually used.
 
+### Effort-stratified benchmark method
+
+Method and effort are independent axes. A benchmark must identify both: the
+same model may behave differently through HTTP, Pi, opencode, or spawn, and it
+may behave differently at `low`, `medium`, `high`, or `xhigh` effort. Neither
+axis may be omitted from a promotion cohort.
+
+For the primary benchmark cohort, use one policy-selected effort per case and
+hold it constant for every candidate in that comparison:
+
+| Case class | Primary effort | Separate sensitivity runs |
+|---|---|---|
+| Mechanical / extraction / routine verification | `low` | `medium` only when quality is borderline or the policy explicitly asks |
+| Normal coding / tool-loop / tests | `medium` | `low` and `high` when measuring cost-quality tradeoffs |
+| Reasoning / planning / debugging / critique | `high` | `medium` and `xhigh` when supported and explicitly authorized |
+| Hard security / regression / architecture / consequential review | `high` | `xhigh` as an explicit sensitivity or acceptance condition |
+
+Each sensitivity run receives a new run ID and remains a separate evidence
+cell. Do not pool `off`, `low`, `medium`, `high`, or `xhigh` results, and do
+not label a different effort level as a retry. An `off` run is useful only as
+an explicit no-thinking control to quantify the effect of effort; it cannot
+clear a thinking-enabled quality gate.
+
+The minimum receipt fields for this method are:
+
+```text
+fixture_manifest_hash
+case_id / capability / difficulty
+provider / model / invocation_method / orchestrator / binding_fingerprint
+requested_effort / effective_effort / native_effort
+effort_support / effort_source / run_condition
+native_command_or_args_hash
+native_command_or_args_ref
+watchdog_timeout_ms / latency.p90_ms / time_to_verified_result_ms
+verification_passed / checker_version / tool_trace_complete
+attempt / retry_class / failure_class
+```
+
+The exact native command or argument hash and a redacted command/argument
+reference matter because a packet can omit a field while the runner supplies a
+default. Receipt review must therefore
+compare the requested value, the effective value observed by the host, and
+the native control actually passed to the provider or model runtime. If the
+host cannot prove the effective level, the result is `unknown` and remains
+diagnostic rather than promotion evidence.
+
+The benchmark must distinguish three timing concepts:
+
+- `latency.p90_ms`: valid-result latency for ranking within the exact cohort;
+- `time_to_verified_result_ms`: unconditional operational outcome, including
+  failures and any authorized rework; and
+- `watchdog_timeout_ms`: a process-safety ceiling whose expiry is recorded as
+  a timeout, not converted into a quality or effort score.
+
+The evaluation envelope may include `max_latency_ms` for reporting or a
+checker, but it must not be confused with a provider kill timer or a token
+budget. If a run exceeds the envelope, record the outcome and keep the raw
+receipt; do not silently alter the effort cohort. The watchdog must be long
+enough to cover the declared effort and method or the cohort is
+method/runner-invalid, not evidence that the model is intrinsically poor.
+
+**Current Codex/Pi comparability note (2026-08-10):** the refresh under
+`P:\tmp\codex-pi-capability-benchmark-20260809-refresh` is retained for
+harness diagnostics but is not promotion evidence under this contract. Its
+representative generated packets used `--thinking off` for read-only runs and
+`--thinking low` for coding runs; explicit token-cap fields were null, and the
+process watchdog was 120 seconds. Those settings do not form the shared
+mechanical/reasoning/coding primary cohort (`low`/`high`/`medium`) and must not
+be ranked against a conformant run.
+
+**Grok-side conformance note (2026-08-10):** the Grok pool test harness
+(`~/.grok/skills/model-benchmark/scripts/pool_test.py`) implements the R5g
+effort contract as of commit `96cd88c`:
+
+- Capability-to-effort mapping: `mechanical`→`low`, `tool-loop`→`medium`,
+  `reasoning`→`high`. Override via `--effort` for sensitivity runs.
+- HTTP method: sends `reasoning_effort` field in the OpenAI-compatible
+  payload where the provider supports it. `max_tokens` is a non-constraining
+  safety ceiling (floor 4096), not an effort control.
+- PI method: passes `--thinking <effort>` per the capability default.
+- Telemetry: every pool-test record encodes `effort=<level> method=<method>`
+  in the notes field, enabling cohort segmentation by requested effort.
+- Pool tests launched before this commit (NVIDIA reasoning run
+  `019fee02`, ZAI tool-loop `019fee05`, OpenRouter free-tier `019fee11`)
+  did not send or record effort parameters. Their results are retained as
+  pre-conformance diagnostics and must be re-run or re-labeled with the
+  policy-default effort before they can serve as promotion evidence.
+  Specifically: NVIDIA reasoning = `high` (was: no effort sent),
+  ZAI tool-loop = `medium` (was: no effort sent),
+  OpenRouter free-tier tool-loop = `medium` (was: no effort sent).
+
 ### Tool-evidence requirement for tool-loop capability
 
 A model that passes the coding pool test via HTTP has proven it can
@@ -653,6 +758,8 @@ Codex and Grok should share or conform to:
 - capability and context metadata;
 - lifecycle and policy-state vocabulary;
 - task-lane definitions and task-classification contract;
+- common execution-effort vocabulary, run conditions, and effort receipt
+  fields;
 - quota/capacity model semantics and adapter output contract;
 - selection-mode definitions and v1 algorithm contract;
 - verified-success definition (with explicit verification states);
@@ -808,6 +915,80 @@ it" could be mechanical or reasoning):
 All tasks that write files must use the `tool-loop` capability with worktree
 isolation and `risk_class=isolated_write` or higher. The `mechanical`
 capability is strictly read-only; no exceptions.
+
+### Shared execution-effort contract
+
+`effort` is a cross-host request and evidence dimension. It is not a
+capability, difficulty, risk, spend class, quota tier, token budget, or
+orchestration pack. The selector must not infer effort from model price or
+provider name, and an effort value must not be used to bypass any capability,
+capacity, or verification gate.
+
+The common vocabulary is intentionally smaller than any one host's native
+controls:
+
+| Common effort | Default use | Policy meaning |
+|---|---|---|
+| `low` | Mechanical extraction, formatting, inventory, and other routine read-only work | Minimum thinking effort that is expected to be sufficient |
+| `medium` | Normal coding/tool-loop work, tests, and routine verification | Standard production effort |
+| `high` | Reasoning, planning, debugging, critique, security/regression work, architecture, and consequential review | Higher-quality effort is required before ranking or acceptance |
+| `xhigh` | Explicit deep/ultrathink work or an operator-approved high-consequence sensitivity run | Deliberately expensive sensitivity/control condition, not a default |
+
+`off` is not a common effort level. It is an explicit no-thinking control
+condition and must be represented as a separate `run_condition`, never merged
+with `low` or with any thinking-enabled result. A host may expose additional
+native levels (for example `minimal` or `max`) or an intermediate
+`medium-high`; those values remain host-specific and must be normalized to the
+nearest common policy level with the exact native value retained in the
+receipt. The normalization must be declared, not silently inferred.
+
+The default mapping follows the shared Grok phase policy—discovery low,
+coding/tests medium, plan/think/debug/critic high, and verify medium-high—and
+the supported Pi thinking vocabulary. In the common discrete vocabulary,
+routine verify/test work is `medium`, while evidence-critical review or
+ship-check work is `high`. Grok H0-H6 packs (Safety, Think, Plan, Discover,
+Parallel, Goal, Verify) are orchestration procedures, not replacements for
+the worker `effort` field; their pack ID may be recorded as host provenance.
+
+Every effort-controlled run must record at least:
+
+```text
+requested_effort: low | medium | high | xhigh
+effective_effort: low | medium | high | xhigh | unknown
+native_effort: <host/provider value, if exposed>
+effort_support: supported | clamped | unsupported | unknown
+effort_source: policy_default | caller_override | model_native | control
+run_condition: primary | sensitivity | no_thinking_control
+```
+
+The following rules are normative:
+
+1. The lane-to-effort mapping is a default. A caller may override it only
+   explicitly; the receipt records the override and rationale.
+2. Candidate comparisons use the same case, binding fingerprint, requested
+   effort, run condition, and verification contract. Different effort levels
+   are different benchmark cells, not pooled repetitions.
+3. Unsupported or clamped effort is disclosed and segmented. It cannot clear
+   a gate for the requested level, and it cannot be silently relabeled as a
+   supported result.
+4. `max_tokens`, `max_output_tokens`, and `reasoning_tokens` are not common
+   effort controls and must not be sent as test-set request caps. If a host
+   reports actual token usage, it may be retained as diagnostic telemetry, not
+   used as a substitute for effort. Existing case-budget fields such as
+   `max_latency_ms` are evaluation metadata unless a runner explicitly proves
+   enforcement; they are not provider request parameters.
+5. A process watchdog is a safety ceiling, not the target latency. It must be
+   recorded separately from valid-result latency, timeout outcome, and
+   `time_to_verified_result_ms`. Runs at `high` or `xhigh` must not be killed
+   by an undisclosed effort-specific shortcut.
+6. An alternate effort run is a sensitivity experiment, not an automatic
+   retry. Retries are only for a declared transient failure policy and retain
+   the same effort and case identity.
+
+This contract is a compatibility boundary, not a claim that either native
+runner currently enforces it. A host is non-conformant until its receipt
+proves the requested-to-effective translation and its benchmark harness keeps
+effort cohorts separate.
 
 ## V1 algorithm contract
 
@@ -1498,6 +1679,9 @@ Benchmark and live telemetry are evidence inputs, not policy authority.
   routing evidence and retained only as historical diagnostics where useful.
 - Benchmark results remain sequestered until the relevant orchestrator/path
   promotion gate explicitly accepts them.
+- Effort-stratified results remain sequestered by requested/effective/native
+  effort and run condition; no thinking-disabled, clamped, or unsupported
+  result may clear a thinking-enabled cohort.
 - Verified-result evidence is necessarily lagging: it describes completed
   calls. Current live capacity and health signals remain separate, real-time
   inputs to eligibility.
@@ -1517,8 +1701,8 @@ a shared runtime library:
 
 1. Shared registry schema, candidate identity rules, and binding fingerprint
    component list.
-2. Shared task-lane and selection-mode vocabulary, plus task-classification
-   contract.
+2. Shared task-lane, selection-mode, execution-effort, and run-condition
+   vocabulary, plus the task-classification contract.
 3. Shared v1 algorithm contract (formulas, priors, tie-breakers, exploration
    epsilon, missing-data defaults, small-sample correction).
 4. Shared provider-capacity adapter output contract, including the capacity
@@ -1587,16 +1771,22 @@ evidence for all of the following:
     calibration cannot rank production routing. Synthetic reset fixtures are
     used where possible; live tests are bounded by the capacity gate and retry
     budget.
+12. **Effort and run-condition conformance:** both implementations accept the
+    common effort vocabulary, record requested/effective/native values and
+    support or clamping state, preserve primary/sensitivity/no-thinking
+    cohorts, keep token fields out of the effort control path, and expose the
+    native command/argument and watchdog evidence needed to reproduce the
+    result. Unsupported or unknown effective effort is non-promotable.
 
 ## Operator acceptance
 
-This proposal (Revision 5f) preserves the output of six cross-orchestrator
+This proposal (Revision 5g) preserves the output of six cross-orchestrator
 review relay sessions (all converged, zero disputes across 42 total findings),
 adds the targeted recovery/evidence hardening update, and records the direct
 red-team findings on pool-test scope, promotion identity, evidence cohorts,
-and recovery semantics. No new cross-host relay re-review has been performed
-for Revision 5f. Review convergence is provenance; it is not evidence that
-either live selector is conformant.
+recovery semantics, and cross-host effort comparability. No new cross-host
+relay re-review has been performed for Revision 5g. Review convergence is
+provenance; it is not evidence that either live selector is conformant.
 
 The proposal is offered for operator acceptance as an implementation-planning
 contract, not as authorization to activate live routing.
