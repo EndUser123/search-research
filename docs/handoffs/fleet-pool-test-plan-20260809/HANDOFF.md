@@ -60,12 +60,12 @@ python pool_test.py --model cohere-command-a-reasoning --capability mechanical -
 
 After HTTP baseline: run top performer via --method pi and --method opencode for tool-evidence requirement.
 
-### nim (2 models) — PARTIAL
+### nim (2 models) — TESTED
 
 | Model | tool-loop | reasoning | mechanical | Notes |
 |---|---|---|---|---|
-| `nim-openai-gpt-oss-20b` | DONE: 18/18 pass | TODO | TODO | Already has production evidence |
-| `nim-deepseek-ai-deepseek-v4-flash` | BLOCKED: HTTP 410 Gone | BLOCKED | BLOCKED | Model endpoint retired — needs registry cleanup |
+| `nim-openai-gpt-oss-20b` | **18/18 PASS** (1.00) | **7/8 PASS** (0.88) | **6/8 PASS** (0.75) | Excellent all-around. 1 reasoning failure was empty response (API hiccup). 2 mechanical failures genuine (word count + JSON types). |
+| `nim-deepseek-ai-deepseek-v4-flash` | **DEAD** (HTTP 410) | — | — | Model endpoint retired. Needs lifecycle=retired. |
 
 Commands for nim-openai-gpt-oss-20b remaining:
 ```
