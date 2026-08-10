@@ -48,49 +48,51 @@ def load_events(session_id: str) -> list[dict]:
 
 
 def build_tool_traces(events: list[dict]) -> list[dict]:
-    """Match tool_started and tool_completed events into traces."""
-    started = {}  # tool_call_id -> event
+    """Match tool_started and tool_completed events into traces.
+
+    Uses duration_ms from tool_completed (pre-calculated by the harness)
+    and outcome field for failure detection. Falls back to timestamp
+    pairing for duration when duration_ms is absent.
+    """
+    # Per-tool-name queue of started timestamps (keyed approach, O(n))
+    started_queues: dict[str, list[str]] = defaultdict(list)
     traces = []
 
     for evt in events:
         etype = evt.get("type", "")
         if etype == "tool_started":
-            # Use timestamp as a rough ID (tools don't have explicit IDs in events)
             tool_name = evt.get("tool_name", "unknown")
             ts = evt.get("ts", "")
-            key = f"{tool_name}@{ts}"
-            started[key] = evt
+            started_queues[tool_name].append(ts)
         elif etype == "tool_completed":
             tool_name = evt.get("tool_name", "unknown")
             ts = evt.get("ts", "")
-            exit_code = evt.get("exit_code", evt.get("result", {}).get("exit_code"))
+            outcome = evt.get("outcome", "unknown")
+            duration_ms = evt.get("duration_ms")
 
-            # Match to the most recent started event for this tool
-            best_key = None
-            best_ts = None
-            for key, sevt in started.items():
-                if key.startswith(tool_name + "@"):
-                    sevt_ts = sevt.get("ts", "")
-                    if sevt_ts <= ts:  # started before completed
-                        if best_ts is None or sevt_ts > best_ts:
-                            best_key = key
-                            best_ts = sevt_ts
+            # Pop the earliest started timestamp for this tool
+            queue = started_queues.get(tool_name, [])
+            started_ts = queue.pop(0) if queue else None
 
-            if best_key:
-                sevt = started.pop(best_key)
+            # Prefer pre-calculated duration_ms; fall back to timestamp diff
+            if duration_ms is not None:
+                duration_s = round(duration_ms / 1000, 2)
+            elif started_ts:
                 try:
-                    duration = (parse_ts(ts) - parse_ts(best_ts)).total_seconds()
+                    duration_s = round((parse_ts(ts) - parse_ts(started_ts)).total_seconds(), 2)
                 except (ValueError, TypeError):
-                    duration = None
+                    duration_s = None
+            else:
+                duration_s = None
 
-                traces.append({
-                    "tool": tool_name,
-                    "started_at": best_ts,
-                    "completed_at": ts,
-                    "duration_s": round(duration, 2) if duration else None,
-                    "exit_code": exit_code,
-                    "failed": exit_code is not None and exit_code != 0,
-                })
+            traces.append({
+                "tool": tool_name,
+                "started_at": started_ts,
+                "completed_at": ts,
+                "duration_s": duration_s,
+                "outcome": outcome,
+                "failed": outcome == "error",
+            })
 
     return traces
 
@@ -101,7 +103,7 @@ def summary_by_tool(traces: list[dict]) -> None:
     for t in traces:
         by_tool[t["tool"]].append(t)
 
-    print(f"\n{'Tool':<35} {'Calls':>6} {'Failed':>7} {'Avg(s)':>8} {'Max(s)':>8}")
+    print(f"\n{'Tool':<35} {'Calls':>6} {'Failed':>7} {'Avg(ms)':>8} {'Max(ms)':>8}")
     print("-" * 70)
 
     for tool in sorted(by_tool, key=lambda t: len(by_tool[t]), reverse=True):
@@ -109,9 +111,9 @@ def summary_by_tool(traces: list[dict]) -> None:
         count = len(calls)
         failed = sum(1 for c in calls if c["failed"])
         durations = [c["duration_s"] for c in calls if c["duration_s"] is not None]
-        avg = sum(durations) / len(durations) if durations else 0
-        mx = max(durations) if durations else 0
-        print(f"{tool:<35} {count:>6} {failed:>7} {avg:>8.1f} {mx:>8.1f}")
+        avg = (sum(durations) / len(durations) * 1000) if durations else 0
+        mx = (max(durations) * 1000) if durations else 0
+        print(f"{tool:<35} {count:>6} {failed:>7} {avg:>8.0f} {mx:>8.0f}")
 
 
 def show_failures(traces: list[dict]) -> None:
@@ -125,7 +127,7 @@ def show_failures(traces: list[dict]) -> None:
     print(f"FAILED TOOL CALLS ({len(failures)})")
     print(f"{'='*70}")
     for t in failures:
-        print(f"  {t['tool']:<30} exit={t['exit_code']:<4} at {t['completed_at'][:19]}")
+        print(f"  {t['tool']:<30} outcome={t.get('outcome', '?'):<6} at {t['completed_at'][:19]}")
 
 
 def show_timeline(events: list[dict]) -> None:
@@ -152,22 +154,24 @@ def show_timeline(events: list[dict]) -> None:
         ts = evt.get("ts", "")[:19]
 
         if etype == "turn_started":
-            if current_turn and turn_tools:
-                print(f"  Turn {current_turn}: {len(turn_tools)} tool calls")
-            current_turn = evt.get("turn", "?")
+            if current_turn is not None and turn_tools:
+                tool_counts = Counter(turn_tools)
+                print(f"  Tools used: {dict(tool_counts.most_common())}")
+            current_turn = evt.get("turn_number", "?")
             turn_tools = []
             print(f"\n[Turn {current_turn}] {ts}")
         elif etype == "tool_started":
             tool = evt.get("tool_name", "?")
             turn_tools.append(tool)
         elif etype == "mcp_tool_call_started":
-            tool = evt.get("tool_name", evt.get("server", "?"))
+            tool = evt.get("tool_name", evt.get("server_name", "?"))
             turn_tools.append(f"mcp:{tool}")
         elif etype == "mcp_server_connected":
-            name = evt.get("server", evt.get("name", "?"))
-            print(f"  + MCP connected: {name}")
+            name = evt.get("server_name", "?")
+            tool_count = evt.get("tool_count", "?")
+            print(f"  + MCP connected: {name} ({tool_count} tools)")
         elif etype == "mcp_server_failed":
-            name = evt.get("server", evt.get("name", "?"))
+            name = evt.get("server_name", "?")
             print(f"  ! MCP FAILED: {name}")
 
     if current_turn and turn_tools:
