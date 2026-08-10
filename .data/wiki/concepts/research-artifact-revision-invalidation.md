@@ -28,8 +28,6 @@ relations:
     type: related
   - target: wiki/concepts/correction-response-discipline-anti-binary-swing.md
     type: extends
-  - target: wiki/concepts/evidence-scope-discipline-no-inflation.md
-    type: related
 ---
 
 # Research Artifact Revision Invalidation — State Consistency for Knowledge
@@ -156,7 +154,7 @@ Same threshold as `[[problem-first-systems-decomposition]]`'s "when NOT to apply
 
 - **`[[narrative-as-signal]]`** — Rule 11's parent: a plausible story (here, "I fixed it") is not verification. The sweep + ledger is the receipt.
 - **`[[correction-response-discipline-anti-binary-swing]]`** — Rule 12's parent: decompose corrections, classify, don't binary-swing. Rule 12 specializes it to research-review.
-- **`/evidence-scope-discipline-no-inflation`** — a strong umbrella claim than the weakest subclaim is forbidden; Rule 11 ensures the umbrella gets recomputed when a subclaim changes.
+- **Evidence-scope discipline (AGENTS.md)** — an umbrella claim stronger than its weakest subclaim is forbidden; Rule 11 ensures the umbrella gets recomputed when a subclaim changes.
 - **`[[self-review-before-shipping-advice]]`** — the sweep IS the self-review, scoped to revision propagation.
 - **Claims-require-receipts (AGENTS.md)** — the claim ledger is the receipt that the propagation actually happened.
 
@@ -175,7 +173,7 @@ Same threshold as `[[problem-first-systems-decomposition]]`'s "when NOT to apply
 
 ## Receipts
 
-- **Reference incident (6 residual contradictions):** OBSERVED 2026-08-08 by direct file read of `P:/.data/wiki/concepts/youtube-workspace-sidebar-extension-build-research.md` — frontmatter lines 9-17 ("chrome.sidePanel API as the recommended sidebar architecture," "both open-source maintainers abandoned"), decision-context line 50 ("both open-source maintainers who faced the same choice abandoned"), §4 line 156 ("A content script reads these directly"), falsifier line 303 ("tier 3–4 disappear... NOT the primary path"), confidence lines 311/313 ("disconfirmed by practitioner choices," "chrome.sidePanel as recommended: FACT, HIGH"). All six confirmed by reading the file, not by accepting the review on authority.
+- **Reference incident (6 residual contradictions):** OBSERVED 2026-08-08 by direct file read of `P:/.data/wiki/concepts/youtube-workspace-sidebar-extension-build-research.md` *(pre-correction state — line numbers reference the file before the revision-integrity sweep was applied; the current file reflects the corrected state)* — frontmatter lines 9-17 ("chrome.sidePanel API as the recommended sidebar architecture," "both open-source maintainers abandoned"), decision-context line 50 ("both open-source maintainers who faced the same choice abandoned"), §4 line 156 ("A content script reads these directly"), falsifier line 303 ("tier 3–4 disappear... NOT the primary path"), confidence lines 311/313 ("disconfirmed by practitioner choices," "chrome.sidePanel as recommended: FACT, HIGH"). All six confirmed by reading the file, not by accepting the review on authority.
 - **Post-sweep verification:** OBSERVED via `grep` for the old phrasings (`abandoned YouTube|chrome\.sidePanel.*recommended|bonus, not the primary|disconfirmed by practitioner|content script reads these directly`) — the only surviving matches are in explicitly-marked retraction/correction context (§2 line 103, §5 line 163), none presented as current.
 - **The videoId-freshness analogy:** OBSERVED from the `steipete/summarize` CHANGELOG this session ("reject YouTube caption... when the tab navigates to another video during extraction") — same class of bug (old result painting onto new state), different substrate (code vs knowledge artifact).
 
