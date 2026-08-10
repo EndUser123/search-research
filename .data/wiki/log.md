@@ -1,5 +1,23 @@
 # Vault Log
 
+## --concept
+Source: three-layer-candidate-filtering-regex-llm-fresh-subagent
+Agent: --action
+Notes: created
+Page: --summary
+
+## Python 3.14 Windows Architectural Integration
+Source: nlm-sync-2026-08-10
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-The Renaissance of the Terminal
+Page: wiki/concepts/python-314-windows-architectural-integration.md
+
+## GitHub Code Agent
+Source: nlm-sync-2026-08-10
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - ext-The Renaissance of the Terminal
+Page: wiki/concepts/github-code-agent.md
+
 ## session-tracing-from-local-events
 Source: session-20260810
 Agent: grok
