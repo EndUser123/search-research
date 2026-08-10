@@ -1,5 +1,11 @@
 # Vault Log
 
+## reading-chatgpt-shared-links-js-spa
+Source: session-20260810
+Agent: grok
+Notes: Updated: added raw-GET diagnostic section, workspace implications, receipts table; fixed frontmatter to pass validator
+Page: P:/.data/wiki/concepts/reading-chatgpt-shared-links-js-spa.md
+
 ## --concept
 Source: grok-headless-tool-access
 Agent: --action

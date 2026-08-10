@@ -3,17 +3,31 @@ title: "Reading ChatGPT shared links (and other React Flight SPAs)"
 slug: reading-chatgpt-shared-links-js-spa
 tags: [web-fetching, scraping, chatgpt, react-flight, tool-selection]
 categories: [tool-fallbacks, web-research]
-verified: 2026-08-10
-verification: observed-this-session
-source:
-  - session 2026-08-10 (Invoke-WebRequest + chrome__use_browser on chatgpt.com/s/t_6a79595... link)
-  - https://github.com/vl3c/ChatPeek (React Flight parser, single-GET design)
-  - https://www.npmjs.com/package/chatgpt-share-parser (TS port)
-  - https://scrapfly.io/blog/posts/how-to-scrape-chatgpt (2026-06, Cloudflare context)
-related:
-  - "[[tool-fallbacks]]"
-  - "[[optimal-long-term-solution-not-minimal-fix]]"
-  - "[[concurrent-cdp-auth-contention]]"
+created: 2026-08-10
+cognitive_load: 2
+host: grok
+agent: grok
+verification: observed
+summary: >
+  ChatGPT shared links embed conversation data as React Flight payloads in the
+  static HTML body. web_fetch fails because it strips/truncates the script blob,
+  not because JS doesn't execute. The optimal tool is ChatPeek (single GET +
+  React Flight parser), installed at P:/packages/ChatPeek/. A raw-GET diagnostic
+  (one Invoke-WebRequest + grep for content keywords) determines whether any SPA
+  needs a browser or just a parser. Browser MCP is the fallback for interactive,
+  login-gated, or Cloudflare-challenged paths only.
+sources:
+  - session 2026-08-10 — Invoke-WebRequest + ChatPeek live test on chatgpt.com/s/t_6a79595...
+  - https://github.com/vl3c/ChatPeek — React Flight parser, single-GET design (MIT, accessed 2026-08-10)
+  - https://www.npmjs.com/package/chatgpt-share-parser — TS port of ChatPeek
+  - https://scrapfly.io/blog/posts/how-to-scrape-chatgpt — Cloudflare + JS rendering context (Scrapfly, 2026-06)
+relations:
+  - target: wiki/concepts/tool-fallbacks.md
+    type: extends
+  - target: wiki/concepts/minimal-fix-and-root-cause.md
+    type: related
+  - target: wiki/concepts/concurrent-cdp-auth-contention.md
+    type: related
 ---
 
 # Reading ChatGPT shared links (and other React Flight SPAs)
@@ -36,13 +50,40 @@ challenge. Receipt: session 2026-08-10.]
 
 `web_fetch` fails because its markdown extraction **strips/truncates the `<script>`
 blob** holding the serialized payload — not because JS doesn't execute. The data
-was served完整 to a plain HTTP client. A browser "works" but is a sledgehammer:
+was served in full to a plain HTTP client. A browser "works" but is a sledgehammer:
 it spins up Chrome, captures screenshots/console, and contends for the shared CDP
 profile (see [[concurrent-cdp-auth-contention]] — a real host invariant).
 
 Shared links are public-by-design (they carry OG image meta tags for social
 preview), so they are served to any HTTP client with a browser UA without a
 Cloudflare challenge in normal single-request use.
+
+## Diagnostic: raw GET before tool selection
+
+Before choosing a tool, run **one raw HTTP GET** and grep the body for the
+content you need. This single step distinguishes two problems that look identical
+but have different optimal solutions:
+
+| Raw GET result | Diagnosis | Optimal tool |
+|---|---|---|
+| Content keywords present in body (even inside `<script>` tags) | **Parsing problem** — payload is there, your extractor strips it | Parser (ChatPeek) or hand-rolled decode |
+| Body is empty shell, no content keywords | **Rendering problem** — payload requires JS execution or a backend fetch | Browser MCP or managed render service |
+
+**The command (PowerShell):**
+```powershell
+$r = Invoke-WebRequest -Uri "<url>" -UseBasicParsing -TimeoutSec 20 `
+     -Headers @{"User-Agent"="Mozilla/5.0 ... Chrome/120.0 Safari/537.36"}
+$r.Content.Length           # body size — <50KB usually means shell
+$r.Content -match 'reactRouterContext|__NEXT_DATA__|__sveltekit'  # SPA framework marker
+$r.Content -match '<expected-content-keyword>'                    # is the text actually there?
+$r.Content -match 'cf-challenge|Just a moment'                     # Cloudflare wall?
+```
+
+This diagnostic is transferable to **any** SPA. It costs one command (~200ms) and
+prevents the most common tool-selection error: reaching for a browser when a
+parser would do. Reference: session 2026-08-10 — the raw GET returned HTTP 200,
+489KB, with both `reactRouterContext` and the conversation keyword present,
+proving the browser was unnecessary before any tool was chosen.
 
 ## The best tool: a purpose-built parser
 
@@ -114,18 +155,57 @@ python P:/packages/ChatPeek/ChatPeek.py <share-url>
 Output lands in `P:/packages/ChatPeek/Exports/<slug>-<id>.md`. Deps: `requests` +
 `beautifulsoup4` (installed to system Python 3.14).
 
+## What this means for our workspace
+
+**Default routing for AI-tool shared links:** when the operator pastes a
+`chatgpt.com/s/`, `chatgpt.com/share/`, `claude.ai/share/`, or similar SPA link,
+reach for ChatPeek first — not `web_fetch`, not the browser MCP. The invocation
+is one command; the output is clean Markdown on disk. This eliminates the
+recurring "web_fetch can't read this" failure and avoids unnecessary browser
+contention on this multi-terminal host ([[concurrent-cdp-auth-contention]]).
+
+**[[tool-fallbacks]] is updated** with a STRUCTURAL entry routing shared links
+to ChatPeek. Future sessions that check tool-fallbacks before fetching will
+find the routing automatically.
+
+**The raw-GET diagnostic generalizes beyond ChatGPT.** Any time `web_fetch`
+returns an empty shell, run `Invoke-WebRequest` + grep for the content before
+reaching for a browser. The payload may be in the static HTML even when the
+markdown extractor strips it. This diagnostic applies to React Flight, Next.js
+`__NEXT_DATA__`, SvelteKit `__sveltekit`, and any other framework that embeds
+serialized state in script tags.
+
 ## Why this is a wiki concept
 
 The operator reads AI-tool shared links constantly (ChatGPT, Claude, Gemini). The
 failure class ("web_fetch can't read this") recurs. Pinning the parser-first method
 durably prevents re-deriving the failure and prevents the satisficing error of
-defaulting to a browser because one is available ([[optimal-long-term-solution-not-minimal-fix]]).
+defaulting to a browser because one is available ([[minimal-fix-and-root-cause]]).
+
+## Receipts
+
+| Claim | Evidence | Source |
+|---|---|---|
+| React Flight payload is in the static HTML body | `Invoke-WebRequest` returned HTTP 200, 489KB; body contains `reactRouterContext` at line 464 and the conversation keyword `obligation` | Session 2026-08-10, raw GET receipt |
+| `web_fetch` strips the payload (not a JS-rendering failure) | `web_fetch` on the same URL returned near-empty; the captured `.html` via browser shows the payload in a `<script>` tag that markdown extractors discard | Session 2026-08-10, `001-navigate.html` line 464 |
+| ChatPeek extracts `/s/` format natively | `python ChatPeek.py <url>` → exit 0, 13076 bytes, 309 lines | Session 2026-08-10, live test |
+| ChatPeek source implements React Flight parser | `P:/packages/ChatPeek/ChatPeek.py` — single-GET design, `DEFAULT_HEADERS` with private-window UA, `ALLOWED_ASSET_HOST_SUFFIXES` SSRF defense | Source inspection session 2026-08-10, lines 1-80 |
+| Cloudflare does not challenge single residential GETs to shared links | Raw GET returned 200 with no `cf-challenge` or `Just a moment` markers | Session 2026-08-10 — [INFERENCE] generalized from one datacenter-free test; datacenter IPs may differ per Scrapfly guide |
 
 ## Falsifier
 
 This concept is wrong if (a) `web_fetch` gains a mode that returns raw `<script>`
-payloads完整, or (b) ChatGPT shared links move the payload behind a runtime-only
+payloads in full, or (b) ChatGPT shared links move the payload behind a runtime-only
 fetch such that it's absent from the static HTML. Track by re-testing a raw GET
 against a known share quarterly: if the body no longer contains `reactRouterContext`
 or the conversation text, the parser approach is broken and the browser becomes
 the default again.
+
+## Auto-related
+
+- [[react-component-library-ecosystem]]
+- [[browser-automation-failure-modes-llm-chat]]
+- [[model-quota-contention-coordination-fleet-rate-limiting]]
+- [[skill-catalog]]
+- [[multi-model-ai-workflow-patterns]]
+
