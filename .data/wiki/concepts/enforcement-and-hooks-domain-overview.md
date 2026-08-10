@@ -117,6 +117,12 @@ or `structural-fix` — this overview makes the domain navigable.
 | [[model-fit-and-post-hoc-behavioral-detection]] | Matching models to operator style |
 | [[behavioral-detection-approaches-practitioner-survey]] | Practitioner approaches to behavioral detection |
 
+## Sub-theme 6: Knowledge-artifact consistency (revision invalidation, state consistency)
+
+| Concept | One-line summary |
+|---|---|
+| [[research-artifact-revision-invalidation]] | Research artifacts need state consistency like software systems — changed premises invalidate downstream derived claims |
+
 ## What this means for our workspace
 
 The enforcement domain is the wiki's second-largest (78 concepts). The 2026
