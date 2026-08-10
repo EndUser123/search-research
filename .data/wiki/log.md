@@ -1,5 +1,11 @@
 # Vault Log
 
+## available-over-optimal-satisficing-in-tool-selection
+Source: session-20260810
+Agent: grok
+Notes: Created: the pattern where agents pick the nearest available tool that works instead of researching the optimal one. Raw-GET diagnostic as transferable technique. Distinct from minimal-fix (sizing) and writing-discipline (rules not firing).
+Page: P:/.data/wiki/concepts/available-over-optimal-satisficing-in-tool-selection.md
+
 ## stop-hook self-reference multi-turn testing
 Source: session observation
 Agent: grok
