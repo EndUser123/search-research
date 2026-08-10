@@ -94,13 +94,15 @@ python pool_test.py --model <model-id> --capability reasoning --method http
 python pool_test.py --model <model-id> --capability mechanical --method http
 ```
 
-### minimax (1 model) — PENDING
+### minimax (1 model) — TESTED
 
 | Model | tool-loop | reasoning | mechanical | Notes |
 |---|---|---|---|---|
-| `minimax-m3` | TODO | TODO | TODO | Policy=excluded but operator wants test data |
+| `minimax-m3` | **17/18 PASS** (0.94) | **0/8 FAIL** (0.00) | **2/8 PASS** (0.25) | Policy=excluded. Strong coder, terrible at exact-match reasoning/mechanical. |
 
-Capacity at 48% — should be testable.
+**Analysis:** minimax-m3 is an excellent coding model (17/18, including all 5 hard problems) but fails reasoning and mechanical tasks. The reasoning/mechanical failures are likely an output-formatting issue — the model produces `<think>` tags and verbose explanations instead of just the number/answer. The exact-match scorer can't extract the answer from the verbose output. This is a scoring problem, not necessarily a capability problem — but for production, if the model can't follow "return ONLY the number" instructions, it IS a capability gap for those lanes.
+
+**Recommendation:** eligible for tool-loop (coding) if un-excluded. Not eligible for reasoning or mechanical.
 
 ### zai (1 model) — PENDING
 
