@@ -1,5 +1,23 @@
 # Vault Log
 
+## stop-hook self-reference multi-turn testing
+Source: session observation
+Agent: grok
+Notes: Self-reference problem and multi-turn solution for Stop-hook testing
+Page: P:/.data/wiki/concepts/stop-hook-self-reference-multi-turn-testing.md
+
+## iterative cross-model hardening loop
+Source: session observation
+Agent: grok
+Notes: 7-round ChatGPT review pattern for enforcement mechanisms
+Page: P:/.data/wiki/concepts/iterative-cross-model-hardening-loop.md
+
+## codex-pi snapshot lifecycle
+Source: workspace investigation
+Agent: grok
+Notes: Documented producer problem: ~18k files per delegation run
+Page: P:/.data/wiki/concepts/codex-pi-snapshot-lifecycle-producer-problem.md
+
 ## reading-chatgpt-shared-links-js-spa
 Source: session-20260810
 Agent: grok
