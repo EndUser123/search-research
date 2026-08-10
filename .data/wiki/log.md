@@ -1,6 +1,78 @@
 # Vault Log
 
 ## --concept
+Source: grok-headless-tool-access
+Agent: --action
+Notes: created
+Page: --source
+
+## claude-github-https
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Guide: Production Hooks and Agent Skills
+Page: wiki/concepts/claude-github-https.md
+
+## stop-hooks-enforce
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Guide: Production Hooks and Agent Skills
+Page: wiki/concepts/stop-hooks-enforce.md
+
+## github-claude-code
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Guide: Production Hooks and Agent Skills
+Page: wiki/concepts/github-claude-code.md
+
+## claude-code-https
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Guide: Production Hooks and Agent Skills
+Page: wiki/concepts/claude-code-https.md
+
+## claude-https-code
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code Guide: Production Hooks and Agent Skills
+Page: wiki/concepts/claude-https-code.md
+
+## claude-docs-https
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/claude-docs-https.md
+
+## https-openhands-github
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/https-openhands-github.md
+
+## claude-code-https
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/claude-code-https.md
+
+## claude-https-code
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/claude-https-code.md
+
+## python-windows-architectural
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-The Renaissance of the Terminal
+Page: wiki/concepts/python-windows-architectural.md
+
+## github-code-agent
+Source: nlm-sync-2026-08-09
+Agent: grok
+Notes: Synced from NotebookLM notebook ext-The Renaissance of the Terminal
+Page: wiki/concepts/github-code-agent.md
+
+## --concept
 Source: externalized-verification-over-intrinsic-self-correction
 Agent: --action
 Notes: created
