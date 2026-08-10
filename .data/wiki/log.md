@@ -9477,3 +9477,5 @@ d)
 - 2026-08-09 — added [[deepseek-region-optin-failure-pattern]]: 403 RegionError on go-deepseek-v4-flash (operator transcript 2026-08-09); also added row to [[tool-fallbacks]] Session-attested failures. Source: session-2026-08-09.
 
 - 2026-08-09 — added [[prior-session-fact-vs-this-session-fact-pattern]]: re-probe wiki/tool-fallbacks entries before asserting as current state (reference incident: deepseek-v4-flash correction 2026-08-09). Source: session-2026-08-09.
+
+- 2026-08-10 — added [[closure-pressure-assumes-framing-is-right]]: chronic pattern (2 surface forms, 1 governing assumption); structural fix via verdict-vocabulary hook. Source: session-2026-08-09 AAR + /insight.

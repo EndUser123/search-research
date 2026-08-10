@@ -9,7 +9,7 @@ last_updated_by: 019fe673-8b5c-7ee0-a22e-f1765ae9860b
 last_updated_at: 2026-08-09T14:00:00Z
 status: open
 handoff_type: implementation
-accurate_as_of_head: 5dc6597
+accurate_as_of_head: 1c63a2f
 ---
 
 # Review-relay improvements implementation (15-unit plan, 4 phases)
@@ -149,3 +149,30 @@ After 5 production sessions using the new helpers, collect metrics and decide:
 - **Resolve R2-N1 first:** before starting U-1, decide which of the 3 tick-input resolutions to use. Default is option 1 (coordinator-side sidecar).
 - **Phase 1.5 gate is mandatory:** do not skip weight validation even under time pressure. DEC-13 contract depends on it.
 - **Test command:** `pnpm --filter codex-external-delegation test` must pass 100% after every unit.
+---
+
+## Revision 1 — 20260809T210000Z (session 019fe673-8b5c-7ee0-a22e-f1765ae9860b)
+
+**Trigger:** auto-update — /risk assessment + /aar + /insight ran after original handoff was written.
+
+**What changed since the original:**
+
+1. **Pre-Phase-2 gates encoded (commit f864646).** The /risk assessment on the 15-unit plan surfaced 4 MEDIUM risks. Two have cheap structural fixes encoded as mandatory pre-Phase-2 gates:
+   - **Gate #1 (risk #1 mitigation):** behavioral adoption test — before U-5 (partner prompt update) lands, run one dry-run partner turn with `previous_findings_path` populated. Verify the partner LLM actually reads findings.jsonl. If <50% adoption, redesign partner prompt BEFORE ship.
+   - **Gate #2 (risk #2 mitigation):** `opts.session_id` defaults to `${process.pid}-${Date.now()}` (not null) in U-3 split.mjs. Eliminates silent-collision class for single-operator workspace.
+   - **Gate #3 (risk #4 mitigation):** Phase 2 commits MUST NOT land without `phase-1.5-complete` trailer in commit message.
+2. **AAR cross-model audit completed.** nim-openai-gpt-oss-20b ran on the preprocessor packet (84s). Produced 2 valid catches (ZDR temporal gate under-documented, 42 post-failure continuations) and 2 rejected claims (classification worked as intended).
+3. **Closure-pressure pattern identified.** Two operator pushbacks this session (PI probes, FIX FIRST) share a governing assumption: "my framing is probably right." The AAR flagged this as a chronic cross-session pattern (4+ sessions). A separate handoff (`verdict-vocabulary-hook-20260809`) covers the structural fix.
+
+**Updated evidence:**
+- Commit f864646: pre-Phase-2 gates encoded in this handoff
+- Commit 45adaf6: prior-session-fact wiki concept (Receipts section validator fix)
+- Commit 5dc6597: ADR-011 + wiki concept design-outcome update
+- AAR report: `P:\.artifacts\grok-aar\console_console_6e4287c5-bc0f-4955-823c-427b\20260809-143000\aar-report.md`
+
+**Status update:** unchanged — OPEN. Pre-Phase-2 gates added; implementation not started.
+
+**New open items:**
+- R2-N1 tick-input resolution default: coordinator-side sidecar (confirmed as default in handoff body)
+- Pre-Phase-2 gate #1 (behavioral adoption test) depends on Phase 1 helpers (U-1) shipping first
+- See `verdict-vocabulary-hook-20260809` handoff for the closure-pressure structural fix workstream
