@@ -1,5 +1,11 @@
 # Vault Log
 
+## session-tracing-from-local-events
+Source: session-20260810
+Agent: grok
+Notes: Created: lightweight local observability from events.jsonl — session_trace.py makes 76K structured events per session queryable without Langfuse
+Page: P:/.data/wiki/concepts/session-tracing-from-local-events.md
+
 ## available-over-optimal-satisficing-in-tool-selection
 Source: session-20260810
 Agent: grok
