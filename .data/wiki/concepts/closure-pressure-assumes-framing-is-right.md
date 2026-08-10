@@ -18,6 +18,8 @@ confidence: 0.85
 half_life_days: 180
 last_verified: 2026-08-09
 relations:
+  - target: wiki/concepts/reactive-pattern-matching-and-closure-pressure.md
+    type: refines
   - target: wiki/concepts/prior-session-fact-vs-this-session-fact-pattern.md
     type: extends
   - target: wiki/concepts/narrative-as-signal.md
