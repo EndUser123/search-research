@@ -33,32 +33,21 @@ Updated as testing progresses. Check before running.
 
 ## Per-provider plans
 
-### Cohere (3 models) — BLOCKED: quota at 0%
+### Cohere (17 chat models on API) — BLOCKED: quota at 0%
 
-Test all 3 capabilities for all 3 models when quota resets.
+Provider-wide API discovery: 31 models total, 17 chat models, 0/17 alive (all probes rejected at 0% quota).
 
-| Model | tool-loop (18 problems) | reasoning (8 problems) | mechanical (8 problems) |
-|---|---|---|---|
-| `cohere-north-mini-code` | Run 1 | Run 2 | Run 3 |
-| `cohere-command-a-plus` | Run 4 | Run 5 | Run 6 |
-| `cohere-command-a-reasoning` | Run 7 | Run 8 | Run 9 |
+Chat models available when quota resets:
+`c4ai-aya-expanse-32b`, `c4ai-aya-vision-32b`, `cohere-transcribe-03-2026`, `command-a-03-2025`, `command-a-plus-05-2026`, `command-a-reasoning-08-2025`, `command-a-translate-08-2025`, `command-a-vision-07-2025`, `command-r-08-2024`, `command-r-plus-08-2024`, `command-r7b-12-2024`, `command-r7b-arabic-02-2025`, `north-mini-code-1-0`, `tiny-aya-earth`, `tiny-aya-fire`, `tiny-aya-global`, `tiny-aya-water`
 
-Total: 34 problems x 3 models = 102 API calls.
+Priority targets when quota resets: `command-a-plus-05-2026`, `command-a-reasoning-08-2025`, `north-mini-code-1-0`.
 
-Commands (run when quota resets):
+Command (run when quota resets):
 ```
-python pool_test.py --model cohere-north-mini-code --capability tool-loop --method http
-python pool_test.py --model cohere-north-mini-code --capability reasoning --method http
-python pool_test.py --model cohere-north-mini-code --capability mechanical --method http
-python pool_test.py --model cohere-command-a-plus --capability tool-loop --method http
-python pool_test.py --model cohere-command-a-plus --capability reasoning --method http
-python pool_test.py --model cohere-command-a-plus --capability mechanical --method http
-python pool_test.py --model cohere-command-a-reasoning --capability tool-loop --method http
-python pool_test.py --model cohere-command-a-reasoning --capability reasoning --method http
-python pool_test.py --model cohere-command-a-reasoning --capability mechanical --method http
+python pool_test.py --provider cohere --capability tool-loop --probe
+python pool_test.py --provider cohere --capability reasoning --probe
+python pool_test.py --provider cohere --capability mechanical --probe
 ```
-
-After HTTP baseline: run top performer via --method pi and --method opencode for tool-evidence requirement.
 
 ### nim (2 models) — TESTED
 
@@ -126,13 +115,22 @@ python pool_test.py --model <model-id> --capability mechanical --method http
 
 **Recommendation:** eligible for tool-loop and reasoning if un-excluded. Not eligible for mechanical.
 
-### zai (1 model) — PENDING
+### zai (8 models on API) — IN PROGRESS
+
+Provider-wide API discovery: 8 models, 8/8 alive (probe passed all).
 
 | Model | tool-loop | reasoning | mechanical | Notes |
 |---|---|---|---|---|
-| `glm-5-2` | TODO | TODO | TODO | Policy=excluded but operator wants test data |
+| `glm-4.5` | RUNNING | TODO | TODO | Discovered via API |
+| `glm-4.5-air` | TODO | TODO | TODO | Discovered via API |
+| `glm-4.6` | TODO | TODO | TODO | Discovered via API |
+| `glm-4.7` | TODO | TODO | TODO | Discovered via API |
+| `glm-5` | TODO | TODO | TODO | Discovered via API |
+| `glm-5-turbo` | TODO | TODO | TODO | Discovered via API |
+| `glm-5.1` | TODO | TODO | TODO | Discovered via API |
+| `glm-5.2` | TODO | TODO | TODO | Already scored via NVIDIA run; re-test on native provider |
 
-Capacity at 69% — should be testable.
+Capacity at 69% — all 8 models reachable. Tool-loop test running.
 
 ### opencode (3 models) — PENDING
 
@@ -150,12 +148,28 @@ Capacity at 69% — should be testable.
 | `zen-north-mini-code-free` | TODO | |
 | `zen-big-pickle` | TODO | |
 
-### openrouter (2 models) — BLOCKED
+### openrouter (400 models on API, 246 alive) — DISCOVERED
 
-| Model | Status | Notes |
-|---|---|---|
-| `or-ling-3-flash-free` | HTTP 404 — moved behind paywall | |
-| `or-arcee-ai-trinity-large-thinking` | TODO | |
+Provider-wide API discovery: 400 models total, 397 chat models. Probe reached 318/397 (80%) before timeout.
+Result: **246 OK, 72 FAIL**. `:batch` variants consistently fail (async-only, expected).
+
+**Free-tier models alive (12) — testable at no cost:**
+- `cohere/north-mini-code:free` ← testable NOW despite native Cohere 0% quota
+- `nvidia/nemotron-3-ultra-550b-a55b:free`
+- `nvidia/nemotron-3-super-120b-a12b:free`
+- `nvidia/nemotron-3-nano-30b-a3b:free`
+- `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`
+- `nvidia/nemotron-nano-12b-v2-vl:free`
+- `nvidia/nemotron-nano-9b-v2:free`
+- `openai/gpt-oss-20b:free`
+- `google/gemma-4-26b-a4b-it:free`
+- `inclusionai/ling-3.0-tiny:free`
+- `poolside/laguna-s-2.1:free`
+- `poolside/laguna-xs-2.1:free`
+
+**Premium models alive (234):** GPT-5.x, Claude Opus/Sonnet 4.x-5.x, Gemini 3.x, Grok 4.x, Qwen 3.x, DeepSeek v4, Kimi K3, etc. These consume OpenRouter credits — selective testing only.
+
+**Strategy:** pool-test the 12 free-tier models first (zero cost). Skip the 234 premium models unless specific routing targets need validation — most overlap with native provider access.
 
 ## Post-test actions
 
