@@ -75,16 +75,38 @@ python pool_test.py --model nim-openai-gpt-oss-20b --capability mechanical --met
 
 nim-deepseek-ai-deepseek-v4-flash: mark lifecycle=retired (model gone).
 
-### nvidia (6 models) — PENDING
+### nvidia (now 22 models) — TOOL-LOOP TESTED
 
-| Model | tool-loop | reasoning | mechanical | Notes |
-|---|---|---|---|---|
-| `nvidia-nemotron-3-super-120b` | TODO | TODO | TODO | Has production evidence |
-| `nvidia-nemotron-3-ultra` | TODO | TODO | TODO | Has production evidence (n=1) |
-| `nvidia-laguna-xs-2-1` | TODO | TODO | TODO | Candidate — needs promotion |
-| `nvidia-nemotron-nano-9b-v2` | TODO | TODO | TODO | Candidate |
-| `nvidia-nemotron-nano-12b-v2-vl` | TODO | TODO | TODO | Candidate |
-| `nvidia-stepfun-3-7-flash` | TODO | TODO | TODO | Candidate |
+Full API discovery + probe + 18-problem coding suite run against all alive models.
+
+| Model | Score | In registry? | Notes |
+|---|---|---|---|
+| `deepseek-ai/deepseek-v4-flash-0731` | 18/18 (1.00) | NEW | Replacement for dead v4-flash |
+| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | 18/18 (1.00) | NEW | Reasoning nano |
+| `nvidia/nemotron-3-super-120b-a12b` | 18/18 (1.00) | existing | Was active, now confirmed |
+| `openai/gpt-oss-120b` | 18/18 (1.00) | NEW | Larger GPT-OSS |
+| `openai/gpt-oss-20b` | 18/18 (1.00) | existing | Previously tested |
+| `meta/llama-3.1-70b-instruct` | 17/18 (0.94) | NEW | |
+| `nvidia/llama-3.3-nemotron-super-49b-v1` | 17/18 (0.94) | NEW | |
+| `nvidia/nemotron-3-nano-30b-a3b` | 17/18 (0.94) | NEW | |
+| `google/gemma-4-31b-it` | 16/18 (0.89) | NEW | |
+| `meta/llama-3.2-90b-vision-instruct` | 16/18 (0.89) | NEW | Vision-capable |
+| `nvidia/nemotron-nano-12b-v2-vl` | 16/18 (0.89) | existing | Was candidate |
+| `nvidia/nvidia-nemotron-nano-9b-v2` | 15/18 (0.83) | existing | Was candidate |
+| `thinkingmachines/inkling` | 15/18 (0.83) | NEW | |
+| `mistralai/mistral-nemotron` | 14/18 (0.78) | NEW | |
+| `nvidia/llama-3.1-nemotron-nano-vl-8b-v1` | 14/18 (0.78) | NEW | |
+| `nvidia/llama-3.3-nemotron-super-49b-v1.5` | 14/18 (0.78) | existing | |
+| `nvidia/nemotron-3-ultra-550b-a55b` | 14/18 (0.78) | existing | |
+| `meta/llama-3.1-8b-instruct` | 13/18 (0.72) | NEW | |
+| `meta/llama-3.2-11b-vision-instruct` | 13/18 (0.72) | NEW | |
+| `meta/llama-3.2-3b-instruct` | 13/18 (0.72) | NEW | |
+| `google/diffusiongemma-26b-a4b-it` | 11/18 (0.61) | NEW | Known spawn issues |
+| `stepfun-ai/step-3.7-flash` | 11/18 (0.61) | existing | Was candidate |
+| `minimaxai/minimax-m3` | 2/18 (0.11) | existing | 429 rate-limited during batch; scored 17/18 individually |
+| `nvidia/nemotron-mini-4b-instruct` | 0/18 (0.00) | not added | Cannot code |
+
+**Next steps for nvidia:** reasoning + mechanical tests for the 22 promotable models. Method-aware testing (pi, opencode) for tool-evidence requirement.
 
 Commands (4 candidates x 3 capabilities + 2 active x 3 capabilities = 18 runs):
 ```
