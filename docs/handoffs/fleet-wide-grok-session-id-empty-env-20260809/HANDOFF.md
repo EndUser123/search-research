@@ -1,12 +1,21 @@
 ---
 title: Fleet-wide GROK_SESSION_ID empty-env propagation
-status: OPEN
+status: IN_PROGRESS
 created: 2026-08-09
-last_updated_at: 2026-08-09T23:00:00Z
+last_updated_at: 2026-08-10T20:00:00Z
 session: 019fe25d-6979-7892-82ae-ebf68232312a
 host: grok
 chronicity: chronic
 ---
+
+## Progress (2026-08-10)
+
+- ✅ `scripts/session_resolver_shared.py` created (single source of truth)
+- ✅ `scripts/verification_receipt.py` updated to use shared resolver (root cause of Stop-hook loop)
+- ✅ `/todo` scanner consolidation — `common.py` and `scan_transcript.py` delegate to shared resolver
+- ✅ C-1 fix (fail-closed when workspace_dir missing)
+- ⬜ 8 SKILL.md files still reference `$env:GROK_SESSION_ID` (close, review, tp, maintain, dream, design, model-web, todo fallback)
+- ⬜ Python scripts in handoff/, close/, aar/ still use `os.environ.get("GROK_SESSION_ID")`
 
 # Fleet-wide GROK_SESSION_ID empty-env propagation
 
