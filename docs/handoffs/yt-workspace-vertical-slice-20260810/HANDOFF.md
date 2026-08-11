@@ -231,7 +231,7 @@ Agent: grok
 | VS-01 | Minimal WXT extension (manifest + skeleton) | ✅ DONE | `pnpm build` succeeds, manifest verified: only scripting+activeTab+storage+youtube-host. `packages/yt-workspace/` committed at 2797671. |
 | VS-02 | Production VideoContext boundary | ✅ DONE | `tsc --noEmit` passes, `pnpm build` passes (12.25 kB). 4 new files: structured-diagnostic.ts, video-context-store.ts, acquire.ts, service-worker.ts. Acquisition reads chapters from `ytInitialData` (Gate 2 correction). Uses content-script-relayed `yt-navigate-finish` instead of `webNavigation` permission. Committed at 62930e3. |
 | VS-03 | Real #secondary workspace with toolbar toggle | ⚠️ PARTIAL | Content script already renders chapters + provenance fields from VideoContext. Needs: disabled placeholder tabs refinement, dark theme CSS, workspace state persistence across reloads. Core rendering is working in VS-02's content.ts. |
-| VS-04 | Real chapter seeking through extension boundary | ❌ NOT STARTED | seek.ts extracted; needs wiring through extension bridge (content-script → background → chrome.scripting.executeScript world:MAIN). |
+| VS-04 | Real chapter seeking through extension boundary | ✅ DONE | `src/content/seek-handler.ts` + `handleSeekRequest` in service-worker.ts. Seek path: content-script click → background → `chrome.scripting.executeScript({ world: "MAIN" })` → `movie_player.seekTo()` or `video.currentTime`. Before/after `video.currentTime` read for verification. tsc=0, build=0, syntax=9/9. Committed at 2323804. |
 | VS-05 | End-to-end acceptance test | ❌ NOT STARTED | Full Done-criterion checklist against loaded extension. |
 
 ### Key findings during VS-01 execution
