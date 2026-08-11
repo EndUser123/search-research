@@ -138,14 +138,14 @@ Provider-wide API discovery: 8 models, 8/8 alive. All 8 promotable for tool-loop
 
 | Model | tool-loop | reasoning | mechanical | Notes |
 |---|---|---|---|---|
-| `glm-4.5` | **18/18 (1.00)** | TODO | TODO | Perfect coder |
-| `glm-4.5-air` | 17/18 (0.94) | TODO | TODO | 1 timeout |
-| `glm-4.6` | 16/18 (0.89) | TODO | TODO | 2 empty responses |
-| `glm-4.7` | **18/18 (1.00)** | TODO | TODO | Perfect coder |
-| `glm-5` | 16/18 (0.89) | TODO | TODO | 2 empty responses |
-| `glm-5-turbo` | **18/18 (1.00)** | TODO | TODO | Perfect coder, fastest of GLM |
-| `glm-5.1` | 17/18 (0.94) | TODO | TODO | |
-| `glm-5.2` | 17/18 (0.94) | TODO | TODO | Also scored 7/8 reasoning on NVIDIA |
+| `glm-4.5` | **18/18 (1.00)** | TODO | 6/8 (0.75) | Perfect coder |
+| `glm-4.5-air` | 17/18 (0.94) | TODO | 6/8 (0.75) | 1 timeout |
+| `glm-4.6` | 16/18 (0.89) | TODO | 6/8 (0.75) | 2 empty responses |
+| `glm-4.7` | **18/18 (1.00)** | TODO | **7/8 (0.88)** | Perfect coder, top mechanical |
+| `glm-5` | 16/18 (0.89) | TODO | 6/8 (0.75) | 2 empty responses |
+| `glm-5-turbo` | **18/18 (1.00)** | TODO | 6/8 (0.75) | Perfect coder, fastest |
+| `glm-5.1` | 17/18 (0.94) | TODO | 6/8 (0.75) | |
+| `glm-5.2` | 17/18 (0.94) | TODO | 6/8 (0.75) | Also on NVIDIA (7/8 reasoning) |
 
 ### opencode (3 models) — PENDING
 
