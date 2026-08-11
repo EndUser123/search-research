@@ -197,9 +197,25 @@ Zero-cost models discovered via API pricing field (16 models), 12 alive after pr
 
 Note: OpenRouter free-tier 429 throttling inflated failure rates. Models scoring low may be higher quality than scores suggest — the 429s are concurrency artifacts, not model-quality failures. The new rate-limit capture (commit 2950d1b) would classify these as `rate_limited` in future runs.
 
-**Reasoning + mechanical tests:** pending.
+**Reasoning results (8 problems, 11 models):**
 
-**Concurrency:** not yet probed.
+| Model | Score | Notes |
+|---|---|---|
+| `cohere/north-mini-code:free` | **8/8 (1.00)** | Perfect — triple-perfect with tool-loop |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | **8/8 (1.00)** | Perfect |
+| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` | **8/8 (1.00)** | Perfect — triple-perfect |
+| `google/gemma-4-26b-a4b-it:free` | **8/8 (1.00)** | Perfect |
+| `nvidia/nemotron-3-super-120b-a12b:free` | **8/8 (1.00)** | Perfect — triple-perfect |
+| `nvidia/nemotron-3-nano-30b-a3b:free` | **8/8 (1.00)** | Perfect |
+| `nvidia/nemotron-nano-9b-v2:free` | **8/8 (1.00)** | Perfect |
+| `poolside/laguna-s-2.1:free` | 7/8 (0.88) | |
+| `poolside/laguna-xs-2.1:free` | 7/8 (0.88) | |
+| `openrouter/free` | 5/8 (0.62) | Routing model — not a real reasoner |
+| `nvidia/nemotron-nano-12b-v2-vl:free` | 4/8 (0.50) | Not promotable |
+
+**Mechanical tests:** running.
+
+**Concurrency:** ceiling=8, no shared pool. Full cross-model parallelism on free-tier.
 
 ## Post-test actions
 
