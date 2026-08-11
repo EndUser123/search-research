@@ -1,37 +1,33 @@
 /**
- * Background service worker entry point.
+ * Background service worker entry point (WXT entrypoint).
  *
- * VS-01 scope: toolbar action toggles workspace visibility on YouTube tabs.
- * No-op on non-YouTube tabs. The real acquisition/seek logic lands in VS-02..04.
+ * VS-02: delegates to service-worker module for acquisition + workspace logic.
  */
-import { defineBackground } from "wxt/utils/define-background";
 
-const YOUTUBE_HOST_PATTERN = /^https?:\/\/([a-z0-9-]+\.)*youtube\.com\//i;
+import { defineBackground } from "wxt/utils/define-background";
+import {
+  handleToolbarClick,
+  handleNavigationMessage,
+  handleTabClosed,
+} from "../background/service-worker";
 
 export default defineBackground(() => {
-  chrome.action.onClicked.addListener(async (tab) => {
-    if (!tab.id || !tab.url || !YOUTUBE_HOST_PATTERN.test(tab.url)) {
-      return;
+  chrome.action.onClicked.addListener((tab) => {
+    void handleToolbarClick(tab);
+  });
+
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (
+      message?.type === "yt-navigate-finish" &&
+      sender.tab?.id &&
+      sender.tab.url
+    ) {
+      void handleNavigationMessage(sender.tab.id, sender.tab.url);
     }
+    return false;
+  });
 
-    const tabId = tab.id;
-    const key = `workspace-open-${tabId}`;
-    const result = await chrome.storage.session.get(key);
-    const isOpen = result[key] ?? false;
-    const nextState = !isOpen;
-
-    await chrome.storage.session.set({ [key]: nextState });
-
-    chrome.tabs.sendMessage(tabId, {
-      type: "workspace-toggle",
-      open: nextState,
-    }).catch(() => {
-      if (nextState) {
-        chrome.scripting.executeScript({
-          target: { tabId },
-          files: ["content-scripts/content.js"],
-        }).catch(() => {});
-      }
-    });
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    handleTabClosed(tabId);
   });
 });
