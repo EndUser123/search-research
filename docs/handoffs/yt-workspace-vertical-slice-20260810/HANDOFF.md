@@ -220,6 +220,30 @@ Several other popular videos (Apple WWDC 2024/2025, Tesla Battery Day, Vox) retu
 6. **Receipt-identity-provenance investigation is OUT OF SCOPE.** Do not modify `verification_receipt.py` or any consuming hook.
 7. **The five Gate 1 doc nits remain deferred.** Do not address them here.
 
+## Execution Status
+
+Updated: 2026-08-11T01:00:00Z
+Session: 019fee39-abb7-7490-a66a-e2cd7df5600a
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| VS-01 | Minimal WXT extension (manifest + skeleton) | ✅ DONE | `pnpm build` succeeds, manifest verified: only scripting+activeTab+storage+youtube-host. `packages/yt-workspace/` committed at 2797671. |
+| VS-02 | Production VideoContext boundary | ❌ NOT STARTED | Next session. Implements the Gate 2 runtime contract as extension code. **Critical:** chapters come from ytInitialData, not ytInitialPlayerResponse (Gate 2 correction). |
+| VS-03 | Real #secondary workspace with toolbar toggle | ❌ NOT STARTED | Placeholder UI exists in content.ts; needs real chapter rendering. |
+| VS-04 | Real chapter seeking through extension boundary | ❌ NOT STARTED | seek.ts extracted; needs wiring through extension bridge. |
+| VS-05 | End-to-end acceptance test | ❌ NOT STARTED | Full Done-criterion checklist against loaded extension. |
+
+### Key findings during VS-01 execution
+
+1. **Gate 2 chapter-path correction is load-bearing for VS-02.** The adapter must read `ytInitialData.engagementPanels[].content.macroMarkersListRenderer` for chapters, NOT `ytInitialPlayerResponse`. The Summarize source's `youtube-page-transcript.ts` only reads player-level — zero chapter handling. See `P:/tmp/yt-workspace-gate2-evidence/G2-02-chapter-json-path.json`.
+
+2. **YouTube Trusted Types block innerHTML.** All workspace DOM construction must use `createElement`/`textContent`. The content.ts placeholder already follows this pattern.
+
+3. **Root .gitignore blocks `*.json` globally.** `package.json` and `tsconfig.json` require `git add -f` to track. Other packages in the workspace have the same constraint.
+
+4. **Content script auto-injection via manifest.** WXT generates a content_scripts entry from `defineContentScript({ matches: ["*://*.youtube.com/*"] })`. The background also uses `chrome.scripting.executeScript` as a fallback for programmatic injection on first toolbar click.
+
 ## Cross-reference couplings
 
 - **Gate 1 handoff** — EXTRACT + IN_PAGE_SECONDARY decisions and the 13-file extraction list.
