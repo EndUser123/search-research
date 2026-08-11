@@ -2,8 +2,10 @@
  * Content script (WXT entrypoint) — workspace lifecycle + navigation relay.
  *
  * Auto-open: when settings.autoOpen is true (default), the workspace
- * mounts automatically on YouTube watch pages. The toolbar button
- * toggles it off/on. The setting persists across reloads.
+ * mounts automatically on YouTube watch pages.
+ *
+ * Uses a poller to wait for #secondary (YouTube's SPA means it may
+ * not be ready at document_idle).
  */
 
 import { defineContentScript } from "wxt/utils/define-content-script";
@@ -37,15 +39,6 @@ function injectStyles(): void {
   document.head.appendChild(style);
 }
 
-function getCurrentVideoId(): string | null {
-  try {
-    const url = new URL(location.href);
-    return url.searchParams.get("v");
-  } catch {
-    return null;
-  }
-}
-
 function isYouTubeWatchPage(): boolean {
   try {
     const u = new URL(location.href);
@@ -56,6 +49,34 @@ function isYouTubeWatchPage(): boolean {
   } catch {
     return false;
   }
+}
+
+function waitForElement(
+  selector: string,
+  timeoutMs = 10000,
+): Promise<HTMLElement | null> {
+  return new Promise((resolve) => {
+    const existing = document.querySelector(selector);
+    if (existing) {
+      resolve(existing as HTMLElement);
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        observer.disconnect();
+        resolve(el as HTMLElement);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    setTimeout(() => {
+      observer.disconnect();
+      resolve(null);
+    }, timeoutMs);
+  });
 }
 
 export default defineContentScript({
@@ -75,7 +96,31 @@ export default defineContentScript({
       void saveResizePreference(pct);
     };
 
-    // Register message listener FIRST so we don't miss workspace-update
+    let workspaceMounted = false;
+
+    const mountIfNeeded = async () => {
+      if (workspaceMounted || !isYouTubeWatchPage()) return;
+      if (!settings.autoOpen) return;
+
+      // Wait for #secondary to be available (YouTube SPA timing)
+      const secondary = await waitForElement("#secondary", 10000);
+      if (!secondary) return;
+
+      if (getWorkspaceElement()) return;
+
+      mountWorkspace(null, settings, handleSettingsChange);
+      workspaceMounted = true;
+
+      if (resizePct !== null) {
+        applyResize(resizePct);
+      }
+      mountResizer(handleResizeChange);
+
+      // Trigger acquisition (fire-and-forget)
+      chrome.runtime.sendMessage({ type: "acquire" }).catch(() => {});
+    };
+
+    // Register message listener for toolbar toggle and workspace-update
     chrome.runtime.onMessage.addListener((message) => {
       if (message?.type === "workspace-toggle") {
         if (message.open) {
@@ -84,12 +129,14 @@ export default defineContentScript({
             settings,
             handleSettingsChange,
           );
+          workspaceMounted = true;
           if (resizePct !== null) {
             applyResize(resizePct);
           }
           mountResizer(handleResizeChange);
         } else {
           detachWorkspace();
+          workspaceMounted = false;
           clearResize();
         }
       } else if (message?.type === "workspace-update") {
@@ -101,51 +148,18 @@ export default defineContentScript({
       return false;
     });
 
-    // Determine whether workspace should be open
-    let shouldOpen = false;
+    // Try mounting on initial load
+    mountIfNeeded();
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: "query-workspace-state",
-      });
-      if (response?.open) {
-        shouldOpen = true;
-      }
-    } catch {
-      // Background might not be ready yet
-    }
-
-    // If not explicitly opened, auto-open on watch pages
-    if (!shouldOpen && settings.autoOpen && isYouTubeWatchPage()) {
-      shouldOpen = true;
-    }
-
-    if (shouldOpen && isYouTubeWatchPage()) {
-      // Mount the workspace immediately (shows "Loading...")
-      mountWorkspace(null, settings, handleSettingsChange);
-      if (resizePct !== null) {
-        applyResize(resizePct);
-      }
-      mountResizer(handleResizeChange);
-
-      // Trigger acquisition via background (fire-and-forget —
-      // background will send workspace-update when VideoContext is ready)
-      chrome.runtime.sendMessage({ type: "acquire" }).catch(() => {});
-    }
-
+    // Re-mount on SPA navigation
     document.addEventListener("yt-navigate-finish", () => {
       chrome.runtime
         .sendMessage({ type: "yt-navigate-finish", url: location.href })
         .catch(() => {});
 
-      const workspace = getWorkspaceElement();
-      if (workspace) {
-        const videoId = getCurrentVideoId() ?? "unknown";
-        const videoIdEl = workspace.querySelector('[data-field="video-id"]');
-        if (videoIdEl) {
-          videoIdEl.textContent = `videoId: ${videoId}`;
-        }
-      }
+      // Reset and re-mount if needed
+      workspaceMounted = false;
+      mountIfNeeded();
     });
   },
 });
