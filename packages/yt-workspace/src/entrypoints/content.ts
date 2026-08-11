@@ -1,10 +1,10 @@
 /**
  * Content script (WXT entrypoint) — workspace lifecycle + navigation relay.
  *
- * VS-03: delegates UI to workspace-ui.ts, delegates seek to seek-handler.ts.
+ * VS-03 + UX features: font size settings, resize handle.
  * Handles: workspace-toggle, workspace-update messages from background.
  * Relays: yt-navigate-finish events to background for re-acquisition.
- * Persistence: on page load, checks if workspace was open and re-mounts.
+ * Persistence: workspace open state, font size, column width — all survive reloads.
  */
 
 import { defineContentScript } from "wxt/utils/define-content-script";
@@ -15,6 +15,21 @@ import {
   getWorkspaceElement,
 } from "../content/workspace-ui";
 import { WORKSPACE_CSS } from "../content/workspace.css";
+import {
+  loadSettings,
+  saveSettings,
+  applyFontSize,
+  DEFAULT_FONT_SIZE,
+  type WorkspaceSettings,
+} from "../content/settings";
+import {
+  mountResizer,
+  applyResize,
+  clearResize,
+  loadResizePreference,
+  saveResizePreference,
+  DEFAULT_PCT,
+} from "../content/resizer";
 
 const STYLE_ID = "__yt_workspace_style";
 
@@ -41,24 +56,47 @@ export default defineContentScript({
   async main() {
     injectStyles();
 
+    const settings = await loadSettings();
+    const resizePct = await loadResizePreference();
+
+    const handleSettingsChange = (s: WorkspaceSettings) => {
+      void saveSettings(s);
+    };
+
+    const handleResizeChange = (pct: number) => {
+      void saveResizePreference(pct);
+    };
+
     // Check if workspace was open before page load (persistence)
+    let initialCtx = null;
     try {
       const response = await chrome.runtime.sendMessage({
         type: "query-workspace-state",
       });
       if (response?.open) {
-        mountWorkspace(response.videoContext ?? null);
+        initialCtx = response.videoContext ?? null;
+        mountWorkspace(initialCtx, settings, handleSettingsChange);
+
+        if (resizePct !== null) {
+          applyResize(resizePct);
+        }
+        mountResizer(handleResizeChange);
       }
     } catch {
-      // Background might not be ready yet — that's ok
+      // Background might not be ready yet
     }
 
     chrome.runtime.onMessage.addListener((message) => {
       if (message?.type === "workspace-toggle") {
         if (message.open) {
-          mountWorkspace(message.videoContext ?? null);
+          mountWorkspace(message.videoContext ?? null, settings, handleSettingsChange);
+          if (resizePct !== null) {
+            applyResize(resizePct);
+          }
+          mountResizer(handleResizeChange);
         } else {
           detachWorkspace();
+          clearResize();
         }
       } else if (message?.type === "workspace-update") {
         const workspace = getWorkspaceElement();

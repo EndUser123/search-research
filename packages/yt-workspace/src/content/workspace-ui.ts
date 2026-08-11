@@ -7,6 +7,11 @@
 
 import type { Chapter } from "../lib/video-context-store";
 import { attachSeekHandlers } from "./seek-handler";
+import {
+  createSettingsButton,
+  applyFontSize,
+  type WorkspaceSettings,
+} from "./settings";
 
 const WORKSPACE_ID = "__yt_workspace";
 
@@ -21,10 +26,15 @@ export interface VideoContextData {
   contextVersion: number;
 }
 
-export function createWorkspaceElement(videoId: string): HTMLElement {
+export function createWorkspaceElement(
+  videoId: string,
+  settings: WorkspaceSettings,
+  onSettingsChange: (s: WorkspaceSettings) => void,
+): HTMLElement {
   const el = document.createElement("div");
   el.id = WORKSPACE_ID;
   el.className = "ytws-workspace";
+  applyFontSize(el, settings.fontSize);
 
   const header = document.createElement("div");
   header.className = "ytws-header";
@@ -33,6 +43,10 @@ export function createWorkspaceElement(videoId: string): HTMLElement {
   title.textContent = "YT Workspace";
   title.className = "ytws-title";
   header.appendChild(title);
+
+  const gear = createSettingsButton(el, settings, onSettingsChange);
+  gear.className += " ytws-header-gear";
+  header.appendChild(gear);
 
   el.appendChild(header);
 
@@ -130,7 +144,11 @@ export function renderVideoContext(
   }
 }
 
-export function mountWorkspace(ctx: VideoContextData | null): void {
+export function mountWorkspace(
+  ctx: VideoContextData | null,
+  settings: WorkspaceSettings,
+  onSettingsChange: (s: WorkspaceSettings) => void,
+): void {
   const existing = document.querySelectorAll(`#${WORKSPACE_ID}`);
   if (existing.length > 1) {
     existing[1]?.remove();
@@ -140,7 +158,7 @@ export function mountWorkspace(ctx: VideoContextData | null): void {
   }
   const url = new URL(location.href);
   const videoId = url.searchParams.get("v") ?? "unknown";
-  const workspace = createWorkspaceElement(videoId);
+  const workspace = createWorkspaceElement(videoId, settings, onSettingsChange);
   const secondary = document.querySelector("#secondary");
   if (secondary) {
     secondary.prepend(workspace);

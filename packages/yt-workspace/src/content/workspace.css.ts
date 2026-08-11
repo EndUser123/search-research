@@ -117,4 +117,90 @@ export const WORKSPACE_CSS = `
   color: #717171;
   font-size: 13px;
 }
+
+#__yt_workspace .ytws-header {
+  justify-content: space-between;
+}
+
+#__yt_workspace .ytws-header-gear {
+  margin-left: auto;
+}
+
+#__yt_workspace .ytws-settings-container {
+  position: relative;
+}
+
+#__yt_workspace .ytws-gear {
+  background: none;
+  border: none;
+  color: #aaaaaa;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+#__yt_workspace .ytws-gear:hover {
+  background: #272727;
+  color: #f1f1f1;
+}
+
+#__yt_workspace .ytws-settings-panel {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #1f1f1f;
+  border: 1px solid #303030;
+  border-radius: 6px;
+  padding: 10px 12px;
+  z-index: 10000;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+#__yt_workspace .ytws-settings-panel-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#__yt_workspace .ytws-settings-label {
+  font-size: 12px;
+  color: #aaaaaa;
+}
+
+#__yt_workspace .ytws-settings-slider {
+  width: 100px;
+  accent-color: #3ea6ff;
+  cursor: pointer;
+}
+
+#__yt_workspace .ytws-settings-value {
+  font-size: 12px;
+  color: #f1f1f1;
+  font-family: monospace;
+  min-width: 36px;
+  text-align: right;
+}
+
+#__yt_workspace_resizer {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  align-self: stretch;
+  margin-right: -4px;
+  position: relative;
+  z-index: 9999;
+}
+
+#__yt_workspace_resizer:hover {
+  background: #3ea6ff40;
+}
+
+#__yt_workspace_resizer:active {
+  background: #3ea6ff80;
+}
 `;
