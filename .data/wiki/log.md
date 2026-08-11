@@ -1,5 +1,35 @@
 # Vault Log
 
+## Python-orchestrated skill build pattern: study-replicate-test
+Source: session-019fee3d
+Agent: grok
+Notes: Transferable technique for building new Python-orchestrated skills by studying and replicating an existing one. Proven across ship-py and close-py.
+Page: P:/.data/wiki/concepts/python-orchestrated-skill-build-pattern-study-replicate-test.md
+
+## Claude Agent SDK Core Concepts
+Source: nlm-sync-2026-08-10
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/claude-agent-sdk-core-concepts.md
+
+## OpenHands Skills and Plugins Architecture
+Source: nlm-sync-2026-08-10
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/openhands-skills-and-plugins-architecture.md
+
+## Claude Code Skills Extension System
+Source: nlm-sync-2026-08-10
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/claude-code-skills-extension-system.md
+
+## Claude Code Agent Framework
+Source: nlm-sync-2026-08-10
+Agent: grok
+Notes: Synced from NotebookLM notebook [INGESTED] - Claude Code x NotebookLM x Obsidian Research
+Page: wiki/concepts/claude-code-agent-framework.md
+
 ## --concept
 Source: three-layer-candidate-filtering-regex-llm-fresh-subagent
 Agent: --action
