@@ -69,7 +69,7 @@ function getCurrentVideoId(): string | null {
 function mountWorkspace(): void {
   const existing = document.querySelectorAll(`#${WORKSPACE_ID}`);
   if (existing.length > 1) {
-    existing[1].remove();
+    existing[1]?.remove();
   }
   if (existing.length === 1) {
     return;

@@ -14,20 +14,21 @@ export default defineBackground(() => {
       return;
     }
 
-    const key = `workspace-open-${tab.id}`;
+    const tabId = tab.id;
+    const key = `workspace-open-${tabId}`;
     const result = await chrome.storage.session.get(key);
     const isOpen = result[key] ?? false;
     const nextState = !isOpen;
 
     await chrome.storage.session.set({ [key]: nextState });
 
-    chrome.tabs.sendMessage(tab.id, {
+    chrome.tabs.sendMessage(tabId, {
       type: "workspace-toggle",
       open: nextState,
     }).catch(() => {
       if (nextState) {
         chrome.scripting.executeScript({
-          target: { tabId: tab.id },
+          target: { tabId },
           files: ["content-scripts/content.js"],
         }).catch(() => {});
       }
