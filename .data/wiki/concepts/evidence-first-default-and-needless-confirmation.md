@@ -9,10 +9,10 @@ summary: >
   converges on a non-obvious conclusion: runtime interception (Stop hooks,
   tool blocks) does not work because the model routes around them. The fix
   is empowerment — give each ambiguity trigger a decision protocol so the
-  model has somewhere to go other than asking. Validated by three sources:
+  model has somewhere to go other than asking. Validated by four sources:
   dev.to "Teaching an AI Agent to Stop Asking Questions" (prohibition fails,
   empowerment works), Suri et al. arxiv 2511.08798 (SAGE-Agent reduces
-  clarification 1.5–2.7× via model-layer EVPI), and Anthropic's
+  clarification 1.5–2.7× via model-layer EVPI), Edwards & Schuster arxiv 2603.26233 (multi-agent intent-separation reaches 69.4% vs 61% on underspecified SWE-bench — first coding-agent-specific validation, strongest intervention tested), and Anthropic's
   context-engineering essay (right-altitude system prompts, not brittle
   runtime regex).
 agent: grok
@@ -209,6 +209,13 @@ list is insufficient and a stronger mechanism (hook or model swap) is needed.
 - arxiv: Suri, Mathur, Lipka, Dernoncourt, Rossi, Manocha. "Structured
   Uncertainty guided Clarification for LLM Agents." 2511.08798v2 (Apr 2026).
   https://arxiv.org/abs/2511.08798
+- arxiv: Edwards & Schuster. "Ask or Assume? Uncertainty-Aware
+  Clarification-Seeking in Coding Agents." 2603.26233 (2026).
+  https://arxiv.org/abs/2603.26233 — multi-agent intent-separation (Main
+  Agent + Intent Agent) reaches 69.4% resolve rate vs 61% single-agent on
+  underspecified SWE-bench Verified. First coding-agent-specific validation
+  of empowerment-over-prohibition. Agents showed good calibration without
+  hardcoded "must query first" instructions.
 - Anthropic: "Effective context engineering for AI agents" (Sep 2025).
   https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 - LinkedIn: Bob Dickinson, "Ask, Don't Infer: Effective LLM Instruction"
