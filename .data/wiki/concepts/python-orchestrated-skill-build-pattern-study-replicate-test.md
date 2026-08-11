@@ -181,11 +181,3 @@ Implementation paths for mechanism claims in this concept:
 - [[liveness-vs-timeout-for-agent-pipeline-polling-loops]] — polling-loop design
 - [[polling-loop-continuation-controller-design-decision]] — why polling loop was chosen over daemon/Rhai/HMAC
 
-## Auto-related
-
-- [[skill-catalog]]
-- [[python-windows-architectural]]
-- [[opentelemetry-logging-patterns]]
-- [[opentelemetry-structured-logging-patterns]]
-- [[opentelemetry-logging]]
-
