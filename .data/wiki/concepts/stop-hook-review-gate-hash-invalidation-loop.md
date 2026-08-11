@@ -65,6 +65,16 @@ a review of version 1 would cover version 2 — defeating the purpose.
 The friction is the cost of correctness. The alternative (no hash binding)
 is worse: unreviewed changes ship under stale receipts.
 
+**Carve-out (added 2026-08-11):** the friction is NOT acceptable at
+mid-build milestone claims within a declared multi-unit work stream
+(e.g., "VS-02 done, VS-03/04/05 remain"). At milestone claims, the
+agent's default is to waive and continue (using `waiver_gate.py` or the
+existing waiver mechanism), not to ask the operator. The review obligation
+binds at ship-time (when the full vertical slice is complete), not at
+every intermediate unit. This follows the field consensus: review is a
+ship-time gate, not a per-turn gate (pre-commit `--no-verify` is the
+universal WIP-bypass pattern).
+
 ## Workarounds
 
 | Approach | When | Cost |

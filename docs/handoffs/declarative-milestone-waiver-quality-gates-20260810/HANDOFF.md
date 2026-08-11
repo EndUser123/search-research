@@ -2,7 +2,19 @@
 
 ## Status
 
-OPEN — design only
+OPEN — design direction chosen (Option C), ready for implementation
+
+## Design decision (2026-08-11)
+
+After /why → /www → /tp → /design (2 rounds), the chosen direction is **Option C: skill-declared waiver eligibility**. Rationale:
+
+1. The Grok Build Stop hook has NO non-blocking warn mode (verified by /design round 2 against `~/.grok/docs/user-guide/10-hooks.md:254-262`). The break-glass "block→warn" pattern from the field literature is not portable to this host. The only two modes are: block with feedback, or silent allow.
+2. Option C follows the break-glass "Approved" property: the skill author (operator) declares `milestone_waiver_allowed: true` during authoring — the approver is the author, not the agent self-authorizing.
+3. ~30 lines of code: add the frontmatter field + claim-text marker detection + allow path with audit entry.
+
+The shipped interim mechanism (commits 485a499, fa6fb04, e0a8e9c) is accepted as a partial fix. The 30-min time-bound waiver is the wrong shape per field consensus but works as a stopgap until Option C ships.
+
+Design doc preserved at: `P:/docs/design/waiver-mechanism-quality-gate-20260811/design-doc.md`
 
 ## Summary
 
