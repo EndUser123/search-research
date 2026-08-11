@@ -34,7 +34,7 @@ surfaces infrastructure problems before they cause silent failures.
 |---|---|---|
 | **git_state** | Uncommitted files, stale dirty files, submodule consistency | `python P:/.agents/scripts/git_state_check.py` + `python P:/.agents/scripts/dirty_age.py` |
 | **skill_catalog** | Duplicate skills, disabled-in-Grok count, orphan script references | `python P:/.data/wiki/scripts/index_skills.py --audit` |
-| **wiki_vault** | Broken wikilinks, orphan pages, stale concepts, validation failures | `python P:/.data/wiki/scripts/wiki_health_check.py --json` |
+| **wiki_vault** | Broken wikilinks, orphan pages, stale concepts, validation failures | `python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/main/scripts/wiki_health_check.py --json` |
 | **config_toml** | `~/.grok/config.toml` parses, no contradictory settings | `python -c "import tomllib; tomllib.load(open(...))"` |
 | **plugin_consistency** | `[plugins].disabled` (Grok) vs `enabledPlugins` (Claude) don't conflict | Cross-check both config files |
 | **qmd_index** | QMD collection is healthy, no corrupted embeddings | `qmd collection info --collection wiki` |
@@ -78,7 +78,7 @@ disk_space:        ✓ P: 245GB free, C: 89GB free
 ## References
 
 - `P:/.data/wiki/scripts/index_skills.py --audit` — skill catalog auditor
-- `P:/.data/wiki/scripts/wiki_health_check.py` — wiki vault health
+- `P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/main/scripts/wiki_health_check.py` — wiki vault health
 - `P:/.agents/scripts/git_state_check.py` — git state cross-repo check
 - `P:/.agents/scripts/dirty_age.py` — stale dirty file detection
 - Adapted from Claude-side `main` skill (cc-skills-utils)
