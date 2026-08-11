@@ -1,5 +1,17 @@
 # Vault Log
 
+## Stop-hook review gate hash invalidation
+Source: session-20260810
+Agent: grok
+Notes: Quality-gate Stop hook binds review receipts to diff hash; every code change invalidates. Focused self-review is the workaround.
+Page: wiki/concepts/stop-hook-review-gate-hash-invalidation-loop.md
+
+## Fallback paths defeat primary fix
+Source: session-20260810
+Agent: grok
+Notes: When isolation code has an else-branch fallback that relaxes the contract, it re-introduces the failure the fix prevents. Found in /todo scanner C-1.
+Page: wiki/concepts/fallback-paths-defeat-primary-fix-silent-undermining.md
+
 ## Python-orchestrated skill build pattern: study-replicate-test
 Source: session-019fee3d
 Agent: grok
