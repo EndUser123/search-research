@@ -40,6 +40,7 @@ evidence_gaps:
   - "No study targets the exact topology: solo operator + fleet of concurrent coding agents + wiki-grounded + handoff-based"
   - "Profile-decay research (tianpan.co) is blog-grade, not peer-reviewed"
   - "Whether the operator's existing operator-collaboration-style-and-leverage.md has actually been USED by later sessions is unmeasured"
+  - "[added 2026-08-11] No structural implementation of the recommended `last_validated` drift trigger has been built; `/refine-operator-model` skill does not exist (verified by workspace grep, 2026-08-11). The two actionable recommendations remain unimplemented ~16 days after the original 2026-07-26 writing. This is itself an instance of the [[writing-discipline-not-enforced]] pattern — the recommendation was written, not enforced."
 relations:
   - target: wiki/concepts/operator-collaboration-style-and-leverage.md
     type: refines
@@ -214,6 +215,31 @@ This concept is wrong if, within 12 months:
 - **`operator-collaboration-style-and-leverage.md` goes >12 months without refresh and is still accurate** when spot-checked — the profile-decay concern is overstated for this domain (the operator's collaboration style may be more stable than consumer taste).
 - **An installable `/refine-operator-model` skill is shipped and widely adopted** in the community — then we should adopt rather than build.
 - **A paper targets the exact topology** (solo operator + fleet of concurrent coding agents + handoff-based + wiki-grounded) and shows measurable personalization gain — then we should follow its design.
+
+## Re-evaluation — 2026-08-11
+
+**Verdict:** still relevant + the underlying recommendation is still binding, but the two actionable recommendations remain unimplemented. The 6 evidence gaps listed in frontmatter are still open; the concept has not been displaced by any newer work.
+
+**Re-evaluation (2026-08-11).** Since the 2026-07-26 writing and 2026-08-09 last-verify:
+- **No concept has been written that fills the gap.** Searched `P:/.data/wiki/concepts/` for `last_validated`, `profile decay`, `refine-operator-model`, `operator model refresh` — zero matches outside this file. The gap is real.
+- **No `/refine-operator-model` skill has been built.** Verified by workspace grep (2026-08-11): the slot is empty. The closest patterns remain `/dream` (LLM-extracted memory, intentionally non-adopted due to the [[llm-dreaming-memory-consolidation]] `manufactured confidence` warning) and `/aar` (retrospective, not prospective).
+- **No `last_validated` field has been added to `operator-collaboration-style-and-leverage.md`.** Frontmatter still has the original 2026-07-20 fields; no `last_validated` drift trigger.
+- **The recommendation itself still holds.** The MIT/Writer.com disconfirmation evidence is now stronger, not weaker: `agent-memory-systems.md` (independently written) corroborates the Mem0 vs Zep critique and the "ADD-only memory amplifies sycophancy" pattern. The "don't auto-inject, don't auto-extract" stance is double-corroborated.
+- **The 6 evidence gaps remain open** but their continued openness is not a statement about the recommendation — it is a statement about the external research community's pacing. ETH Zurich peer-review status, coding-task replication of Mem0 sycophancy, and a topology-matched study are all awaiting external progress.
+
+**Honest accounting of what has happened in the intervening 16 days:**
+- The recommendation was written but not acted on (no `last_validated` trigger, no `/refine-operator-model` skill).
+- This is itself an instance of the [[writing-discipline-not-enforced]] pattern — the recommendation in this concept is now one of the examples of the pattern.
+- The structural fix for the pattern: a `/close` or `/aar` hook that surfaces "concept-acknowledged-but-not-implemented" drift, paired with the existing epistemic-debt scanner. Until that hook is built, this concept (and the operator's criterion 6 evidence gap) will continue to go stale without anyone noticing.
+
+**Specific research questions to close the evidence gaps (priority order):**
+
+1. **Verify operator-collaboration-style usage by later sessions.** The 6th evidence gap ("whether the operator-collaboration-style has been USED by later sessions is unmeasured") is the only gap that can be closed from inside the workspace. Method: grep `~/.grok/sessions/P%3A%5C/` for `operator-collaboration-style` references in transcripts (acceptance: >=1 query per N>2 sessions). If low, the artifact is failing silently regardless of form — a different kind of finding.
+2. **Monitor ETH Zurich peer-review status.** The 1st gap ("peer-review pending full acceptance") is closable by a single check at the ICML 2026 decision.
+3. **Adopt vs build decision on `/refine-operator-model` skill.** Per the falsifier, check the community skill ecosystem quarterly for a shipped version. If found, adopt; if not, build an MVP.
+4. **Re-validate the recommendation against the operator's actual drift.** The 3rd falsifier condition ("profile goes >12 months without refresh and is still accurate") has a soft deadline of 2026-07-20 + 12 months = 2027-07-20. Set a soft milestone at 6 months (~2027-01-20) to spot-check.
+
+**Out of scope for next steps:** the cross-session operator-state memory layer, the per-user vs per-project split research, and the topology-matched study. These are external research boundaries, not workspace actions.
 
 ---
 

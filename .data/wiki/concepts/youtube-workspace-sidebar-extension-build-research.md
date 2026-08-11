@@ -238,7 +238,7 @@ For reference, the API facts (still useful regardless of decision):
 - **The exact gap our target fills is unoccupied:** no reviewed extension offers a *persistent, tabbed sidebar* combining chapters + overview + transcript + clickable-timestamp navigation that *never auto-closes on click or SPA nav*. Monica/Synapse claim "persistent" but still exhibit click-close bugs. This validates the product thesis.
 - **Universal user complaints (pain to avoid):** popup-closes-on-click (nearly every popup-based extension — Glasp, YouTranscript, TubeScribeAI), required OpenAI key/login, slow latency (15–50s), breaks on SPA navigation, no offline caching, privacy/public-sharing defaults.
 - **Universal user praise (features to copy):** persistent sidebar, clickable timestamps, no-login transcript, dark mode, caching by video, export (SRT).
-- **SponsorBlock** (2439 upvotes, [PRACTITIONER]) is the gold-standard pattern for a long-lived YouTube extension: community-maintained, crowd-sourced data, minimal permissions, survives YouTube changes. Worth studying for the "how to not break every YouTube update" discipline.
+- **SponsorBlock** (2439 upvotes, [PRACTITIONER]) is the gold-standard pattern for a long-lived YouTube extension: community-maintained, crowd-sourced data, minimal permissions, survives YouTube changes. Worth studying for the "how to not break every YouTube update" discipline. (Specific research still pending — see "Next steps — 2026-08-11 re-evaluation" below.)
 - [INFERENCE] Most "8-best" review accuracy numbers (Eightify ~92%, Glasp ~81%) are vendor/affiliate-sourced — treat as directional, not measured.
 
 ---
@@ -337,3 +337,29 @@ Proof that the 2026-08-08 correction propagated to every derived location. Each 
 | Causal claim "maintainers abandoned Ask as fragile" | **RETRACTED** (no receipt; their choices reflect design philosophy, not Ask-fragility) | asserted as the highest-value finding | ✅ frontmatter, decision-context, §2, confidence — all instances removed or reframed |
 
 This ledger is the structural fix for the failure mode the operator named: **revision treated as local text editing rather than dependency invalidation.** See `[[research-artifact-revision-invalidation]]` for the durable rule.
+
+## Next steps — 2026-08-11 re-evaluation
+
+**Verdict:** still relevant + actionable in two staged ways. The 3-gate sequence remains the binding path forward; the SponsorBlock longevity discipline question is a separate, focused sub-research that should run before any Gate 1 build.
+
+**Re-evaluation (2026-08-11).** Since the 2026-08-08 revision:
+- `youtube-chapter-json-path-ytinitialdata-not-player-response.md` (newer concept) confirms the `[INFERENCE]` chapter JSON key path flagged in §4 — and shows the chapter data lives in `ytInitialData`, not `ytInitialPlayerResponse`. This materially updates §4: the corrected key path is `ytInitialData.engagementPanels[].engagementPanelSectionListRenderer.panelIdentifier == "macro-markers-item-redirect"` (the exact key path is still to verify against a live page). Recommend bumping §4's confidence from `[INFERENCE, MEDIUM]` to `[FACT, HIGH]` with citation to the newer concept.
+- `github-hosted-youtube-integration-tools.md` independently cites `steipete/summarize` (transcript-synced 2026-07-27, pre-dating this concept) — the FORK candidate verdict is corroborated by a second source family.
+- The 3-gate sequence has not been executed. Gate 1A's reuse verdict and Gate 1B's visual test remain the binding pre-build steps.
+
+**Specific research questions to address the open gaps (priority order):**
+
+1. **SponsorBlock longevity discipline research (the original backlog item).** The §7 mention of SponsorBlock is currently one-line practitioner-reference, not a deep study. The research question is: *what does SponsorBlock's architecture, release history, and contributor community teach about how a YouTube extension survives years of YouTube DOM churn?* Specifically:
+   - How does SponsorBlock handle sponsor-segment data freshness (community-submitted, server-validated, cached) vs the per-video-context (stale-state on SPA nav) failure mode `steipete/summarize` solved?
+   - What is SponsorBlock's permission footprint, and what is the minimum-permissions pattern that maximizes survival?
+   - How does SponsorBlock's release cadence respond to YouTube DOM changes vs Links-and-Chapters' reactive patches (v1.0.348, v1.0.351, v1.0.353, v1.0.361, v1.0.372)?
+   - Is there a public post-mortem from SponsorBlock's maintainers on surviving major YouTube rewrites (Polymer → Lit → Web Components)?
+   - Output: a wiki concept `youtube-extension-longevity-discipline-sponsorblock-case-study.md` that the future build can source patterns from. Independent of Gate 1.
+
+2. **Gate 1A — `steipete/summarize` reuse verdict.** Already documented in §6a and the Claim Ledger; defer execution until the operator authorizes the build.
+
+3. **Gate 1B — Visual container test.** Already documented in §5; defer execution.
+
+4. **Bump §4 confidence** (low-effort maintenance): the chapter JSON key path `[INFERENCE]` is now corroborated by `youtube-chapter-json-path-ytinitialdata-not-player-response.md`. Update the claim ledger, §4, and §Confidence to reflect `[FACT, HIGH]` with the new citation.
+
+**Out of scope for next steps:** the live transcript-acquisition implementation (Gate 2), the AI behavior implementation (Gate 3), and the Chapter JSON key path re-verification against a live page (low ROI — the new concept already grounds it). These follow the requested gates only.

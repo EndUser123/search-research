@@ -255,3 +255,16 @@ as evidence, not as proof of details absent from the snippets.
 - [[skill-catalog]]
 - [[codebase-knowledge-graph-mapping]]
 - [[claude-code-hooks]]
+
+## Re-evaluation — 2026-08-11
+
+**Verdict:** still relevant + now better cross-linked. The original research action item ("Cross-link shared progressive-disclosure and MCP sources across skill architecture concepts") has been substantially addressed by subsequent work:
+
+- **Cross-link confirmed.** `tp-compression-mcp-hook-boundaries-2026.md` (refines relation in frontmatter) shares the same Anthropic/Codex/MCP source set and the same "compression should be structural, not subtractive" thesis. Both concepts now reference each other. No drift between the two.
+- **Related concepts that have landed since 2026-08-07:**
+  - `agent-skills-fleet-patterns-solo-director-2026.md` — extends the "one user-facing capability, many internal protocols" thesis to the solo-director fleet topology. Aligned.
+  - `best-practices-enforcement-mechanism-grok-build.md` — extends the "config > hook > metric > rule" hierarchy from the Boundary Rules table into a tested Windows architecture. Aligned.
+  - `advisory-vs-mandatory-triggers.md` — splits the "lifecycle enforcement" row of the boundary table into mandatory (structural) vs optional (advisory). Refines the boundary rule.
+- **No new evidence gap to close.** The "no controlled A/B measurement" gap remains open but is now explicitly bounded by the [tp-compression-mcp-hook-boundaries-2026.md](../tp-compression-mcp-hook-boundaries-2026.md) Next steps section, which prioritizes the bounded preflight audit and shadow-mode pilot as the next concrete actions. No duplication.
+
+**What this means for the workspace:** the concept continues to anchor the "progressive disclosure + deterministic helpers + MCP at shared boundaries + hooks at lifecycle boundaries" thesis. New skill-architecture work should reference this concept for the boundary rule and the red-team attacks, not re-derive them. The MMX source citations remain primary evidence; do not refresh them unless the underlying docs change.

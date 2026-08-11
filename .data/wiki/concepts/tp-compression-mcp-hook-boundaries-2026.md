@@ -234,6 +234,25 @@ cost exceeds the value of its receipts. Re-open the “one front door” decisio
 if a reasoning alias develops a genuinely different domain and independently
 measured outcome contract.
 
+## Next steps — 2026-08-11 re-evaluation
+
+**Verdict:** still relevant + actionable. None of the three original evidence gaps has been closed by subsequent work; the decision remains binding and the open questions are still open.
+
+**Re-evaluation (2026-08-11).** The decision is now ~4 days old. Checked:
+- `best-practices-enforcement-mechanism-grok-build.md` (2026-07-24) reaffirms the "config > hook > metric > rule" hierarchy and the "act on external state, not actor output" detector test this concept inherits. No conflict.
+- `agent-control-plane-enforcement-architectures-2026.md` confirms the hook enforcement layer is the right pattern for the Stop validator (complement relation in frontmatter). No conflict.
+- No concept has been written that addresses the timed-out preflight audit, the missing shadow-mode data, or the unproven cross-host collision. The three evidence gaps remain open.
+
+**Specific research questions to close the evidence gaps (priority order):**
+
+1. **Bounded preflight audit for the live skill capability surface.** The original 2026-08-07 audit timed out. Run a bounded pass via `python P:/.agents/skills/preflight/scripts/discovery_audit.py --scope P:/.grok/skills --target tp --target tp_dispatch.py --target tp-critique-log.jsonl --output P:/tmp/tp-discovery.json` to enumerate transitive callers, registration owners, and the live consistency between SKILL.md, the dispatch helper, and the telemetry artifact. Confidence needed to close gap: HIGH (full enumerated map with no orphans).
+
+2. **Shadow-mode pilot for the Stop validator.** Build the minimal `Stop_tp_result_validator` (advisory only, no blocking) and run against 30+ real TP runs over 1–2 weeks. Measure: false-positive rate, timeout rate, operator override rate, operator disablement rate. Acceptance threshold: false-positive <10%, timeout <5%, operator override <20%, no disablement. If any threshold fails, shadow-mode continues or the validator is dropped. Confidence needed to close gap: HIGH (measured numbers, not estimates).
+
+3. **Cross-host collision reproduction attempt.** Set up a controlled scenario: two Grok/Claude/Codex terminals both invoking TP against the same `tp-critique-log.jsonl` artifact. If they collide, this gap is closed (the MCP run-registry is no longer deferred). If they don't collide, the gap is closed by absence of evidence (the MCP remains deferred). Confidence needed to close gap: HIGH (controlled scenario with measurable result).
+
+**Out of scope for next steps (other concepts own these):** the broader "one front door" question (reframed by `agent-skills-fleet-patterns-solo-director-2026` and the catalog-creation rule in AGENTS.md); the cross-host porting question (reframed by `git-worktree-multi-terminal-best-strategies` and the multi-terminal isolation rules).
+
 ## Sources
 
 - [[agent-skill-compression-boundaries-2026]] — the full MMX query/result ledger
