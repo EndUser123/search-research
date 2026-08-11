@@ -1,6 +1,12 @@
 # Vault Log
 
 ## --entry
+Source: enhanced-dreaming-offline-consolidation-techniques.md
+Agent: --source
+Notes: session-2026-08-11 /www
+Page: --agent
+
+## --entry
 Source: self-reflection-techniques-for-llm-agents.md
 Agent: --source
 Notes: session-2026-08-11 /www
