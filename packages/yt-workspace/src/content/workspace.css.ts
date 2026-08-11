@@ -2,8 +2,9 @@
  * Workspace CSS — dark theme matching YouTube's dark mode.
  * Injected as a <style> element by the content script.
  *
- * NOTE: the workspace element has id="__yt_workspace", so all selectors
- * use the ID selector (#__yt_workspace), not a class selector.
+ * Font sizing: child elements use `em` units (relative to the workspace
+ * root font-size). The settings slider changes the root font-size, and
+ * all children scale proportionally.
  */
 
 export const WORKSPACE_CSS = `
@@ -21,10 +22,11 @@ export const WORKSPACE_CSS = `
   display: flex;
   align-items: center;
   margin-bottom: 8px;
+  justify-content: space-between;
 }
 
 #__yt_workspace .ytws-title {
-  font-size: 16px;
+  font-size: 1.15em;
   font-weight: 600;
   color: #f1f1f1;
 }
@@ -32,14 +34,14 @@ export const WORKSPACE_CSS = `
 #__yt_workspace .ytws-info {
   opacity: 0.7;
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: 0.86em;
   font-family: monospace;
 }
 
 #__yt_workspace .ytws-provenance {
   opacity: 0.6;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 0.79em;
   font-family: monospace;
 }
 
@@ -52,7 +54,7 @@ export const WORKSPACE_CSS = `
 
 #__yt_workspace .ytws-tab {
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: 0.93em;
   font-weight: 500;
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -101,25 +103,21 @@ export const WORKSPACE_CSS = `
   color: #3ea6ff;
   margin-right: 12px;
   min-width: 60px;
-  font-size: 12px;
+  font-size: 0.86em;
   font-family: monospace;
   flex-shrink: 0;
 }
 
 #__yt_workspace .ytws-chapter-title {
   color: #f1f1f1;
-  font-size: 13px;
+  font-size: 0.93em;
   line-height: 1.3;
 }
 
 #__yt_workspace .ytws-empty {
   padding: 12px 4px;
   color: #717171;
-  font-size: 13px;
-}
-
-#__yt_workspace .ytws-header {
-  justify-content: space-between;
+  font-size: 0.93em;
 }
 
 #__yt_workspace .ytws-header-gear {
@@ -134,7 +132,7 @@ export const WORKSPACE_CSS = `
   background: none;
   border: none;
   color: #aaaaaa;
-  font-size: 18px;
+  font-size: 1.29em;
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
@@ -167,7 +165,7 @@ export const WORKSPACE_CSS = `
 }
 
 #__yt_workspace .ytws-settings-label {
-  font-size: 12px;
+  font-size: 0.86em;
   color: #aaaaaa;
 }
 
@@ -178,7 +176,7 @@ export const WORKSPACE_CSS = `
 }
 
 #__yt_workspace .ytws-settings-value {
-  font-size: 12px;
+  font-size: 0.86em;
   color: #f1f1f1;
   font-family: monospace;
   min-width: 36px;
