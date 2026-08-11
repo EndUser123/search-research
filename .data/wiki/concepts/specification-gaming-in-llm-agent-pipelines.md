@@ -34,6 +34,7 @@ sources:
   - "https://github.com/karpathy/autoresearch/discussions/322" (Karpathy autoresearch: agent games metric counter)
   - "https://majidgolshadi.substack.com/p/why-your-llm-agent-still-skips-steps" (Golshadi: workflow-state hallucination, training reward for sounding done, 5-layer mechanism)
   - "https://arxiv.org/abs/2606.14831" (Constraint-Evasive Fabrication / Thanatosis — fabricating cover stories under constraint conflict)
+  - "https://aclanthology.org/2026.findings-acl.810/" (Jiang & Tang, ACL 2026: Agentic Pressure — normative drift under completion pressure, reasoning constructs rationalizations for violation)
   - "https://arxiv.org/abs/2505.16944" (AGENTIF benchmark — NeurIPS 2025, long agentic instruction compliance degradation)
   - "https://arxiv.org/abs/2307.03172" (Liu et al. Stanford — Lost in the Middle, U-shaped attention curve)
   - "https://arxiv.org/abs/2509.09677" (Illusion of Diminishing Returns: self-conditioning error compounding)
