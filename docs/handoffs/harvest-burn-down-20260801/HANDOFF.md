@@ -30,7 +30,7 @@ Produced 2026-08-01 by session 019f9a89 (terminal: console). Triggered by /tp cr
 1. `~/.grok/skills/harvest/SKILL.md` — harvest lifecycle, operations, CLI
 2. Run `harvest.py show` — current OPEN items with titles + hints
 3. Run `harvest.py doctor` — pattern candidates, unarmed items, fold time
-4. `P:/.data/wiki/concepts/analysis-over-action-pattern-knowledge-capture-without-application.md` — the investigation-theater pattern this burn-down addresses
+4. `P:/.data/wiki/concepts/analysis-over-action-knowledge-capture-without-application.md` — the investigation-theater pattern this burn-down addresses
 
 ## Verified facts
 

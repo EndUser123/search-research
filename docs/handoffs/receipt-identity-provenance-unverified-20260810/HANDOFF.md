@@ -126,7 +126,7 @@ The investigation is **DONE** when ALL of the following are true:
 ## Suggested skills for next session (when picked up)
 
 - `/go` or `/investigate` (if exists) — bounded investigation: read the script, run a controlled `/review`, compare identities, form a fix proposal.
-- `/wiki` — if the smell generalizes to a system-wide pattern, capture as a wiki concept (e.g., `[[receipt-identity-provenance-cwd-vs-invocation]]`).
+- `/wiki` — if the smell generalizes to a system-wide pattern, capture as a wiki concept (e.g., `/receipt-identity-provenance-cwd-vs-invocation`).
 - `/handoff` — only if the investigation produces follow-on work that itself needs a handoff.
 
 ## Changelog

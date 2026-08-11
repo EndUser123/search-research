@@ -746,8 +746,16 @@ methods — HTTP coding success does not certify PI reasoning capability.
 multi-line positional arguments to the first line. Prompts MUST be passed
 via stdin (`input=prompt` in subprocess.run). The shared `pi_dispatch.py`
 module handles this automatically. Passing prompts as positional arguments
-produces 0/18 false negatives on ALL models. See
-`[[tool-evidence-gap-http-vs-agent-harness]]` for the full incident.
+produces 0/18 false negatives on ALL models.
+
+**PI system prompt (mandatory for valid benchmarks):** PI's agent harness
+uses a verbose default system prompt. Without capability-specific prompt
+override, mechanical tasks score 0/8 (model explains instead of extracting)
+and coding tasks produce wrong_format (prose-wrapped code). The pool test
+harness prepends the capability-specific instruction to the prompt before
+sending to PI. **All PI benchmark data from before 2026-08-11 is INVALID**
+and must not be used for promotion decisions. Re-run all PI cells with the
+system prompt fix.
 
 **Context window data:** NVIDIA, ZAI, and MiniMax APIs return bare model
 objects without context_length metadata. Only OpenRouter exposes this.
