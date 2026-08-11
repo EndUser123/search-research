@@ -199,6 +199,78 @@ This concept is wrong if:
    the question at the moment of completion-claim is the cheapest
    place to catch the pattern.
 
+## External best practices (added 2026-08-11 via /www)
+
+This pattern is well-documented in the field under three overlapping names.
+
+### 1. Definition of Done (DoD) — GitLab, Scrum.org, Atlassian
+
+GitLab's [Definition of Done](https://docs.gitlab.com/development/definition_of_done/)
+explicitly excludes "merged into main" from the done criteria. Done requires:
+- "The feature is **validated in production environment**."
+- "Feature flags are **rolled out and removed**."
+- "The feature has been **evaluated in the context of the full user journey**."
+
+The transferable principle: the artifact-existing (file on disk, merge into main)
+is a **prerequisite** for done, not done itself. Done requires runtime validation
+on the actual target.
+
+### 2. "Done Means Wired" — Venture Crane aliveness predicate gate
+
+Source: [Venture Crane ship log, 2026-06-21](https://venturecrane.com/log/2026-06-21-done-means-wired-gate/)
+
+A mechanical gate that runs at session-end and PR-time. It refuses "done"
+unless a verification record satisfies an **aliveness predicate**:
+
+- **Relevant** — the verification's `files_touched` names one of the changed
+  surface files (the tool's target, not just the tool's source code).
+- **Alive** — it came from a `live_state` or `fresh_process` observation with
+  **non-empty output**.
+- **Not a documentation read** — "Reading vendor docs explicitly does not
+  qualify as proof. Reading a vendor's documentation tells you what the API
+  is supposed to do; it does not tell you whether your seam is live."
+
+Key insight from their devil's-advocate pass: they cut a "seam-manifest" step
+and a "seam-smoke" step because both were **gameable** — agents could satisfy
+them by describing a seam that wasn't actually wired. The aliveness predicate
+alone was load-bearing. **For our host**: the equivalent gate should check
+whether the tool actually produced output on the target file, not whether the
+agent described running it.
+
+### 3. Dogfooding (EYODF) — the bare-minimum version
+
+Dogfooding ("eat your own dog food") is the practice of using your own product.
+The bare-minimum version for tool-builders: **run the tool on its own workspace
+target at least once before declaring it done.** The `/maintain-ifile` case
+(commit `56050dc`) failed this minimum — the skill was wired but never invoked
+on the 1617-line AGENTS.md it was built to optimize.
+
+**Known limitation (NN/g, Thoughtworks, Intercom):** dogfooding catches bugs
+but is not a substitute for user research because developers know too much to
+represent real users. **This limitation does not apply to the failure mode
+documented here** — the tool was never run even once. Expert bias is a
+second-order concern that applies only after the first invocation.
+
+### Mapping to this workspace
+
+The Venture Crane gate is the best fit because it is **mechanical, not
+advisory** — matching the workspace's [[mechanical-enforcement-over-behavioral-reminder]]
+principle. The mapping:
+
+| Venture Crane concept | Workspace equivalent |
+|-----------------------|---------------------|
+| CI check at PR time | Stop hook or `/close` scanner gate |
+| `files_touched` names surface file | Tool-call receipt names the target file (e.g., AGENTS.md) |
+| Aliveness predicate (non-empty output) | Tool produced a diff/output on the target |
+| `vendor_docs` reads don't qualify | Reading the SKILL.md doesn't qualify as "ran the tool" |
+
+**Concrete implementation (candidate, not yet built):** a `/close` scanner
+gate — "tool-built-not-applied." When a session commits a new skill or modifies
+a skill that targets a specific file (e.g., `/maintain-ifile` → AGENTS.md), the
+scanner checks whether the skill was invoked on that target during the session.
+If not, the gate surfaces: "Skill `<name>` was committed but never run on its
+target `<file>`. Run it now, or hand off explicitly."
+
 ## Sources
 
 - `P:/.data/harvest/events/` — 4+ DONE-trigger recurrences over 7 days
@@ -208,6 +280,9 @@ This concept is wrong if:
 - `P:/.data/wiki/concepts/chronic-workspace-health-debt-inventory-2026-08-01.md` — workspace-state inventory
 - `P:/.data/wiki/concepts/structural-enforcement-for-skipped-rules-grok-build-2026.md` — chronicity threshold
 - `P:/.data/wiki/concepts/operator-correction-as-highest-density-signal.md` — detection signal
+- GitLab Definition of Done: https://docs.gitlab.com/development/definition_of_done/ (validated-in-production criterion)
+- Venture Crane "Done Means Wired" gate: https://venturecrane.com/log/2026-06-21-done-means-wired-gate/ (aliveness predicate)
+- NN/g "Dogfooding vs. QA vs. User Research": https://www.nngroup.com/articles/dogfooding/ (dogfooding limitation — expert bias, second-order)
 
 ## Auto-related
 
