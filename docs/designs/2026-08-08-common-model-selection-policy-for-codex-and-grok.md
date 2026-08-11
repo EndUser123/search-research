@@ -705,6 +705,114 @@ pool test is the certification mechanism for the calibration path: run the
 coding problems through the route's primary tool-carrying method and retain
 the resolved method, checker, trace, and sandbox identity.
 
+### Grok-side test runner — shared infrastructure (2026-08-11)
+
+The pool test infrastructure is Grok-owned Python that both orchestrators
+can invoke. Codex does NOT need to reimplement these — it can call the
+same scripts. This section documents the exact commands, shared modules,
+and normalization tables Codex needs.
+
+**Pool test commands:**
+
+```bash
+# Provider-wide discovery + probe + test (RECOMMENDED — tests all alive models)
+python ~/.grok/skills/model-benchmark/scripts/pool_test.py \
+  --provider nvidia --capability tool-loop --probe
+
+# Free-tier only (OpenRouter — filters by API pricing field, not :free label)
+python ~/.grok/skills/model-benchmark/scripts/pool_test.py \
+  --provider openrouter --free-only --capability tool-loop --probe
+
+# Single model (requires registry ID that matches config.toml slug)
+python ~/.grok/skills/model-benchmark/scripts/pool_test.py \
+  --model nvidia-nemotron-3-super-120b --capability reasoning
+
+# Method-specific (HTTP, PI, or opencode — for tool-evidence requirement)
+python ~/.grok/skills/model-benchmark/scripts/pool_test.py \
+  --provider nvidia --capability tool-loop --method pi --probe
+
+# Capability options: tool-loop (coding), reasoning, mechanical
+# Method options: http (default), pi (agent harness), opencode
+
+# Auto-promote models that pass the evidence threshold
+python ~/.grok/skills/model-quota/scripts/promote_models.py [--dry-run] [--verbose]
+```
+
+**Shared PI dispatch module** (`~/.grok/skills/model-quota/scripts/pi_dispatch.py`):
+
+Both orchestrators should use this module for PI-based dispatch. It
+absorbs binary resolution, provider mapping, transient-fail retry,
+telemetry logging, and concurrency tracking. Codex's own Pi bridge
+(`P:\packages\codex-external-delegation\src\commands.mjs`) may wrap this
+or replicate the interface contract:
+
+```python
+from pi_dispatch import dispatch
+result = dispatch(
+    prompt="...",
+    lane="critic",          # coding, reasoning, mechanical, critic
+    effort="medium",        # R5g effort level
+    max_retries=2,          # re-select different model on transient failure
+    timeout=600,            # PI needs more than HTTP (10 min)
+    model_override={"model": "glm-4.7", "provider": "z.ai"},  # force specific model
+)
+# result.success, result.content, result.model_used, result.retries, result.warnings
+```
+
+**Provider name normalization table** (telemetry ↔ registry mapping):
+
+| Provider in telemetry | Registry provider | Config.toml prefix | PI provider |
+|----------------------|-------------------|-------------------|-------------|
+| `nvidia` | `nvidia` / `nim` | `nvidia-` / `nim-` | `nvidia-nim` |
+| `z.ai` | `zai` | `glm-` | `zai` |
+| `openrouter` | `openrouter` / `or-` | `or-` | `openrouter` |
+| `cohere` | `cohere` | `cohere-` | `cohere` |
+| `minimax` | `minimax` | `minimax-` | `minimax` |
+| `opencode` | `opencode` / `zen` | `zen-` | `opencode` |
+
+Model names use dots in API/telemetry (`glm-4.7`) but dashes in registry
+IDs (`zai-glm-4-7`). The promotion script normalizes this; direct
+telemetry queries must account for it.
+
+**Concurrency limits per provider** (from `concurrency_probe.py`, 2026-08-11):
+
+| Provider | Cross-model ceiling | Shared pool? | Implication |
+|----------|-------------------|-------------|-------------|
+| MiniMax | 2 | Yes | Cap total parallel at 2 |
+| NVIDIA | 7 | Yes (high ceiling) | ~7 parallel OK |
+| ZAI | 7 | No | Full cross-model parallelism |
+| OpenRouter | 8 | No | Best for parallel dispatch |
+
+The concurrency gate (`concurrency_gate.py`) enforces these at spawn time.
+Codex's parallel worktree benchmark must respect these limits — exceeding
+them produces 429 cascades that corrupt evidence.
+
+**Test runner capabilities (3 suites × 3 methods):**
+
+| Capability | Problems | Scoring | Effort (R5g) | What it certifies |
+|-----------|----------|---------|-------------|-------------------|
+| `tool-loop` | 18 (HumanEval + harder) | Sandboxed execution | `medium` | Can write correct code |
+| `reasoning` | 8 (GSM8K + logic) | Exact-match answer | `high` | Can reason step-by-step |
+| `mechanical` | 8 (extraction + formatting) | Exact-match output | `low` | Can follow format instructions |
+
+**Evidence pipeline:**
+
+```
+pool_test.py → usage.db (telemetry)
+                          ↓
+promote_models.py → fleet-models.json (lifecycle updates)
+                          ↓
+pick_model.py → gate_results() (6 gates: capability, policy, lifecycle,
+                                  health, capacity, concurrency)
+                          ↓
+PreToolUse_spawn_model_gate.py → enforce at spawn time
+```
+
+**Promotion threshold:** 5 verified successes per lane. A model with
+18/18 tool-loop + 8/8 reasoning + 6/8 mechanical gets promoted to active
+for all 3 lanes automatically. Run `promote_models.py` after each test
+batch to update the registry.
+
 The safety rule is simple: a model with no qualifying tool-use measurement is
 excluded from tool traffic even when its general scores are excellent. A
 generalist cannot vouch for a capability that nobody measured under the
