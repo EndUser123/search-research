@@ -64,9 +64,26 @@ python pool_test.py --model nim-openai-gpt-oss-20b --capability mechanical --met
 
 nim-deepseek-ai-deepseek-v4-flash: mark lifecycle=retired (model gone).
 
-### nvidia (now 22 models) — TOOL-LOOP TESTED
+### nvidia (now 22 models) — TOOL-LOOP + REASONING TESTED
 
-Full API discovery + probe + 18-problem coding suite run against all alive models.
+Full API discovery + probe + 18-problem coding suite + 8-problem reasoning suite run against all alive models.
+Mechanical suite running now. Effort note: reasoning run completed pre-R5g-effort-conformance (effort=provider_default via HTTP).
+
+**Reasoning results (8 problems, 24 models tested, 19 promotable):**
+
+| Perfect (8/8) | Strong (7/8) | Moderate (5-6/8) | Failed (<5/8) |
+|---|---|---|---|
+| gemma-4-31b-it | deepseek-v4-flash-0731 | nemotron-super-49b-v1.5 (6) | nemotron-mini-4b (4) |
+| llama-3.1-70b-instruct | muse-glimmer-30b | laguna-xs-2.1 (6) | step-3.7-flash (4) |
+| llama-3.1-8b-instruct | nemotron-3-nano-omni-30b | inkling (6) | diffusiongemma (3) |
+| llama-3.2-11b-vision-instruct | nemotron-nano-12b-v2-vl | mistral-nemotron (5) | minimax-m3 (1) |
+| nemotron-3-nano-30b-a3b | z-ai/glm-5.2 | nemotron-nano-vl-8b (5) | |
+| nemotron-3-super-120b-a12b | | nemotron-super-49b-v1 (5) | |
+| nemotron-nano-9b-v2 | | | |
+| gpt-oss-120b | | | |
+| gpt-oss-20b | | | |
+
+**Tool-loop results (coding, 18 problems):**
 
 | Model | Score | In registry? | Notes |
 |---|---|---|---|
