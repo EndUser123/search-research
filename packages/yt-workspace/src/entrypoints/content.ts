@@ -118,11 +118,6 @@ export default defineContentScript({
     // If not explicitly opened, auto-open on watch pages
     if (!shouldOpen && settings.autoOpen && isYouTubeWatchPage()) {
       shouldOpen = true;
-      try {
-        await chrome.runtime.sendMessage({ type: "auto-open" });
-      } catch {
-        // Background might not be ready — mount anyway
-      }
     }
 
     if (shouldOpen && isYouTubeWatchPage()) {
@@ -133,13 +128,9 @@ export default defineContentScript({
       }
       mountResizer(handleResizeChange);
 
-      // Request acquisition — the background will send workspace-update
-      // with the VideoContext once MAIN-world eval completes
-      try {
-        await chrome.runtime.sendMessage({ type: "auto-open" });
-      } catch {
-        // If background fails, workspace stays in "Loading..." state
-      }
+      // Trigger acquisition via background (fire-and-forget —
+      // background will send workspace-update when VideoContext is ready)
+      chrome.runtime.sendMessage({ type: "acquire" }).catch(() => {});
     }
 
     document.addEventListener("yt-navigate-finish", () => {

@@ -43,8 +43,13 @@ export default defineBackground(() => {
     }
 
     if (message?.type === "auto-open" && sender.tab?.id) {
-      void handleAutoOpen(sender.tab.id).then(sendResponse);
-      return true;
+      void handleAutoOpen(sender.tab.id);
+      return false;
+    }
+
+    if (message?.type === "acquire" && sender.tab?.id) {
+      void handleAutoOpen(sender.tab.id);
+      return false;
     }
 
     return false;
