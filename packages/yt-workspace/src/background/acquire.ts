@@ -182,6 +182,7 @@ export async function acquireVideoContext(
     chapterSource: result.chapterSource,
     transcriptSource,
     contextVersion: 0,
+    description: result.description ?? null,
   };
 
   setAuthoritativeVideoId(tabId, ctx.videoId, ctx.url);

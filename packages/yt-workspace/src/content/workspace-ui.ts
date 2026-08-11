@@ -1,8 +1,8 @@
 /**
- * Workspace UI — element creation + chapter rendering.
+ * Workspace UI — element creation, tab switching, chapter rendering.
  *
- * All DOM construction uses createElement/textContent (YouTube enforces
- * Trusted Types — innerHTML is blocked).
+ * 5 tabs: Chapters | Overview | Ask | Transcript | Links
+ * All DOM construction uses createElement/textContent (Trusted Types).
  */
 
 import type { Chapter } from "../lib/video-context-store";
@@ -12,6 +12,10 @@ import {
   applyFontSize,
   type WorkspaceSettings,
 } from "./settings";
+import { renderOverview } from "./overview";
+import { renderAsk } from "./ask";
+import { renderTranscript, fetchTranscript } from "./transcript";
+import { renderLinks } from "./links";
 
 const WORKSPACE_ID = "__yt_workspace";
 
@@ -21,9 +25,134 @@ export interface VideoContextData {
   title: string;
   lengthSeconds: number;
   chapters: Chapter[];
+  captionTracks: Array<{
+    languageCode: string;
+    kind: string;
+    name: string;
+    baseUrl: string;
+  }>;
   chapterSource: string;
   transcriptSource: string;
   contextVersion: number;
+  description: string | null;
+}
+
+type TabName = "chapters" | "overview" | "ask" | "transcript" | "links";
+
+const TAB_LABELS: Array<{ name: TabName; label: string }> = [
+  { name: "chapters", label: "Chapters" },
+  { name: "overview", label: "Overview" },
+  { name: "ask", label: "Ask" },
+  { name: "transcript", label: "Transcript" },
+  { name: "links", label: "Links" },
+];
+
+let activeTab: TabName = "chapters";
+let currentCtx: VideoContextData | null = null;
+type TranscriptData = {
+  segments: Array<{ startMs: number; text: string }>;
+  trackLabel: string;
+};
+
+let transcriptData: TranscriptData | null = null;
+let transcriptFetchPromise: Promise<TranscriptData | null> | null = null;
+
+async function doFetchTranscript(
+  tracks: VideoContextData["captionTracks"],
+): Promise<TranscriptData | null> {
+  const data = await fetchTranscript(tracks as any);
+  transcriptData = data as TranscriptData | null;
+  transcriptFetchPromise = null;
+  return data as TranscriptData | null;
+}
+
+function switchTab(tabName: TabName, workspace: HTMLElement): void {
+  activeTab = tabName;
+
+  workspace.querySelectorAll(".ytws-tab").forEach((tabEl) => {
+    const tab = tabEl as HTMLElement;
+    const isActive = tab.dataset.tab === tabName;
+    tab.className = isActive
+      ? "ytws-tab ytws-tab-active"
+      : "ytws-tab ytws-tab-clickable";
+  });
+
+  const contentEl = workspace.querySelector('[data-field="tab-content"]');
+  if (!contentEl) return;
+
+  while (contentEl.firstChild) {
+    contentEl.removeChild(contentEl.firstChild);
+  }
+
+  const el = contentEl as HTMLElement;
+
+  switch (tabName) {
+    case "chapters":
+      renderChapters(el, currentCtx);
+      if (currentCtx && currentCtx.chapters.length > 0) {
+        attachSeekHandlers(workspace, currentCtx.chapters);
+      }
+      break;
+    case "overview":
+      renderOverview(el, {
+        description: currentCtx?.description ?? null,
+        chapters: currentCtx?.chapters ?? [],
+        title: currentCtx?.title ?? "(unknown)",
+      });
+      break;
+    case "ask":
+      renderAsk(el, transcriptData?.segments ?? null);
+      break;
+    case "transcript":
+      renderTranscript(el, transcriptData);
+      if (!transcriptData && currentCtx && currentCtx.captionTracks.length > 0) {
+        if (!transcriptFetchPromise) {
+          transcriptFetchPromise = doFetchTranscript(currentCtx.captionTracks);
+          transcriptFetchPromise.then((data) => {
+            if (activeTab === "transcript") {
+              renderTranscript(el, data);
+            }
+          });
+        }
+        const loading = document.createElement("div");
+        loading.className = "ytws-empty";
+        loading.textContent = "Loading transcript...";
+        el.appendChild(loading);
+      }
+      break;
+    case "links":
+      renderLinks(el, currentCtx?.description ?? null);
+      break;
+  }
+}
+
+function renderChapters(
+  el: HTMLElement,
+  ctx: VideoContextData | null,
+): void {
+  if (ctx && ctx.chapters.length > 0) {
+    for (const ch of ctx.chapters) {
+      const row = document.createElement("div");
+      row.className = "ytws-chapter-row";
+
+      const time = document.createElement("span");
+      time.textContent = ch.timeDisplay;
+      time.className = "ytws-chapter-time";
+      row.appendChild(time);
+
+      const title = document.createElement("span");
+      title.textContent = ch.title;
+      title.className = "ytws-chapter-title";
+      row.appendChild(title);
+
+      el.appendChild(row);
+    }
+  } else {
+    const empty = document.createElement("div");
+    empty.className = "ytws-empty";
+    empty.textContent = "No chapters found";
+    el.appendChild(empty);
+  }
 }
 
 export function createWorkspaceElement(
@@ -64,26 +193,25 @@ export function createWorkspaceElement(
 
   const tabsBar = document.createElement("div");
   tabsBar.className = "ytws-tabs";
-  const tabNames = ["Chapters", "Overview", "Ask", "Transcript", "Links"];
-  for (const name of tabNames) {
-    const tab = document.createElement("span");
-    tab.textContent = name;
-    const isChapters = name === "Chapters";
-    tab.className = isChapters
-      ? "ytws-tab ytws-tab-active"
-      : "ytws-tab ytws-tab-disabled";
-    if (!isChapters) {
-      tab.title = "Coming soon";
-    }
-    tabsBar.appendChild(tab);
+  for (const tab of TAB_LABELS) {
+    const tabEl = document.createElement("span");
+    tabEl.textContent = tab.label;
+    tabEl.dataset.tab = tab.name;
+    tabEl.className =
+      tab.name === "chapters"
+        ? "ytws-tab ytws-tab-active"
+        : "ytws-tab ytws-tab-clickable";
+    tabEl.addEventListener("click", () => {
+      switchTab(tab.name, el);
+    });
+    tabsBar.appendChild(tabEl);
   }
   el.appendChild(tabsBar);
 
-  const chaptersEl = document.createElement("div");
-  chaptersEl.dataset.field = "chapters";
-  chaptersEl.textContent = "Loading chapters...";
-  chaptersEl.className = "ytws-chapters";
-  el.appendChild(chaptersEl);
+  const contentEl = document.createElement("div");
+  contentEl.dataset.field = "tab-content";
+  contentEl.className = "ytws-tab-content";
+  el.appendChild(contentEl);
 
   return el;
 }
@@ -92,6 +220,10 @@ export function renderVideoContext(
   workspace: HTMLElement,
   ctx: VideoContextData | null,
 ): void {
+  currentCtx = ctx;
+  transcriptData = null;
+  transcriptFetchPromise = null;
+
   const videoIdEl = workspace.querySelector('[data-field="video-id"]');
   if (videoIdEl) {
     videoIdEl.textContent = `videoId: ${ctx?.videoId ?? "unknown"}`;
@@ -112,36 +244,7 @@ export function renderVideoContext(
     }
   }
 
-  const chaptersEl = workspace.querySelector('[data-field="chapters"]');
-  if (chaptersEl) {
-    while (chaptersEl.firstChild) {
-      chaptersEl.removeChild(chaptersEl.firstChild);
-    }
-    if (ctx && ctx.chapters.length > 0) {
-      for (const ch of ctx.chapters) {
-        const row = document.createElement("div");
-        row.className = "ytws-chapter-row";
-
-        const time = document.createElement("span");
-        time.textContent = ch.timeDisplay;
-        time.className = "ytws-chapter-time";
-        row.appendChild(time);
-
-        const chapterTitle = document.createElement("span");
-        chapterTitle.textContent = ch.title;
-        chapterTitle.className = "ytws-chapter-title";
-        row.appendChild(chapterTitle);
-
-        chaptersEl.appendChild(row);
-      }
-      attachSeekHandlers(workspace, ctx.chapters);
-    } else {
-      const empty = document.createElement("div");
-      empty.textContent = "No chapters found";
-      empty.className = "ytws-empty";
-      chaptersEl.appendChild(empty);
-    }
-  }
+  switchTab(activeTab, workspace);
 }
 
 export function mountWorkspace(

@@ -33,6 +33,7 @@ export interface VideoContext {
   chapterSource: ChapterSource;
   transcriptSource: TranscriptSource;
   contextVersion: number;
+  description: string | null;
 }
 
 export interface CaptionTrack {
