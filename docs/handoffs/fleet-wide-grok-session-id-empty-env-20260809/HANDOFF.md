@@ -43,6 +43,7 @@ passes `$env:GROK_SESSION_ID` (empty) instead of the literal.
 
 | Skill | File | Pattern |
 |-------|------|---------|
+| **scripts (global)** | `scripts/verification_receipt.py` | **`getenv("GROK_SESSION_ID")` with filesystem fallback — resolves to sibling session IDs, breaking Stop-hook review gate (verified 2026-08-10). This is agent-invoked: add `--session` arg.** |
 | handoff | __lib/verify_handoff.py:251 | `getenv("GROK_SESSION_ID", "unknown")` |
 | handoff | __lib/migrate_handoff.py:38 | `getenv("GROK_SESSION_ID")` |
 | handoff | __lib/list_handoffs.py:42 | `getenv("GROK_SESSION_ID")` |

@@ -95,6 +95,25 @@ If the answer to #2 is "yes" and #3 is "yes," the discovery mechanism is
 unnecessary. Build the parameter path; keep a minimal fallback for the
 edge case where the caller genuinely lacks the data.
 
+## Agent-invoked vs hook-invoked tools (critical distinction)
+
+The "pass it as a parameter" fix applies differently depending on who
+calls the tool:
+
+| Caller type | How to pass session ID | Why |
+|-------------|----------------------|-----|
+| **Agent-invoked** (CLI script run by LLM agent) | `--session <id>` CLI arg | The agent has the session ID in context and follows instructions to pass it |
+| **Hook-invoked** (script run by hook event system) | Read `sessionId` from stdin JSON payload | No agent in the call chain — hooks receive `{"sessionId": "019f...", ...}` in their stdin payload |
+
+**Anti-pattern to avoid:** adding `--session` args to hook-invoked scripts.
+Nobody passes them — hooks don't have a CLI invocation with arguments.
+The session ID is in the event payload, not the command line.
+
+When applying the fleet-wide fix to tools that use `os.environ.get("GROK_SESSION_ID")`:
+1. Check if the tool is agent-invoked or hook-invoked
+2. Agent-invoked → add `--session` arg, agent passes literal
+3. Hook-invoked → read from stdin JSON payload `data.get("sessionId")`
+
 ## Relationship to other patterns
 
 - [[solution-unit-validation-before-build]]: the unit-test sub-check asks
