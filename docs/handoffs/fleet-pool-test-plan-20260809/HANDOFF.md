@@ -213,7 +213,31 @@ Note: OpenRouter free-tier 429 throttling inflated failure rates. Models scoring
 | `openrouter/free` | 5/8 (0.62) | Routing model — not a real reasoner |
 | `nvidia/nemotron-nano-12b-v2-vl:free` | 4/8 (0.50) | Not promotable |
 
-**Mechanical tests:** running.
+**Mechanical results (8 problems, 10 models):**
+
+| Model | Score | Notes |
+|---|---|---|
+| `nvidia/nemotron-3-super-120b-a12b:free` | 7/8 (0.88) | Top mechanical |
+| `poolside/laguna-s.2.1:free` | 6/8 (0.75) | |
+| `poolside/laguna-xs.2.1:free` | 6/8 (0.75) | |
+| `cohere/north-mini-code:free` | 6/8 (0.75) | |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | 6/8 (0.75) | |
+| `openrouter/free` | 6/8 (0.75) | Routing model |
+| `nvidia/nemotron-3-nano-30b-a3b:free` | 6/8 (0.75) | |
+| `nvidia/nemotron-nano-9b-v2:free` | 6/8 (0.75) | |
+| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` | 4/8 (0.50) | Not promotable |
+| `nvidia/nemotron-nano-12b-v2-vl:free` | 3/8 (0.38) | Not promotable |
+
+**3-capability matrix — OpenRouter free-tier elite:**
+
+| Model | Tool-loop | Reasoning | Mechanical | Verdict |
+|---|---|---|---|---|
+| `cohere/north-mini-code:free` | **18/18** | **8/8** | 6/8 | **Elite — triple-perfect** |
+| `nvidia/nemotron-3-super-120b-a12b:free` | **18/18** | **8/8** | **7/8** | **Elite — top all-rounder** |
+| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` | **18/18** | **8/8** | 4/8 | Elite coder+reasoner |
+| `nvidia/nemotron-3-nano-30b-a3b:free` | 17/18 | **8/8** | 6/8 | Near-elite |
+| `nvidia/nemotron-nano-9b-v2:free` | 15/18 | **8/8** | 6/8 | Strong |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | 14/18 | **8/8** | 6/8 | Strong |
 
 **Concurrency:** ceiling=8, no shared pool. Full cross-model parallelism on free-tier.
 
