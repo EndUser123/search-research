@@ -66,6 +66,18 @@ the fix it was trying to provide).
 
 ## How to catch it before building
 
+**Root cause (generative mechanism):** the bias is defensive-by-default
+toward callers — "I cannot trust callers to have the right context, so I
+will build environment calibration." This is a trust-model assumption, not
+a tool-selection problem. The agent assumes the caller is unreliable
+(which is true for human callers) but the actual caller is an LLM agent
+that follows instructions and has authoritative context.
+
+**Detection gate:** before building any "discover X from environment"
+mechanism, grep the call chain for the parameter name. If the value is
+available at the caller (in the agent's context, in the session path, in
+prior tool outputs), pass it as a parameter — do not build discovery.
+
 Before building any discovery/propagation mechanism, ask:
 
 1. **Who is the caller?** If the caller is an LLM agent, it has context.

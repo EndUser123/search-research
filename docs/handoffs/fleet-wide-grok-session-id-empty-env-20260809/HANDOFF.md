@@ -125,6 +125,28 @@ Keeping dead guards is the same class as `[[invariants-beat-environment-comfort]
 
 - Fix applied this session: `/todo` scanner (`scan_functions.py` + resolvers)
 - Wiki: [[caller-context-as-parameter-not-callee-discovery]]
+- Wiki: [[fallback-paths-defeat-primary-fix-silent-undermining]] — the C-1
+  pattern (fallback to global sessions_root defeats workspace scoping)
 - Wiki: [[multi-terminal-isolation-stale-data-immunity]]
 - Existing resolver: `C:/Users/brsth/.grok/hooks/scripts/session_resolver.py`
   (has the resolution chain but doesn't get the literal-first path right)
+- Full `/review` findings: `P:/.artifacts/console_627ecc81-a113-444b-a745-4ff510d4da72/grok-review/full-session-scope/20260810-185819/findings.json`
+  — C-1 (HIGH: cross-workspace fallback), C-2 (stderr-only warning), C-3 (DRY
+  duplication), C-4 (quality scanners not migrated), C-5/C-6 (low-severity).
+  All tracked here as part of the batch fix.
+
+## /todo fix as reference implementation
+
+The `/todo` skill is the reference implementation for the fleet-wide fix.
+Key files and patterns:
+
+| What | Where | Pattern |
+|------|-------|---------|
+| `--session` CLI arg | `scan_functions.py:55-62` | Agent passes literal UUID |
+| `set_session_id()` propagation | `scanners/__init__.py:95-100` | Set on both resolver modules before scanner loop |
+| `_require_sid()` fail-closed | `scanners/transcript_scanners.py:49-64` | All session-scoped scanners must use this |
+| `_filesystem_sid()` workspace filter | `scanners/common.py:84-119` | Encoded-cwd filter + 120s recency gate |
+| **Known issue (C-1)** | `scanners/common.py:88-90` | Fallback to `sessions_root` when workspace_dir missing — must be `return None` (fail-closed) |
+
+When implementing the batch fix for other skills, use this reference but
+fix C-1 (change `else sessions_root` to `return None`).
