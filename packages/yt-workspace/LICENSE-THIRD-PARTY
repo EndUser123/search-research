@@ -1,0 +1,44 @@
+# Third-Party Licenses
+
+## steipete/summarize
+
+- **License:** MIT
+- **Copyright:** Copyright (c) 2026 Peter Steinberger
+- **Source:** https://github.com/steipete/summarize
+- **Usage:** The following files are adapted from `apps/chrome-extension/src/`:
+  - `src/lib/youtube-page-transcript.ts` (MAIN-world bridge pattern)
+  - `src/lib/seek.ts` (dual-path seek helper)
+  - `src/lib/settings.ts` (settings pattern)
+  - `src/lib/panel-contracts.ts` (contract patterns)
+  - `src/background/panel-session-store.ts` (cache invalidation pattern)
+  - `src/background/extract-cache.ts` (cached extract)
+  - `src/background/panel-cache-runtime.ts` (panel cache)
+  - `src/background/panel-state.ts` (UI-state resolver)
+  - `src/background/panel-message-router.ts` (message routing)
+  - `src/background/panel-runtime.ts` (panel runtime)
+  - `src/background/content-script-bridge.ts` (MAIN-world bridge)
+  - `src/background/youtube-transcript.ts` (transcript orchestrator)
+  - `src/background/listeners.ts` (SPA navigation + tab events)
+
+  All files are adapted: automation/hover/slides/daemon paths stripped.
+  Fresh UI architecture built on top — the Summarize sidepanel UI is NOT used.
+
+## MIT License Text
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -1,0 +1,18 @@
+{
+  "name": "yt-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "YouTube workspace sidebar extension — Chapters | Overview | Ask | Transcript | Links",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "wxt": "^0.21.3",
+    "typescript": "^6.0.3",
+    "@types/chrome": "^0.2.5"
+  }
+}
