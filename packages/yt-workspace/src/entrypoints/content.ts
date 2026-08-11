@@ -58,19 +58,6 @@ function isYouTubeWatchPage(): boolean {
   }
 }
 
-async function ensureWorkspaceMounted(
-  settings: WorkspaceSettings,
-  resizePct: number | null,
-  ctx: any | null,
-): Promise<void> {
-  if (getWorkspaceElement()) return;
-  mountWorkspace(ctx, settings, (s) => void saveSettings(s));
-  if (resizePct !== null) {
-    applyResize(resizePct);
-  }
-  mountResizer((pct) => void saveResizePreference(pct));
-}
-
 export default defineContentScript({
   matches: ["*://*.youtube.com/*"],
   runAt: "document_idle",
@@ -88,45 +75,19 @@ export default defineContentScript({
       void saveResizePreference(pct);
     };
 
-    // Auto-open or restore prior workspace state
-    let shouldOpen = false;
-    let initialCtx = null;
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: "query-workspace-state",
-      });
-      if (response?.open) {
-        shouldOpen = true;
-        initialCtx = response.videoContext ?? null;
-      }
-    } catch {
-      // Background might not be ready
-    }
-
-    // If not explicitly opened, check autoOpen setting
-    if (!shouldOpen && settings.autoOpen && isYouTubeWatchPage()) {
-      shouldOpen = true;
-      // Trigger acquisition via background so VideoContext gets populated
-      try {
-        await chrome.runtime.sendMessage({ type: "auto-open" });
-      } catch {
-        // proceed — workspace mounts without VideoContext, will update later
-      }
-    }
-
-    if (shouldOpen) {
-      await ensureWorkspaceMounted(settings, resizePct, initialCtx);
-    }
-
+    // Register message listener FIRST so we don't miss workspace-update
     chrome.runtime.onMessage.addListener((message) => {
       if (message?.type === "workspace-toggle") {
         if (message.open) {
-          ensureWorkspaceMounted(
-            settings,
-            resizePct,
+          mountWorkspace(
             message.videoContext ?? null,
+            settings,
+            handleSettingsChange,
           );
+          if (resizePct !== null) {
+            applyResize(resizePct);
+          }
+          mountResizer(handleResizeChange);
         } else {
           detachWorkspace();
           clearResize();
@@ -139,6 +100,47 @@ export default defineContentScript({
       }
       return false;
     });
+
+    // Determine whether workspace should be open
+    let shouldOpen = false;
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: "query-workspace-state",
+      });
+      if (response?.open) {
+        shouldOpen = true;
+      }
+    } catch {
+      // Background might not be ready yet
+    }
+
+    // If not explicitly opened, auto-open on watch pages
+    if (!shouldOpen && settings.autoOpen && isYouTubeWatchPage()) {
+      shouldOpen = true;
+      try {
+        await chrome.runtime.sendMessage({ type: "auto-open" });
+      } catch {
+        // Background might not be ready — mount anyway
+      }
+    }
+
+    if (shouldOpen && isYouTubeWatchPage()) {
+      // Mount the workspace immediately (shows "Loading...")
+      mountWorkspace(null, settings, handleSettingsChange);
+      if (resizePct !== null) {
+        applyResize(resizePct);
+      }
+      mountResizer(handleResizeChange);
+
+      // Request acquisition — the background will send workspace-update
+      // with the VideoContext once MAIN-world eval completes
+      try {
+        await chrome.runtime.sendMessage({ type: "auto-open" });
+      } catch {
+        // If background fails, workspace stays in "Loading..." state
+      }
+    }
 
     document.addEventListener("yt-navigate-finish", () => {
       chrome.runtime
