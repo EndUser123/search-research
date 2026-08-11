@@ -10,6 +10,7 @@ import {
   handleNavigationMessage,
   handleTabClosed,
   handleSeekRequest,
+  handleQueryWorkspaceState,
 } from "../background/service-worker";
 
 export default defineBackground(() => {
@@ -32,7 +33,12 @@ export default defineBackground(() => {
         sender.tab.id,
         message.seconds as number,
       ).then(sendResponse);
-      return true; // keep channel open for async response
+      return true;
+    }
+
+    if (message?.type === "query-workspace-state" && sender.tab?.id) {
+      void handleQueryWorkspaceState(sender.tab.id).then(sendResponse);
+      return true;
     }
 
     return false;

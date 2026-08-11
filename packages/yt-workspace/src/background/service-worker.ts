@@ -13,6 +13,7 @@ import {
   setAuthoritativeVideoId,
   clearTabState,
   getLastAccepted,
+  readPersistedContext,
   type VideoContext,
 } from "../lib/video-context-store";
 
@@ -189,6 +190,16 @@ export function handleTabClosed(tabId: number): void {
   clearTabState(tabId);
   chrome.storage.session.remove(`workspace-open-${tabId}`).catch(() => {});
   chrome.storage.local.remove(`videoContext-${tabId}`).catch(() => {});
+}
+
+export async function handleQueryWorkspaceState(
+  tabId: number,
+): Promise<{ open: boolean; videoContext: VideoContext | null }> {
+  const key = `workspace-open-${tabId}`;
+  const stored = await chrome.storage.session.get(key);
+  const open = stored[key] === true;
+  const videoContext = open ? await readPersistedContext(tabId) : null;
+  return { open, videoContext };
 }
 
 export { getLastAccepted, type VideoContext };
