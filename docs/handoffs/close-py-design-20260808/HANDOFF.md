@@ -1,7 +1,7 @@
 # HANDOFF: close-py design — Python-orchestrated session close
 
 ## Status
-OPEN — design needed
+CLOSED — v1.0 implemented (session 019fee3d, commit b6434f8)
 
 ## Objective
 Design close-py: a Python-orchestrated session close skill analogous to ship-py for publish-readiness. The operator stated this is planned.
@@ -55,3 +55,39 @@ Design close-py: a Python-orchestrated session close skill analogous to ship-py 
 **Status update:** unchanged — OPEN, design still needed. The blocking tooling issue is resolved; the design phase can proceed.
 
 **New open items:** none beyond the original acceptance criteria.
+
+---
+
+## Revision 2 — 2026-08-10T20:00:00Z (session 019fee3d)
+
+**Trigger:** operator directed "we are going to create close-py based on the pattern in ship-py."
+
+**What changed since Revision 1:**
+- close-py v1.0 built and committed (`b6434f8` on ~/.grok main)
+- 8-phase pipeline implemented: detect → scan → resolve(pause) → coverage → handoff-resolve(pause) → git-state → accounting(pause) → verdict
+- Anti-fabrication architecture ported from ship-py: tamper-evident transition chain, inter-phase gates, mechanical verdict derivation (CLOSE COMPLETE / CLOSE INCOMPLETE)
+- Consumes ship-py verdict as optional signal (design decision: optional, not required)
+- Imports /close's `__lib__` scanners as dispatch targets (close_accounting, continuation_coverage)
+- 20 tests passing (state management, chain validation, phase gates, verdict derivation, receipt validation)
+- ruff clean, CLI verified (--help, detect --help, registry builds correctly)
+
+**Design decisions (operator-confirmed):**
+- Coexist with /close (not replace) — both import the same /close scanners
+- ship-py verdict is optional signal (not required when code changed)
+- Duplicate anti-fabrication patterns for v1 (shared `__lib/__anti_fabrication__` module deferred until close-py proves the pattern)
+
+**Files created (18 total, 2994 lines):**
+- `~/.grok/skills/close-py/SKILL.md` — skill definition with frontmatter, phase docs, gate matrix
+- `~/.grok/skills/close-py/__lib/close_orchestrator.py` — CLI entry point with 10 subcommands
+- `~/.grok/skills/close-py/__lib/close_receipt.py` — mechanical verification (validate_close_py_state, generate_receipt)
+- `~/.grok/skills/close-py/__lib/phases/_shared.py` — state, gate, tamper-evident chain, session isolation
+- `~/.grok/skills/close-py/__lib/phases/_registry.py` — PhaseSpec declarations (single source of truth)
+- `~/.grok/skills/close-py/__lib/phases/{detect,scan,resolve,coverage,handoff_resolve,git_state,accounting,verdict,abort,run_all}.py`
+- `~/.grok/skills/close-py/tests/{conftest,test_state_and_chain,test_verdict}.py`
+
+**Status update:** CLOSED — implementation complete. The design questions from the original handoff are answered by the v1.0 implementation.
+
+**Remaining work (deferred to future sessions):**
+- Integration test end-to-end on a real session (detect → run-all → verdict on live evidence)
+- Shared anti-fabrication module extraction (when ship-py + close-py pattern is proven)
+- Stop hook integration (quality_gates frontmatter declared, hook not yet wired)
