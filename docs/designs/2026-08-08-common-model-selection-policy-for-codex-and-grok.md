@@ -742,6 +742,25 @@ python promote_models.py [--dry-run] [--verbose]
 model only (single-model `--model` mode). Do NOT skip capabilities or
 methods — HTTP coding success does not certify PI reasoning capability.
 
+**PI prompt dispatch (critical, verified 2026-08-11):** PI truncates
+multi-line positional arguments to the first line. Prompts MUST be passed
+via stdin (`input=prompt` in subprocess.run). The shared `pi_dispatch.py`
+module handles this automatically. Passing prompts as positional arguments
+produces 0/18 false negatives on ALL models. See
+`[[tool-evidence-gap-http-vs-agent-harness]]` for the full incident.
+
+**Context window data:** NVIDIA, ZAI, and MiniMax APIs return bare model
+objects without context_length metadata. Only OpenRouter exposes this.
+Verified context windows from official documentation are stored in
+`fleet-models.json`:
+
+| Provider | Context range | Source |
+|----------|-------------|--------|
+| NVIDIA | 8K–1M | docs.api.nvidia.com |
+| ZAI | 131K–1M | docs.z.ai |
+| MiniMax | 204K–1M | platform.minimax.io |
+| OpenRouter | from API | `/v1/models` response |
+
 ### Grok-side test runner — shared infrastructure (2026-08-11)
 
 The pool test infrastructure is Grok-owned Python that both orchestrators
