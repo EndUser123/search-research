@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "version": "3.3.2",
+    "version": "3.3.3",
     "updated": "2026-08-10",
     "description": "Single source of truth for directory structure policy - RESTORED & OPTIMIZED",
     "enforced_by": [
@@ -356,6 +356,12 @@
           "pattern": "*.description",
           "reason": "Description file debris",
           "action": "DELETE"
+        },
+        {
+          "pattern": "tests",
+          "reason": "Tests belong co-located with source (tools/<project>/tests/) or in .claude/hooks/tests/ for hook tests — not at workspace root",
+          "action": "RELOCATE",
+          "suggested_location": "tools/<project>/tests/"
         }
       ]
     }
