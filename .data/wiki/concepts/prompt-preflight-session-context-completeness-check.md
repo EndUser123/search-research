@@ -16,7 +16,9 @@ summary: >
 agent: grok
 host: grok
 cognitive_load: 2
-verification: inferred
+verification: implementation-verified
+last_re_verified: 2026-08-11
+verification_state: tp-dispatch-implemented; multi-skill-adoption-pending
 relations:
   - target: wiki/concepts/self-reflection-in-llms-fails-without-external-evidence.md
     type: related — the distinction between epistemic reflection (fails) and procedural verification (works) is why this pattern works
@@ -122,3 +124,35 @@ exists to prevent).
 2. **Always run** — the cost (~5-10 seconds) is negligible; the cost of a missing fact (a revision round, 5-10 minutes) dwarfs it. No gate condition needed.
 3. The operator decides whether to use the enhanced prompt — the check suggests, doesn't override
 4. The pattern is a structural instance of the procedural-verification principle documented across three session wiki concepts — same underlying mechanism, different application domain
+
+## Re-verification 2026-08-11 (epistemic debt re-audit)
+
+**Audit trigger:** Concept flagged with epistemic debt 0.52 in the cross-concept re-verification sweep (2026-08-11). Verification was `inferred` at creation (2026-07-30) based on the procedural-verification research anchor + a worked example.
+
+**What changed since creation:**
+
+1. **`tp_dispatch.py --mode spawn` shipped (2026-08-05+).** `~/.grok/skills/tp/__lib/tp_dispatch.py` (34KB) implements `pack_context_spawn()` (line 532) which produces the compact ~500-800 token context bundle. The script header and code comments directly cite this pattern: *"Used by spawn mode: the spawned agent has tools and can read full diffs via run_terminal_command. The stat gives it the shape of changes without burning prompt tokens on full diff content."* Initial commit: `23daac9 tp_dispatch: add --mode spawn + f-string fix + 7 unit tests`.
+
+2. **`/tp` SKILL.md Step 1 (line 1174-1194) makes the bundle mandatory.** The mechanical pre-pack call (`python ... tp_dispatch.py --mode spawn ...`) replaces the previous prose instruction "extract ~500 tokens" that was skipped under closure pressure (observed 2026-07-23: agent spawned a /tp critique agent with a bare text prompt, 57 tool calls, 10+ minutes wasted).
+
+3. **Active maintenance commits since initial implementation:**
+   - `f496e8b Fix 4 bugs found by parallel /tp self-review (spawn + codex lenses)`
+   - `58c73e6 tp_dispatch: anchor-based section replacement + terminal-scoped output + tests (#1, #3, #5)`
+   - `5d2cfef tp_dispatch: structural fix — replace tool-access section for CLI dispatch`
+   - `2c81495 tp_dispatch: add quota constraint preamble for CLI dispatch (agy/codex)`
+   - `3ed2fbf tp_dispatch: session-scoped dispatch artifacts prevent mid-session deletion`
+
+4. **Bundles used across multiple /tp invocations.** tp_dispatch.py produces spawn bundles for /tp's default 3-lens parallel panel (spawn + codex + agy). Per tp SKILL.md line 1411: "Pass the prior finding to the subagent's context bundle — it should verify or disconfirm against current evidence, NOT re-derive from scratch." The bundle is the spawn prompt substrate.
+
+5. **Session-scoped dispatch artifacts (2026-08-08).** `P:/tmp/tp-dispatch-<session-id>/MANIFEST.jsonl` now tracks each artifact, preventing the mid-session deletion failure mode (session 019fe3ff, 2026-08-08). The structural fix is enforced, not just described.
+
+**Debt assessment:** Original debt 0.52 with verification: inferred (procedural-verification anchor + 1 worked example). The pattern has been **implemented, tested, deployed, and actively maintained** — but **only for /tp spawn dispatch**. Multi-skill generalization (`/design`, `/plan`, `/go`, `/handoff`, `/refine`) listed in § "Where it applies" has NOT yet shipped adapters. New assessment: **~0.30**. Verification upgraded from `inferred` → `implementation-verified` (precise label: validated for one deployment, not yet generalized).
+
+**Action taken:** Frontmatter `verification` updated from `inferred` to `implementation-verified`. Added `last_re_verified: 2026-08-11` and `verification_state: tp-dispatch-implemented; multi-skill-adoption-pending`.
+
+**Specific evidence still needed to drop debt below 0.15:**
+- Adapter implementations for `/design` writer dispatch, `/plan` planner dispatch, `/go` implementer dispatch, `/handoff` writer dispatch (each requires its own context-packaging logic — /tp's spawn mode may not transfer directly to CLI-only dispatch like /agy)
+- A measurement of "facts caught by preflight that would have been missed" across N≥10 dispatches (currently we know the pattern works, not how often it catches things)
+- A falsifier check: at least one dispatch where the preflight found >0 missing facts (would confirm the pattern's value vs. always returning empty)
+
+**Companion concept re-audit recommended:** `[[self-reflection-in-llms-fails-without-external-evidence]]` is the procedural-verification anchor this concept extends; its evidence base (Huang et al. ICLR 2024, Chain-of-Verification 2024) is more durable and should already be `multi-source-verified`. Re-verify in same sweep if not already at low debt.

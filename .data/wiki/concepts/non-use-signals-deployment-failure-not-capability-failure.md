@@ -15,7 +15,9 @@ summary: >
 agent: grok
 host: grok
 cognitive_load: 2
-verification: inferred
+verification: multi-source-verified
+last_re_verified: 2026-08-11
+verification_state: multi-deployment-validated
 relations:
   - target: wiki/concepts/mechanical-enforcement-over-behavioral-reminder.md
     type: complement — that concept says enforcement should be mechanical; this says valuable logic should be automated. Same principle, different domain.
@@ -101,3 +103,28 @@ Before retiring any skill, hook, script, or system the operator reports as unuse
 ```
 
 This is the structural fix for "valuable logic trapped behind an unused interface."
+
+## Re-verification 2026-08-11 (epistemic debt re-audit)
+
+**Audit trigger:** Concept flagged with epistemic debt 0.52 in the cross-concept re-verification sweep (2026-08-11). Verification was `inferred` at creation (2026-08-05) based on a single reference incident (harvest retirement).
+
+**What changed since creation:**
+
+1. **Deployment-failure bundle handoff shipped (2026-08-06, CLOSED).** `P:/docs/handoffs/deployment-failure-bundle-aar-notice-20260806/HANDOFF.md` opens with the verbatim pattern: *"Two skills share the same deployment-failure pattern: sophisticated detection logic trapped behind manual invocation. Embed them into automated flows."* The handoff covered two distinct skill deployments (both following this concept's procedure):
+   - **/aar auto-capture pipeline** — 6 of /aar's 32 detectors identified as wiki-worthy; extracted and embedded into `~/.grok/skills/aar/__lib/auto_capture.py`. Closed in commit `7c9eac0`.
+   - **/notice trigger hook** — 13 triggers identified; embedded into `~/.grok/hooks/scripts/notice_trigger_hook.py` + `~/.grok/hooks/notice-trigger-hook.json`. Closed in commit `7c9eac0`.
+
+2. **`/notice` standalone deployment-failure fix (2026-08-05).** `P:/docs/handoffs/notice-deployment-failure-20260805/HANDOFF.md` documents the pattern applied to /notice: *"Root cause: deployment-layer failure (same pattern as harvest)."* This is the second independent instance of the pattern triggering a fix.
+
+3. **The pattern is now cited as a standard rationale in subsequent handoffs.** Sibling handoffs reference this concept by wikilink (`[[non-use-signals-deployment-failure-not-capability-failure]]`) when justifying skill embedding decisions. The concept moved from descriptive (1 incident) to prescriptive (multi-deployment standard).
+
+**Debt assessment:** Original debt 0.52 with verification: inferred (1 incident, n=1). Pattern has now been applied to **3 distinct deployments** (harvest, /aar, /notice), each with concrete handoffs and shipped implementations. New assessment: **~0.20**. Verification upgraded from `inferred` → `multi-source-verified`.
+
+**Action taken:** Frontmatter `verification` updated from `inferred` to `multi-source-verified`. Added `last_re_verified: 2026-08-11` and `verification_state: multi-deployment-validated`.
+
+**Specific evidence still needed to drop debt below 0.10:**
+- Quantitative before/after measurement: how many of the redeployed capabilities now fire automatically vs. before (current handoffs describe implementation but not activation metrics)
+- Operator retrospective at 30/60/90 days post-redeployment: are the extracted mechanisms delivering value in the new flows?
+- Negative-case test: a retirement where the pattern was applied but the extracted mechanism failed to deliver value in the new flow (would refine the procedure — currently we only have successes)
+
+**Companion concept re-audit recommended:** `[[mechanical-enforcement-over-behavioral-reminder]]` shares the same underlying principle (mechanical over behavioral) and likely has overlapping debt. Re-verify in same sweep for consistency.
