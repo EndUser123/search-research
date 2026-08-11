@@ -157,6 +157,16 @@ export default defineContentScript({
         .sendMessage({ type: "yt-navigate-finish", url: location.href })
         .catch(() => {});
 
+      // If we navigated away from a watch page, clean up the workspace
+      if (!isYouTubeWatchPage()) {
+        if (workspaceMounted) {
+          detachWorkspace();
+          clearResize();
+          workspaceMounted = false;
+        }
+        return;
+      }
+
       // Reset and re-mount if needed
       workspaceMounted = false;
       mountIfNeeded();

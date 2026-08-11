@@ -252,11 +252,8 @@ export function mountWorkspace(
   settings: WorkspaceSettings,
   onSettingsChange: (s: WorkspaceSettings) => void,
 ): void {
-  const existing = document.querySelectorAll(`#${WORKSPACE_ID}`);
-  if (existing.length > 1) {
-    existing[1]?.remove();
-  }
-  if (existing.length === 1) {
+  // Use getElementById (live) instead of querySelectorAll (static NodeList)
+  if (document.getElementById(WORKSPACE_ID)) {
     return;
   }
   const url = new URL(location.href);
@@ -265,8 +262,41 @@ export function mountWorkspace(
   const secondary = document.querySelector("#secondary");
   if (secondary) {
     secondary.prepend(workspace);
-    renderVideoContext(workspace, ctx);
+    // Pass the URL-derived videoId as fallback so we don't flash "unknown"
+    renderVideoContextWithFallback(workspace, ctx, videoId);
   }
+}
+
+function renderVideoContextWithFallback(
+  workspace: HTMLElement,
+  ctx: VideoContextData | null,
+  fallbackVideoId: string,
+): void {
+  currentCtx = ctx;
+  transcriptData = null;
+  transcriptFetchPromise = null;
+
+  const videoIdEl = workspace.querySelector('[data-field="video-id"]');
+  if (videoIdEl) {
+    videoIdEl.textContent = `videoId: ${ctx?.videoId ?? fallbackVideoId}`;
+  }
+
+  const provenanceEl = workspace.querySelector('[data-field="provenance"]');
+  if (provenanceEl) {
+    if (ctx) {
+      const parts = [
+        `chapterSource: ${ctx.chapterSource}`,
+        `transcriptSource: ${ctx.transcriptSource}`,
+        `v${ctx.contextVersion}`,
+        `${ctx.chapters.length} chapters`,
+      ];
+      provenanceEl.textContent = parts.join(" | ");
+    } else {
+      provenanceEl.textContent = "Loading...";
+    }
+  }
+
+  switchTab(activeTab, workspace);
 }
 
 export function detachWorkspace(): void {

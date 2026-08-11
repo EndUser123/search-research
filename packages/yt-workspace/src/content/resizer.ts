@@ -7,10 +7,14 @@
  */
 
 const STORAGE_KEY = "ytws-primary-width-pct";
-const DEFAULT_PCT = 64; // YouTube default: primary is ~64% width
+const DEFAULT_PCT = 64;
 const MIN_PCT = 30;
 const MAX_PCT = 80;
 const HANDLE_ID = "__yt_workspace_resizer";
+
+// Store listener references for cleanup
+let mousemoveHandler: ((e: MouseEvent) => void) | null = null;
+let mouseupHandler: (() => void) | null = null;
 
 export async function loadResizePreference(): Promise<number | null> {
   const result = await chrome.storage.local.get(STORAGE_KEY);
@@ -32,6 +36,16 @@ export function applyResize(pct: number): void {
 }
 
 export function clearResize(): void {
+  // Remove document listeners
+  if (mousemoveHandler) {
+    document.removeEventListener("mousemove", mousemoveHandler);
+    mousemoveHandler = null;
+  }
+  if (mouseupHandler) {
+    document.removeEventListener("mouseup", mouseupHandler);
+    mouseupHandler = null;
+  }
+
   const primary = document.querySelector("#primary") as HTMLElement | null;
   const secondary = document.querySelector("#secondary") as HTMLElement | null;
   if (primary) primary.style.flexBasis = "";
@@ -43,6 +57,14 @@ export function clearResize(): void {
 export function mountResizer(onChange: (pct: number) => void): void {
   const existing = document.getElementById(HANDLE_ID);
   if (existing) return;
+
+  // Clean up any prior listeners
+  if (mousemoveHandler) {
+    document.removeEventListener("mousemove", mousemoveHandler);
+  }
+  if (mouseupHandler) {
+    document.removeEventListener("mouseup", mouseupHandler);
+  }
 
   const secondary = document.querySelector("#secondary") as HTMLElement | null;
   const columns = document.querySelector("#columns") as HTMLElement | null;
@@ -62,26 +84,32 @@ export function mountResizer(onChange: (pct: number) => void): void {
     document.body.style.userSelect = "none";
   });
 
-  document.addEventListener("mousemove", (e) => {
+  mousemoveHandler = (e: MouseEvent) => {
     if (!isDragging) return;
-
+    if (!columns || !document.contains(columns)) {
+      clearResize();
+      return;
+    }
     const columnsRect = columns.getBoundingClientRect();
+    if (columnsRect.width === 0) return;
     const x = e.clientX - columnsRect.left;
     let pct = (x / columnsRect.width) * 100;
     pct = Math.max(MIN_PCT, Math.min(MAX_PCT, pct));
 
     applyResize(pct);
     onChange(pct);
-  });
+  };
 
-  document.addEventListener("mouseup", () => {
+  mouseupHandler = () => {
     if (!isDragging) return;
     isDragging = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
-  });
+  };
 
-  // Insert the handle before #secondary (at the boundary between primary and secondary)
+  document.addEventListener("mousemove", mousemoveHandler);
+  document.addEventListener("mouseup", mouseupHandler);
+
   if (secondary.parentElement) {
     secondary.parentElement.insertBefore(handle, secondary);
   }
