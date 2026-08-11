@@ -45,6 +45,26 @@ fresh session with full context budget.
 **Root cause:** Documented in [[posttooluse-fires-on-tool-call-completion-not-process-completion]] — PostToolUse fires on tool-call launch, not process completion. Backgrounded commands produce no receipt → 5-block Stop-hook loop.
 **Design constraint:** Multi-terminal safe; must not race with concurrent receipt writes.
 
+**Design options (from /tp exploration + second-order-effects analysis):**
+
+*Layer 1 Option A — Retroactive receipt at Stop time:*
+Scan the session transcript at Stop time for ALL verification commands (foreground + backgrounded), read their completion output, and write receipts retroactively.
+- **Pro:** eliminates the entire failure class; implementable today with existing hooks
+- **Con (gaming vector):** an agent could run a trivially-passing background test and rely on the retroactive receipt. Trust model shifts from verified-by-code to declared-by-transcript-log.
+- **Con (stale verification):** receipt written at Stop time for a test that ran 20-40 min ago. If files changed after the test, the receipt is retroactively correct about a past state but wrong about current.
+- **Con (Stop hook latency):** adds full-transcript scan to the highest-frequency hook (~114 fires/session).
+
+*Layer 1 Option B — New hook event for background-task completion:*
+Wire a hook that fires when the `<system-reminder>Background task "..." completed</system-reminder>` event arrives.
+- **Pro:** preserves the "verified-at-execution-time" property; no gaming vector
+- **Con:** depends on Grok Build platform support for a new hook trigger; higher cost; external dependency
+
+**Recommendation from the /tp session:** Option B is safer despite the external dependency, because Option A's gaming vector and stale-verification problem are the same failure class the receipt system was built to prevent. The decision input needed: false-negative frequency (backgrounded tests missing receipts) vs false-positive frequency (fabricated completion) across the fleet. We do not have this data.
+
+*Layer 2 (symptom bridge — already shipped):* Set `timeout: 180000` on pytest commands. AGENTS.md updated (commit `645045e`).
+
+*Layer 3 (diagnostic, optional):* Improve Stop-hook error message to detect backgrounded-task pattern and tell the agent to set timeout instead of re-running with explicit paths. Low priority — compounds Stop-hook complexity.
+
 ### Item 8: 12 SKILL.md spec-drift references
 **What:** Fix broken script references in 8 skills (design, go, insight, maintain, marketplace-bridge, model-benchmark, model-discover, refactor).
 **Why deferred:** Multi-file fleet work. Mechanical but touches many skills.
@@ -56,6 +76,7 @@ fresh session with full context budget.
 
 ## Related
 
+- **/todo scan JSON:** `P:/tmp/todo_scan.json` (session-scoped scan output — 90 items, the raw evidence for items 4-9)
 - Handoff: `close-py-infrastructure-blockers-20260810` (original B1-B4, status OPEN → now mostly fixed)
 - Handoff: `fleet-wide-grok-session-id-empty-env-20260809` (Track A, status IN_PROGRESS → now mostly done)
 - Wiki: [[posttooluse-fires-on-tool-call-completion-not-process-completion]] (item 6 design basis)

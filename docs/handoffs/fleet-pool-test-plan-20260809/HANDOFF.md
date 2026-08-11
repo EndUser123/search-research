@@ -4,11 +4,49 @@ sources:
   - date: 2026-08-09
     host: grok
     session: 019fdf47-6ec5-7b82-b363-a256a98cb5fc
+  - date: 2026-08-11
+    host: grok
+    session: 019fdf47-6ec5-7b82-b363-a256a98cb5fc
+    revision: "All 4 providers tested + concurrency mapped + 48 models promoted + integration complete"
 provenance: session-observation
-last_verified: 2026-08-09
+last_verified: 2026-08-11
+status: RESOLVED
 ---
 
 # Fleet pool test plan: per-provider, per-capability, per-method
+
+## Revision 2026-08-11: ALL TESTING COMPLETE
+
+**Status: RESOLVED.** All 4 testable providers fully characterized across 3 capabilities. Integration complete.
+
+### Final fleet state
+
+| Metric | Value |
+|--------|-------|
+| Active models in registry | 48 (up from 17) |
+| Total candidates | 64 |
+| Providers with concurrency data | 4 (MiniMax=2, NVIDIA=7, ZAI=7, OpenRouter=8) |
+| Elite models (triple-perfect) | 8+ across NVIDIA/ZAI/OpenRouter |
+| Wiki concepts captured | 5 |
+| Tests written | 13 unit tests (6 failure-breakdown + 7 identity-matching) |
+
+### Infrastructure built this session
+
+- `pool_test.py` — 3 capability suites, provider-wide discovery, `--free-only`, R5g effort contract, failure mode breakdown, method-specific timeouts, concurrency/rate-limit capture
+- `concurrency_probe.py` — proactive provider ceiling mapping (3 modes)
+- `concurrency_gate.py` — 6th selection gate, wired into spawn hooks
+- `promote_models.py` — auto-promotion from telemetry evidence
+- `pi_dispatch.py` — shared dispatch with auto-retry on transient failure
+- Code pattern hooks — bare-timeout detection, missing-test gate
+- Design doc R5g — shared effort contract with Codex (tool-evidence requirement)
+
+### Open work (for next session)
+
+1. **Wire pool_test and ship-py to use `pi_dispatch.dispatch()`** — the shared module exists but callers haven't been migrated yet
+2. **Fix 1,278 false-negative PI telemetry records** from the WinError 2 run
+3. **PI tool-evidence runs** for top models (HTTP-only promotion is insufficient per R5g)
+4. **Cohere native testing** when quota resets (already certified via OpenRouter free-tier)
+5. **Cerebras/Groq** — excluded by operator; may revisit if TPM limits change
 
 ## Principle
 
@@ -21,12 +59,14 @@ Updated as testing progresses. Check before running.
 | Provider | Models | Capacity | Status | Blocker |
 |---|---|---|---|---|
 | cerebras | 2 | n/a | SKIP | Provider excluded by operator |
-| cohere | 3 | 0% | BLOCKED | Quota exhausted — reset pending |
-| groq | 3 | n/a | SKIP | Provider excluded by operator. Free tier TPM cap (6,000-8,000) blocks all production spawns — Grok Build system prompt alone is ~54K tokens. Pool test could work (short prompts) but model can't be promoted to active production use until TPM limit resolved. Verified 2026-07-29: all 3 models fail instantly with HTTP 413. |
-| minimax | 1 | 48% | PENDING | |
-| nim | 2 | n/a (shares nvidia) | PARTIAL | nim-openai-gpt-oss-20b tested (18/18 pass); nim-deepseek-v4-flash returns 410 Gone |
-| nvidia | 6 | n/a | PENDING | |
-| opencode | 3 | n/a | PENDING | |
+| cohere | 17 chat | 0% | BLOCKED | Quota exhausted. Certified via OpenRouter free-tier (cohere/north-mini-code:free 18+8+6). |
+| groq | 3 | n/a | SKIP | Provider excluded by operator. TPM cap blocks production spawns. |
+| minimax | 8 | 48% | **COMPLETE** | All 3 capabilities tested. Concurrency: shared pool, ceiling=2. |
+| nvidia | 101 (24 alive) | n/a | **COMPLETE** | All 3 capabilities × 24 models. 3 elite. Concurrency: ceiling=7. |
+| opencode | 3 | n/a | SKIP | Provider excluded by operator. |
+| openrouter | 400 (12 free) | n/a | **COMPLETE** | All 3 capabilities × 12 free-tier. 2 triple-perfect elite. Concurrency: ceiling=8. |
+| zai | 8 | 69% | **COMPLETE** | All 3 capabilities × 8 models. 3 elite. Concurrency: ceiling=7. |
+| zen | 3 | n/a | BLOCKED | zen-deepseek-v4-flash-free disabled (401). |
 | openrouter | 2 | n/a | BLOCKED | or-ling-3-flash-free moved behind paywall (404) |
 | zai | 1 | 69% | PENDING | |
 | zen | 3 | n/a | BLOCKED | zen-deepseek-v4-flash-free returns 401 "Model is disabled" |
