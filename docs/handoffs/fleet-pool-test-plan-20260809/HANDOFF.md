@@ -173,28 +173,33 @@ Provider-wide API discovery: 8 models, 8/8 alive. All 8 promotable across all ca
 | `zen-north-mini-code-free` | TODO | |
 | `zen-big-pickle` | TODO | |
 
-### openrouter (400 models on API, 246 alive) — DISCOVERED
+### openrouter (400 models, 246 alive) — FREE-TIER TOOL-LOOP TESTED
 
-Provider-wide API discovery: 400 models total, 397 chat models. Probe reached 318/397 (80%) before timeout.
-Result: **246 OK, 72 FAIL**. `:batch` variants consistently fail (async-only, expected).
+Provider-wide API discovery: 400 models, 397 chat models, 246 alive.
+Zero-cost models discovered via API pricing field (16 models), 12 alive after probe.
 
-**Free-tier models alive (12) — testable at no cost:**
-- `cohere/north-mini-code:free` ← testable NOW despite native Cohere 0% quota
-- `nvidia/nemotron-3-ultra-550b-a55b:free`
-- `nvidia/nemotron-3-super-120b-a12b:free`
-- `nvidia/nemotron-3-nano-30b-a3b:free`
-- `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`
-- `nvidia/nemotron-nano-12b-v2-vl:free`
-- `nvidia/nemotron-nano-9b-v2:free`
-- `openai/gpt-oss-20b:free`
-- `google/gemma-4-26b-a4b-it:free`
-- `inclusionai/ling-3.0-tiny:free`
-- `poolside/laguna-s-2.1:free`
-- `poolside/laguna-xs-2.1:free`
+**Free-tier tool-loop results (18 problems, 12 models):**
 
-**Premium models alive (234):** GPT-5.x, Claude Opus/Sonnet 4.x-5.x, Gemini 3.x, Grok 4.x, Qwen 3.x, DeepSeek v4, Kimi K3, etc. These consume OpenRouter credits — selective testing only.
+| Model | Score | Promotable | Notes |
+|---|---|---|---|
+| `cohere/north-mini-code:free` | **18/18 (1.00)** | YES | Perfect — certifiable despite native Cohere 0% |
+| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` | **18/18 (1.00)** | YES | Perfect |
+| `nvidia/nemotron-3-super-120b-a12b:free` | **18/18 (1.00)** | YES | Perfect |
+| `nvidia/nemotron-3-nano-30b-a3b:free` | 17/18 (0.94) | YES | 1 wrong_logic |
+| `nvidia/nemotron-nano-9b-v2:free` | 15/18 (0.83) | YES | |
+| `poolside/laguna-s-2.1:free` | 14/18 (0.78) | YES | 429-throttled |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | 14/18 (0.78) | YES | Empty responses |
+| `openai/gpt-oss-20b:free` | 13/18 (0.72) | YES | 429-throttled |
+| `poolside/laguna-xs-2.1:free` | 12/18 (0.67) | YES | 429-heavy |
+| `google/gemma-4-26b-a4b-it:free` | 12/18 (0.67) | YES | 429-heavy |
+| `inclusionai/ling-3.0-tiny:free` | 8/18 (0.44) | YES | 7x 429 cascade |
+| `nvidia/nemotron-nano-12b-v2-vl:free` | 8/18 (0.44) | YES | Empty responses |
 
-**Strategy:** pool-test the 12 free-tier models first (zero cost). Skip the 234 premium models unless specific routing targets need validation — most overlap with native provider access.
+Note: OpenRouter free-tier 429 throttling inflated failure rates. Models scoring low may be higher quality than scores suggest — the 429s are concurrency artifacts, not model-quality failures. The new rate-limit capture (commit 2950d1b) would classify these as `rate_limited` in future runs.
+
+**Reasoning + mechanical tests:** pending.
+
+**Concurrency:** not yet probed.
 
 ## Post-test actions
 
