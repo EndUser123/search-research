@@ -142,20 +142,20 @@ python pool_test.py --model <model-id> --capability mechanical --method http
 
 **Recommendation:** eligible for tool-loop and reasoning if un-excluded. Not eligible for mechanical.
 
-### zai (8 models on API) — TOOL-LOOP TESTED
+### zai (8 models on API) — ALL 3 CAPABILITIES TESTED
 
-Provider-wide API discovery: 8 models, 8/8 alive. All 8 promotable for tool-loop.
+Provider-wide API discovery: 8 models, 8/8 alive. All 8 promotable across all capabilities.
 
-| Model | tool-loop | reasoning | mechanical | Notes |
+| Model | Tool-loop | Reasoning | Mechanical | Verdict |
 |---|---|---|---|---|
-| `glm-4.5` | **18/18 (1.00)** | TODO | 6/8 (0.75) | Perfect coder |
-| `glm-4.5-air` | 17/18 (0.94) | TODO | 6/8 (0.75) | 1 timeout |
-| `glm-4.6` | 16/18 (0.89) | TODO | 6/8 (0.75) | 2 empty responses |
-| `glm-4.7` | **18/18 (1.00)** | TODO | **7/8 (0.88)** | Perfect coder, top mechanical |
-| `glm-5` | 16/18 (0.89) | TODO | 6/8 (0.75) | 2 empty responses |
-| `glm-5-turbo` | **18/18 (1.00)** | TODO | 6/8 (0.75) | Perfect coder, fastest |
-| `glm-5.1` | 17/18 (0.94) | TODO | 6/8 (0.75) | |
-| `glm-5.2` | 17/18 (0.94) | TODO | 6/8 (0.75) | Also on NVIDIA (7/8 reasoning) |
+| `glm-4.5` | **18/18** | **8/8** | 6/8 | **Elite** |
+| `glm-4.7` | **18/18** | **8/8** | **7/8** | **Elite — top GLM** |
+| `glm-5-turbo` | **18/18** | **8/8** | 6/8 | **Elite — fastest** |
+| `glm-4.5-air` | 17/18 | **8/8** | 6/8 | Near-elite |
+| `glm-5` | 16/18 | **8/8** | 6/8 | Near-elite |
+| `glm-5.1` | 17/18 | 7/8 | 6/8 | Strong |
+| `glm-5.2` | 17/18 | 7/8 | 6/8 | Strong (also on NVIDIA) |
+| `glm-4.6` | 16/18 | 7/8 | 6/8 | Strong |
 
 ### opencode (3 models) — PENDING
 
