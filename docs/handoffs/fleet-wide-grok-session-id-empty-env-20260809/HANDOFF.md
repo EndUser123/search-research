@@ -109,6 +109,18 @@ Option (b) is the DRY fix and prevents recurrence — but it creates a
 shared dependency. Option (a) is lower-risk but leaves the pattern
 duplicated. Recommend (b) given the recurrence rate.
 
+**Disposition refinement (AAR 2026-08-10, cross-model audit UK3):**
+the `GROK_SESSION_ID` env-var checks in these 16 files defend against a
+threat model that is structurally impossible on Grok Build (the env var
+is always empty by design). These are always-true guards — they build
+the appearance of safety without the substance. The correct disposition
+for always-true guards is **deletion of the guard**, not enumeration and
+fix. When implementing the batch fix, replace the env-var check path
+with the caller-passes-literal pattern (per
+`[[caller-context-as-parameter-not-callee-discovery]]`), and delete the
+dead env-var fallback rather than keeping it "for forward compatibility."
+Keeping dead guards is the same class as `[[invariants-beat-environment-comfort]]`.
+
 ## Related
 
 - Fix applied this session: `/todo` scanner (`scan_functions.py` + resolvers)
