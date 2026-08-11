@@ -11,6 +11,7 @@ import {
   handleTabClosed,
   handleSeekRequest,
   handleQueryWorkspaceState,
+  handleAutoOpen,
 } from "../background/service-worker";
 
 export default defineBackground(() => {
@@ -38,6 +39,11 @@ export default defineBackground(() => {
 
     if (message?.type === "query-workspace-state" && sender.tab?.id) {
       void handleQueryWorkspaceState(sender.tab.id).then(sendResponse);
+      return true;
+    }
+
+    if (message?.type === "auto-open" && sender.tab?.id) {
+      void handleAutoOpen(sender.tab.id).then(sendResponse);
       return true;
     }
 

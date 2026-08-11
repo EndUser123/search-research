@@ -202,4 +202,21 @@ export async function handleQueryWorkspaceState(
   return { open, videoContext };
 }
 
+export async function handleAutoOpen(
+  tabId: number,
+): Promise<VideoContext | null> {
+  const key = `workspace-open-${tabId}`;
+  await chrome.storage.session.set({ [key]: true });
+  const ctx = await acquireVideoContext(tabId);
+  if (ctx) {
+    chrome.tabs
+      .sendMessage(tabId, {
+        type: "workspace-update",
+        videoContext: ctx,
+      })
+      .catch(() => {});
+  }
+  return ctx;
+}
+
 export { getLastAccepted, type VideoContext };

@@ -12,6 +12,7 @@ const MAX_FONT_SIZE = 22;
 
 export interface WorkspaceSettings {
   fontSize: number;
+  autoOpen: boolean;
 }
 
 export async function loadSettings(): Promise<WorkspaceSettings> {
@@ -19,6 +20,7 @@ export async function loadSettings(): Promise<WorkspaceSettings> {
   const stored = result[STORAGE_KEY] as Partial<WorkspaceSettings> | undefined;
   return {
     fontSize: stored?.fontSize ?? DEFAULT_FONT_SIZE,
+    autoOpen: stored?.autoOpen ?? true,
   };
 }
 
@@ -68,6 +70,26 @@ export function createSettingsButton(
   valueDisplay.textContent = `${settings.fontSize}px`;
   valueDisplay.className = "ytws-settings-value";
   panel.appendChild(valueDisplay);
+
+  const divider = document.createElement("div");
+  divider.style.cssText = "width:100%;height:1px;background:#303030;margin:8px 0;";
+  panel.appendChild(divider);
+
+  const autoOpenLabel = document.createElement("label");
+  autoOpenLabel.textContent = "Auto-open on YouTube";
+  autoOpenLabel.className = "ytws-settings-label";
+  panel.appendChild(autoOpenLabel);
+
+  const autoOpenCheckbox = document.createElement("input");
+  autoOpenCheckbox.type = "checkbox";
+  autoOpenCheckbox.checked = settings.autoOpen;
+  autoOpenCheckbox.className = "ytws-settings-checkbox";
+  panel.appendChild(autoOpenCheckbox);
+
+  autoOpenCheckbox.addEventListener("change", () => {
+    settings.autoOpen = autoOpenCheckbox.checked;
+    onSettingsChange(settings);
+  });
 
   slider.addEventListener("input", () => {
     const newSize = Number(slider.value);

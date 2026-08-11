@@ -1,10 +1,9 @@
 /**
  * Content script (WXT entrypoint) — workspace lifecycle + navigation relay.
  *
- * VS-03 + UX features: font size settings, resize handle.
- * Handles: workspace-toggle, workspace-update messages from background.
- * Relays: yt-navigate-finish events to background for re-acquisition.
- * Persistence: workspace open state, font size, column width — all survive reloads.
+ * Auto-open: when settings.autoOpen is true (default), the workspace
+ * mounts automatically on YouTube watch pages. The toolbar button
+ * toggles it off/on. The setting persists across reloads.
  */
 
 import { defineContentScript } from "wxt/utils/define-content-script";
@@ -18,8 +17,6 @@ import { WORKSPACE_CSS } from "../content/workspace.css";
 import {
   loadSettings,
   saveSettings,
-  applyFontSize,
-  DEFAULT_FONT_SIZE,
   type WorkspaceSettings,
 } from "../content/settings";
 import {
@@ -28,7 +25,6 @@ import {
   clearResize,
   loadResizePreference,
   saveResizePreference,
-  DEFAULT_PCT,
 } from "../content/resizer";
 
 const STYLE_ID = "__yt_workspace_style";
@@ -50,6 +46,31 @@ function getCurrentVideoId(): string | null {
   }
 }
 
+function isYouTubeWatchPage(): boolean {
+  try {
+    const u = new URL(location.href);
+    return (
+      (u.pathname === "/watch" && u.searchParams.has("v")) ||
+      u.pathname.startsWith("/shorts/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function ensureWorkspaceMounted(
+  settings: WorkspaceSettings,
+  resizePct: number | null,
+  ctx: any | null,
+): Promise<void> {
+  if (getWorkspaceElement()) return;
+  mountWorkspace(ctx, settings, (s) => void saveSettings(s));
+  if (resizePct !== null) {
+    applyResize(resizePct);
+  }
+  mountResizer((pct) => void saveResizePreference(pct));
+}
+
 export default defineContentScript({
   matches: ["*://*.youtube.com/*"],
   runAt: "document_idle",
@@ -67,33 +88,45 @@ export default defineContentScript({
       void saveResizePreference(pct);
     };
 
-    // Check if workspace was open before page load (persistence)
+    // Auto-open or restore prior workspace state
+    let shouldOpen = false;
     let initialCtx = null;
+
     try {
       const response = await chrome.runtime.sendMessage({
         type: "query-workspace-state",
       });
       if (response?.open) {
+        shouldOpen = true;
         initialCtx = response.videoContext ?? null;
-        mountWorkspace(initialCtx, settings, handleSettingsChange);
-
-        if (resizePct !== null) {
-          applyResize(resizePct);
-        }
-        mountResizer(handleResizeChange);
       }
     } catch {
-      // Background might not be ready yet
+      // Background might not be ready
+    }
+
+    // If not explicitly opened, check autoOpen setting
+    if (!shouldOpen && settings.autoOpen && isYouTubeWatchPage()) {
+      shouldOpen = true;
+      // Trigger acquisition via background so VideoContext gets populated
+      try {
+        await chrome.runtime.sendMessage({ type: "auto-open" });
+      } catch {
+        // proceed — workspace mounts without VideoContext, will update later
+      }
+    }
+
+    if (shouldOpen) {
+      await ensureWorkspaceMounted(settings, resizePct, initialCtx);
     }
 
     chrome.runtime.onMessage.addListener((message) => {
       if (message?.type === "workspace-toggle") {
         if (message.open) {
-          mountWorkspace(message.videoContext ?? null, settings, handleSettingsChange);
-          if (resizePct !== null) {
-            applyResize(resizePct);
-          }
-          mountResizer(handleResizeChange);
+          ensureWorkspaceMounted(
+            settings,
+            resizePct,
+            message.videoContext ?? null,
+          );
         } else {
           detachWorkspace();
           clearResize();

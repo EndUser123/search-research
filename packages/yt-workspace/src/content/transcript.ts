@@ -25,18 +25,28 @@ function formatTimestamp(ms: number): string {
 }
 
 function parseTimedTextXml(xml: string): TranscriptSegment[] {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, "text/xml");
+  // YouTube enforces Trusted Types — DOMParser.parseFromString is blocked.
+  // Use regex-based parsing for the timedtext XML format instead.
+  // The timedtext format: <text start="12.34" dur="2.5">caption text</text>
   const segments: TranscriptSegment[] = [];
+  const regex = /<text\s+start="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
+  let match: RegExpExecArray | null;
 
-  const textNodes = doc.querySelectorAll("text");
-  textNodes.forEach((node) => {
-    const start = parseFloat(node.getAttribute("start") ?? "0");
-    const text = (node.textContent ?? "").trim();
+  while ((match = regex.exec(xml)) !== null) {
+    const start = parseFloat(match[1] ?? "0");
+    const rawText = (match[2] ?? "").trim();
+    // Decode basic HTML entities
+    const text = rawText
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'");
     if (text) {
       segments.push({ startMs: start * 1000, text });
     }
-  });
+  }
 
   return segments;
 }

@@ -300,6 +300,14 @@ export const WORKSPACE_CSS = `
 
 #__yt_workspace .ytws-settings-panel-open {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+#__yt_workspace .ytws-settings-panel-open > *:first-child,
+#__yt_workspace .ytws-settings-panel-open > .ytws-settings-label:first-of-type {
+  display: flex;
   align-items: center;
   gap: 8px;
 }
@@ -321,6 +329,12 @@ export const WORKSPACE_CSS = `
   font-family: monospace;
   min-width: 36px;
   text-align: right;
+}
+
+#__yt_workspace .ytws-settings-checkbox {
+  accent-color: #3ea6ff;
+  cursor: pointer;
+  margin-left: 8px;
 }
 
 #__yt_workspace_resizer {
