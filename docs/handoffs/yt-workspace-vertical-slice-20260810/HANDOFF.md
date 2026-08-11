@@ -232,7 +232,7 @@ Agent: grok
 | VS-02 | Production VideoContext boundary | ✅ DONE | `tsc --noEmit` passes, `pnpm build` passes (12.25 kB). 4 new files: structured-diagnostic.ts, video-context-store.ts, acquire.ts, service-worker.ts. Acquisition reads chapters from `ytInitialData` (Gate 2 correction). Uses content-script-relayed `yt-navigate-finish` instead of `webNavigation` permission. Committed at 62930e3. |
 | VS-03 | Real #secondary workspace with toolbar toggle | ✅ DONE | Refactored to workspace-ui.ts + workspace.css.ts modules. Dark theme CSS matching YouTube. Workspace-state persistence across reloads. All 5 acceptance criteria addressed. tsc=0, build=0 (15.77 kB), syntax=11/11. Committed at 325f919. |
 | VS-04 | Real chapter seeking through extension boundary | ✅ DONE | `src/content/seek-handler.ts` + `handleSeekRequest` in service-worker.ts. Seek path: content-script click → background → `chrome.scripting.executeScript({ world: "MAIN" })` → `movie_player.seekTo()` or `video.currentTime`. Before/after `video.currentTime` read for verification. tsc=0, build=0, syntax=9/9. Committed at 2323804. |
-| VS-05 | End-to-end acceptance test | ❌ NOT STARTED | Full Done-criterion checklist against loaded extension. |
+| VS-05 | End-to-end acceptance test | ⏳ READY FOR OPERATOR | Build verified. Pre-flight DOM test passed: workspace renders + seeks against real YouTube. Trusted Types bug caught and fixed. Permission chain documented. Test checklist + evidence directory prepared at `P:/tmp/yt-workspace-vertical-slice-evidence/`. **Operator must load unpacked in `chrome://extensions/` and run the checklist.** |
 
 ### Key findings during VS-01 execution
 
@@ -243,6 +243,12 @@ Agent: grok
 3. **Root .gitignore blocks `*.json` globally.** `package.json` and `tsconfig.json` require `git add -f` to track. Other packages in the workspace have the same constraint.
 
 4. **Content script auto-injection via manifest.** WXT generates a content_scripts entry from `defineContentScript({ matches: ["*://*.youtube.com/*"] })`. The background also uses `chrome.scripting.executeScript` as a fallback for programmatic injection on first toolbar click.
+
+### Key findings during VS-05 pre-flight (2026-08-11)
+
+5. **Trusted Types bug caught in pre-flight.** `workspace-ui.ts` used `innerHTML = ""` to clear the chapters container before re-rendering. YouTube's Trusted Types policy blocks this — the extension would have crashed at runtime. Fixed with `while(firstChild) removeChild(firstChild)` loop. The Gate 2 spike flagged the innerHTML issue, but the fix wasn't propagated to workspace-ui.ts until the VS-05 pre-flight DOM test.
+
+6. **DOM-level verification works via chrome-devtools MCP.** The workspace renders correctly against real YouTube `#secondary`, chapters display, and `video.currentTime` seek works through the content-script click handler. This verifies the DOM contract but NOT the extension boundary — only loading unpacked can verify the `chrome.scripting.executeScript` + message-passing paths.
 
 ## Cross-reference couplings
 
