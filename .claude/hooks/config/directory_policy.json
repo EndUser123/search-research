@@ -1,11 +1,14 @@
 {
   "_meta": {
-    "version": "3.2.0",
-    "updated": "2026-06-29",
+    "version": "3.3.2",
+    "updated": "2026-08-10",
     "description": "Single source of truth for directory structure policy - RESTORED & OPTIMIZED",
-    "enforced_by": "P:/.claude\\hooks\\PreToolUse_directory_policy.py",
-    "validated_by": "P:/.claude\\hooks\\path_validator.py --validate",
-    "semantic_routing": "P:/.claude\\hooks\\semantic_file_router.py"
+    "enforced_by": [
+      "Claude: P:/.claude/hooks/__lib/pre_tool_use_logic.py + P:/.claude/hooks/__lib/path_validator.py",
+      "Grok: C:/Users/brsth/.grok/hooks/PreToolUse_directory_policy.py (via ~/.grok/scripts/directory_policy_loader.py)"
+    ],
+    "validated_by": "P:/.claude/hooks/__lib/path_validator.py --validate",
+    "_note_semantic_routing": "Removed 2026-08-10: semantic_file_router.py does not exist. semantic_routing section in the body remains as advisory documentation."
   },
   "path_normalization": {
     "note": "All patterns use forward slashes internally. Windows paths are normalized before matching.",
@@ -98,6 +101,38 @@
       {
         "pattern": ".staging",
         "reason": "Pre-promotion staging area for in-progress edits that need isolated testing before going live (added 2026-07-19 for discovery_audit.py patch workflow)"
+      },
+      {
+        "pattern": ".grok",
+        "reason": "Grok Build runtime, hooks, skills, config"
+      },
+      {
+        "pattern": ".agents",
+        "reason": "Cross-host agent skills, scripts, tools"
+      },
+      {
+        "pattern": ".codex",
+        "reason": "OpenAI Codex CLI runtime config"
+      },
+      {
+        "pattern": ".grok-worktrees",
+        "reason": "Grok Build git worktree staging"
+      },
+      {
+        "pattern": ".orchestration",
+        "reason": "Orchestration run state (events, context capsules, run history)"
+      },
+      {
+        "pattern": ".ai-lanes",
+        "reason": "AI lane controller state (phase, cursor for multi-model coordination)"
+      },
+      {
+        "pattern": "artifacts",
+        "reason": "Routing observations and analysis artifacts"
+      },
+      {
+        "pattern": "tools",
+        "reason": "Workspace tooling (mcp, ai_lane_controller, research_run_v1)"
       }
     ],
     "allowed_config_files": [
@@ -145,7 +180,11 @@
       "diagrams.md",
       "performance.md",
       "refactoring.md",
-      "security.md"
+      "security.md",
+      ".secrets.baseline",
+      ".gitleaksignore",
+      "AGENTS.md",
+      ".slignore"
     ],
     "allowed_system_directories": [
       ".git",
@@ -159,7 +198,8 @@
       ".idea",
       ".pytest_cache",
       ".ruff_cache",
-      ".mypy_cache"
+      ".mypy_cache",
+      ".pi"
     ],
     "dotfile_policy": {
       "description": "Policy for handling dotfiles (hidden files) at workspace root",
@@ -257,7 +297,67 @@
       "backups": {
         "max_age_days": 7,
         "description": "Backup files older than 7 days are auto-deleted"
-      }
+      },
+      "root_debris_patterns": [
+        {
+          "pattern": "install.ps1",
+          "reason": "Third-party installer (Hermes Agent) — not a workspace file",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "SYCOPHANCY.md",
+          "reason": "Governance doc — relocate to .claude/rules/",
+          "action": "RELOCATE",
+          "suggested_location": ".claude/rules/sycophancy.md"
+        },
+        {
+          "pattern": "log.md",
+          "reason": "Wiki ingestion log — relocate to .data/wiki/",
+          "action": "RELOCATE",
+          "suggested_location": ".data/wiki/log.md"
+        },
+        {
+          "pattern": "P?parallel_marker.txt",
+          "reason": "Test debris from parallel agent testing",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "P?test_prompt*.txt",
+          "reason": "Test debris from prompt testing",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "Pparallel_marker.txt",
+          "reason": "Test debris variant",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "Ptest_prompt*.txt",
+          "reason": "Test debris variant",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "*.backup*",
+          "reason": "Backup files — use version control",
+          "action": "DELETE",
+          "max_age_days": 7
+        },
+        {
+          "pattern": "DVDFab*",
+          "reason": "Application data — doesn't belong in workspace",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "session_export*",
+          "reason": "Session export debris",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "*.description",
+          "reason": "Description file debris",
+          "action": "DELETE"
+        }
+      ]
     }
   },
   "claude_directory": {
@@ -950,8 +1050,8 @@
           "Auto-cleared on session start if >7 days old"
         ],
         "blocked_patterns": [
-          "*.py in temp/ \u2192 use .staging/ or tests/ for Python files",
-          "tests/ in temp/ \u2192 use tests/ directory for test files"
+          "*.py in temp/ → use .staging/ or tests/ for Python files",
+          "tests/ in temp/ → use tests/ directory for test files"
         ]
       }
     ],
@@ -1052,7 +1152,7 @@
       },
       {
         "pattern": "__csf/tests/",
-        "reason": "__csf/tests/ is orphaned \u2014 source files no longer exist, tests belong next to their source",
+        "reason": "__csf/tests/ is orphaned — source files no longer exist, tests belong next to their source",
         "suggestion": "Delete if source files are gone, or move alongside source in __csf/src/"
       },
       {
@@ -1412,11 +1512,11 @@
       }
     },
     "decision_tree": [
-      "1. Is there an active TSK and content references it? \u2192 tsk/{task_id}/",
-      "2. Is this a deliverable proving task completion? \u2192 reports/ (or tsk/ if known)",
-      "3. Is this reference material for future use? \u2192 reports/ or docs/",
-      "4. Is this temporary/draft work? \u2192 .staging/",
-      "5. Unknown \u2192 allow current path, no suggestion"
+      "1. Is there an active TSK and content references it? → tsk/{task_id}/",
+      "2. Is this a deliverable proving task completion? → reports/ (or tsk/ if known)",
+      "3. Is this reference material for future use? → reports/ or docs/",
+      "4. Is this temporary/draft work? → .staging/",
+      "5. Unknown → allow current path, no suggestion"
     ]
   },
   "claude_restricted_paths": {
