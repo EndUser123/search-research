@@ -178,7 +178,7 @@ The deep-dive operationalized the paper against our specific hooks/skills/struct
 | Control state | Model swap via `pick_model.py`; skill mtime drift; AGENTS.md concurrent edit | Partial (`skill_first_gate`, mtime check) | Model-swap detector; AGENTS in-session edit detector |
 | Capability | MCP server load; `disabled_mcp_servers` change; new credential | Partial (`tool-fallbacks.md` is manual) | MCP-load hook; capability-manifest hasher |
 | Delegation | `/go` spawn; `/tp` second-opinion; recursive spawn | Quota only (`PreToolUse_spawn_model_gate.py`) | Spawn envelope comparator; conductor authority-bound check |
-| Task/phase | `/close` FSM transitions; `git push`; handoff activation | Workflow FSM, `git status` | Irreversible-action detector; phase-aware contraction |
+| Task/phase | `/close-py` FSM transitions; `git push`; handoff activation | Workflow FSM, `git status` | Irreversible-action detector; phase-aware contraction |
 | Trust context | `/wiki` writes; `/handoff` files; AGENTS.md appends | Append-only log; wiki marker scan | Trust-classification field; pre-write provenance gate |
 | Enforcement | Hook script edits; `~/.grok/hooks/*.json` changes; dispatch chain edits | File-editing protocol (post-edit only) | **Session-start hook manifest hash** (most critical gap) |
 

@@ -72,7 +72,7 @@ DEFINE → PLAN → BUILD → VERIFY → REVIEW → SHIP
 ## Our lifecycle mapping
 
 ```
-/design → /plan → /go → /check → /review → /close
+/design → /plan → /go → /check → /review → /close-py
   (spec)  (plan) (exec) (verify) (review) (ship)
 ```
 

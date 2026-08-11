@@ -64,7 +64,7 @@ A session is exhibiting this pattern when:
 1. **Bridge the invocation gap.** `/why` Step 14 should end with: "next action:
    invoke `/go` to apply fix #1, or say 'defer'." Make the bridge explicit.
 
-2. **Surface applied fixes in session summaries.** When `/close` or `/capture`
+2. **Surface applied fixes in session summaries.** When `/close-py` or `/capture`
    runs, count "fixes applied" alongside "findings captured." Make action visible.
 
 3. **Separate diagnosis from prescription.** The RCA session diagnoses under
