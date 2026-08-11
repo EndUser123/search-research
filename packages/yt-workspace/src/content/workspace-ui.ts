@@ -100,7 +100,9 @@ export function renderVideoContext(
 
   const chaptersEl = workspace.querySelector('[data-field="chapters"]');
   if (chaptersEl) {
-    chaptersEl.innerHTML = "";
+    while (chaptersEl.firstChild) {
+      chaptersEl.removeChild(chaptersEl.firstChild);
+    }
     if (ctx && ctx.chapters.length > 0) {
       for (const ch of ctx.chapters) {
         const row = document.createElement("div");
