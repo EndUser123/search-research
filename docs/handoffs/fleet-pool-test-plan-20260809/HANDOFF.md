@@ -132,22 +132,20 @@ python pool_test.py --model <model-id> --capability mechanical --method http
 
 **Recommendation:** eligible for tool-loop and reasoning if un-excluded. Not eligible for mechanical.
 
-### zai (8 models on API) — IN PROGRESS
+### zai (8 models on API) — TOOL-LOOP TESTED
 
-Provider-wide API discovery: 8 models, 8/8 alive (probe passed all).
+Provider-wide API discovery: 8 models, 8/8 alive. All 8 promotable for tool-loop.
 
 | Model | tool-loop | reasoning | mechanical | Notes |
 |---|---|---|---|---|
-| `glm-4.5` | RUNNING | TODO | TODO | Discovered via API |
-| `glm-4.5-air` | TODO | TODO | TODO | Discovered via API |
-| `glm-4.6` | TODO | TODO | TODO | Discovered via API |
-| `glm-4.7` | TODO | TODO | TODO | Discovered via API |
-| `glm-5` | TODO | TODO | TODO | Discovered via API |
-| `glm-5-turbo` | TODO | TODO | TODO | Discovered via API |
-| `glm-5.1` | TODO | TODO | TODO | Discovered via API |
-| `glm-5.2` | TODO | TODO | TODO | Already scored via NVIDIA run; re-test on native provider |
-
-Capacity at 69% — all 8 models reachable. Tool-loop test running.
+| `glm-4.5` | **18/18 (1.00)** | TODO | TODO | Perfect coder |
+| `glm-4.5-air` | 17/18 (0.94) | TODO | TODO | 1 timeout |
+| `glm-4.6` | 16/18 (0.89) | TODO | TODO | 2 empty responses |
+| `glm-4.7` | **18/18 (1.00)** | TODO | TODO | Perfect coder |
+| `glm-5` | 16/18 (0.89) | TODO | TODO | 2 empty responses |
+| `glm-5-turbo` | **18/18 (1.00)** | TODO | TODO | Perfect coder, fastest of GLM |
+| `glm-5.1` | 17/18 (0.94) | TODO | TODO | |
+| `glm-5.2` | 17/18 (0.94) | TODO | TODO | Also scored 7/8 reasoning on NVIDIA |
 
 ### opencode (3 models) — PENDING
 
