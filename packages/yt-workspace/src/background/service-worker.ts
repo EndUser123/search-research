@@ -102,6 +102,89 @@ export async function handleNavigationMessage(
   }
 }
 
+// Self-contained seek function for MAIN-world injection.
+// Chrome serializes this — no closures, no external references.
+function performSeek(seconds: number): boolean {
+  const media = document.querySelector("video") as HTMLVideoElement | null;
+  if (media) {
+    try {
+      media.currentTime = seconds;
+      return true;
+    } catch {
+      /* fallthrough */
+    }
+  }
+  const player = document.getElementById("movie_player") as
+    | (HTMLElement & {
+        seekTo?: (time: number, allowSeekAhead?: boolean) => void;
+      })
+    | null;
+  if (player?.seekTo) {
+    try {
+      player.seekTo(seconds, true);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+export async function handleSeekRequest(
+  tabId: number,
+  seconds: number,
+): Promise<{ ok: boolean; beforeTime: number; afterTime: number }> {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return { ok: false, beforeTime: -1, afterTime: -1 };
+  }
+
+  let beforeTime = -1;
+  let afterTime = -1;
+
+  try {
+    const [beforeInjection] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN" as chrome.scripting.ExecutionWorld,
+      func: () => {
+        const v = document.querySelector("video") as HTMLVideoElement | null;
+        return v?.currentTime ?? -1;
+      },
+    });
+    beforeTime = (beforeInjection?.result as number) ?? -1;
+  } catch {
+    /* proceed with seek anyway */
+  }
+
+  let seekOk = false;
+  try {
+    const [seekInjection] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN" as chrome.scripting.ExecutionWorld,
+      func: performSeek,
+      args: [seconds],
+    });
+    seekOk = (seekInjection?.result as boolean) ?? false;
+  } catch {
+    return { ok: false, beforeTime, afterTime: -1 };
+  }
+
+  try {
+    const [afterInjection] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN" as chrome.scripting.ExecutionWorld,
+      func: () => {
+        const v = document.querySelector("video") as HTMLVideoElement | null;
+        return v?.currentTime ?? -1;
+      },
+    });
+    afterTime = (afterInjection?.result as number) ?? -1;
+  } catch {
+    /* afterTime stays -1 */
+  }
+
+  return { ok: seekOk, beforeTime, afterTime };
+}
+
 export function handleTabClosed(tabId: number): void {
   clearTabState(tabId);
   chrome.storage.session.remove(`workspace-open-${tabId}`).catch(() => {});

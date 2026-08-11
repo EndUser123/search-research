@@ -9,6 +9,7 @@
  */
 
 import { defineContentScript } from "wxt/utils/define-content-script";
+import { attachSeekHandlers } from "../content/seek-handler";
 
 const WORKSPACE_ID = "__yt_workspace";
 
@@ -146,6 +147,9 @@ function mountWorkspace(ctx: VideoContext | null): void {
   if (secondary) {
     secondary.prepend(workspace);
     renderVideoContext(workspace, ctx);
+    if (ctx && ctx.chapters.length > 0) {
+      attachSeekHandlers(workspace, ctx.chapters);
+    }
   }
 }
 
@@ -168,6 +172,9 @@ export default defineContentScript({
         const workspace = document.querySelector(`#${WORKSPACE_ID}`);
         if (workspace) {
           renderVideoContext(workspace as HTMLElement, message.videoContext ?? null);
+          if (message.videoContext && message.videoContext.chapters.length > 0) {
+            attachSeekHandlers(workspace as HTMLElement, message.videoContext.chapters);
+          }
         }
       }
       return false;
