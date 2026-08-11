@@ -1,9 +1,9 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Last updated:** 2026-08-10 — shared effort/thinking contract added; live conformance remains open
-**Status:** Revision 5g — shared effort/thinking contract added; no new cross-host relay attestation; not live or conformant
-**Revision:** 5g — aligns effort levels across Grok and Codex/Pi, separates effort from orchestration packs and token limits, and defines comparable benchmark cohorts
+**Last updated:** 2026-08-11 — benchmark conformance and rerun gates added; promotion remains closed
+**Status:** Revision 5h — corrected Codex/Pi rerun authorized; no post-fix promotion evidence yet
+**Revision:** 5h — adds harness invalidation rules, route-scoped method coverage, canonical cohort/threshold requirements, and the HTTP request-cap blocker
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, shared effort/thinking controls, and the boundary between Codex and Grok orchestration.
 
@@ -118,6 +118,24 @@ latest direct red-team hardening below; it is not a new conformance attestation.
     condition, exact command, and watchdog evidence in benchmark receipts;
     prior off/low Codex/Pi refresh results are retained as historical
     diagnostics and are not promoted under the new common contract.
+
+**Revision 5h benchmark conformance and rerun gate (2026-08-11):**
+
+35. Invalidated pre-2026-08-11 PI quality evidence when it predates the stdin
+    prompt-dispatch fix, capability-specific system-prompt prepend, current
+    method watchdog, or complete effort/identity receipts.
+36. Made the benchmark matrix route-scoped: HTTP and PI are the common
+    required methods; OpenCode is optional unless it is an enabled target
+    route. A complete target route therefore has three capability cells per
+    enabled method, not an unconditional nine-cell obligation.
+37. Reaffirmed the common N>=10 independent verified-success floor and marked
+    older Grok N=5 registry defaults as implementation drift, not policy.
+38. Blocked HTTP promotion evidence until the current `max_tokens` safety
+    ceiling is removed or proven non-constraining for every provider; a short
+    token probe remains discovery-only and is never quality evidence.
+39. Added the corrected Codex/Pi rerun state and historical artifact paths;
+    old results remain availability/protocol diagnostics and cannot be pooled
+    with post-fix quality evidence.
 
 ## Executive proposal
 
@@ -651,8 +669,9 @@ effort contract as of commit `96cd88c`:
 - Capability-to-effort mapping: `mechanical`→`low`, `tool-loop`→`medium`,
   `reasoning`→`high`. Override via `--effort` for sensitivity runs.
 - HTTP method: sends `reasoning_effort` field in the OpenAI-compatible
-  payload where the provider supports it. `max_tokens` is a non-constraining
-  safety ceiling (floor 4096), not an effort control.
+  payload where the provider supports it. The current implementation also
+  sends a `max_tokens` safety ceiling (floor 4096); this is a conformance
+  blocker until it is removed or proven non-constraining for every provider.
 - PI method: passes `--thinking <effort>` per the capability default.
 - Telemetry: every pool-test record encodes `effort=<level> method=<method>`
   in the notes field, enabling cohort segmentation by requested effort.
@@ -661,9 +680,68 @@ effort contract as of commit `96cd88c`:
   did not send or record effort parameters. Their results are retained as
   pre-conformance diagnostics and must be re-run or re-labeled with the
   policy-default effort before they can serve as promotion evidence.
-  Specifically: NVIDIA reasoning = `high` (was: no effort sent),
-  ZAI tool-loop = `medium` (was: no effort sent),
-  OpenRouter free-tier tool-loop = `medium` (was: no effort sent).
+Specifically: NVIDIA reasoning = `high` (was: no effort sent),
+ZAI tool-loop = `medium` (was: no effort sent),
+OpenRouter free-tier tool-loop = `medium` (was: no effort sent).
+
+**HTTP/receipt conformance blocker (2026-08-11):** The common policy does
+not permit `max_tokens`, `max_output_tokens`, or `reasoning_tokens` to be sent
+as test-set request caps. The current HTTP adapter still sends a floor-4096
+`max_tokens` field, while its reachability `quick_probe` uses `max_tokens: 5`.
+The latter is allowed only as a discovery probe and must never enter quality
+or promotion evidence. Do not run or promote HTTP certification cells until
+the adapter removes the request cap or records provider-specific proof that it
+cannot constrain the tested output. The current HTTP adapter serializes only
+`low|medium|high`; `xhigh` is unsupported/unknown over HTTP until explicitly
+implemented and verified, so it must not be pooled as an xhigh result.
+
+### Benchmark rerun decision (2026-08-11)
+
+The historical Codex/Pi batch is retained at
+`P:\tmp\codex-pi-capability-benchmark-20260809-refresh`. It contains 96 tasks
+across six bindings, 16 cases per binding, and one attempt per task. Its
+summary reports 65 routed tasks, 31 preflight blocks, 24 worker successes, and
+41 worker failures (including timeout, auth/quota, protocol, and scope
+failures), with no promotion-qualified binding. A receipt scan found no
+requested/effective/native effort, token-usage, tool-trace, or resolved
+provider-account fields in the attempt artifacts. Because this batch predates
+the PI stdin/system-prompt fixes and the current method watchdog, it is
+diagnostic-only and must not be relabeled as conformant evidence.
+
+The corrected rerun state and authorization packet is
+`P:\tmp\benchmark-protocol-rerun-20260811\state.json`.
+
+**Required rerun sequence:**
+
+1. Run all three primary PI capability cells for each approved binding:
+   `mechanical=low`, `reasoning=high`, and `tool-loop=medium`. Preserve the
+   exact orchestrator, method, provider, model, route, harness, verifier,
+   quota-pool/account, effort, watchdog, and raw-attempt identity.
+2. Continue each intended promotion cohort until it has at least N>=10
+   independent verified successes and the configured Wilson lower-bound floor.
+   One 16-case pass is not the same as ten independent successes per cell.
+3. Keep temporary quota/rate-limit/auth failures in availability diagnostics;
+   they do not become model-quality failures or silent fallbacks. Respect the
+   provider concurrency ceilings and run one capability per provider at a
+   time to avoid self-inflicted 429 cascades.
+4. Run HTTP baseline cells only after the request-cap blocker and receipt
+   contract are resolved. Run OpenCode cells only when OpenCode is an enabled
+   target route; first verify multiline prompt preservation because the current
+   OpenCode call passes the prompt positionally.
+5. Do not pool the 16-case Codex suite with Grok's 18/8/8 suites until a
+   canonical shared manifest, checker/version, difficulty cohorts, and receipt
+   schema are selected and hashed.
+
+**Not automatically rerun:** offline manifest/checker tests and provider-pool
+health/recovery tests. Rerun those only when their own code, provider quota or
+reset behavior, concurrency contract, or recovery semantics changed.
+
+**Implementation audit still open:** `pool_test.py` dispatches PI with
+`lane="coding"` even when the selected capability is reasoning or mechanical.
+The top-level pool record retains capability-specific `task_domain`, and the
+current call forces the model with `max_retries=0`, but the effect on quota
+telemetry and future retries must be verified before capability-specific
+capacity claims are promoted.
 
 ### Tool-evidence requirement for tool-loop capability
 
@@ -705,10 +783,14 @@ pool test is the certification mechanism for the calibration path: run the
 coding problems through the route's primary tool-carrying method and retain
 the resolved method, checker, trace, and sandbox identity.
 
-### Complete benchmark matrix — 3 capabilities × 3 methods (2026-08-11)
+### Route-scoped benchmark matrix — 3 capabilities × enabled methods (2026-08-11)
 
-Every model must be tested across **3 capabilities** × **3 methods** = **9
-evidence cells**. Each cell is a separate promotion cohort; no mixing.
+Every model must be tested across the three capabilities for each method that
+is an enabled target route. HTTP and PI are the common required methods;
+OpenCode is an optional alternative unless it is enabled for production or
+for an explicit comparison. This makes six required cells for the common
+baseline, or nine cells when OpenCode is also in scope. Each cell is a
+separate promotion cohort; no mixing.
 
 | | HTTP (baseline) | PI (agent harness) | OpenCode (alt harness) |
 |---|---|---|---|
@@ -716,7 +798,7 @@ evidence cells**. Each cell is a separate promotion cohort; no mixing.
 | **reasoning** (8 problems, effort=high) | Required baseline | Required for reasoning under agent | Optional alternative |
 | **mechanical** (8 problems, effort=low) | Required baseline | Required for mechanical under agent | Optional alternative |
 
-**Commands to fill all 9 cells for a provider:**
+**Commands to fill the six required cells for a provider:**
 
 ```bash
 # HTTP baseline (3 runs, one per capability)
@@ -729,7 +811,7 @@ python pool_test.py --provider <provider> --capability tool-loop --method pi --p
 python pool_test.py --provider <provider> --capability reasoning --method pi --probe
 python pool_test.py --provider <provider> --capability mechanical --method pi --probe
 
-# OpenCode alternative (3 runs, one per capability)
+# OpenCode alternative (only when the route is explicitly enabled)
 python pool_test.py --provider <provider> --capability tool-loop --method opencode --probe
 python pool_test.py --provider <provider> --capability reasoning --method opencode --probe
 python pool_test.py --provider <provider> --capability mechanical --method opencode --probe
@@ -738,9 +820,41 @@ python pool_test.py --provider <provider> --capability mechanical --method openc
 python promote_models.py [--dry-run] [--verbose]
 ```
 
-**When new models are released:** re-run the 9-cell matrix for the new
-model only (single-model `--model` mode). Do NOT skip capabilities or
-methods — HTTP coding success does not certify PI reasoning capability.
+**When new models are released:** re-run the three capability cells for every
+enabled target method for the new model only (single-model `--model` mode).
+Do NOT skip capabilities or enabled methods — HTTP coding success does not
+certify PI reasoning capability. Do not add OpenCode solely because the
+optional method exists in the runner.
+
+**Orchestrator requirements (2026-08-11):** any tool that runs the 3×3
+matrix — whether Grok's Python orchestrator, Codex's Node.js harness, or
+a future tool — MUST implement these five requirements. The contract is
+shared; the implementation language is not.
+
+1. **Sequential capabilities per provider.** Run coding first (largest),
+   then reasoning, then mechanical. Running all three simultaneously
+   against one provider causes rate-limit cascades — the coding test
+   exhausts RPM before reasoning/mechanical can run.
+
+2. **Inter-call delay based on provider RPM.** OpenRouter free tier = 20
+   RPM, NVIDIA NIM = ~40 RPM. Delay between cells = max(3s, 60/RPM).
+   Without this, sequential cells still fire as fast as possible and hit
+   limits.
+
+3. **Retry on 429 with Retry-After backoff.** Both HTTP and PI paths.
+   Cap retry wait at 30s. One retry is sufficient for most rate-limit
+   windows. Without this, a single 429 produces a permanent 0-score.
+
+4. **Plausibility gate on cell results.** Before accepting a cell's
+   output as valid, verify:
+   - Duration plausible? (elapsed < model_count × 5s = no real calls ran)
+   - Failure pattern systematic? (>80% identical failure = provider-level)
+   - If either fails, flag as `[INVALID — infrastructure failure]` and
+     do not use for promotion decisions.
+
+5. **PI prompt via stdin, not positional argument.** PI truncates
+   multi-line positional args to the first line. System prompt must be
+   prepended to user content, not passed as a `[System: ...]` wrapper.
 
 **PI prompt dispatch (critical, verified 2026-08-11):** PI truncates
 multi-line positional arguments to the first line. Prompts MUST be passed
@@ -872,10 +986,15 @@ pick_model.py → gate_results() (6 gates: capability, policy, lifecycle,
 PreToolUse_spawn_model_gate.py → enforce at spawn time
 ```
 
-**Promotion threshold:** 5 verified successes per lane. A model with
-18/18 tool-loop + 8/8 reasoning + 6/8 mechanical gets promoted to active
-for all 3 lanes automatically. Run `promote_models.py` after each test
-batch to update the registry.
+**Historical implementation threshold (not the common policy):** older Grok
+registry defaults used 5 verified successes per lane. That value is retained
+only as implementation-drift context and must not authorize promotion. The
+common policy requires at least N>=10 independent lane-appropriate verified
+successes, the configured Wilson lower-bound floor, and no identity, scope,
+timeout, malformed-output, or verification-gate violation. A result such as
+18/18 tool-loop + 8/8 reasoning + 6/8 mechanical is therefore not sufficient
+common-policy evidence. Reconcile `fleet-models.json` and `promote_models.py`
+with this policy before running automatic promotion.
 
 The safety rule is simple: a model with no qualifying tool-use measurement is
 excluded from tool traffic even when its general scores are excellent. A
@@ -1952,16 +2071,21 @@ evidence for all of the following:
 
 ## Operator acceptance
 
-This proposal (Revision 5g) preserves the output of six cross-orchestrator
+This proposal (Revision 5h) preserves the output of six cross-orchestrator
 review relay sessions (all converged, zero disputes across 42 total findings),
 adds the targeted recovery/evidence hardening update, and records the direct
 red-team findings on pool-test scope, promotion identity, evidence cohorts,
-recovery semantics, and cross-host effort comparability. No new cross-host
-relay re-review has been performed for Revision 5g. Review convergence is
-provenance; it is not evidence that either live selector is conformant.
+recovery semantics, cross-host effort comparability, and the corrected rerun
+gate. No new cross-host relay re-review has been performed for Revision 5h.
+Review convergence is provenance; it is not evidence that either live
+selector is conformant.
 
 The proposal is offered for operator acceptance as an implementation-planning
-contract, not as authorization to activate live routing.
+and benchmark-evidence contract, not as authorization to activate live
+routing. The isolated rerun state at
+`P:\tmp\benchmark-protocol-rerun-20260811\state.json` authorizes evidence
+gathering only; promotion remains closed until the stated cohort and receipt
+gates pass.
 
 **Acceptance means:** proceed to native implementation planning in both
 hosts against this contract, with the acceptance gates above as the
