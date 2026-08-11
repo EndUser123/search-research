@@ -1,5 +1,11 @@
 # Vault Log
 
+## --entry
+Source: self-reflection-techniques-for-llm-agents.md
+Agent: --source
+Notes: session-2026-08-11 /www
+Page: --agent
+
 ## scatter-gather-for-single-artifact-parallel-analysis
 Source: session-019fe3ff
 Agent: grok
