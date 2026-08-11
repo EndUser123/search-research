@@ -705,6 +705,43 @@ pool test is the certification mechanism for the calibration path: run the
 coding problems through the route's primary tool-carrying method and retain
 the resolved method, checker, trace, and sandbox identity.
 
+### Complete benchmark matrix — 3 capabilities × 3 methods (2026-08-11)
+
+Every model must be tested across **3 capabilities** × **3 methods** = **9
+evidence cells**. Each cell is a separate promotion cohort; no mixing.
+
+| | HTTP (baseline) | PI (agent harness) | OpenCode (alt harness) |
+|---|---|---|---|
+| **tool-loop** (coding, 18 problems, effort=medium) | Required baseline | Required for tool-loop certification | Optional alternative |
+| **reasoning** (8 problems, effort=high) | Required baseline | Required for reasoning under agent | Optional alternative |
+| **mechanical** (8 problems, effort=low) | Required baseline | Required for mechanical under agent | Optional alternative |
+
+**Commands to fill all 9 cells for a provider:**
+
+```bash
+# HTTP baseline (3 runs, one per capability)
+python pool_test.py --provider <provider> --capability tool-loop --probe
+python pool_test.py --provider <provider> --capability reasoning --probe
+python pool_test.py --provider <provider> --capability mechanical --probe
+
+# PI agent harness (3 runs, one per capability)
+python pool_test.py --provider <provider> --capability tool-loop --method pi --probe
+python pool_test.py --provider <provider> --capability reasoning --method pi --probe
+python pool_test.py --provider <provider> --capability mechanical --method pi --probe
+
+# OpenCode alternative (3 runs, one per capability)
+python pool_test.py --provider <provider> --capability tool-loop --method opencode --probe
+python pool_test.py --provider <provider> --capability reasoning --method opencode --probe
+python pool_test.py --provider <provider> --capability mechanical --method opencode --probe
+
+# Auto-promote after testing
+python promote_models.py [--dry-run] [--verbose]
+```
+
+**When new models are released:** re-run the 9-cell matrix for the new
+model only (single-model `--model` mode). Do NOT skip capabilities or
+methods — HTTP coding success does not certify PI reasoning capability.
+
 ### Grok-side test runner — shared infrastructure (2026-08-11)
 
 The pool test infrastructure is Grok-owned Python that both orchestrators
