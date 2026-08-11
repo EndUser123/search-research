@@ -5,12 +5,15 @@ current_session_id: 019fea30-500e-7b83-abac-d737446e86fb
 parent_session: 019fea30-500e-7b83-abac-d737446e86fb
 current_terminal_id: 019fea30-500e-7b83-abac-d737446e86fb
 produced_at: 2026-08-10T07:20:00Z
-last_updated_by: 019fea30-500e-7b83-abac-d737446e86fb
-last_updated_at: 2026-08-10T07:55:00Z
+last_updated_by: 019fee39-abb7-7490-a66a-e2cd7df5600a
+last_updated_at: 2026-08-11T00:45:00Z
 status: resolved
 handoff_type: investigation
-accurate_as_of_head: 24ae1f7d1618a2bf5b1911a70c014dbf5d53a4f0
+accurate_as_of_head: 154ca42005af504ec540917a7e259aa917731045
 ---
+
+
+
 
 # Handoff — YouTube Workspace Sidebar Extension: Gate 2 Acquisition Spike
 
@@ -171,6 +174,35 @@ This means: G2-06 must produce **structured diagnostic records** at every reject
 - Do NOT implement Overview, Ask, Links, or Whisper fallback. Those are after Gate 3.
 - Do NOT add a polished UI. Placeholder chapter rows are acceptable for the spike.
 - Do NOT broaden Gate 2 beyond the 6 task packets above. The success criterion is the single end-to-end proof.
+
+## Execution Status
+
+Updated: 2026-08-11T00:45:00Z
+Session: 019fee39-abb7-7490-a66a-e2cd7df5600a
+Agent: grok
+
+| # | Deliverable | Status | Evidence |
+|---|---|---|---|
+| G2-01 | MAIN-world acquisition on real YouTube | ✅ DONE | `P:/tmp/yt-workspace-gate2-evidence/G2-01-main-world-acquisition.json` — `moviePlayer.getPlayerResponse()` proven on 2 videos (incl. 104-min CS229). 4 access methods verified. |
+| G2-02 | Native chapter JSON key path | ✅ DONE (with correction) | `G2-02-chapter-json-path.json` — **CORRECTED**: chapters are in `ytInitialData.engagementPanels[].content.macroMarkersListRenderer`, NOT in `ytInitialPlayerResponse`. |
+| G2-03 | Description-timestamp regex fallback | ✅ DONE | `G2-03-description-regex.json` — regex extracts 4 chapters from Sx5-xt8tH_M, matches native chapters exactly. |
+| G2-04 | Real movie_player.seekTo reachable | ✅ DONE | `G2-04-seek-verification.json` — both `video.currentTime = N` and `mp.seekTo(N, true)` work from MAIN world. |
+| G2-05 | #secondary workspace SPA remount | ✅ DONE | `G2-05-spa-remount.json` — yt-navigate-finish fires reliably (forward + back), workspace survives at count=1. |
+| G2-06 | Stale-result rejection diagnostic (CRITICAL) | ✅ DONE | `G2-06-stale-rejection.json` — structured `rejected_stale` diagnostic fires with exact shape: `{resultVideoId: A, activeVideoId: B, disposition: "rejected_stale"}`. |
+
+### Key findings during execution
+
+1. **CRITICAL CORRECTION to Gate 1 + Vertical Slice handoffs:** chapters are NOT in `ytInitialPlayerResponse.macroMarkersListRenderer`. The player response has zero chapter/marker fields. Chapters live in `ytInitialData.engagementPanels[].engagementPanelSectionListRenderer.content.macroMarkersListRenderer.contents[].macroMarkersListItemRenderer`. The Vertical Slice's VS-02 adapter must read from `ytInitialData`, not the player response. The Summarize source's `youtube-page-transcript.ts` only reads player-level — it has zero chapter handling.
+
+2. **Chapter item shape:** `{title: {simpleText}, timeDescription: {simpleText}, onTap: {watchEndpoint: {startTimeSeconds, videoId}}, thumbnail: {thumbnails[]}}`. The `startTimeSeconds` is pre-parsed — no regex needed for native chapters.
+
+3. **YouTube Trusted Types policy blocks `innerHTML`** — the extension must use DOM API (`createElement`, `textContent`) for all workspace rendering. `innerHTML` throws: "This document requires 'TrustedHTML' assignment."
+
+4. **Both test videos have auto-generated chapters** (not creator-uploaded). The Fareed video's chapters are auto-generated from description timestamps (4 rows). The CS229 video has 22 auto-generated chapters from YouTube's ML system. Both are accessible via the same `ytInitialData` path.
+
+5. **Acquisition window:** ~1.0–1.3 seconds between `yt-navigate-start` and `yt-page-data-fetched`. This is the stale-result danger zone the freshness invariant protects against.
+
+6. **yt-navigate-finish fires on ALL targets** (document, window, body, html, ytd-app). The extension can use `document.addEventListener('yt-navigate-finish', handler)` — simplest and most compatible.
 - Do NOT fix the five Gate 1 doc nits.
 
 ## Resumption protocol
@@ -216,6 +248,8 @@ This means: G2-06 must produce **structured diagnostic records** at every reject
 
 | Date | Session | Action |
 |------|---------|--------|
+| 2026-08-11T00:42:54 | 019fee39... | claim released |
+| 2026-08-11T00:32:46 | 019fee39... | claimed by grok |
 | 2026-08-10T07:20 | 019fea30... | created. Gate 2 prep. Inherits Gate 1 EXTRACT + IN_PAGE_SECONDARY decisions. 6 task packets defined. Operator-directed acceptance bar (structured diagnostic for stale rejection) added to G2-06. Ready for fresh session `/go`. |
 | 2026-08-10T07:35 | 019fea30... | acceptance-contract tightening on G2-01: (1) long-video coverage requirement (≥60 min) per the research concept's Gate 2 test matrix; (2) mandatory provenance fields on the VideoContext (`videoId`, `chapterSource`, `transcriptSource`, `contextVersion`). Operator applied the two /review suggestions (DOC-G2-003, DOC-G2-004) before launching the Gate 2 spike; the two ordinary nits (DOC-G2-001, DOC-G2-002) were explicitly skipped. Receipt-identity-provenance concern recorded in a separate deferred-reliability handoff (`P:/docs/handoffs/receipt-identity-provenance-unverified-20260810/HANDOFF.md`). Handoff is frozen for the fresh session's `/go`. |
 | 2026-08-10T07:55 | 019fea30... | Gate 2 spike executed in this session (operator invoked /go against this handoff directly). All 6 task packets PASS — see `## Execution Status` block below. Status: open → resolved. |

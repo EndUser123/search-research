@@ -5,12 +5,18 @@ current_session_id: 019fea30-500e-7b83-abac-d737446e86fb
 parent_session: 019fea30-500e-7b83-abac-d737446e86fb
 current_terminal_id: 019fea30-500e-7b83-abac-d737446e86fb
 produced_at: 2026-08-10T08:05:00Z
-last_updated_by: 019fea30-500e-7b83-abac-d737446e86fb
-last_updated_at: 2026-08-10T08:05:00Z
+last_updated_by: 019fee39-abb7-7490-a66a-e2cd7df5600a
+last_updated_at: 2026-08-11T00:45:00Z
 status: open
 handoff_type: implementation-spike
 accurate_as_of_head: 2f003f6
+assigned_to: grok
+assigned_at: 2026-08-11T00:32:46
+assigned_by: 019fee39-abb7-7490-a66a-e2cd7df5600a
 ---
+
+
+
 
 # Handoff — yt-workspace: Chapters Vertical Slice
 
@@ -96,7 +102,7 @@ If a permission's calling module is not implemented in this slice, that permissi
 
 Per Gate 1's "Modules retained" subsection, extract only these (the solve-bug layer):
 
-- `apps/chrome-extension/src/lib/youtube-page-transcript.ts` — MAIN-world bridge pattern. Extend (do not rewrite) to expose the chapter JSON path (`macroMarkersList` + description regex fallback).
+- `apps/chrome-extension/src/lib/youtube-page-transcript.ts` — MAIN-world bridge pattern. Extend (do not rewrite) to expose the chapter JSON path. **GATE 2 CORRECTION (2026-08-11):** chapters are NOT in `ytInitialPlayerResponse.macroMarkersListRenderer` — they are in `ytInitialData.engagementPanels[].engagementPanelSectionListRenderer.content.macroMarkersListRenderer.contents[].macroMarkersListItemRenderer`. The adapter must read from `ytInitialData`, not the player response. Description regex fallback remains as-is. See `P:/tmp/yt-workspace-gate2-evidence/G2-02-chapter-json-path.json` for the corrected path and verified chapter item shape.
 - `apps/chrome-extension/src/lib/seek.ts` — dual-path seek helper.
 - `apps/chrome-extension/src/entrypoints/background/panel-session-store.ts` — per-tab/per-URL cache invalidation pattern. Adapt to per-`videoId`.
 - `apps/chrome-extension/src/entrypoints/background/extract-cache.ts` — cached extract.
@@ -277,4 +283,5 @@ Preceded by a detailed directive: build a vertical-slice extension (not a scaffo
 
 | Date | Session | Action |
 |------|---------|--------|
+| 2026-08-11T00:32:46 | 019fee39... | claimed by grok |
 | 2026-08-10T08:05 | 019fea30... | created. Vertical-slice handoff (NOT Gate 3). Inherits Gate 1 EXTRACT + IN_PAGE_SECONDARY and Gate 2 runtime contract. 5 task packets (VS-01..VS-05). Operator-directed: vertical slice not scaffold; install-and-use as done criterion; permission discipline with chain; Gate 3 demoted to separate spike after evaluation. Ready for `/go` in a fresh session. |
