@@ -44,6 +44,14 @@ The question: how do we make the threshold inventory *fire* on every design that
 
 The four thresholds (DRY ≥3, params >7, touch-points >3, mixed-concerns ≥2-of-3) are not arbitrary. They come from the [[raising-coding-best-practices-in-ai-agents]] wiki concept, which itself derived them from the 2026-07-23 `/close` incident: `resolve_gates()` had 13 positional params, scan results were enumerated 3x, adding a new scan source required 5 touch points. Those were real coupling violations dismissed as gold-plating. The thresholds were set at the *lowest* values that would have flagged the `/close` case — not at aspirational values that would over-fire on healthy code. The mixed-concerns threshold uses a binary test (≥2-of-3 of {persistence, business logic, presentation}) rather than a count because mixed concerns genuinely aren't countable, but the test is still mechanical: it doesn't collapse into judgment.
 
+**OPERATOR DIRECTIVE (2026-08-12): threshold=1 for surfacing, threshold=3 for blocking.** The operator wants two tiers:
+- **Surface (advisory, report):** if there are >0 refactor opportunities, the operator wants to know about them. The human filters. This is the [[completeness-over-curation]] principle — surface everything, don't pre-judge.
+- **Block (gate, enforce):** if there are ≥3 refactor signals (DRY violations, excessive params, touch-point coupling), that's structural-scope coupling where YAGNI does not apply (per Fowler's canonical definition). The gate blocks and requires either a refactor or a concrete technical constraint (not "effort" or "timeline").
+
+This two-tier system avoids both failure modes: threshold=1 blocking would paralyze every ship (virtually all code has some refactor opportunity); threshold=3 surfacing would hide the small improvements the operator wants to see. The split gives the operator full visibility (surface=1) while reserving enforcement (block=3) for genuine structural coupling.
+
+The number 3 is well-grounded: the Rule of Three (Extreme Programming, Sandi Metz, Martin Fowler) is the one threshold with decades of practitioner consensus and independent calibration. It wasn't reverse-engineered from a single incident. Using 3 as the blocking floor means the gate fires on the one number with real backing.
+
 ## What people get wrong about coupling thresholds
 
 Two failure modes the inventory is designed to avoid:
