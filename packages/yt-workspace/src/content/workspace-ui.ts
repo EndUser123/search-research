@@ -166,7 +166,12 @@ export function createWorkspaceElement(
   applyFontSize(el, settings.fontSize);
 
   const header = document.createElement("div");
-  header.className = "ytws-header";
+  header.className = "ytws-header ytws-header-clickable";
+
+  const collapseArrow = document.createElement("span");
+  collapseArrow.textContent = "▼";
+  collapseArrow.className = "ytws-collapse-arrow";
+  header.appendChild(collapseArrow);
 
   const title = document.createElement("strong");
   title.textContent = "YT Workspace";
@@ -176,6 +181,15 @@ export function createWorkspaceElement(
   const gear = createSettingsButton(el, settings, onSettingsChange);
   gear.className += " ytws-header-gear";
   header.appendChild(gear);
+
+  // Click header to toggle collapse (but not when clicking the gear)
+  header.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest(".ytws-header-gear") || target.closest(".ytws-settings-container")) {
+      return;
+    }
+    toggleCollapse(el);
+  });
 
   el.appendChild(header);
 
@@ -318,6 +332,28 @@ export function detachWorkspace(): void {
 
 export function getWorkspaceElement(): HTMLElement | null {
   return document.querySelector(`#${WORKSPACE_ID}`) as HTMLElement | null;
+}
+
+function toggleCollapse(workspace: HTMLElement): void {
+  const isCollapsed = workspace.classList.toggle("ytws-collapsed");
+  const arrow = workspace.querySelector(".ytws-collapse-arrow");
+  if (arrow) {
+    arrow.textContent = isCollapsed ? "▶" : "▼";
+  }
+  chrome.storage.local.set({ "ytws-collapsed": isCollapsed }).catch(() => {});
+}
+
+export async function applyStoredCollapseState(workspace: HTMLElement): Promise<void> {
+  try {
+    const result = await chrome.storage.local.get("ytws-collapsed");
+    if (result["ytws-collapsed"] === true) {
+      workspace.classList.add("ytws-collapsed");
+      const arrow = workspace.querySelector(".ytws-collapse-arrow");
+      if (arrow) arrow.textContent = "▶";
+    }
+  } catch {
+    // fail-open — default to expanded
+  }
 }
 
 export { WORKSPACE_ID };

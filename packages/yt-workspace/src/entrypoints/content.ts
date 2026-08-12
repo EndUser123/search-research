@@ -14,6 +14,7 @@ import {
   detachWorkspace,
   renderVideoContext,
   getWorkspaceElement,
+  applyStoredCollapseState,
 } from "../content/workspace-ui";
 import { WORKSPACE_CSS } from "../content/workspace.css";
 import {
@@ -110,6 +111,9 @@ export default defineContentScript({
 
       mountWorkspace(null, settings, handleSettingsChange);
       workspaceMounted = true;
+
+      const ws = getWorkspaceElement();
+      if (ws) await applyStoredCollapseState(ws);
 
       if (resizePct !== null) {
         applyResize(resizePct);

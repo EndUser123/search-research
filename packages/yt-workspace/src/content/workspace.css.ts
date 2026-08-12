@@ -25,6 +25,33 @@ export const WORKSPACE_CSS = `
   justify-content: space-between;
 }
 
+#__yt_workspace .ytws-header-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+#__yt_workspace .ytws-header-clickable:hover .ytws-title {
+  color: #3ea6ff;
+}
+
+#__yt_workspace .ytws-collapse-arrow {
+  font-size: 0.79em;
+  color: #aaaaaa;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+#__yt_workspace.ytws-collapsed .ytws-info,
+#__yt_workspace.ytws-collapsed .ytws-provenance,
+#__yt_workspace.ytws-collapsed .ytws-tabs,
+#__yt_workspace.ytws-collapsed .ytws-tab-content {
+  display: none;
+}
+
+#__yt_workspace.ytws-collapsed .ytws-header {
+  margin-bottom: 0;
+}
+
 #__yt_workspace .ytws-title {
   font-size: 1.15em;
   font-weight: 600;
