@@ -23,9 +23,12 @@ export default defineBackground(() => {
     if (
       message?.type === "yt-navigate-finish" &&
       sender.tab?.id &&
-      sender.tab.url
+      typeof message.url === "string"
     ) {
-      void handleNavigationMessage(sender.tab.id, sender.tab.url);
+      // Use message.url (location.href from content script), NOT sender.tab.url.
+      // During SPA navigation, sender.tab.url is stale — Chrome's tab model
+      // hasn't caught up to history.pushState yet. message.url is always current.
+      void handleNavigationMessage(sender.tab.id, message.url);
       return false;
     }
 
