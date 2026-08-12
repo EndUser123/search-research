@@ -1,7 +1,13 @@
 # HANDOFF: doc-check auto-fix corrupts SKILL.md frontmatter — fix_skill_frontmatter bugs
 
 ## Status
-OPEN — root cause identified 2026-08-11 (session 019fe3ff, /why investigation). Fix NOT applied (per /why contract — names fixes, does not implement).
+RESOLVED (Commit 1) 2026-08-12 session 019fe3ff — `fix_skill_frontmatter` refactored to use `yaml_fm.set_field` (commit 46c1b64); ask/refactor/review SKILL.md cleaned; skill-catalog.md regenerated (commit 3d97095). Zero corruption remaining (grep sweep: 0 hits across all skills + catalog). Smoke test passes: correct insertion, idempotent re-run, 4/4 doc-check tests green.
+
+**Remaining scope (Commit 2/3 — deferred, not blocking):**
+- **Commit 2 (architectural):** refactor `fix_code_fences` (check.py:580) and `fix_wikilinks` (check.py:609) to use `yaml_fm` + `safe_io.file_lock` — the /tp fresh-lens flagged both as parallel string-mutation vectors (same defect class, different code path; neither currently corrupted). Bounded by ship-py's stable-tree contract so not actively corrupting.
+- **Commit 3 (durability):** regression test for `fix_skill_frontmatter` covering YAML-validity + idempotency + concurrent-writer contention. The smoke test at `P:/tmp/test_doccheck_fix.py` covers the first two; needs formalization into the test suite + a file_lock contention case.
+
+See `/tp` critique (session 019fe3ff, subagent 019ff472) for the full architectural analysis.
 
 ## Objective
 Fix two bugs in `C:/Users/brsth/.grok/skills/doc-check/scripts/check.py` `fix_skill_frontmatter()` (lines 540-584) that corrupt SKILL.md frontmatter whenever doc-check auto-fix runs on changed SKILL.md files (triggered by `/ship-py` Phase doc-check or standalone `/doc-check --fix`).
