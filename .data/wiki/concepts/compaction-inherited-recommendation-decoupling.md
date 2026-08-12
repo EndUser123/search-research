@@ -137,6 +137,53 @@ This pattern is wrong if:
 
 This concept is scoped to **compaction-inherited** recommendation decoupling per /risk scan verdict. The general pattern — recommendation-constraint decoupling under ANY context transition (operator correction, state change, new tool result) — is noted as a follow-on concept for future capture. The fixes shipped (Fix 1-4) target compaction as the highest-priority instance; the AGENTS.md rule (Fix 4) is written generally enough to cover non-compaction transitions at the prose level.
 
+## Operational monitoring
+
+The telemetry system writes all detections to `~/.grok/hooks/state/stale-rec-detections.jsonl`. Each line is a JSON object:
+
+```json
+{
+  "ts": "2026-08-12T...",
+  "session_id": "<session-uuid>",
+  "pattern_idx": 0,         // 0-3 for regex patterns; -1 for LLM classifier
+  "line": 42,               // transcript line number
+  "role": "assistant",      // or "user"
+  "snippet": "...",         // text snippet around the match
+  "stage": "regex"          // or "llm"
+  // LLM-stage detections also carry:
+  // "reason": "...",       // LLM's explanation
+  // "confidence": 0.92     // LLM's confidence (0.0-1.0)
+}
+```
+
+### Reviewing detections
+
+```powershell
+# Show recent detections
+Get-Content ~/.grok/hooks/state/stale-rec-detections.jsonl -Tail 20
+
+# Count detections by stage
+Get-Content ~/.grok/hooks/state/stale-rec-detections.jsonl | ForEach-Object { $_ | ConvertFrom-Json | Select-Object stage } | Group-Object stage
+```
+
+### Interpreting false-positive rate
+
+- **Regex detections (stage: "regex"):** review the snippet. If it's NOT a genuine defer/stop/handoff recommendation, it's a false positive. The regex patterns require both a deferral verb and a session-boundary term, so false positives should be rare. If they appear, tighten the specific pattern_idx.
+- **LLM detections (stage: "llm"):** review the reason and confidence. Detections with confidence <0.7 are more likely false positives. If the LLM consistently over-classifies, raise the confidence threshold in `_stale_rec_llm_classifier.py` (currently 0.6).
+
+### When to adjust
+
+| Signal | Action |
+|--------|--------|
+| Regex false positives on specific phrase | Add the phrase to the true-negative test cases and tighten the pattern |
+| LLM confidence consistently low (0.6-0.7) | Raise threshold from 0.6 to 0.7 |
+| No detections over 10+ compactions | Check whether regex patterns still match current session language; may need new patterns |
+| LLM classifier never fires (regex catches everything) | This is fine — regex is the fast path; LLM is the edge-case backstop |
+
+### Audit cadence
+
+Monthly, or after 10 compactions (whichever comes first). Review the JSONL file, classify each detection as true/false positive, and adjust thresholds or patterns if false-positive rate exceeds 20%.
+
 ## Receipts
 
 - **The operator's report:** session 019ff2aa, user message: "We already compacted — this IS the post-compaction session. I have the full summary plus this turn's analysis. There's no context strain. My 'defer to a fresh session' framing was carried over from the pre-compaction recommendation in the summary, which no longer applies."
