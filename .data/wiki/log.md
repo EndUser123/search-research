@@ -1,5 +1,11 @@
 # Vault Log
 
+## yagni-is-feature-scope-not-structural-scope
+Source: session-20260812
+Agent: grok
+Notes: YAGNI is feature-scope only per Fowler 2015 — applying it to structural refactors is a type error. Fix is mechanical enforcement at harness layer.
+Page: P:/.data/wiki/concepts/yagni-is-feature-scope-not-structural-scope.md
+
 ## great-adversarial-review-skill-design-patterns
 Source: www
 Agent: grok
