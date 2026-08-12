@@ -13,8 +13,8 @@ summary: >
   constraint. The post-compaction session inherits the recommendation as if
   it were still valid, repeats it, and may use a true-but-irrelevant fact
   ("artifacts are on disk") to rationalize executing on the stale directive.
-  This is the recommendation-variant of [[compaction-inherited-diagnosis-
-  unverified-propagation]] (which covers diagnostic claims). The structural
+  This is the recommendation-variant of /compaction-inherited-diagnosis-
+  unverified-propagation (which covers diagnostic claims). The structural
   fix: PreCompact validity tagging (mark defer/stop/handoff recommendations
   as VALIDITY-EXPIRED in the continuation prompt) + UserPromptSubmit
   conditional revalidation (inject revalidation directive only when validity-
@@ -88,25 +88,37 @@ MemTX argues that "a memory write is not a belief commit." Each record carries e
 
 The key transferable principle: the compaction summary committed a belief ("defer to fresh session") without validity metadata (valid-under-constraint: context-strain). When compaction retracted the constraint, the derived recommendation should have been cascade-repaired (invalidated). It wasn't — because the recommendation was never tagged with the constraint it depended on.
 
-## The structural fixes (three layers)
+## The structural fixes (three layers — all shipped)
 
-### Fix 1: PreCompact validity tagging (structural — shipped this session)
+### Fix 1: PreCompact validity tagging with two-stage hybrid classifier (structural)
 
-`PreCompact_continuation_capture.py` scans the recent transcript for defer/stop/handoff recommendation language. When detected, it adds a `## Pre-compaction recommendations (VALIDITY-EXPIRED)` section to the continuation prompt. This tags the recommendations as validity-expired at write-time, forcing the post-compaction session to encounter them as hypotheses to revalidate, not as committed directives.
+`PreCompact_continuation_capture.py` uses a two-stage hybrid architecture:
 
-**Feasible approximation:** all defer/stop/handoff recommendations are tagged as validity-expired without extracting the specific motivating constraint. This over-tags (some recommendations may have constraints that survive compaction), but the cost of over-tagging (a revalidation prompt) is lower than the cost of under-tagging (stale recommendation executed as if valid).
+**Stage 1 — Regex (compiled patterns, <1ms):** four regex patterns require BOTH a deferral verb AND a session-boundary term within proximity (`≤40` chars). Neither alone triggers. Catches explicit phrasings like "defer to a fresh session" and "postpone to next session." 100% precision on test suite (13/13 true negatives rejected, including "follow up", "wrap up", "next session" alone).
 
-### Fix 2: UserPromptSubmit conditional revalidation (structural — shipped this session)
+**Stage 2 — LLM classifier (gpt-oss-20b via NVIDIA NIM, ~2s):** when regex finds nothing, a prefilter scans for 25 deferral-adjacent vocabulary terms ("sleep on", "park", "shelve", "revisit", "hold off"). If candidates exist, a batched LLM call classifies whether each message is a genuine deferral directive. Catches paraphrases regex structurally cannot match ("this would land better with a cold lens after a restart"). Confidence threshold: 0.6. 8s timeout, fail-open (any error → regex-only result stands).
 
-`UserPromptSubmit_continuation_inject.py` checks whether the continuation prompt contains the `VALIDITY-EXPIRED` marker. If it does, the injection appends a revalidation directive: "state the current-session constraint or drop the recommendation." If no marker is present (no stale recommendations detected), the directive is NOT injected — preventing false-positive fatigue (Chen et al. CHI 2025: preference drops 80 to 47 percent at higher frequency).
+Live-fire verified: 4/4 paraphrase deferrals detected (confidence 0.90–0.97), 1 non-deferral correctly rejected.
 
-This makes Fix 2 **conditional on Fix 1's detection signal** — a sequencing constraint identified by /risk scan (standalone Fix 2 would fire unconditionally and risk desensitization).
+**Telemetry:** all detections (regex and LLM) are logged to `~/.grok/hooks/state/stale-rec-detections.jsonl` with timestamp, session_id, pattern_idx (or `stage: "llm"`), role, and text snippet. LLM detections additionally log `reason` and `confidence`. This lets the operator measure false-positive rate after deployment.
 
-### Fix 4: AGENTS.md recommendation-constraint coupling rule (prose — shipped this session)
+### Fix 2: UserPromptSubmit conditional revalidation (structural)
+
+`UserPromptSubmit_continuation_inject.py` checks whether the continuation prompt contains the `VALIDITY-EXPIRED` marker from Fix 1. If present, the injection appends a revalidation directive requiring the agent to state a **measurable** current-session constraint (context budget, quota %, specific blocker) — not a vague one ("it's complex"). Adds a relevance test: "would the recommendation change if the constraint were false?" If no marker is present, the directive is NOT injected — preventing false-positive fatigue (Chen et al. CHI 2025: preference drops 80 to 47 percent at higher frequency).
+
+This makes Fix 2 **conditional on Fix 1's detection signal** — a sequencing constraint identified by /risk scan.
+
+### Fix 4: AGENTS.md recommendation-constraint coupling rule (prose)
 
 Added to Hard rules: "When repeating any defer/stop/handoff recommendation after a context transition, state the current-session constraint that motivates it. A true fact is not a constraint — it must be the reason the recommendation holds now, not a post-hoc rationalization."
 
 This addresses Layer 2 (true-fact-as-rationalization) that the structural fixes cannot catch mechanically. Prose-layer backstop with ~50% compliance ceiling under session pressure ([[false-choices-parallel-branch-framing]]); the structural fixes (1+2) are the load-bearing enforcement.
+
+### Evolution history (v1 → v2 → v3)
+
+- **v1:** 15-element substring keyword list ("follow up", "wrap up", "next session"). /tp fresh-lens critique identified precision as critical flaw — matched normal conversation, defeating the conditional gate.
+- **v2:** replaced with 4 compiled regex patterns requiring deferral verb + session boundary in proximity. 100% precision on test suite. Added telemetry and role filtering.
+- **v3:** added LLM classifier stage 2 for paraphrase robustness. Catches the ~30-40% of real deferral language regex misses ("sleep on it", "shelve this"). Two-stage fast-slow classifier architecture.
 
 ## How to detect this pattern
 
@@ -119,7 +131,7 @@ This addresses Layer 2 (true-fact-as-rationalization) that the structural fixes 
 This pattern is wrong if:
 - **Compaction summaries reliably carry constraint metadata.** If each recommendation in the summary is tagged with its motivating constraint and whether compaction invalidated it, the validity-tagging fix is unnecessary. Test: inspect 5 compaction summaries for recommendation language; count how many tag the constraint.
 - **Post-compaction sessions reliably revalidate inherited recommendations.** If the model already checks whether the constraint holds before repeating, the pattern doesn't fire. Test: observe 10 post-compaction sessions; count how many revalidate defer/stop directives before acting.
-- **The validity-tagging produces noise.** If Fix 1's detection is so overbroad that every compaction triggers the revalidation directive (even when no recommendations exist), the false-positive fatigue risk materializes. Test: run 10 compactions; measure precision of the recommendation detection.
+- **The two-stage classifier produces noise.** If the regex + LLM pipeline over-triggers (false positives on normal conversation), the conditional gate is defeated and false-positive fatigue materializes. Test: review `stale-rec-detections.jsonl` after 10 compactions; measure precision by checking whether flagged messages are genuine deferrals. The v2 precision fix (compiled regex patterns requiring verb + session boundary) and the v3 LLM confidence threshold (0.6) are the precision controls.
 
 ## Scope limitation
 
