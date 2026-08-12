@@ -1,5 +1,11 @@
 # Vault Log
 
+## AGENTS.md optimization tools landscape
+Source: /www research
+Agent: grok
+Notes: cclint, geuneda, wrsmith108 tools mapped with borrow candidates
+Page: agents-md-optimization-tools-landscape-2026
+
 ## --concept
 Source: pipeline-detect-phase-state-reset-sequential-contamination
 Agent: --action
