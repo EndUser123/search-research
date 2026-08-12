@@ -2,9 +2,9 @@
 
 **Created:** 2026-08-12
 **Session:** 019ff685-ecb9-7193-9743-660be86de0fb
-**Status:** OPEN — spike complete, build not started
+**Status:** CLOSED — built 2026-08-12 by session 019ff685 (all 7 ACs verified)
 **Chronicity:** chronic
-**Assignee:** unassigned
+**Assignee:** grok
 **Related:** `P:/.data/wiki/concepts/great-adversarial-review-skill-design-patterns.md` (spike source)
 
 ## Problem
@@ -103,3 +103,29 @@ Build a new skill at `~/.grok/skills/req-check/SKILL.md` (name confirmable):
 concept for the requirement-failure patterns found on first real use. The
 shape decision is made (this handoff); the build is mechanical from here but
 was deferred from the spike session per the /www recommendation contract.
+
+## Execution Status
+
+Updated: 2026-08-12 (UTC)
+Session: 019ff685-ecb9-7193-9743-660be86de0fb
+Agent: grok
+
+| # | Acceptance criterion | Status | Evidence |
+|---|---|---|---|
+| 1 | Mechanically checkable labels per item (COMPLETE/INCOMPLETE/AMBIGUOUS/INCONSISTENT/UNVERIFIABLE) | ✅ DONE | `~/.grok/skills/req-check/SKILL.md` Phase 1 label table + defect-quote requirement; test-fire produced the labels on a defective sample |
+| 2 | Clarify loop one-question-at-a-time with recommended answers, bounded | ✅ DONE | Phase 2 — one question at a time, recommended answer each, 5-question cap → NEEDS_CLARIFICATION |
+| 3 | Meaning-checks before acceptance | ✅ DONE | Phase 3 — term drift / comparability / scope / constraint checks gate READY |
+| 4 | Assumptions extracted with disconfirming evidence | ✅ DONE | Phase 4 — assumption walk-back with disconfirming-observation requirement |
+| 5 | READY / NEEDS_CLARIFICATION / REJECT verdict | ✅ DONE | Output contract + verdict rules |
+| 6 | Host invariants (session-scoped, no shared-state mutation) | ✅ DONE | No state writes, no shared files, no subprocess — pure assessment skill |
+| 7 | /skill-dev measure passes + test-fired | ✅ DONE | Static scan: paths/host/frontmatter/leanness all PASS; test-fire produced labeled output on a defective sample requirement |
+
+### Key findings during execution
+
+- **Skill registered** in the catalog at build time (confirmed via system catalog listing).
+- **Wiki concept deferral:** the requirement-failure-patterns concept was
+  deferred per the handoff's own wording ("patterns found on first real use")
+  — the test-fire sample is synthetic, not real usage; the concept should be
+  written once real sessions surface patterns. `[[great-adversarial-review-skill-design-patterns]]`
+  already documents the gap itself.
+- Build commit: `.grok` repo (skill added with /risk review-fix batch).
