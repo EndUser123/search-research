@@ -6,11 +6,11 @@ Redesign `/refactor` to close the 7 gaps identified in the best-practices landsc
 
 ## Field 2 — Status
 
-ready-to-implement
+needs-revision (P0 findings from /tp review addressed below — Rev 2)
 
 ## Field 3 — Scope
 
-The `/refactor` skill at `C:\Users\brsth\.grok\skills\refactor\SKILL.md` needs 7 additive enhancements (no restructuring of existing steps). Each is independent — they can be implemented as separate commits.
+The `/refactor` skill at `C:\Users\brsth\.grok\skills\refactor\SKILL.md` needs 6 additive enhancements. Each can be implemented as a separate commit, but they build on each other sequentially (not fully independent). **Step 6 is explicitly on the table for restructuring** (Enhancements 4 and 5 modify Step 6 sub-steps). Steps 1-5 and 7-9 are not restructured.
 
 ## Field 4 — Context
 
@@ -27,57 +27,61 @@ Our /refactor already has capabilities most public refactoring skills lack:
 
 Each gap has a concrete source, a specific location in SKILL.md, and a bounded change.
 
-#### Enhancement 1: Named code-smell catalog (HIGH)
+#### Enhancement 1: Named code-smell catalog (HIGH — revised)
 
 **Source:** refactoring.guru taxonomy (23 smells), mickeyyaya/refactoring-skills (66 techniques), MuhiminOsim/code-refactoring-skill (30+ smells in 6 families).
 
 **Location:** Step 4.1, after code_analysis.py produces findings.
 
-**Change:** Add a smell-to-technique mapping table. Each code_analysis.py finding gets mapped to a named smell from the standard taxonomy. The mapping gives the operator a recognizable vocabulary and the executor a proven fix playbook.
+**P0 fix (Rev 2):** code_analysis.py only emits 5 finding categories today (complexity_hotspot, duplication, test_gap, dead_code, architecture_smell with 2 types). The full 24-smell catalog is forward-looking — 22 of 24 smells have no current detector. Ship ONLY the mappings that code_analysis.py actually emits:
 
-**Smell families to add:**
-- Bloat: Long Method, Large Class, Long Parameter List, Data Clumps, Primitive Obsession
-- OO Abusers: Switch on Type, Temporary Field, Refused Bequest
-- Change Preventers: Divergent Change, Shotgun Surgery, Parallel Inheritance Hierarchies
-- Dispensables: Duplicate Code, Dead Code, Lazy Class, Speculative Generality
-- Couplers: Feature Envy, Inappropriate Intimacy, Message Chains, Middle Man
-- Architectural: Fat Controller, UI with Business Logic, Anemic Domain Model, Layer Violation
+| code_analysis.py finding | Named smell |
+|---|---|
+| complexity_hotspot (radon grade C+) | Long Method |
+| duplication (AST-based) | Duplicate Code |
+| god_component (fan-in ≥5 AND fan-out ≥5) | Large Class / God Object |
+| dead_code (vulture ≥60%) | Dead Code |
+| test_gap | (no smell mapping — it's a process gap, not a code smell) |
 
-**Format:** Add to `evidence_kind` field a `smell_type` sub-field mapping each finding to a named smell. Add a reference file `references/smell-catalog.md` with the full catalog + fix techniques.
+List the remaining 19 smells in `references/smell-catalog.md` under a "Future detectors" section. Don't ship a hollow vocabulary.
 
-#### Enhancement 2: Measure-before-after validation (HIGH)
+**Schema note (P0 fix):** Do NOT change `evidence_kind` from a flat string enum to a sub-field. Add `smell_type` as a **separate optional field** on each seam, defaulting to null. This is backward-compatible with existing seams.json files.
+
+#### Enhancement 2: Measure-before-after validation (HIGH — revised)
 
 **Source:** CodeScene ACE (arxiv 2507.03536) — "validates that a suggested refactoring actually improves the code health score before surfacing it."
 
 **Location:** Step 6, after verify (step 6.6).
 
-**Change:** Add a Step 6.5 "measure delta" sub-step:
-1. Before implementing a seam, record baseline metrics: `radon cc` complexity grade, coupling score (fan-in/fan-out from code_analysis.py), duplication count
-2. After implementing, re-measure the same metrics on the affected files
-3. If the targeted metric didn't improve, flag the seam as `no_improvement` — behavior-preserving but structurally ineffective
-4. Record before/after in PROGRESS.md per seam
+**P0 fix (Rev 2):** The binary `no_improvement` flag was too simplistic — refactoring a god module into smaller ones can reduce original fan-out while increasing fan-in at the new coordinator. Replace with **multivariate measurement**:
 
-**Why:** Currently we verify tests pass and complexity didn't increase. But we don't verify the refactor *achieved its goal*. A seam can be "tests pass, complexity stable" while being structurally pointless.
+1. Before implementing, record baseline: radon cc grade, fan-in, fan-out, duplication count
+2. After implementing, re-measure all metrics
+3. Record before/after in PROGRESS.md as a **delta table**, not a binary flag
+4. Flag `no_improvement` ONLY when ALL metrics worsened or stayed flat AND no trade-off is documented
+5. When metrics trade off (e.g., complexity↓ coupling↑), document the trade-off explicitly in the seam's `notes` field
 
-#### Enhancement 3: Red/yellow line safety tiers (MEDIUM)
+**Metric definitions:** use radon cc (complexity) + code_analysis.py fan-in/fan-out (coupling) + AST-based duplication count. Do not adopt CodeScene's commercial CodeHealth metric.
+
+#### Enhancement 3: Red/yellow line safety tiers (MEDIUM — revised)
 
 **Source:** MuhiminOsim/code-refactoring-skill safety model.
 
 **Location:** Step 6, before "Implement" (6.4).
 
-**Change:** Add a red-line/yellow-line table:
+**P0 fix (Rev 2):** The original "Files with no test coverage" red line deadlocked the P3 test-gap fix loop (P3 says "add characterization test" but the red line says "stop if no coverage"). Reword to: **"Files with no test coverage AND no characterization plan — stop. Files with no coverage but a characterization test IS the seam — proceed."**
 
 **Red Lines (stop and ask before ANY change):**
 - Public API changes (exported symbols, function signatures, module paths)
 - Serialization format changes (JSON keys, database columns, proto fields)
 - Concurrency behavior changes (lock ordering, async boundaries)
 - Error contract changes (types thrown, messages matched by callers)
-- Files with no test coverage
+- **Files with no test coverage AND the seam is NOT the characterization test**
 - Files with recent concurrent edits (check `git log --since="1 hour ago"`)
 - Moving code with side effects (emails, payments, queues) between layers
 - Introducing a new architectural layer where none existed
 - Moving code that participates in a transaction boundary
-- **Agentic hallucination:** guessing file paths, symbol names, or test failures instead of verifying via tool calls
+- **Agentic hallucination:** claiming file paths/symbol names/test results without tool-verified evidence
 
 **Yellow Lines (warn, require confirmation):**
 - Renaming a symbol with >20 call sites
@@ -85,44 +89,49 @@ Each gap has a concrete source, a specific location in SKILL.md, and a bounded c
 - Changing parameter order with >10 callers
 - Inlining a function present in multiple files
 
-#### Enhancement 4: Moving Invariant for architectural seams (MEDIUM)
+**Threshold note:** the >20 call sites / >5 modules thresholds should be calibrated against the workspace's actual symbol fan-in distribution (from code_analysis.py). For packages with naturally high fan-in (like yt-is), raise the threshold; for small utility packages, lower it.
+
+#### Enhancement 4: Moving Invariant for architectural seams (MEDIUM — revised)
 
 **Source:** MuhiminOsim/code-refactoring-skill §8.
 
 **Location:** Step 6.4, conditional on `category: "architecture_smell"`.
 
-**Change:** Add the Moving Invariant rule: "Never change logic AND location in the same step." For architectural seams, the implementation follows the **Introduce → Redirect → Remove** pattern with tests passing after each sub-step:
+**P0 fix (Rev 2):** The original proposal didn't reconcile with the existing walk budget (3 seams) or the existing P0 example. Clarify:
 
-1. **Introduce** — create the new structure (new module, new interface, new layer) without changing any callers. Tests must still pass (the old path is untouched).
-2. **Redirect** — migrate callers to the new structure, one caller at a time. Tests pass after each migration.
-3. **Remove** — delete the old structure only after all callers are redirected. Tests must pass.
+- **Introduce → Redirect → Remove counts as 3 sub-steps within 1 seam** (not 3 seams against budget). The seam is one architectural change; the 3 sub-steps are verify checkpoints within that seam.
+- The existing "fail-closed mapping" P0 example (SKILL.md lines 497-510) changes logic AND removes a code path in one seam. This is a **code-level refactor** (not architectural), so the Moving Invariant doesn't apply to it. The Invariant only applies to `category: "architecture_smell"` seams where code moves across layer boundaries.
+- **The Moving Invariant:** "Never change logic AND location in the same step." Every architectural move follows: **Introduce** (create new structure, old untouched, tests pass) → **Redirect** (migrate callers one at a time, tests pass after each) → **Remove** (delete old structure only after all callers redirected, tests pass).
 
-Each sub-step is a separate verify checkpoint, not a single seam.
+Each sub-step is a separate verify checkpoint, but all 3 sub-steps are within the single seam's scope.
 
-#### Enhancement 5: Rollback protocol (MEDIUM)
+#### Enhancement 5: Rollback protocol (MEDIUM — revised)
 
 **Source:** MuhiminOsim/code-refactoring-skill rollback protocol.
 
 **Location:** Step 6, replace "On verify fail: `blocked`; do not advance walk."
 
-**Change:** Replace with explicit rollback protocol:
-1. **Revert the edit immediately** (`git checkout -- <file>` in the worktree)
+**P0 fix (Rev 2):** The original `git checkout -- <file>` doesn't work after commit-per-seam (the bad edit is committed; checkout reverts to HEAD which includes it). And "do NOT fix forward" is wrong for trivial root causes. Revised protocol:
+
+1. **Revert the edit:**
+   - Uncommitted: `git checkout -- <file>` in the worktree
+   - Committed (commit-per-seam mode): `git revert HEAD --no-edit` (creates a follow-up commit, never rewrites history — operator-consistent)
 2. **State exactly which test failed** and with which error
 3. **Diagnose root cause** — why did the refactor break the test?
-4. **Propose a safer decomposition** — either a smaller seam or a different approach
-5. Do NOT fix forward. A refactoring that breaks a test is reverted, diagnosed, and re-approached safely.
+4. **Choose recovery path:**
+   - **Trivial root cause** (typo, missing import, wrong variable name): **fix forward** — apply the one-line fix and re-verify
+   - **Architectural root cause** (wrong decomposition, missing dependency): **re-approach** — propose a safer decomposition
+5. Record the revert + diagnosis + recovery in PROGRESS.md
 
 #### Enhancement 6: Agentic hallucination red line (MEDIUM — subsumed by Enhancement 3)
 
 This is the LLM-specific red line from Enhancement 3. Already included as the last item in the red-line table. No separate implementation needed.
 
-#### Enhancement 7: Step 4.1.2 gaming-vector fix (MEDIUM)
+#### Enhancement 7: Step 4.1.2 gaming-vector fix (MEDIUM — revised)
 
 **Source:** /tp review of this session — Step 4.1.2 has gaming vectors (no validator checks that wiki grep ran, no citation backcheck).
 
-**Location:** Step 4.1.2.
-
-**Change:** Add two structural enforcement mechanisms:
+**P0 fix (Rev 2):** The original Test-Path check catches dangling references but not fabricated findings. The agent can cite 5 real concepts by path without actually reading them. Replace with **content-backed cross-reference**:
 
 1. **Side-effect artifact:** Step 4.1.2 MUST write a `best_practices_audit.json` to `$runDir` recording:
    ```json
@@ -134,24 +143,30 @@ This is the LLM-specific red line from Enhancement 3. Already included as the la
      "timestamp": "<iso>"
    }
    ```
-   If this file is missing, the plan CANNOT advance to Step 4.2 (ranking). This prevents the "no grounding sources found" escape hatch from being used without actually checking.
+   If this file is missing, the plan CANNOT advance to Step 4.2 (ranking).
 
-2. **Citation backcheck (lightweight):** for each finding with `evidence_kind: "wiki_best_practice"`, verify the cited concept path exists. This is a `Test-Path` check, not a content check — it catches fabricated citations without being expensive.
+2. **Content-backed citation check (not just existence):** for each finding with `evidence_kind: "wiki_best_practice"`, grep the cited concept body for a keyword from the finding's title. If the finding is "Missing .catch on async handlers" and the cited concept is `chrome-acp-library-stack-and-best-practices-2026.md`, grep for "catch" or "async" in the concept. If the keyword doesn't appear, the citation is irrelevant — flag as `citation_mismatch`.
+
+3. **Provenance cross-check for context7:** the audit file records context7 library IDs. If the agent's finding cites a context7 result but the audit file shows no context7 query for that library, the finding is fabricated.
+
+**`--lite` propagation:** `--lite` mode skips external research (Source 3) but the audit file is still mandatory for Sources 1-2. A `--lite` run with no audit file cannot advance to Step 4.2.
 
 ## Field 5 — Done criteria
 
-- [ ] Enhancement 1: Named smell catalog added to Step 4.1 with `references/smell-catalog.md`
-- [ ] Enhancement 2: Measure-before-after (Step 6.5) with baseline recording in PROGRESS.md
-- [ ] Enhancement 3: Red/yellow line safety tiers table added to Step 6
-- [ ] Enhancement 4: Moving Invariant + Introduce → Redirect → Remove pattern for architecture seams
-- [ ] Enhancement 5: Rollback protocol replacing "blocked, don't advance"
-- [ ] Enhancement 7: `best_practices_audit.json` side-effect artifact + citation backcheck in Step 4.1.2
+- [ ] Enhancement 1: Named smell catalog with only the 4-5 mappings code_analysis.py emits today + `references/smell-catalog.md` with future detectors section
+- [ ] Enhancement 2: Measure-before-after (Step 6.5) with multivariate delta table in PROGRESS.md
+- [ ] Enhancement 3: Red/yellow line safety tiers with deadlock-free "no coverage" wording
+- [ ] Enhancement 4: Moving Invariant + Introduce → Redirect → Remove (1 seam, 3 sub-steps, architecture_smell only)
+- [ ] Enhancement 5: Rollback protocol with `git revert HEAD` for commit-per-seam + fix-forward for trivial causes
+- [ ] Enhancement 7: `best_practices_audit.json` side-effect + content-backed citation check + `--lite` propagation
 - [ ] All changes pass `/skill-dev measure refactor` static checks
+- [ ] Runtime test-fire: run `/refactor --lite` against a fixture package, confirm seams.json produced + audit file written
+- [ ] Test fixture created under `C:/Users/brsth/.grok/skills/refactor/tests/` with one known-smell package
 - [ ] Skill version bumped in frontmatter
 
 ## Field 6 — Constraints
 
-- **Don't restructure existing steps.** All 7 enhancements are additive to existing steps.
+- **Don't restructure Steps 1-5 and 7-9.** Step 6 IS on the table (Enhancements 4 and 5 modify Step 6 sub-steps).
 - **Don't replace code_analysis.py.** Our AST analysis is more precise than grep-only smell detection.
 - **Don't split into multiple skills.** Our single-skill approach is more maintainable for our fleet.
 - **Don't adopt CodeScene's commercial metric.** Use radon cc + our own coupling scores.
