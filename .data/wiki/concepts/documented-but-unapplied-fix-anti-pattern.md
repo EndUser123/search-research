@@ -51,6 +51,12 @@ The `/tp session` COMPLETENESS SCAN catches unactioned *recommendations*. But it
 
 For pipeline skills (ship-py, close-py): the detect phase should check whether prior-run state.json contains stale data that would contaminate the current run. This is the specific fix for the chain-break class, but the pattern generalizes: any pipeline that loads state from disk at start must either (a) clear stale fields or (b) validate that the state matches the current session.
 
+## What this means for our workspace
+
+1. **Apply trivial fixes immediately** — if a fix is ≤5 lines, verified, and the file is known, apply it in the same turn. Don't defer to a handoff.
+2. **Extend the `/tp session` COMPLETENESS SCAN** — flag handoff files with `## Fix` or `## Solution` sections that have no corresponding commit touching the referenced file.
+3. **Pipeline detect-phase contamination check** — any pipeline that loads state from disk at detect entry must clear stale fields or validate the state matches the current session.
+
 ## Reference incidents
 
 - **Session 019fef5d (2026-08-12):** ship-py chain-break fix (3 lines in detect.py) was documented in the compaction summary and improvement analysis for 2+ compaction segments but never applied. The fix was only applied when `/tp improve` produced it as recommendation #1 and the operator said "0" (execute all).

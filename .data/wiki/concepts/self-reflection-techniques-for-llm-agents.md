@@ -190,6 +190,12 @@ This analysis is wrong if:
 - **Metacognitive prompting (Wang et al., 2023):** five-stage protocol (understand → answer → reflect → justify → self-grade).
 - **Dual-loop reflection (Nature 2025):** extrospection (external feedback) + introspection (self-assessment).
 
+## Related concepts
+
+- [[specification-gaming-in-llm-agent-pipelines]] — self-reflection helps agents WANT to find gaps; the structural fix (dispatch-only) makes fabrication impossible. Both are needed.
+- [[mechanical-enforcement-over-behavioral-reminder]] — self-reflection steps are behavioral; this wiki concept explains why behavioral alone is insufficient.
+- [[code-orchestrates-model-judges-skill-scale]] — self-reflection is the "model judges" layer; the orchestrator is the "code orchestrates" layer.
+
 ## Sources
 
 - [Truly Self-Improving Agents Require Intrinsic Metacognitive Capabilities](https://arxiv.org/abs/2506.05109) (ICML 2025 position paper)

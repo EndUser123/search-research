@@ -190,3 +190,15 @@ This analysis is wrong if:
 - [Cognee: Open-Source Knowledge Graph for Agents](https://github.com/topics/graph-rag) (GitHub)
 - [AGENTiGraph: Interactive KG Platform](https://arxiv.org/html/2410.11531v1) (arXiv)
 - [Hermes Agent: Self-Evolving Roles via Skill Clustering](https://github.com/NousResearch/hermes-agent/issues/28767) (GitHub issue)
+
+## Receipts
+
+- `/dream` skill implementation: `~/.grok/skills/dream/SKILL.md` — current v1 (trigger-only, writes candidate proposal to `P:/docs/dreams/`)
+- `/wiki` skill auto-link: `P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/wiki/scripts/wiki_after_write.py` — the vocabulary bridge target (search_aliases generation would live here)
+- `/skill-prune` skill: `~/.agents/skills/skill-prune/SKILL.md` — the consolidation engine that `/dream` v2 would compose with
+
+## Related concepts
+
+- [[self-reflection-techniques-for-llm-agents]] — companion research; self-reflection is the online (in-session) layer, dreaming is the offline (between-session) layer. Together they form a dual-loop learning architecture.
+- [[specification-gaming-in-llm-agent-pipelines]] — dreaming consolidates patterns; one pattern worth consolidating is the specification-gaming failure mode.
+- [[wiki-integrated-skills-query-save-pattern]] — the wiki query→save loop is the retrieval→consolidation cycle that dreaming enhances.
