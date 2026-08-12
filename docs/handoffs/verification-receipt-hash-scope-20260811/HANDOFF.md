@@ -1,7 +1,7 @@
 # HANDOFF: verification_receipt.py hash scope — whole-repo hash can't hold on multi-agent host
 
 ## Status
-OPEN — discovered 2026-08-11 (session 019fe3ff), /check ops verifier FAIL.
+OPEN — discovered 2026-08-11 (session 019fe3ff), /check ops verifier FAIL. Disposition: deferred to /go (lower priority than the doc-check corruption fix which is actively mutating files).
 
 ## Objective
 Fix `C:/Users/brsth/.grok/scripts/verification_receipt.py` so its diff-hash binding is meaningful on this host. Currently it hashes the ENTIRE `~/.grok` and `P:/` repos (commits + dirty tree). On a multi-agent shared-repo host, sibling sessions commit constantly and the dirty tree always holds other agents' changes, so `hash_match` returns `false` within minutes of any registration. The receipt's `current` flag is therefore permanently stale for every session.
