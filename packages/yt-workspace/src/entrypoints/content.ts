@@ -146,7 +146,14 @@ export default defineContentScript({
       } else if (message?.type === "workspace-update") {
         const workspace = getWorkspaceElement();
         if (workspace) {
-          renderVideoContext(workspace, message.videoContext ?? null);
+          if (message.error === "acquire_failed" && !message.videoContext) {
+            const provenanceEl = workspace.querySelector('[data-field="provenance"]');
+            if (provenanceEl) {
+              (provenanceEl as HTMLElement).textContent = "Acquire failed — try reloading the page";
+            }
+          } else {
+            renderVideoContext(workspace, message.videoContext ?? null);
+          }
         }
       }
       return false;

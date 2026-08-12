@@ -59,7 +59,15 @@ export async function handleToolbarClick(tab: chrome.tabs.Tab): Promise<void> {
   await chrome.storage.session.set({ [key]: nextState });
 
   if (nextState) {
-    const ctx = await acquireVideoContext(tabId);
+    let ctx = await acquireVideoContext(tabId);
+    
+    // Retry once after 2s if the first acquire returned null (common on
+    // shorts pages where ytInitialPlayerResponse isn't ready immediately).
+    if (!ctx) {
+      await new Promise((r) => setTimeout(r, 2000));
+      ctx = await acquireVideoContext(tabId);
+    }
+
     chrome.tabs
       .sendMessage(tabId, {
         type: "workspace-toggle",
@@ -98,6 +106,15 @@ export async function handleNavigationMessage(
       .sendMessage(tabId, {
         type: "workspace-update",
         videoContext: ctx,
+      })
+      .catch(() => {});
+  } else {
+    // Surface acquire failure so the workspace shows an error, not stuck "Loading..."
+    chrome.tabs
+      .sendMessage(tabId, {
+        type: "workspace-update",
+        videoContext: null,
+        error: "acquire_failed",
       })
       .catch(() => {});
   }
@@ -207,7 +224,12 @@ export async function handleAutoOpen(
 ): Promise<VideoContext | null> {
   const key = `workspace-open-${tabId}`;
   await chrome.storage.session.set({ [key]: true });
-  const ctx = await acquireVideoContext(tabId);
+  let ctx = await acquireVideoContext(tabId);
+  if (!ctx) {
+    // Retry once after 2s (shorts/SPA timing)
+    await new Promise((r) => setTimeout(r, 2000));
+    ctx = await acquireVideoContext(tabId);
+  }
   if (ctx) {
     chrome.tabs
       .sendMessage(tabId, {

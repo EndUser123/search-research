@@ -271,7 +271,10 @@ export function mountWorkspace(
     return;
   }
   const url = new URL(location.href);
-  const videoId = url.searchParams.get("v") ?? "unknown";
+  const videoId =
+    url.searchParams.get("v") ??
+    url.pathname.match(/^\/shorts\/([^/?#]+)/)?.[1] ??
+    "unknown";
   const workspace = createWorkspaceElement(videoId, settings, onSettingsChange);
 
   // YouTube uses different layouts depending on page type.

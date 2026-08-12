@@ -36,12 +36,18 @@ export default defineBackground(() => {
       void handleSeekRequest(
         sender.tab.id,
         message.seconds as number,
-      ).then(sendResponse);
+      ).then(sendResponse).catch((err) => {
+        console.error("yt-workspace seek failed", err);
+        sendResponse({ ok: false, error: String(err), beforeTime: -1, afterTime: -1 });
+      });
       return true;
     }
 
     if (message?.type === "query-workspace-state" && sender.tab?.id) {
-      void handleQueryWorkspaceState(sender.tab.id).then(sendResponse);
+      void handleQueryWorkspaceState(sender.tab.id).then(sendResponse).catch((err) => {
+        console.error("yt-workspace query failed", err);
+        sendResponse({ open: false, videoContext: null });
+      });
       return true;
     }
 
