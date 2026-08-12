@@ -1,5 +1,17 @@
 # Vault Log
 
+## --concept
+Source: pipeline-detect-phase-state-reset-sequential-contamination
+Agent: --action
+Notes: created
+Page: --source
+
+## --concept
+Source: documented-but-unapplied-fix-anti-pattern
+Agent: --action
+Notes: created
+Page: --source
+
 ## Pipeline pause-phase schema contract
 Source: session-019ff1a0
 Agent: grok
