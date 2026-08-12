@@ -1,0 +1,44 @@
+# HANDOFF: doc-check auto-fix corrupts SKILL.md frontmatter — fix_skill_frontmatter bugs
+
+## Status
+OPEN — root cause identified 2026-08-11 (session 019fe3ff, /why investigation). Fix NOT applied (per /why contract — names fixes, does not implement).
+
+## Objective
+Fix two bugs in `C:/Users/brsth/.grok/skills/doc-check/scripts/check.py` `fix_skill_frontmatter()` (lines 540-584) that corrupt SKILL.md frontmatter whenever doc-check auto-fix runs on changed SKILL.md files (triggered by `/ship-py` Phase doc-check or standalone `/doc-check --fix`).
+
+## Root cause (verified Tier 1 — code read + output match)
+1. **Wrong variable (primary):** line 560 loops `for req_field in REQUIRED_SKILL_FIELDS:` but line 575 writes `lines.insert(insert_at, f"{field}: both")` — `field` is the module-global dataclasses function (line 19: `from dataclasses import dataclass, field`), NOT the loop variable. Output: `<function field at 0x…>: both` instead of `host: both`. The corrupted line never satisfies the `^host:` missing-check, so every subsequent run re-inserts another corrupted line (lines accumulate per run).
+2. **Insertion position (secondary):** lines 566-574 break at the `description:` line and set `insert_at = i + 1` (the `lines[i+1].strip().startswith(">")` guard never fires for folded scalars — the description body is indented, not `>`-prefixed). Result: the inserted line lands INSIDE the description block, right after `description: >` — breaking the YAML block.
+
+## Impact
+- `review/SKILL.md` (5 lines, repaired in commit 71de25b by adding the real `host: both`), `ask/SKILL.md` (6 lines, uncommitted), `refactor/SKILL.md` (4 lines, committed).
+- Files affected are exactly those missing the `host:` frontmatter field that appear in a doc-check diff. The AGENTS host-provenance convention (apply prospectively) means many ~/.grok/skills files lack `host:` — any /ship-py run touching them will corrupt them.
+- Corruption is ACTIVE: review/SKILL.md gained 2 lines mid-session while a sibling session's doc-check ran.
+
+## Fix (one commit, both bugs)
+```python
+# line 575: use the loop variable
+lines.insert(insert_at, f"{req_field}: both")
+# lines 566-574: insert after the LAST top-level field (before closing ---),
+# skipping the folded description body. Simplest correct behavior: append
+# before the closing "---" (insert_at = index of the closing marker), or
+# continue scanning past description bodies to the last ^\w line.
+```
+
+## Cleanup
+- Remove the `<function field at 0x…>` lines from `ask/SKILL.md` and `refactor/SKILL.md` and add the real `host: both` field to both (mirror the 71de25b review fix).
+- Optionally add a regression test: run `fix_skill_frontmatter` on a fixture SKILL.md missing `host:` and assert the inserted line is `host: both` and lands after the description block (not inside it).
+
+## Verification
+- After fix: `python C:/Users/brsth/.grok/skills/doc-check/scripts/check.py --fix --json` on a fixture must insert `host: both` (never `<function field…>`), and re-running must be idempotent (no accumulation).
+- `grep -r "<function field" ~/.grok/skills` must return zero.
+
+## Suggested next invocation
+```
+/go "Fix doc-check check.py fix_skill_frontmatter: (1) line 575 use req_field not field, (2) fix insertion point so host: lands after the description block / before closing ---, (3) clean ask/refactor SKILL.md corrupted lines + add real host: both, (4) regression test. See P:/docs/handoffs/doc-check-frontmatter-autofix-corruption-20260811/HANDOFF.md"
+```
+
+## References
+- /why RCA 2026-08-11 session 019fe3ff (root cause + evidence tiers).
+- `doc-check/SKILL.md:184` — ship-py integration fires `check.py --fix --json`.
+- Witness files: `~/.grok/skills/{review,ask,refactor}/SKILL.md` (review repaired in 71de25b).
