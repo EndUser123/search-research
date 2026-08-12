@@ -21,6 +21,14 @@ version: "1.0"
    - For IFBench-constrained formatting: minimax-m3
 3. If tier-1 unavailable, fall to tier-2.
 
+## Hard exclusions dominate composite scores (2026-08-12, /risk metric finding)
+
+Hard exclusions (cost, reliability, known-broken, hardcoded-do-not-dispatch)
+DOMINATE composite scores — a model on an exclusion list is never selected
+regardless of latency/quality scores. The score is a tiebreaker within the
+eligible set, not the primary gate. Documented so the selection formula
+cannot be gamed through the score alone.
+
 ## Tier-1 (verified 2026-08-08)
 nim-openai-gpt-oss-20b (7.7s, free, spawn OK — fastest remaining tier-1 after ling-3 moved to paid)
 minimax-m3 (7.3s, sub, IFBench #1 globally at 82.9%)

@@ -60,6 +60,15 @@ fresh session with full context budget.
 > (false negatives) vs receipts whose commands trivially passed (false
 > positives). The measurement is the decision input; the build follows.
 > Full analysis: [[requirement-failure-patterns-req-check-first-use]].
+>
+> **Initial measurement (2026-08-12, bounded scan of last 20 session
+> transcripts):** 85 "automatically moved to background" occurrences, of
+> which 12 were pytest commands (~0.6 receipt-relevant backgroundings per
+> session). The false-negative class is real and regular — it is NOT a
+> rare edge case. This data point justifies prioritizing the fix
+> (Option A retroactive-at-Stop vs Option B platform event) over
+> indefinite data collection; extend the sample if a per-session rate is
+> needed before committing to a design.
 
 **Design options (from /tp exploration + second-order-effects analysis):**
 
