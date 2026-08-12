@@ -1,5 +1,11 @@
 # Vault Log
 
+## Skill scope coverage mandate best practices
+Source: session-019ff1a0
+Agent: grok
+Notes: Research across 6 frameworks on coverage mandate patterns; validates our anti-rationalization clause as novel
+Page: P:/.data/wiki/concepts/skill-scope-coverage-mandate-best-practices.md
+
 ## AGENTS.md optimization tools landscape
 Source: /www research
 Agent: grok
