@@ -7,10 +7,9 @@ are pure functions we CAN test by stubbing fetch_tab.
 Goal: ensure cross-tab duplicates collapse, per-tab counts are reported
 correctly, and the output JSONL feeds cleanly into cluster.py.
 """
-import json
+
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 SCRIPT = Path("P:/.agents/skills/nlm-bulk-ingest/scripts/extract.py")
@@ -86,7 +85,10 @@ def test_script_help_runs():
     """Smoke test: extract.py --help works without import errors."""
     r = subprocess.run(
         ["python", str(SCRIPT), "--help"],
-        capture_output=True, text=True, timeout=30, encoding="utf-8"
+        capture_output=True,
+        text=True,
+        timeout=30,
+        encoding="utf-8",
     )
     check("extract.py --help exits 0", r.returncode == 0, r.stderr[:200])
     check(
@@ -104,8 +106,17 @@ def test_script_help_runs():
 def test_no_yt_dlp_errors_cleanly():
     """If yt-dlp isn't found, extract.py should error cleanly (not crash)."""
     r = subprocess.run(
-        ["python", str(SCRIPT), "https://www.youtube.com/@test", "--yt-dlp", "/nonexistent/yt-dlp"],
-        capture_output=True, text=True, timeout=30, encoding="utf-8"
+        [
+            "python",
+            str(SCRIPT),
+            "https://www.youtube.com/@test",
+            "--yt-dlp",
+            "/nonexistent/yt-dlp",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        encoding="utf-8",
     )
     check("missing yt-dlp exits non-zero", r.returncode != 0, "exited 0")
     check(

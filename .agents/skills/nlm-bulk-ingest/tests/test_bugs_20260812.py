@@ -11,6 +11,7 @@ Bug 2: ingest.py --pilot created duplicate notebooks because it didn't write
 Bug 3 (minor): the double-negative arg guard was confusing; left in place
        but worth a smoke test.
 """
+
 import json
 import subprocess
 import sys
@@ -37,12 +38,15 @@ def check(label, condition, detail=""):
 # Bug 1: split_oversized must terminate on homogeneous input
 # ---------------------------------------------------------------------------
 
+
 def test_split_oversized_homogeneous():
     """K-means collapses on homogeneous input; the fix must fall back to
     sequential splitting and terminate without RecursionError."""
     import numpy as np
+
     # Import the function under test by execing cluster.py's namespace
     import importlib.util
+
     spec = importlib.util.spec_from_file_location("cluster_mod", CLUSTER_PY)
     mod = importlib.util.module_from_spec(spec)
     # cluster.py expects numpy as np at module level; ensure available
@@ -65,11 +69,23 @@ def test_split_oversized_homogeneous():
         max_piece = max(len(p) for p in result) if result else 0
         check("homogeneous: terminates without RecursionError", n_pieces > 0)
         check("homogeneous: all 300 points accounted for", total == 300, f"got {total}")
-        check("homogeneous: every piece <= max_size", max_piece <= 50, f"max piece {max_piece}")
+        check(
+            "homogeneous: every piece <= max_size",
+            max_piece <= 50,
+            f"max piece {max_piece}",
+        )
     except RecursionError:
-        check("homogeneous: terminates without RecursionError", False, "RecursionError raised")
+        check(
+            "homogeneous: terminates without RecursionError",
+            False,
+            "RecursionError raised",
+        )
     except Exception as e:
-        check("homogeneous: terminates without RecursionError", False, f"{type(e).__name__}: {e}")
+        check(
+            "homogeneous: terminates without RecursionError",
+            False,
+            f"{type(e).__name__}: {e}",
+        )
 
 
 def test_split_oversized_heterogeneous():
@@ -77,6 +93,7 @@ def test_split_oversized_heterogeneous():
     the fix didn't break the happy path)."""
     import numpy as np
     import importlib.util
+
     spec = importlib.util.spec_from_file_location("cluster_mod", CLUSTER_PY)
     mod = importlib.util.module_from_spec(spec)
     try:
@@ -96,14 +113,22 @@ def test_split_oversized_heterogeneous():
     total = sum(len(p) for p in result)
     max_piece = max(len(p) for p in result) if result else 0
     check("heterogeneous: all 300 points accounted for", total == 300, f"got {total}")
-    check("heterogeneous: every piece <= max_size", max_piece <= 50, f"max piece {max_piece}")
-    check("heterogeneous: produces >1 piece for 300 points at cap 50", len(result) >= 6,
-          f"got {len(result)} pieces")
+    check(
+        "heterogeneous: every piece <= max_size",
+        max_piece <= 50,
+        f"max piece {max_piece}",
+    )
+    check(
+        "heterogeneous: produces >1 piece for 300 points at cap 50",
+        len(result) >= 6,
+        f"got {len(result)} pieces",
+    )
 
 
 # ---------------------------------------------------------------------------
 # Bug 2: pilot must write to state so --all skips it
 # ---------------------------------------------------------------------------
+
 
 def test_pilot_writes_state():
     """Verify the pilot code path passes state_path (not None) to
@@ -115,36 +140,57 @@ def test_pilot_writes_state():
     #   record = process_cluster(cluster, args.prefix, args.profile, state, None)
     # The fix passes state_path instead of None.
     pilot_block_start = src.find("if args.pilot is not None:")
-    pilot_block_end = src.find("return 0 if record[\"status\"]", pilot_block_start)
+    pilot_block_end = src.find('return 0 if record["status"]', pilot_block_start)
     pilot_block = src[pilot_block_start:pilot_block_end]
-    has_none_call = "process_cluster(cluster, args.prefix, args.profile, state, None)" in pilot_block
-    has_state_path_call = "process_cluster(cluster, args.prefix, args.profile, state, state_path)" in pilot_block
-    check("pilot: does NOT pass None to process_cluster", not has_none_call,
-          "found None in pilot process_cluster call")
-    check("pilot: passes state_path to process_cluster", has_state_path_call,
-          "state_path not found in pilot call")
+    has_none_call = (
+        "process_cluster(cluster, args.prefix, args.profile, state, None)"
+        in pilot_block
+    )
+    has_state_path_call = (
+        "process_cluster(cluster, args.prefix, args.profile, state, state_path)"
+        in pilot_block
+    )
+    check(
+        "pilot: does NOT pass None to process_cluster",
+        not has_none_call,
+        "found None in pilot process_cluster call",
+    )
+    check(
+        "pilot: passes state_path to process_cluster",
+        has_state_path_call,
+        "state_path not found in pilot call",
+    )
 
     # Also verify state_path is set for pilot mode (not just --all)
-    state_path_line = [l for l in src.splitlines()
-                       if "state_path = args.state" in l]
-    check("state_path: active for pilot mode", state_path_line and "args.pilot" in state_path_line[0],
-          f"line: {state_path_line}")
+    state_path_line = [l for l in src.splitlines() if "state_path = args.state" in l]
+    check(
+        "state_path: active for pilot mode",
+        state_path_line and "args.pilot" in state_path_line[0],
+        f"line: {state_path_line}",
+    )
 
 
 def test_state_path_logic():
     """Verify state_path is truthy when --pilot or --all, None otherwise."""
     src = INGEST_PY.read_text(encoding="utf-8")
     # Find the state_path assignment
-    line = [l.strip() for l in src.splitlines() if l.strip().startswith("state_path = args.state")]
+    line = [
+        l.strip()
+        for l in src.splitlines()
+        if l.strip().startswith("state_path = args.state")
+    ]
     check("state_path line exists", len(line) == 1, f"found {len(line)} lines")
     if line:
-        check("state_path covers pilot mode", "args.pilot is not None" in line[0], line[0])
+        check(
+            "state_path covers pilot mode", "args.pilot is not None" in line[0], line[0]
+        )
         check("state_path covers all mode", "args.all" in line[0], line[0])
 
 
 # ---------------------------------------------------------------------------
 # Bug 3: arg guard smoke test
 # ---------------------------------------------------------------------------
+
 
 def test_arg_guard_no_action_mode():
     """Running with neither --pilot nor --all should error cleanly."""
@@ -157,12 +203,18 @@ def test_arg_guard_no_action_mode():
 
     r = subprocess.run(
         ["python", str(INGEST_PY), clusters_path],
-        capture_output=True, text=True, timeout=30, encoding="utf-8"
+        capture_output=True,
+        text=True,
+        timeout=30,
+        encoding="utf-8",
     )
     Path(clusters_path).unlink(missing_ok=True)
     # Should error (exit non-zero) because neither --pilot nor --all given
-    check("no-mode: exits non-zero without --pilot/--all", r.returncode != 0,
-          f"exited {r.returncode}")
+    check(
+        "no-mode: exits non-zero without --pilot/--all",
+        r.returncode != 0,
+        f"exited {r.returncode}",
+    )
 
 
 if __name__ == "__main__":

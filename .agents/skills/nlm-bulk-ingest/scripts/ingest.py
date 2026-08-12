@@ -16,6 +16,7 @@ Notes:
   - Auth: `nlm login --check` lies about expiry. If `notebook list` fails,
     run `nlm login --profile <name>` (silent CDP re-auth). See tool-fallbacks.md.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,7 +35,9 @@ def log(msg: str) -> None:
 
 def run(cmd: list[str], timeout: int = 1800) -> tuple[int, str, str]:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, encoding="utf-8")
+        r = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, encoding="utf-8"
+        )
         return r.returncode, r.stdout or "", r.stderr or ""
     except subprocess.TimeoutExpired:
         return 124, "", f"TIMEOUT after {timeout}s"
@@ -42,16 +45,22 @@ def run(cmd: list[str], timeout: int = 1800) -> tuple[int, str, str]:
 
 def ensure_auth(profile: str) -> bool:
     """Verify nlm auth; attempt silent re-auth if needed. Returns True if auth ok."""
-    rc, _, _ = run(["nlm", "notebook", "list", "--profile", profile, "--quiet"], timeout=60)
+    rc, _, _ = run(
+        ["nlm", "notebook", "list", "--profile", profile, "--quiet"], timeout=60
+    )
     if rc == 0:
         return True
-    log(f"Auth check failed (rc={rc}); attempting silent re-auth via profile '{profile}'...")
+    log(
+        f"Auth check failed (rc={rc}); attempting silent re-auth via profile '{profile}'..."
+    )
     rc2, out, err = run(["nlm", "login", "--profile", profile], timeout=300)
     if rc2 != 0:
         log(f"  re-auth failed: {err.strip()[:300]}")
         return False
     # Verify
-    rc3, _, _ = run(["nlm", "notebook", "list", "--profile", profile, "--quiet"], timeout=60)
+    rc3, _, _ = run(
+        ["nlm", "notebook", "list", "--profile", profile, "--quiet"], timeout=60
+    )
     return rc3 == 0
 
 
@@ -82,15 +91,23 @@ def bulk_add(notebook_id: str, urls: list[str], profile: str) -> tuple[float, st
     return elapsed, excerpt
 
 
-def verify_source_count(notebook_id: str, profile: str, expected: int,
-                         max_polls: int = 10, initial_wait: int = 30) -> int:
+def verify_source_count(
+    notebook_id: str,
+    profile: str,
+    expected: int,
+    max_polls: int = 10,
+    initial_wait: int = 30,
+) -> int:
     """Poll notebook get for source_count. Returns actual, or -1 on error."""
     for attempt in range(max_polls):
         if attempt == 0:
             time.sleep(initial_wait)
         else:
             time.sleep(15)
-        rc, out, _ = run(["nlm", "notebook", "get", notebook_id, "--profile", profile, "--json"], timeout=60)
+        rc, out, _ = run(
+            ["nlm", "notebook", "get", notebook_id, "--profile", profile, "--json"],
+            timeout=60,
+        )
         if rc != 0:
             continue
         try:
@@ -118,13 +135,15 @@ def save_state(state: dict, path: Path) -> None:
     tmp.replace(path)
 
 
-def process_cluster(cluster: dict, prefix: str, profile: str, state: dict, state_path: Path | None) -> dict:
+def process_cluster(
+    cluster: dict, prefix: str, profile: str, state: dict, state_path: Path | None
+) -> dict:
     cid = cluster["cluster_id"]
     title = f"{prefix}{cluster['name']}"
     urls = [v["url"] for v in cluster["videos"]]
     expected = len(urls)
 
-    log(f"")
+    log("")
     log(f"--- Cluster {cid}: {title} ({expected} URLs) ---")
 
     nb_id = create_notebook(title, profile)
@@ -137,7 +156,7 @@ def process_cluster(cluster: dict, prefix: str, profile: str, state: dict, state
     log(f"  created notebook {nb_id}")
 
     elapsed, excerpt = bulk_add(nb_id, urls, profile)
-    log(f"  bulk-add: {elapsed:.0f}s ({elapsed/expected:.2f}s/url)")
+    log(f"  bulk-add: {elapsed:.0f}s ({elapsed / expected:.2f}s/url)")
     if excerpt:
         log(f"  output: {excerpt[:200]}")
 
@@ -182,8 +201,12 @@ def reconcile_state(state: dict, profile: str) -> int:
             continue
         if actual == expected:
             continue  # already confirmed
-        log(f"reconcile: cluster {cid_str} has actual={actual}, expected={expected}; re-verifying...")
-        new_actual = verify_source_count(nb_id, profile, expected, max_polls=3, initial_wait=15)
+        log(
+            f"reconcile: cluster {cid_str} has actual={actual}, expected={expected}; re-verifying..."
+        )
+        new_actual = verify_source_count(
+            nb_id, profile, expected, max_polls=3, initial_wait=15
+        )
         if new_actual == expected:
             rec["actual"] = new_actual
             rec["status"] = "ok"
@@ -197,13 +220,19 @@ def reconcile_state(state: dict, profile: str) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("clusters", type=Path, help="clusters.json from cluster.py")
     ap.add_argument("--pilot", type=int, help="Pilot a single cluster end-to-end")
-    ap.add_argument("--all", action="store_true", help="Ingest all clusters not yet in --state")
+    ap.add_argument(
+        "--all", action="store_true", help="Ingest all clusters not yet in --state"
+    )
     ap.add_argument("--prefix", default="", help="Prefix for notebook titles")
     ap.add_argument("--profile", default="a.hominidae", help="nlm profile name")
-    ap.add_argument("--state", type=Path, default=DEFAULT_STATE, help="State file for resume")
+    ap.add_argument(
+        "--state", type=Path, default=DEFAULT_STATE, help="State file for resume"
+    )
     args = ap.parse_args()
 
     if not args.pilot is not None and not args.all:
@@ -242,21 +271,28 @@ def main() -> int:
         record = process_cluster(cluster, args.prefix, args.profile, state, state_path)
         log("")
         log(f"Pilot complete: {record['url']}")
-        log(f"  Pilot result checkpointed to state. --all will skip cluster {args.pilot}.")
-        log(f"  Open this notebook in NotebookLM UI to verify before running --all.")
+        log(
+            f"  Pilot result checkpointed to state. --all will skip cluster {args.pilot}."
+        )
+        log("  Open this notebook in NotebookLM UI to verify before running --all.")
         return 0 if record["status"] == "ok" else 1
 
     # --all mode
-    todo = [c for c in clusters
-            if c["cluster_id"] not in state["completed"]
-            and c["cluster_id"] not in state["failed"]]
-    log(f"=== Bulk ingest: {len(todo)} clusters to do, {len(state['completed'])} done, {len(state['failed'])} failed ===")
+    todo = [
+        c
+        for c in clusters
+        if c["cluster_id"] not in state["completed"]
+        and c["cluster_id"] not in state["failed"]
+    ]
+    log(
+        f"=== Bulk ingest: {len(todo)} clusters to do, {len(state['completed'])} done, {len(state['failed'])} failed ==="
+    )
 
     for cluster in todo:
         process_cluster(cluster, args.prefix, args.profile, state, state_path)
 
     log("")
-    log(f"=== Run complete ===")
+    log("=== Run complete ===")
     log(f"Completed: {len(state['completed'])}/{len(clusters)}")
     if state["failed"]:
         log(f"Failed: {state['failed']}")

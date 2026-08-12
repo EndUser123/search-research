@@ -29,6 +29,7 @@ in /shorts (662) and /streams (6). The agent declared done at 351. This
 script makes that mistake structurally impossible — it hits all tabs by
 default and reports the per-tab breakdown.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -108,7 +109,9 @@ def fetch_tab(ytdlp: str, channel: str, tab: str) -> list[dict]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("channel", help="Channel URL (e.g. https://www.youtube.com/@name)")
-    ap.add_argument("-o", "--output", default="canonical.jsonl", help="Output JSONL path")
+    ap.add_argument(
+        "-o", "--output", default="canonical.jsonl", help="Output JSONL path"
+    )
     ap.add_argument("--yt-dlp", default=None, help="Path to yt-dlp binary")
     ap.add_argument(
         "--tabs",
@@ -155,7 +158,7 @@ def main() -> int:
     total = len(order)
     tab_totals = {t: len(v) for t, v in by_tab.items()}
     log("")
-    log(f"=== Summary ===")
+    log("=== Summary ===")
     for t, n in tab_totals.items():
         log(f"  /{t}: {n}")
     cross_dup = sum(1 for r in seen.values() if len(r["tabs"]) > 1)
@@ -171,7 +174,9 @@ def main() -> int:
     with out.open("w", encoding="utf-8") as f:
         for vid in order:
             rec = seen[vid]
-            tabs_str = "+".join(tabs_order for tabs_order in [t for t in tabs if t in rec["tabs"]])
+            tabs_str = "+".join(
+                tabs_order for tabs_order in [t for t in tabs if t in rec["tabs"]]
+            )
             canonical = {
                 "id": rec["id"],
                 "title": rec["title"],

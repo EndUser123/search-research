@@ -9,6 +9,7 @@ Outputs clusters.json: [{cluster_id, name, count, videos:[{id,title,url,source}]
 Verified 2026-07-25 on 4116 videos → 15 clusters of 154-300 each.
 See [[semantic-clustering-bounded-size]] for the algorithm rationale.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,19 +35,26 @@ def load_canonical(path: Path):
 
 def embed(items, model_name="all-MiniLM-L6-v2"):
     from sentence_transformers import SentenceTransformer
+
     t0 = time.time()
     print(f"Loading embedding model: {model_name}", file=sys.stderr)
     model = SentenceTransformer(model_name)
-    texts = [f"{it.get('title','')} by {it.get('source','')}".strip() for it in items]
+    texts = [f"{it.get('title', '')} by {it.get('source', '')}".strip() for it in items]
     print(f"Encoding {len(texts)} texts...", file=sys.stderr)
-    emb = model.encode(texts, batch_size=128, show_progress_bar=True,
-                       convert_to_numpy=True, normalize_embeddings=True)
-    print(f"Embedded in {time.time()-t0:.1f}s. Shape: {emb.shape}", file=sys.stderr)
+    emb = model.encode(
+        texts,
+        batch_size=128,
+        show_progress_bar=True,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    )
+    print(f"Embedded in {time.time() - t0:.1f}s. Shape: {emb.shape}", file=sys.stderr)
     return emb
 
 
 def cluster_hdbscan(emb, min_cluster_size, min_samples):
     from sklearn.cluster import HDBSCAN
+
     hdb = HDBSCAN(
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
@@ -69,7 +77,10 @@ def two_pass_cluster(emb):
     noise_mask = labels == -1
     if noise_mask.sum() > 0:
         noise_idx = np.where(noise_mask)[0]
-        print(f"Pass 2: re-clustering {len(noise_idx)} noise points (min_cluster_size=4, min_samples=1)", file=sys.stderr)
+        print(
+            f"Pass 2: re-clustering {len(noise_idx)} noise points (min_cluster_size=4, min_samples=1)",
+            file=sys.stderr,
+        )
         labels2 = cluster_hdbscan(emb[noise_idx], 4, 1)
         offset = labels.max() + 1
         for j, gi in enumerate(noise_idx):
@@ -113,8 +124,16 @@ def merge_tiny(labels, emb, min_size):
                 break
             sc = emb[groups[slab]].mean(axis=0)
             sc_n = sc / (np.linalg.norm(sc) + 1e-9)
-            best_big = max(big, key=lambda bl: float(sc_n @ (emb[groups[bl]].mean(axis=0) /
-                                                              (np.linalg.norm(emb[groups[bl]].mean(axis=0)) + 1e-9))))
+            best_big = max(
+                big,
+                key=lambda bl: float(
+                    sc_n
+                    @ (
+                        emb[groups[bl]].mean(axis=0)
+                        / (np.linalg.norm(emb[groups[bl]].mean(axis=0)) + 1e-9)
+                    )
+                ),
+            )
             groups[best_big].extend(groups.pop(slab))
             merged += 1
             big.remove(best_big)
@@ -124,7 +143,9 @@ def merge_tiny(labels, emb, min_size):
 
     # Reassign labels
     new_labels = np.full_like(labels, -1)
-    for new_id, (old_lab, idxs) in enumerate(sorted(groups.items(), key=lambda kv: -len(kv[1]))):
+    for new_id, (old_lab, idxs) in enumerate(
+        sorted(groups.items(), key=lambda kv: -len(kv[1]))
+    ):
         for i in idxs:
             new_labels[i] = new_id
     return new_labels
@@ -156,8 +177,10 @@ def split_oversized(labels, emb, max_size):
             final.append(idxs)
             return
 
-        n_split = max(int(np.ceil(len(idxs) / max_size)),
-                      int(np.ceil(len(idxs) / (max_size * 0.85))))
+        n_split = max(
+            int(np.ceil(len(idxs) / max_size)),
+            int(np.ceil(len(idxs) / (max_size * 0.85))),
+        )
         km = KMeans(n_clusters=n_split, n_init=10, random_state=0)
         sub = km.fit_predict(emb[idxs])
         sub_groups: dict[int, list[int]] = {}
@@ -170,11 +193,14 @@ def split_oversized(labels, emb, max_size):
         # Fall back to an even sequential split that is guaranteed to terminate.
         largest = max((len(v) for v in sub_groups.values()), default=0)
         if largest > max_size and len(sub_groups) < n_split:
-            print(f"  k-means collapsed (1/{len(sub_groups)} buckets); "
-                  f"sequential fallback", file=sys.stderr)
+            print(
+                f"  k-means collapsed (1/{len(sub_groups)} buckets); "
+                f"sequential fallback",
+                file=sys.stderr,
+            )
             chunk = int(np.ceil(len(idxs) / n_split))
             for i in range(0, len(idxs), chunk):
-                piece = idxs[i:i + chunk]
+                piece = idxs[i : i + chunk]
                 if piece:
                     split_recurse(piece, depth + 1)
             return
@@ -225,13 +251,15 @@ def greedy_merge(pieces, emb, max_size):
 
 # ---------- naming ----------
 
-STOP = set("""a an the of to in on for and or with by from how what why when is are was
+STOP = set(
+    """a an the of to in on for and or with by from how what why when is are was
 were be been being this that these those it its as at into your you i my me we they
 them he she his her their our 1 2 3 new best top vs use using build make making
 review test actually really part ep episode pt full guide tutorial will can do does
 don didn could would should up out over under more most less much many few all any
 some no not yes here there now then than only just also too very about after before
-during through between across within without""".split())
+during through between across within without""".split()
+)
 
 
 def name_cluster(items, top_n=3):
@@ -247,7 +275,9 @@ def name_cluster(items, top_n=3):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("input", type=Path, help="canonical.jsonl from normalize.py")
     ap.add_argument("--max-size", type=int, default=300)
     ap.add_argument("--min-size", type=int, default=5)
@@ -270,15 +300,22 @@ def main() -> int:
     clusters_out = []
     for new_id, idxs in enumerate(pieces):
         cluster_items = [items[i] for i in idxs]
-        clusters_out.append({
-            "cluster_id": new_id,
-            "name": name_cluster(cluster_items),
-            "count": len(cluster_items),
-            "videos": [
-                {"id": it.get("id"), "title": it.get("title"), "url": it.get("url"), "source": it.get("source")}
-                for it in cluster_items
-            ],
-        })
+        clusters_out.append(
+            {
+                "cluster_id": new_id,
+                "name": name_cluster(cluster_items),
+                "count": len(cluster_items),
+                "videos": [
+                    {
+                        "id": it.get("id"),
+                        "title": it.get("title"),
+                        "url": it.get("url"),
+                        "source": it.get("source"),
+                    }
+                    for it in cluster_items
+                ],
+            }
+        )
 
     with args.output.open("w", encoding="utf-8") as f:
         json.dump(clusters_out, f, ensure_ascii=False, indent=2)
