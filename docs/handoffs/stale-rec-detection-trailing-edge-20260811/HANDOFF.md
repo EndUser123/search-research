@@ -1,7 +1,7 @@
 # Handoff: Stale-Recommendation Detection — Trailing-Edge Items
 
-## Status: OPEN
-## Last updated: 2026-08-11T22:00:00Z
+## Status: CLOSED
+## Last updated: 2026-08-12T06:15:00Z
 ## Session: 019ff2aa-2db1-7030-a845-aac243d05ffe
 ## Author: grok
 
@@ -24,6 +24,12 @@ Wiki concept: `[[compaction-inherited-recommendation-decoupling]]`
 Commits: `11155be`, `e9a3c0e`, `0fb7080`, `ab9fc24`
 
 ## Open items
+
+### CLOSED 2026-08-12: All three items implemented, tested, and pushed.
+
+- **Item 1 (Fix 3 / T14):** DONE — commit `281fbaa` (~/.grok). /notice v2.6 with T14 trigger.
+- **Item 2 (Test integration):** DONE — commit `281fbaa` (~/.grok). 2 integration tests in test_continuation_pipeline.py, both pass.
+- **Item 3 (Operational monitoring):** DONE — commit `fc45c07` (P:). JSONL schema, review commands, threshold adjustment, audit cadence added to wiki concept.
 
 ### Item 1: Fix 3 — /notice T7 trigger (proposed, silently dropped)
 
