@@ -1,5 +1,11 @@
 # Vault Log
 
+## requirement-failure-patterns-req-check-first-use
+Source: req-check
+Agent: grok
+Notes: New concept from /req-check first real use: mechanism-unnamed fix requirements + decision-grade gating on open decision-reversing unknowns.
+Page: P:/.data/wiki/concepts/requirement-failure-patterns-req-check-first-use.md
+
 ## yagni-is-feature-scope-not-structural-scope
 Source: session-20260812
 Agent: grok
