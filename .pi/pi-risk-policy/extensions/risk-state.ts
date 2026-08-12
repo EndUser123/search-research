@@ -10,8 +10,6 @@
 import { createEmptyVerificationState } from "./verification-state.ts";
 import { POLICY_BY_TIER } from "./risk-policy.ts";
 import type {
-	HaPatchSnapshot,
-	HaPatchStatus,
 	RiskAssessment,
 	RiskPolicy,
 	RiskStateSnapshot,
@@ -41,7 +39,6 @@ export class RiskStateStore {
 	private findings: StoredFinding[] = [];
 	private deletedPaths: Set<string> = new Set();
 	private worktree: WorktreeSnapshot | null = null;
-	private haPatch: HaPatchSnapshot = { status: "unchecked", checkedAt: "", details: [] };
 	private lastPrompt: string = "";
 
 	getSnapshot(): RiskStateSnapshot | null {
@@ -52,7 +49,6 @@ export class RiskStateStore {
 			verification: this.verification,
 			timestamp: new Date().toISOString(),
 			worktree: this.worktree ?? undefined,
-			haPatch: this.haPatch,
 		};
 	}
 
@@ -149,13 +145,5 @@ export class RiskStateStore {
 
 	getWorktree(): WorktreeSnapshot | null {
 		return this.worktree;
-	}
-
-	setHaPatch(status: HaPatchStatus, details: string[]): void {
-		this.haPatch = { status, checkedAt: new Date().toISOString(), details };
-	}
-
-	getHaPatch(): HaPatchSnapshot {
-		return this.haPatch;
 	}
 }

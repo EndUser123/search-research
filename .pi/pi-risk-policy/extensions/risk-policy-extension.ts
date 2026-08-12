@@ -23,7 +23,6 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 
 /**
@@ -114,7 +113,6 @@ import { clearRiskUI, showRiskBanner, showRiskWarning } from "./risk-ui.ts";
 import { suggestVerifyCommands } from "./verify-defaults.ts";
 import { runReviewPass } from "./review-pass.ts";
 import { detectWorktree } from "./worktree-detect.ts";
-import { checkHaPatch, formatHaPatchWarning } from "./ha-patch-check.ts";
 import { registerRiskCommands, type RiskLogEntry } from "./risk-commands.ts";
 import { registerRiskTools } from "./risk-tools.ts";
 import { appendRiskLog } from "./risk-log.ts";
@@ -408,40 +406,6 @@ export default function riskPolicyExtension(pi: ExtensionAPI) {
 		}
 		store.setWorktree(detectWorktree(ctx.cwd));
 
-		// One-shot: verify the pi-high-availability patch is active.
-		// Configurable via ha.json checkHaPatchOnSessionStart (default true).
-		try {
-			const haConfigPath = join(homedir(), ".pi", "agent", "ha.json");
-			let checkEnabled = true;
-			if (existsSync(haConfigPath)) {
-				const haCfg = JSON.parse(await readFile(haConfigPath, "utf-8"));
-				if (haCfg.checkHaPatchOnSessionStart === false) checkEnabled = false;
-			}
-			if (checkEnabled) {
-				const result = checkHaPatch();
-				store.setHaPatch(result.status === "pass" ? "active" : "missing", result.details);
-				await logEvent({
-					event: "ha_patch_check",
-					status: result.status,
-					details: result.details,
-				});
-				if (result.status === "fail") {
-					const warning = formatHaPatchWarning();
-					if (ctx.hasUI) ctx.ui.notify(warning, "error");
-					if (isPiDebugEnabled()) console.error(warning);
-				} else if (isPiDebugEnabled()) {
-					console.log("[ha-patch] OK — pi-high-availability patch active");
-				}
-			}
-		} catch (err) {
-			// Never fail session start over a patch check.
-			store.setHaPatch("missing", [`check threw: ${err instanceof Error ? err.message : String(err)}`]);
-			await logEvent({
-				event: "ha_patch_check",
-				status: "fail",
-				details: [`check threw: ${err instanceof Error ? err.message : String(err)}`],
-			});
-		}
 		if (ctx.isProjectTrusted()) {
 			const repo = await loadRepoConfig(ctx);
 			if (repo) {

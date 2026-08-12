@@ -83,7 +83,6 @@ export function registerRiskTools(
 						`Paths: ${snap.assessment.candidatePaths.join(", ") || "(none)"}`,
 						`Verification: planned=${snap.verification.planned} ran=${snap.verification.verificationRan} passed=${snap.verification.verificationPassed} diff=${snap.verification.diffSummarized} approved=${snap.verification.manualApprovalRecorded}`,
 						`Worktree: ${snap.worktree ? (snap.worktree.inWorktree ? `yes (name=${snap.worktree.worktreeName ?? "?"}, main=${snap.worktree.mainGitDir ?? "?"})` : "no") : "unknown"}`,
-						`HA patch: ${snap.haPatch ? `${snap.haPatch.status} (checked ${snap.haPatch.checkedAt})` : "unchecked"}${snap.haPatch && snap.haPatch.status === "missing" ? " — MiniMax/Z.ai failover NOT trusted" : ""}`,
 					].join("\n")
 				: "No risk assessment yet. Send a prompt first.";
 			return {

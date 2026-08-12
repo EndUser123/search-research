@@ -61,19 +61,10 @@ export interface WorktreeSnapshot {
 	checkedAt: string;
 }
 
-export type HaPatchStatus = "active" | "missing" | "unchecked";
-
-export interface HaPatchSnapshot {
-	status: HaPatchStatus;
-	checkedAt: string;
-	details: string[];
-}
-
 export interface RiskStateSnapshot {
 	assessment: RiskAssessment;
 	policy: RiskPolicy;
 	verification: VerificationState;
 	timestamp: string;
 	worktree?: WorktreeSnapshot;
-	haPatch?: HaPatchSnapshot;
 }

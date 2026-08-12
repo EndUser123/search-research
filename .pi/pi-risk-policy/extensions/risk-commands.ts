@@ -33,7 +33,6 @@ export type RiskLogEventName =
 	| "auto_plan_recorded"
 	| "classified"
 	| "override"
-	| "ha_patch_check"
 	| "session_start"
 	| "tool_result_seen"
 	| "verification_update"
