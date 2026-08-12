@@ -1,5 +1,17 @@
 # Vault Log
 
+## Pipeline pause-phase schema contract
+Source: session-019ff1a0
+Agent: grok
+Notes: Inter-phase JSON schema must be documented in pause-phase instruction; close-py resolve bug
+Page: P:/.data/wiki/concepts/pipeline-pause-phase-schema-contract.md
+
+## AAR detector false positives from directory-listing tool results
+Source: session-019ff1a0
+Agent: grok
+Notes: Chronic false-positive pattern in detect_unused_capability fixed via dir-listing tool filter
+Page: P:/.data/wiki/concepts/aar-detector-false-positives-directory-listing-tool-results.md
+
 ## --entry
 Source: enhanced-dreaming-offline-consolidation-techniques.md
 Agent: --source
