@@ -44,3 +44,24 @@ Two INVESTIGATE-disposition opportunities surfaced by `/aar` that need bounded i
 
 - AAR report: `P:/.artifacts/grok-aar/console_console_ff229e6d-d51c-4749-a738-b39b/20260811-aar/aar-report.md`
 - Packet session-scoping fix: commit `6f55e27`
+
+---
+
+## Revision 2 — 2026-08-12T12:30:00Z (session 019ff1a0, post-compaction)
+
+**O2 RESOLVED.** The `unused_capability` detector false-positive was fixed
+in commit `6b73818`. Added `_DIR_LISTING_TOOLS` frozenset filter +
+`tool_call_id -> tool_name` map to skip `list_dir`/`Get-ChildItem`/`glob`/
+`find` results before scanning. AAR tests 16/16 pass. Wiki concept written:
+`[[aar-detector-false-positives-directory-listing-tool-results]]`.
+
+**O1 still open.** The shared-directory audit has not been run. Still
+INVESTIGATE — scan all skills' argparse defaults for shared-directory paths.
+
+**Status update:**
+- O1: OPEN (INVESTIGATE)
+- O2: RESOLVED (commit `6b73818`)
+
+**accurate_as_of_head:**
+- P:/: `116d86c`
+- ~/.grok: `4c8c3d8`
