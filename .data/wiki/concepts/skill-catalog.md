@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-12
 cognitive_load: 3
-summary: Auto-generated index of 1048 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 1038 skills across 20 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-12 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 1048 across 21 scopes.
+**Total skills:** 1038 across 20 scopes.
 
 ## How to use this catalog
 
@@ -938,21 +938,6 @@ Auto-generated on 2026-08-12 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **pulse** _[avanti]_ | — | ✗ | Append a timestamped entry to today's pulse day-file in project/pulse/ argument-hint: <message> allowed-tools: Read, Wri... | — | `~/.claude/plugins/marketplaces/quickstop/plugins/avanti/skills/pulse/SKILL.md` |
 | **status** _[avanti]_ | — | ✗ | Summarize active plans, open tickets, proposed ADRs, and the latest pulse entry argument-hint: "[--verbose]" allowed-too... | — | `~/.claude/plugins/marketplaces/quickstop/plugins/avanti/skills/status/SKILL.md` |
 | **ticket** _[avanti]_ | — | ✗ | Draft a new plan-scoped ticket from the avanti template into project/tickets/open/ argument-hint: <slug> --plan <plan-sl... | — | `~/.claude/plugins/marketplaces/quickstop/plugins/avanti/skills/ticket/SKILL.md` |
-
-## claude-mkt-thedotmack (10 skills)
-
-| Skill | G | C | Description (truncated) | Solves | Path |
-|---|---|---|---|---|---|
-| **openclaw** | — | ✓ |  | — | `~/.claude/plugins/marketplaces/thedotmack/openclaw/SKILL.md` |
-| **do** _[plugin]_ | — | ✗ | Execute a phased implementation plan using subagents. Use when asked to execute, run, or carry out a plan — especially o... | — | `~/.claude/plugins/marketplaces/thedotmack/plugin/skills/do/SKILL.md` |
-| **knowledge-agent** _[plugin]_ | — | ✗ | Build and query AI-powered knowledge bases from claude-mem observations. Use when users want to create focused "brains" ... | — | `~/.claude/plugins/marketplaces/thedotmack/plugin/skills/knowledge-agent/SKILL.md` |
-| **make-plan** _[plugin]_ | — | ✗ | Create a detailed, phased implementation plan with documentation discovery. Use when asked to plan a feature, task, or m... | — | `~/.claude/plugins/marketplaces/thedotmack/plugin/skills/make-plan/SKILL.md` |
-| **mem-search** _[plugin]_ | — | ✗ | Search claude-mem's persistent cross-session memory database. Use when user asks "did we already solve this?", "how did ... | — | `~/.claude/plugins/marketplaces/thedotmack/plugin/skills/mem-search/SKILL.md` |
-| **smart-explore** _[plugin]_ | — | ✗ | Token-optimized structural code search using tree-sitter AST parsing. Use instead of reading full files when you need to... | — | `~/.claude/plugins/marketplaces/thedotmack/plugin/skills/smart-explore/SKILL.md` |
-| **timeline-report** _[plugin]_ | — | ✗ | Generate a "Journey Into [Project]" narrative report analyzing a project's entire development history from claude-mem's ... | — | `~/.claude/plugins/marketplaces/thedotmack/plugin/skills/timeline-report/SKILL.md` |
-| **claude-code-plugin-release** _[plugin]_ | — | ✗ | Automated semantic versioning and release workflow for Claude Code plugins. Handles version increments across package.js... | — | `~/.claude/plugins/marketplaces/thedotmack/plugin/skills/version-bump/SKILL.md` |
-| **do** _[openclaw]_ | — | ✗ |  | — | `~/.claude/plugins/marketplaces/thedotmack/openclaw/skills/do/SKILL.md` |
-| **make-plan** _[openclaw]_ | — | ✗ |  | — | `~/.claude/plugins/marketplaces/thedotmack/openclaw/skills/make-plan/SKILL.md` |
 
 ## marketplace (222 skills)
 

@@ -30,6 +30,32 @@ design rationale lives in three wiki concepts this skill depends on:
 - You want them organized into **themed notebooks** (not arbitrary chunks)
 - The items have **semantic content to cluster on** (title + channel/author)
 
+## YouTube channels have multiple tabs (DO NOT scrape only /videos)
+
+YouTube channels split content across three tabs: `/videos`, `/shorts`, and
+`/streams`. Scraping only `/videos` misses content. **Always use `extract.py`
+(Stage 0) when the input is a channel URL** — it hits every tab, dedupes by
+video ID, and emits `canonical.jsonl` directly.
+
+**Reference incident (session 2026-08-12):** the `@moondevonyt` channel has
+1,019 videos across three tabs (351 /videos + 662 /shorts + 6 /streams). The
+agent scraped only `/videos`, got 351, and declared done. The operator caught
+it ("the channel has over a thousand videos and you created three notebooks").
+Root cause: the skill had no extraction stage, so the agent hand-rolled a
+single-tab scrape. `extract.py` makes this structurally impossible — it hits
+all tabs by default and prints the per-tab breakdown before declaring done.
+
+| Tab | Content | Typical duration |
+|-----|---------|------------------|
+| `/videos` | Long-form uploads | 5–60 min |
+| `/shorts` | Short-form vertical videos | 13–60 sec |
+| `/streams` | Past live streams | 30 min – 4 hr |
+
+Shorts are usually unique content, not clips of long videos (verified on
+@moondevonyt: 0 video-ID overlap between /videos and /shorts). Don't assume
+they're duplicates — extract everything and let the operator decide whether
+to filter.
+
 ## When NOT to use
 
 | Situation | Use instead |
@@ -39,9 +65,17 @@ design rationale lives in three wiki concepts this skill depends on:
 | Non-NotebookLM destination | not this skill |
 | Items have no semantic structure (raw UUIDs, filenames) | sort by metadata, split into chunks — clustering won't help |
 
-## Workflow (5 stages)
+## Workflow (6 stages)
 
 ```
+CHANNEL or URL LIST   EXTRACT (Stage 0, YouTube channels only)
+youtube.com/@name  ──────────────►
+bookmarks.csv         extract.py    hits ALL channel tabs (/videos,
+watch-later.json                    /shorts, /streams), dedupes by ID,
+                                    emits canonical.jsonl directly
+
+         │  (skip extract.py if you already have a URL list — go
+         ▼   straight to normalize.py with your file)
 INPUT                  NORMALIZE              DEDUP + FILTER
 youtube JSON,          ──────────────►        ──────────────►
 CSV, JSONL, RSS,       normalize.py           (inside normalize.py)
@@ -71,10 +105,18 @@ plain URL list
                                  verify source_count matches claimed
 ```
 
-## The five scripts (invoke in order)
+## The six scripts (invoke in order)
 
 ```bash
-# Stage 1-2: normalize + dedup + filter
+# Stage 0: extract ALL videos from a YouTube channel (hit every tab)
+# REQUIRED when the input is a channel URL, not a pre-built URL list.
+# Skips /shorts and /streams if they don't exist; dedupes by video ID.
+python P:/.agents/skills/nlm-bulk-ingest/scripts/extract.py \
+    "https://www.youtube.com/@channelname" \
+    -o canonical.jsonl
+# → emits canonical.jsonl directly; skip normalize.py and go to cluster.py
+
+# Stage 1-2: normalize + dedup + filter (skip if you used extract.py)
 python P:/.agents/skills/nlm-bulk-ingest/scripts/normalize.py \
     <input.json|.csv|.txt|.jsonl|.xml> \
     [--format auto|youtube-wl|csv|jsonl|json-array|url-list|rss] \

@@ -74,8 +74,23 @@ If it truncates at 50, you're on a free account.
 
 ## What this means for our workspace
 
-- **Default to 300** for any planning on this host — the operator has a paid
-  account (confirmed 2026-07-25).
+- **OPERATOR DIRECTIVE (2026-08-12): use the paid tier (300 cap) by default.
+  Do not ask. Do not present free/paid as a choice.** Only use the free tier
+  (50 cap) if the operator explicitly requests it, or if I judge free is
+  genuinely better for the specific case AND say so. Otherwise: paid, no
+  confirmation needed. This directive supersedes the cautious "ask about
+  tier" pattern — the operator corrected me for asking (session
+  2026-08-12) because the paid default was already documented here and I
+  didn't need to re-confirm it.
+- **OPERATOR DIRECTIVE (2026-08-12): nlm auth is self-serve. Do NOT ask the
+  operator to run `nlm login`.** When `nlm notebook list` returns
+  "Authentication expired," run `nlm login --profile <name>` yourself — it
+  performs silent CDP re-auth with zero user interaction (~30s). Verified
+  working session 2026-08-12: the command ran headlessly, extracted 54
+  cookies, and restored API access. The only time to involve the operator
+  is if silent re-auth itself fails (browser won't launch, CDP port
+  conflict, or Google blocks headless). The active profile on this host is
+  `a.hominidae` (the `default` profile resolves to it).
 - **The 300 figure was confirmed empirically** in the 2026-07-25 run: cluster
   10 hit exactly 300 sources with no error, clusters 2/4/8/11/12 hit 299.
   See `P:/tmp/wl_notebooks_run.log`.
