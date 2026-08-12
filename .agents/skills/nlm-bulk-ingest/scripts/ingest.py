@@ -219,7 +219,12 @@ def main() -> int:
         return 2
 
     state = load_state(args.state)
-    state_path = args.state if args.all else None  # only checkpoint in --all mode
+    # Checkpoint in both --all and --pilot modes. The pilot MUST write to
+    # state so a subsequent --all run treats the piloted cluster as completed
+    # instead of re-processing it and creating a duplicate notebook.
+    # Incident: session 2026-08-12, pilot-then-all created duplicate notebooks
+    # twice because pilot passed state_path=None.
+    state_path = args.state if (args.all or args.pilot is not None) else None
 
     # Self-heal: re-verify any completed entries whose actual count is missing.
     # Catches pilot-seed gaps and crash-resume artifacts. Cheap (skips entries
@@ -234,9 +239,10 @@ def main() -> int:
         if not cluster:
             log(f"Cluster {args.pilot} not found")
             return 2
-        record = process_cluster(cluster, args.prefix, args.profile, state, None)
+        record = process_cluster(cluster, args.prefix, args.profile, state, state_path)
         log("")
         log(f"Pilot complete: {record['url']}")
+        log(f"  Pilot result checkpointed to state. --all will skip cluster {args.pilot}.")
         log(f"  Open this notebook in NotebookLM UI to verify before running --all.")
         return 0 if record["status"] == "ok" else 1
 

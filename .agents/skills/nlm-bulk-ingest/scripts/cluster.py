@@ -131,7 +131,14 @@ def merge_tiny(labels, emb, min_size):
 
 
 def split_oversized(labels, emb, max_size):
-    """Recursively split clusters larger than max_size via KMeans."""
+    """Recursively split clusters larger than max_size via KMeans.
+
+    Falls back to even sequential splitting when k-means collapses (all points
+    land in one cluster). This happens on semantically homogeneous input like
+    a single YouTube channel — without the fallback, split_recurse infinite-
+    loops and Python dies with RecursionError. Incident: session 2026-08-12,
+    @moondevonyt at free-tier 50-cap (982 recursions before stack overflow).
+    """
     from sklearn.cluster import KMeans
 
     groups: dict[int, list[int]] = {}
@@ -140,18 +147,42 @@ def split_oversized(labels, emb, max_size):
 
     final: list[list[int]] = []
 
-    def split_recurse(idxs):
+    def split_recurse(idxs, depth=0):
         if len(idxs) <= max_size:
             final.append(idxs)
             return
+        if depth > 100:
+            # Safety net; the sequential fallback below should prevent this.
+            final.append(idxs)
+            return
+
         n_split = max(int(np.ceil(len(idxs) / max_size)),
                       int(np.ceil(len(idxs) / (max_size * 0.85))))
         km = KMeans(n_clusters=n_split, n_init=10, random_state=0)
         sub = km.fit_predict(emb[idxs])
-        for s in range(n_split):
-            sub_idxs = [idxs[j] for j in range(len(idxs)) if sub[j] == s]
+        sub_groups: dict[int, list[int]] = {}
+        for j, s in enumerate(sub):
+            sub_groups.setdefault(int(s), []).append(idxs[j])
+
+        # Collapse-detection: if k-means put nearly everything in one bucket
+        # (one sub-group still > max_size while others are tiny/empty), the
+        # recursive call on that bucket won't shrink it — infinite loop.
+        # Fall back to an even sequential split that is guaranteed to terminate.
+        largest = max((len(v) for v in sub_groups.values()), default=0)
+        if largest > max_size and len(sub_groups) < n_split:
+            print(f"  k-means collapsed (1/{len(sub_groups)} buckets); "
+                  f"sequential fallback", file=sys.stderr)
+            chunk = int(np.ceil(len(idxs) / n_split))
+            for i in range(0, len(idxs), chunk):
+                piece = idxs[i:i + chunk]
+                if piece:
+                    split_recurse(piece, depth + 1)
+            return
+
+        for s in sorted(sub_groups.keys()):
+            sub_idxs = sub_groups[s]
             if sub_idxs:
-                split_recurse(sub_idxs)
+                split_recurse(sub_idxs, depth + 1)
 
     for lab, idxs in sorted(groups.items(), key=lambda kv: -len(kv[1])):
         if len(idxs) > max_size:
