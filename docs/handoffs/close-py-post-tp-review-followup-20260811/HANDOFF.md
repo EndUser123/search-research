@@ -45,6 +45,22 @@ fresh session with full context budget.
 **Root cause:** Documented in [[posttooluse-fires-on-tool-call-completion-not-process-completion]] — PostToolUse fires on tool-call launch, not process completion. Backgrounded commands produce no receipt → 5-block Stop-hook loop.
 **Design constraint:** Multi-terminal safe; must not race with concurrent receipt writes.
 
+> **Requirement clarified (2026-08-12, /req-check first real use):** the
+> requirement as written is **NEEDS_CLARIFICATION** — not decision-grade:
+> - **Mechanism unnamed:** "fire when backgrounded tasks complete" has no
+>   bindable signal — the wiki documents that a completion-event hook cannot
+>   capture exit codes, so Option B (new hook event) is not currently
+>   implementable as written.
+> - **Decision-reversing unknown OPEN:** the handoff itself states "We do not
+>   have this data" for the false-negative (missing receipts) vs false-positive
+>   (fabricated completion) tradeoff. The Option A vs B decision is a
+>   decision-reversing gamble without fleet data.
+> **Unblock (first step, not the build):** collect fleet data over N sessions —
+> measure backgrounded verification commands that produced no receipt
+> (false negatives) vs receipts whose commands trivially passed (false
+> positives). The measurement is the decision input; the build follows.
+> Full analysis: [[requirement-failure-patterns-req-check-first-use]].
+
 **Design options (from /tp exploration + second-order-effects analysis):**
 
 *Layer 1 Option A — Retroactive receipt at Stop time:*
