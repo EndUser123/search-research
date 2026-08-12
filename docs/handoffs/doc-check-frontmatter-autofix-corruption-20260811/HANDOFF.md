@@ -10,6 +10,8 @@ Fix two bugs in `C:/Users/brsth/.grok/skills/doc-check/scripts/check.py` `fix_sk
 1. **Wrong variable (primary):** line 560 loops `for req_field in REQUIRED_SKILL_FIELDS:` but line 575 writes `lines.insert(insert_at, f"{field}: both")` — `field` is the module-global dataclasses function (line 19: `from dataclasses import dataclass, field`), NOT the loop variable. Output: `<function field at 0x…>: both` instead of `host: both`. The corrupted line never satisfies the `^host:` missing-check, so every subsequent run re-inserts another corrupted line (lines accumulate per run).
 2. **Insertion position (secondary):** lines 566-574 break at the `description:` line and set `insert_at = i + 1` (the `lines[i+1].strip().startswith(">")` guard never fires for folded scalars — the description body is indented, not `>`-prefixed). Result: the inserted line lands INSIDE the description block, right after `description: >` — breaking the YAML block.
 
+**First introduction (git receipt):** `66a84fc` ("add missing host: frontmatter field to design/SKILL.md") — the corruption first landed during the host-field backfill era, then spread via e2fc6fb, c1f39f9, 8c9da05, 5491cc5, 234dc92 (.grok) and 360ecee (P: — skill-catalog.md propagation).
+
 ## Impact
 - `review/SKILL.md` (5 lines, repaired in commit 71de25b by adding the real `host: both`), `ask/SKILL.md` (6 lines, uncommitted), `refactor/SKILL.md` (4 lines, committed).
 - Files affected are exactly those missing the `host:` frontmatter field that appear in a doc-check diff. The AGENTS host-provenance convention (apply prospectively) means many ~/.grok/skills files lack `host:` — any /ship-py run touching them will corrupt them.
