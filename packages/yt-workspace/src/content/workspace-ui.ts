@@ -150,7 +150,7 @@ function renderChapters(
   } else {
     const empty = document.createElement("div");
     empty.className = "ytws-empty";
-    empty.textContent = "No chapters found";
+    empty.textContent = "No chapters found for this video. Try the Transcript or Links tabs.";
     el.appendChild(empty);
   }
 }
@@ -259,10 +259,23 @@ export function mountWorkspace(
   const url = new URL(location.href);
   const videoId = url.searchParams.get("v") ?? "unknown";
   const workspace = createWorkspaceElement(videoId, settings, onSettingsChange);
-  const secondary = document.querySelector("#secondary");
-  if (secondary) {
-    secondary.prepend(workspace);
-    // Pass the URL-derived videoId as fallback so we don't flash "unknown"
+
+  // YouTube uses different layouts depending on page type.
+  // On normal watch pages: #secondary has dimensions.
+  // On playlist pages: #secondary is 0x0, content is in #related.
+  // Try #secondary first, fall back to #related.
+  let mountTarget: HTMLElement | null = document.querySelector("#secondary");
+  if (mountTarget) {
+    const rect = mountTarget.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      mountTarget = document.querySelector("#related");
+    }
+  } else {
+    mountTarget = document.querySelector("#related");
+  }
+
+  if (mountTarget) {
+    mountTarget.prepend(workspace);
     renderVideoContextWithFallback(workspace, ctx, videoId);
   }
 }
