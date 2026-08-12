@@ -8,14 +8,14 @@ host: both
 agent: grok
 verification: generated_2026-08-11
 cognitive_load: 3
-summary: Auto-generated index of 1050 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
+summary: Auto-generated index of 1051 skills across 21 directories. For skill descriptions, scan the stubs in sources/skills/; for human reference, scan the tables below.
 ---
 
 # Skill catalog
 
 Auto-generated on 2026-08-11 by `python P:/.data/wiki/scripts/index_skills.py`. Regenerate after adding or removing skills.
 
-**Total skills:** 1050 across 21 scopes.
+**Total skills:** 1051 across 21 scopes.
 
 ## How to use this catalog
 
@@ -35,11 +35,11 @@ Auto-generated on 2026-08-11 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **aar** | ✓ | — | Evidence-grounded continual-improvement system: reconstructs sessions, performs value accounting, identifies the opportu... | After-action review, post-mortem, retrospective. What went wrong, what worked, w... | `~/.grok/skills/aar/SKILL.md` |
 | **adhd** | ✓ | — | 'Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, sup... | — | `~/.grok/skills/adhd/SKILL.md` |
 | **agy** | ✓ | — | Run Google Antigravity CLI (agy / Gemini) for a second opinion, code review, research, or analysis. Conductor evaluates ... | — | `~/.grok/skills/agy/SKILL.md` |
-| **ask** | ✓ | — | <function field at 0x0000020A792C0880>: both <function field at 0x000002AC9C320880>: both <function field at 0x000001CD4... | — | `~/.grok/skills/ask/SKILL.md` |
+| **ask** | ✓ | — | Route to the right skill based on session context and latest turns. Extracts intent from the conversation, queries the s... | — | `~/.grok/skills/ask/SKILL.md` |
 | **behave** | ✓ | — | Post-hoc diagnostic for verdict-transition integrity. Detects self-protection patterns, load-bearing failure, authority-... | — | `~/.grok/skills/behave/SKILL.md` |
 | **brain** | ✓ | — | "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying... | — | `~/.grok/skills/brain/SKILL.md` |
 | **close** | ✓ | — | DEPRECATED 2026-08-11. Use /close-py instead. This skill's __lib/ directory remains as a shared library imported by clos... | — | `~/.grok/skills/close/SKILL.md` |
-| **close-py** | ✓ | — | Python-orchestrated session close pipeline analogous to ship-py. A Python script controls the full 8-phase close pipelin... | — | `~/.grok/skills/close-py/SKILL.md` |
+| **close-py** | ✓ | — | Python-orchestrated session close pipeline analogous to ship-py. A Python script controls the full 9-phase close pipelin... | — | `~/.grok/skills/close-py/SKILL.md` |
 | **codex** | ✓ | — | Run OpenAI Codex CLI for a second opinion, code review, research, or write-capable task. Conductor evaluates assignment ... | — | `~/.grok/skills/codex/SKILL.md` |
 | **create-skill** | ✓ | — | DEPRECATED — use /skill-dev create instead. Skill-dev Mode 0 absorbs create-skill with added quality gates (scanner + te... | — | `~/.grok/skills/create-skill/SKILL.md` |
 | **design** | ✓ | — | Run the full design-doc-writer and design-doc-reviewer loop until consensus. Produces a polished design document with an... | — | `~/.grok/skills/design/SKILL.md` |
@@ -78,10 +78,10 @@ Auto-generated on 2026-08-11 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **prompt-patterns** | ✓ | — | Structural prompting techniques reference and live prompt evaluator. Two modes: (1) authoring reference — 13 reusable pa... | — | `~/.grok/skills/prompt-patterns/SKILL.md` |
 | **recap-grok** | ✓ | — | Generate a handoff-ready session recap across the full session chain. Walks session transcripts oldest-to-newest, extrac... | — | `~/.grok/skills/recap-grok/SKILL.md` |
 | **redteam** | ✓ | — | Compatibility alias for /risk (formerly /red-team). Immediately load and execute ~/.grok/skills/risk/SKILL.md with the s... | — | `~/.grok/skills/redteam/SKILL.md` |
-| **refactor** | ✓ | — | <function field at 0x000001957F840A90>: both <function field at 0x000001FA42E40A90>: both <function field at 0x000001528... | — | `~/.grok/skills/refactor/SKILL.md` |
+| **refactor** | ✓ | — | Intelligent structural refactor: plain-language target/mode inference, plan-on-disk then seam execute with verify, multi... | — | `~/.grok/skills/refactor/SKILL.md` |
 | **refine** | ✓ | — | Turn a rough task or vague handoff into an implementation-ready handoff by inspecting the codebase. Pre-plan stage: tigh... | — | `~/.grok/skills/refine/SKILL.md` |
 | **research** | ✓ | — | Compatibility alias for /www. Immediately load and execute ~/.grok/skills/www/SKILL.md with the same arguments. | — | `~/.grok/skills/research/SKILL.md` |
-| **review** | ✓ | — | <function field at 0x00000206BFBD09E0>: both <function field at 0x0000017C43480880>: both <function field at 0x000001FA4... | Code review, package review, PR review, branch review, audit code quality. Find ... | `~/.grok/skills/review/SKILL.md` |
+| **review** | ✓ | — | Intelligent code/package review with verified findings on disk. Auto-infers target (local diff, branch, PR, or package p... | Code review, package review, PR review, branch review, audit code quality. Find ... | `~/.grok/skills/review/SKILL.md` |
 | **review-relay** | ✓ | — | Coordinate multi-model reviews of proposals, plans, and designs through immutable snapshots, bounded turn packets, lease... | — | `~/.grok/skills/review-relay/SKILL.md` |
 | **risk** | ✓ | — | Adaptive risk assessment that starts with an inline scan and escalates to deeper analysis only when evidence warrants. S... | — | `~/.grok/skills/risk/SKILL.md` |
 | **search-fleet** | ✓ | — | Capability-routed multi-backend search with RRF aggregation. Reads the tool registry at ~/.grok/search-fleet.toml, class... | — | `~/.grok/skills/search-fleet/SKILL.md` |
@@ -451,7 +451,7 @@ Auto-generated on 2026-08-11 by `python P:/.data/wiki/scripts/index_skills.py`. 
 |---|---|---|---|---|---|
 | **check** | ✓ | — | "Multi-concern session verification with PASS/FAIL verdict" | — | `P:/.grok/skills/check/SKILL.md` |
 
-## grok-agents (13 skills)
+## grok-agents (14 skills)
 
 | Skill | G | C | Description (truncated) | Solves | Path |
 |---|---|---|---|---|---|
@@ -460,6 +460,7 @@ Auto-generated on 2026-08-11 by `python P:/.data/wiki/scripts/index_skills.py`. 
 | **contract-status** | ✓ | — | Show contract system health dashboard (writer + Stop stats) | — | `P:/.agents/skills/contract-status/SKILL.md` |
 | **email-skill** | ✓ | — | Stateless CLI for cross-agent email access. Wraps himalaya with TTL cache, scoring, and deferral. | — | `P:/.agents/skills/email-skill/SKILL.md` |
 | **fmea** | ✓ | — | Failure Modes and Effects Analysis for pipelines and systems. Scans a target directory's Python scripts, identifies I/O ... | — | `P:/.agents/skills/fmea/SKILL.md` |
+| **math** | ✓ | — |  | — | `P:/.agents/skills/math/SKILL.md` |
 | **nlm-bulk-ingest** | ✓ | — | Cluster a large list of URLs (YouTube videos, web pages, PDFs) into themed NotebookLM notebooks under the per-notebook s... | — | `P:/.agents/skills/nlm-bulk-ingest/SKILL.md` |
 | **notebooklm** | ✓ | — | Complete API for Google NotebookLM - full programmatic access including features not in the web UI. Create notebooks, ad... | — | `P:/.agents/skills/notebooklm/SKILL.md` |
 | **preflight** | ✓ | — | Build an evidence-backed inventory of existing implementations, callers, registrations, state/default consumers, caches,... | — | `P:/.agents/skills/preflight/SKILL.md` |
