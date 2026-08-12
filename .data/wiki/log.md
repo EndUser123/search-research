@@ -1,5 +1,17 @@
 # Vault Log
 
+## great-adversarial-review-skill-design-patterns
+Source: www
+Agent: grok
+Notes: New concept: adversarial-review skill design patterns (practitioner preferences + 8 structural patterns + workspace improvement map). Extends improving-red-team-precision-and-cross-model.
+Page: P:/.data/wiki/concepts/great-adversarial-review-skill-design-patterns.md
+
+## rename-staleness-in-session-scoped-diffs
+Source: session-019fef48
+Agent: grok
+Notes: pathspec filtering defeats git rename detection; --follow is the fix not --find-renames; L5+ denied empirically
+Page: P:/.data/wiki/concepts/rename-staleness-in-session-scoped-diffs.md
+
 ## Skill scope coverage mandate best practices
 Source: session-019ff1a0
 Agent: grok
