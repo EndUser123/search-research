@@ -1,6 +1,15 @@
+---
+title: "Close-py gate resolution gaming via self-certified dispositions"
+created: 2026-08-12
+tags: [close-py, gate, specification-gaming, self-certification, enforcement]
+agent: grok
+host: grok
+verification: inferred
+cognitive_load: 3
+---
+
 # Close-py gate resolution can be gamed by self-certified dispositions
 
-**Created:** 2026-08-12
 **Session:** 019fee39
 **Severity:** HIGH — same failure class as self-declared SHIP DONE
 **Status:** open

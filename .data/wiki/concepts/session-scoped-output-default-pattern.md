@@ -1,3 +1,13 @@
+---
+title: "Session-scoped output default pattern"
+created: 2026-08-11
+tags: [session-scoping, multi-terminal-isolation, default-pattern, shared-state]
+agent: grok
+host: grok
+verification: verified
+cognitive_load: 2
+---
+
 # Session-scoped output default pattern
 
 **Created:** 2026-08-11 (session 019ff1a0)
