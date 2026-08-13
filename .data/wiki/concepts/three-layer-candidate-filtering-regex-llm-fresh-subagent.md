@@ -51,7 +51,7 @@ because the conversation's momentum said it was.
 |-------|-----|------|-----------------|--------------|
 | **Layer 1** | Regex scanner (`scan_transcript.py`) | Extract ALL candidates (high recall, accepts low precision) | High recall | Misses items that don't match regex patterns |
 | **Layer 2** | Orchestrator LLM (the agent running the skill) | Classify: real recommendation or noise? Drop or surface? | Balanced | **Closure-pressure misclassification**: drops real items as "discussed" |
-| **Layer 3** | Fresh subagent (no session context) | Audit Layer 2's drops: was each drop correct? | Catches Layer 2 errors | Latency (~30-60s); needs ≥3 drops to be worth spawning |
+| **Layer 3** | Fresh subagent (no session context) | Audit Layer 2's drops: was each drop correct? | Catches Layer 2 errors | Latency (~30-60s) — mitigated by 4 speed optimizations (see below); **fires always, no threshold** (operator decision 2026-08-13) |
 
 Layer 3 receives ONLY the dropped candidates and their reasons — not the
 surfaced list, not the session transcript, not the conversation that
@@ -74,11 +74,37 @@ catches what the same lens can't see in itself.
 
 ## Design decisions
 
-**Adaptive firing:** Layer 3 only spawns when the `_dropped_items` list
-contains ≥3 HIGH or MEDIUM severity items. Below that threshold, the
-operator can scan the audit list manually (the `_dropped_items` rendering
-makes drops visible). This avoids the latency cost when there's nothing
-meaningful to audit.
+**Always-fire (operator decision 2026-08-13):** Layer 3 fires on ANY
+dropped candidate, no count or severity threshold. The previous ≥3
+HIGH/MEDIUM threshold was a magic number unmoored from any measured
+property — and it prevented the measurement that would justify or kill it
+(the gate blocked evidence collection). One HIGH-severity misclassified
+drop is exactly the high-cost failure Layer 3 exists to catch; the
+threshold let single-drop cases through unaudited every time.
+
+**Speed optimizations (make always-fire acceptable):**
+
+1. **Content-hash cache.** SHA256 of (candidate title + drop reason) →
+   cached audit result. The same handoff drop-reason recurs every session
+   until the handoff closes — cache hit returns instantly. Workspace
+   precedent: `www_dedup.py`, crawl4ai SHA256, `coding_agent_session_search`
+   BLAKE3 content dedup.
+
+2. **Mechanical pre-filter.** Drops with deterministic reasons
+   (`"duplicate"` + citation, `"done"` + commit SHA, `"prose"` + LOW)
+   classify in <1ms via string check. Only the residual hits the LLM.
+
+3. **Fast model (mechanical lane).** Layer 3's task is binary
+   classification, not deep reasoning — the fresh-lens value comes from
+   independent context, not reasoning power. Research: AgentForesight
+   (arXiv 2605.08715, 2026) — compact 7B outperforms GPT-4.1 on audit
+   tasks (+19.9% Exact-F1); MAV (arXiv 2502.20379, 2025) — off-the-shelf
+   LLMs work as verifiers without training. Use `pick_model.py mechanical`.
+
+4. **Progressive/streaming (never block).** Present Layer 1+2 output
+   immediately; spawn Layer 3 in background; append promotions on arrival.
+   Research: AWS Agentic AI Lens — "user-facing agent begins streaming as
+   soon as minimum inputs are available." Operator never waits for Layer 3.
 
 **Fail-open contract:** if Layer 3 fails to spawn, times out, or returns
 nothing useful, the skill presents the original output without the Layer-3
@@ -119,10 +145,15 @@ This pattern is wrong if:
   into the surfaced list (false positives). Measure: of promoted items,
   how many does the operator act on vs ignore? If most are ignored, Layer 3
   has the same precision problem as Layer 1.
-- **The latency cost (>30s) makes operators skip the step** — the skill
-  becomes too slow and operators stop using it. The adaptive firing
-  threshold (≥3 HIGH/MEDIUM drops) is the mitigation; if it's too low,
-  raise it.
+- **The latency cost (>30s) makes operators skip the step** — measure
+  median latency across 10 sessions with the four speed optimizations
+  (cache + mechanical filter + fast model + progressive). If median
+  latency exceeds 15s AFTER optimizations, the always-fire decision
+  needs revisiting — but with a measured number, not a threshold guess.
+  Cache hit rate and mechanical-filter pass rate are the instrumentation:
+  if cache hit rate >40% and mechanical filter removes >30%, the combined
+  approach is clearly worth it. These are `[INFERENCE]` estimates until
+  measured.
 
 ## Receipts
 

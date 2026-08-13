@@ -118,6 +118,54 @@ The diagnosis was verified by a 3/3 lens convergence (inline analysis + gpt-oss-
 - **Effort:** S
 - **Confidence:** H
 
+### WORKSTREAM D — Layer 3 always-fire + speed optimizations (operator decision 2026-08-13)
+
+**Operator decision:** eliminate the ≥3 HIGH/MEDIUM threshold for `/todo` Layer 3 fresh-subagent audit. Layer 3 fires ALWAYS, no magic number. Rationale: the threshold prevented the measurement that would justify or kill it; "the operator can scan manually" contradicts the ADHD-automation principle; one HIGH-severity misclassified drop is exactly the high-cost failure Layer 3 exists to catch.
+
+**Speed optimizations to make always-fire acceptable (from /www research 2026-08-13):**
+
+1. **Content-hash cache.** SHA256 of candidate (title + drop-reason) → cached audit result. Same handoff drop-reason appears every session until the handoff closes — cache hit returns instantly, zero LLM call. Workspace precedent: `www_dedup.py`, crawl4ai SHA256, `coding_agent_session_search` BLAKE3.
+2. **Mechanical pre-filter.** Drops with deterministic reasons (`"duplicate"` + citation, `"done"` + commit SHA, `"prose/documentation"` + LOW) classify in <1ms via string check. Only the residual hits the LLM.
+3. **Fast model (mechanical lane).** Layer 3's task is binary classification, not deep reasoning. Use `pick_model.py mechanical` — a compact 7B model with no session context catches closure-pressure drops as well as a 70B. Research: AgentForesight (arXiv 2605.08715) — compact 7B outperforms GPT-4.1 on audit; MAV (arXiv 2502.20379) — off-the-shelf LLMs work as verifiers.
+4. **Progressive/streaming (never block).** Present Layer 1+2 output immediately; spawn Layer 3 in background; append promotions when they arrive. Research: AWS Agentic AI Lens — "user-facing agent begins streaming as soon as minimum inputs are available."
+
+#### Task D1: Remove the ≥3 threshold from `/todo` SKILL.md Step 1d
+
+- **What:** delete the `if len(high_medium_drops) >= 3:` conditional and the "Skip when" thresholds. Layer 3 spawns unconditionally when there are ANY dropped candidates.
+- **Acceptance criteria:**
+  1. Step 1d fires on ≥1 drop (any severity)
+  2. The four speed optimizations above are documented in the same section
+  3. The fail-open contract remains (subagent failure → present without Layer 3)
+- **Falsifier:** if the combined optimizations don't bring median latency under 15s (measured over 10 sessions), the always-fire decision needs revisiting — but with a measured number, not a guess.
+- **Effort:** S (SKILL.md edit)
+- **Confidence:** H (operator decision; techniques are research-backed)
+
+#### Task D2: Revise wiki concept `three-layer-candidate-filtering-regex-llm-fresh-subagent`
+
+- **What:** the concept (created 2026-08-10) documents the ≥3 threshold as the design and its falsifier says "if it's too low, raise it." The operator eliminated the threshold. Update: remove threshold rationale, add the four optimization techniques, update falsifier to measure latency instead of threshold.
+- **Acceptance criteria:**
+  1. Table row for Layer 3 no longer says "needs ≥3 drops"
+  2. "Adaptive firing" section replaced with "Always-fire + speed optimizations"
+  3. Four techniques documented with research citations
+  4. Falsifier updated: measures cache hit rate + mechanical filter pass rate + median latency
+- **Effort:** S-M (concept revision)
+- **Confidence:** H
+
+### WORKSTREAM E — `/recap-grok` → `/todo` bridge (operator decision 2026-08-13)
+
+**Operator decision:** `/recap-grok` should invoke `/todo` (or log recommendations to the proven bridge). The "complementary by design" framing was defensive — the display defect proved real information loss. Recap's "Remaining Work" items should reach `/todo` as individual scannable items, not stay buried in handoff prose.
+
+#### Task E1: `/recap-grok` logs actionable items via the proven bridge
+
+- **What:** after writing the recap, log items from "Remaining Work" and "Started but not completed" to `tp-critique-log.jsonl` with `--recommendations` (or a recap-specific structured store that `/todo` scans). The bridge proven working this session (Task B1) carries them automatically.
+- **Acceptance criteria:**
+  1. Recap items appear in `/todo` as individual items (not compressed to one-line handoff pointers)
+  2. The recap's reconstruction layer (causation chains, decisions, quality assessment) stays in the recap — only actionable items cross the bridge
+  3. No duplicate items if the same work is already in a handoff + the critique log
+- **Falsifier:** if recap items surface in `/todo` but the operator never acts on them (because they prefer reading the recap directly), the bridge is redundant noise.
+- **Effort:** M (recap SKILL.md edit + bridge call)
+- **Confidence:** M (the bridge works; the question is whether recap items are the right shape for `/todo` consumption)
+
 ### WORKSTREAM C — `/rca` alias (ALREADY SHIPPED this session)
 
 - **What:** Add `/rca` as an alias for `/why` (same pattern as `/research`→`/www`, `/redteam`→`/risk`). Keeps `/why` working; adds a more precise name for the ITSM/event-management context.
