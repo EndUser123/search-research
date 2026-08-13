@@ -1,5 +1,11 @@
 # Vault Log
 
+## PowerShell Profile Customization Landscape
+Source: /www research
+Agent: grok
+Notes: research on what people put in PowerShell profiles
+Page: concepts/powershell-profile-customization-landscape.md
+
 ## requirement-failure-patterns-req-check-first-use
 Source: req-check
 Agent: grok
