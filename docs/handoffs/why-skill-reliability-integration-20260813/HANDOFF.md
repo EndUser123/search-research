@@ -179,13 +179,94 @@ The diagnosis was verified by a 3/3 lens convergence (inline analysis + gpt-oss-
 
 3. **Step 15 feedback-to-wiki loop revival (deferred from Tier 2).** Once A2 (maker-checker) ships, the checker's findings are the input stream for Step 15. Sequence: A2 first, then revive Step 15 to capture what the checker finds. Not in this handoff's scope — separate handoff after A2 validates.
 
-## What was explicitly DEFERRED (and why)
+## What was explicitly DEFERRED (now promoted to tasks — operator directive 2026-08-13)
 
-- **Tier 2/3 `/why` defects** (performative Five Whys, lexical Step 6 trigger, fan-out floor, `--quick` bypass, Step 14 overload, Step 15 single-reviewer SPOF): once Task A2 (maker-checker) ships, the checker independently catches performative chains and shallow fan-out. Fixing them separately in the maker is redundant. Defer to a follow-up handoff after A2 validates.
-- **Option A (recommendation ledger):** rejected as a new build; the bridge exists. Verify first (Task B1), then decide whether to extend to other skills based on measured volume.
-- **Options B, C, D, E:** rejected (see "Rejected alternatives" below).
+These were previously listed as "deferred." The operator directed: "include them in the workstream effort." They are now tasks F1–F4 with effort estimates and disposition.
 
-## Rejected alternatives (with rationale)
+#### Task F1: Tier 2/3 `/why` defects (BLOCKED on A2)
+
+- **What:** performative Five Whys (require distinct tool call per "why"), lexical Step 6 trigger (replace word-match with semantic trigger), fan-out floor (raise ≥1 to ≥2-3 tool calls per dimension), `--quick` bypass (keep minimal hypothesis diversification even in quick mode).
+- **Dependency:** BLOCKED on A2 (maker-checker). Once the checker ships, it independently catches performative chains and shallow fan-out. F1 is the remaining maker-side hardening the checker doesn't subsume. Sequence: A2 ships → measure what the checker catches vs. misses → fix only the residual in F1.
+- **Effort:** M (4 sub-fixes, each S)
+- **Confidence:** H (defects are verified; sequencing is the question)
+
+#### Task F2: Step 15 feedback-to-wiki loop revival (BLOCKED on A2)
+
+- **What:** revive `/why`'s dead Step 15 (feedback-to-wiki). The loop currently never fires (0 log entries). Once A2 ships, the checker's findings ARE the systemic patterns Step 15 captures. Lighten the 15a gate or auto-route to handoff when the gate fails.
+- **Dependency:** BLOCKED on A2 (checker generates the input stream).
+- **Effort:** M
+- **Confidence:** M (the gate mechanics need investigation — is 15a too strict, or is the cross-model review too heavy?)
+
+#### Task F3: Volume measurement — start logging (CAN START NOW)
+
+- **What:** instrument `/why`, `/review`, `/risk` to count recommendations produced per invocation. No structured store yet — just append to a measurement log so we have volume data after 1–2 weeks. This resolves Open Decision 1 (whether to extend the bridge to non-`/tp` skills).
+- **Dependency:** NONE — can start immediately. This is a logging/instrumentation task, not a skill-design change.
+- **Effort:** S (add a one-line log append to each skill's output step)
+- **Confidence:** H
+- **Decision gate:** after 1–2 weeks of data, if >10 cross-skill recommendations/week are lost → extend the bridge. If <5 → existing bridge sufficient.
+
+#### Task F4: Display defect in `scan_critique_log()` (CAN START NOW)
+
+- **What:** recommendation text lands in the `title` field with `"From critique of <target> re: "` prefix; `text` field is empty. Fix: extract recommendation text to its own field, or strip the prefix from the title.
+- **Dependency:** NONE — independent code fix in `workspace_scanners.py`.
+- **Effort:** S
+- **Confidence:** H
+
+## Background execution plan (operator directive 2026-08-13)
+
+**Operator directive:** "plan non-blocking background activities for the non-A priority. We can do A in the main orchestrator." A runs in the main session via `/skill-dev`. Everything else runs as non-blocking background work — different files, no conflict with A's `/why` edits.
+
+### Wave 1 — fire NOW (independent, no conflict with A or each other)
+
+All touch different files in `~/.grok/skills/` or `P:/.data/` — zero collision risk with `/why` SKILL.md.
+
+| Task | File(s) touched | Effort | Can fire as background subagent? |
+|---|---|---|---|
+| **B2** — handoff task-packet warning validator | `~/.grok/skills/handoff/SKILL.md`, `__lib/validators.py` | S | ✅ yes |
+| **D1** — remove ≥3 threshold from `/todo` Step 1d | `~/.grok/skills/todo/SKILL.md` | S | ✅ yes |
+| **F4** — display defect in `scan_critique_log()` | `P:/.data/...` or `~/.grok/skills/todo/__lib/workspace_scanners.py` | S | ✅ yes |
+| **F3** — volume measurement instrumentation | `~/.grok/skills/why/SKILL.md` (1 line), `~/.grok/skills/review/SKILL.md`, `~/.grok/skills/risk/SKILL.md` | S | ✅ yes — but touches `/why/SKILL.md` (1 line only; coordinate with A) |
+
+**F3 conflict note:** F3 adds one logging line to `/why/SKILL.md`. If A is editing the same file in the main orchestrator, this is a collision risk. Mitigation: either (a) fire F3 after A completes, or (b) have A include the F3 logging line in its edit pass. Option (b) is cleaner — add it to A's scope.
+
+### Wave 2 — fire AFTER A2 ships (blocked on maker-checker)
+
+| Task | Why blocked | Effort |
+|---|---|---|
+| **F1** — Tier 2/3 `/why` defects | A2's checker subsumes most; fix only the residual | M |
+| **F2** — Step 15 revival | A2 generates the input stream (checker findings) | M |
+
+### Main orchestrator — A (the `/why` reliability fixes)
+
+| Task | What | Effort |
+|---|---|---|
+| **A1** | Move Step 9a before Step 5 | S-M |
+| **A2** | Maker-checker default + behavior contract | M |
+| **A3** | Depth signal in default output | S |
+| **+ F3 line** | Add volume-measurement logging line to `/why` (folded into A's edit) | S |
+
+### Dependency graph
+
+```
+Wave 1 (NOW, parallel):
+  B2 ──────────────────────> done
+  D1 ──────────────────────> done
+  F4 ──────────────────────> done
+  [F3 folded into A]
+
+Main orchestrator (A):
+  A1 ─┐
+  A2 ─┼──> A ships ──> Wave 2:
+  A3 ─┘                    F1 (residual Tier 2/3) ──> done
+  +F3 line                 F2 (Step 15 revival) ────> done
+```
+
+### Total effort
+
+- Wave 1 (background): 3 × S = ~45 min parallelized
+- Main (A + F3 line): A1(S-M) + A2(M) + A3(S) + F3-line(S) = ~90 min
+- Wave 2 (post-A): F1(M) + F2(M) = ~120 min
+- **Grand total: ~4.5 hours of work, but A and Wave 1 run in parallel → wall-clock ~2 hours**
 
 - **Option B (enhance handoff schema for structured recommendations):** REJECTED — the schema already supports it (`core-fields.md:89-100, 214-258`). Problem is adoption (36%), not schema. Fixed by Task B2.
 - **Option C (fix /todo session-gate for discussion-only sessions):** REJECTED — phantom problem. The inline lens conflated the transcript scanner (session-scoped via `--session`, catches discussion items) with the workspace scanner session-gate (hunk-log-based, filters shared-state findings). The transcript scanner already does what Option C proposed. Fresh-lens receipt: `todo/SKILL.md:70-82, 89-100`.
