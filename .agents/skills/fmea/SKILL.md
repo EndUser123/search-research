@@ -15,7 +15,6 @@ depends_on: []
 consumes: []
 provides: [failure-modes-analysis, risk-priority-scoring]
 domain: review
-host: grok
 uses_capabilities: [failure-modes-analysis, risk-priority-scoring]
 ---
 

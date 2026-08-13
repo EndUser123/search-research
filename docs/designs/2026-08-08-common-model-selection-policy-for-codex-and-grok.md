@@ -1,9 +1,9 @@
 # Common model-selection policy for Codex and Grok
 
 **Date:** 2026-08-08  
-**Last updated:** 2026-08-11 — benchmark conformance and rerun gates added; promotion remains closed
-**Status:** Revision 5h — corrected Codex/Pi rerun authorized; no post-fix promotion evidence yet
-**Revision:** 5h — adds harness invalidation rules, route-scoped method coverage, canonical cohort/threshold requirements, and the HTTP request-cap blocker
+**Last updated:** 2026-08-11 — local harness repairs verified; cross-host pooling and promotion remain closed
+**Status:** Revision 5m — local harnesses are green, but no promotion-qualified or cross-host-pooled cohort
+**Revision:** 5m — records local repair verification and makes the cross-host pooling artifact gate explicit
 **Audience:** Grok Build and Codex maintainers  
 **Scope:** Worker-model selection, quota/capacity pacing, benchmark evidence, shared effort/thinking controls, and the boundary between Codex and Grok orchestration.
 
@@ -137,6 +137,100 @@ latest direct red-team hardening below; it is not a new conformance attestation.
     old results remain availability/protocol diagnostics and cannot be pooled
     with post-fix quality evidence.
 
+**Revision 5i post-fix rerun and harness audit (2026-08-11):**
+
+40. Re-ran the full corrected Codex/Pi manifest after the receipt contract fix.
+    The normalized result is 96 planned, 65 routed, 31 route-blocked, 1
+    post-route execution-blocked, 7 successful worker receipts, and 57 failed
+    worker receipts. This is evidence gathering, not promotion evidence.
+41. Fixed batch redaction so telemetry such as
+    `token_cap_flags_present=false` remains machine-verifiable while credential
+    fields remain redacted. Fixed batch accounting so route blocks and
+    post-route execution blocks are not double-counted.
+42. Added parent checker collection for the one binding with successful
+    observations: 4 of 7 completed cases verified, 3 failed objective checks,
+    and 9 cases were not runnable. The N>=10 independently verified-success
+    gate remains unmet in every intended promotion cell.
+43. Recorded provider auth/quota, protocol, timeout, and worktree-capacity
+    failures as scoped availability/harness evidence. Effective provider
+    effort is still unverified (`null`), so no quality ranking or promotion is
+    allowed.
+
+**Revision 5j harness hardening (2026-08-11):**
+
+44. Fixed the four review-relay fixture tests that still derived the registry
+    bucket from the old content-hash directory. The tests now use the returned
+    `registry_record_path`, so they verify the public record location without
+    duplicating the path-derived storage implementation.
+45. Added structured, redacted failure diagnostics while preserving the
+    existing coarse failure classes. Receipts now expose signals such as
+    `quota_exhausted`, `rate_limit`, `timeout`, and `protocol`, provider error
+    types, `retryable`, parsed `retry_after_ms`, internal retry count, and a
+    bounded `recovery_state`. Authentication failures and retired/discontinued
+    routes are explicitly non-retryable; temporary rate/quota failures remain
+    deferrable when the receipt contains a recovery signal.
+46. Added a benchmark-only scratch-capacity preflight. Benchmark write packets
+    default to a 1 GiB free-space guard and `clean_if_empty`; the runner records
+    the measured capacity and blocks before worktree provisioning when the
+    guard is not met. Dirty worktrees remain preserved/quarantined for review;
+    this is a mitigation, not a guarantee that a long run cannot consume more
+    space.
+47. Re-ran the package regression suite after these changes: 172/172 tests
+     pass. Provider auth/quota, provider protocol, timeout, Grok pool dispatch,
+     and model-quality failures remain external or evidence-gathering issues;
+     no provider rerun or promotion decision follows from this local fix.
+
+**Revision 5k cross-host benchmark conformance (2026-08-11):**
+
+48. Harmonized the host contract around canonical capabilities (`tool-loop`,
+    `reasoning`, and `mechanical`), with `coding` retained only as a Grok/legacy
+    adapter alias for `tool-loop`; capability names must not create additional
+    evidence cohorts.
+49. Clarified that the benchmark matrix is route-scoped: HTTP and PI are the
+    common required methods, while OpenCode is tested only when it is an enabled
+    target route. Each enabled method still needs all three capability cells.
+50. Made the promotion contract explicit: at least N>=10 independent,
+    lane-appropriate verified successes plus the configured one-sided Wilson
+    lower-bound floor; a host-local lower threshold is provisional and
+    non-conformant.
+51. Clarified that evaluation envelopes and watchdogs are not provider request
+    caps. Quality runs must not send `max_tokens`, `max_output_tokens`, or
+    `reasoning_tokens`; a short cap is discovery-only. A retry must preserve the
+    exact binding, capability, effort, case, and method, and must never silently
+    reroute or fall back.
+52. Added a host crosswalk for capability IDs, method scope, receipt minimums,
+    and the separation of provider-pool recovery evidence from model-quality
+    evidence.
+
+**Revision 5l structured receipt enforcement (2026-08-11):**
+
+53. Added a versioned `receipt_json` telemetry field and migration. Grok pool
+    attempts now emit structured fixture, case, capability, difficulty,
+    binding, effort, verifier, watchdog, attempt, and failure/recovery fields;
+    free-form notes remain diagnostic only. Tool-loop records remain
+    non-promotable unless an explicit tool trace is supplied.
+54. Made `promote_models.py` fail closed for legacy, malformed, or unknown
+    receipt fields. Such records remain visible for diagnostics but cannot
+    contribute to a promotion cohort. HTTP effective/native effort and missing
+    provider-account scope remain explicitly unknown and therefore
+    non-promotable until the host can prove them.
+55. Removed the HTTP quality-run `max_tokens` request cap, stopped early 429
+    retries, and disabled PI model rerouting for pool certification. Recovery
+    may be scheduled only as an independently identified, same-binding retry.
+
+**Revision 5m local repair and cross-host pooling gate (2026-08-11):**
+
+56. Restored the benchmark score-normalization helper and its test-path import
+    so the Grok benchmark suite collects and runs the scorer tests again.
+57. Fixed v4-to-v5 registry migration to preserve the normalized primary
+    dispatch transport instead of silently rewriting HTTP, Pi, or OpenCode
+    candidates to `spawn`; updated the migration assertion to the current
+    orchestrator-bound transport contract.
+58. Clarified that cross-host pooling means combining raw observations into one
+    ranking/promotion cohort. It remains prohibited until matching manifest,
+    checker, and complete receipt artifacts are produced and independently
+    validated; local unit-suite success does not satisfy that gate.
+
 ## Executive proposal
 
 Codex and Grok should use one common model-selection policy, implemented
@@ -252,8 +346,16 @@ standing conformance attestation.
    `quality_avg` is absent. 8 of 20 active candidates now have evidence reaching
    the scorer; evidence-backed candidates rank above cold-start candidates.
    **RESOLVED** for matched candidates; 12 candidates remain cold-start because
-   their telemetry uses provider/model naming patterns not yet covered by the
-   alias strategy.
+    their telemetry uses provider/model naming patterns not yet covered by the
+    alias strategy.
+
+7. **Benchmark receipt and promotion gate** (Revision 5l) — pool attempts now
+   write a structured `receipt_json` record with fixture/case identity,
+   capability/difficulty, complete binding fields, effort support, verifier,
+   watchdog, attempt, and failure/recovery state. `promote_models.py` excludes
+   notes-only, malformed, and unknown-field records before applying the N>=10
+   plus Wilson gate. **RESOLVED as a fail-closed gate; no complete promotion
+   cohort is currently present.**
 
 ### Remaining Grok gaps
 
@@ -275,9 +377,11 @@ standing conformance attestation.
   defect and does not satisfy the policy rule that limits disclosed uncertainty
   to bounded non-spend work.
 
-- **Receipt fields** — current receipts do not yet expose every target field.
-  Missing capacity, latency, evidence, or verification values remain explicit
-  unknowns rather than being synthesized.
+- **Receipt fields** — the Grok pool runner now emits the structured receipt
+  shape and the promotion loader rejects missing or unknown values. Existing
+  legacy records and HTTP records without proven effective/native effort or
+  provider-account scope remain diagnostic-only; those values are explicit
+  unknowns rather than synthesized.
 
 - **Evidence coverage** — 12 of 20 active candidates have no matching evidence
   despite telemetry existing for them. The naming mismatch between
@@ -497,6 +601,48 @@ receipt exist, the Codex capability/difficulty suite remains a target
 contract, not a verified fact. The Codex artifacts listed above currently
 provide the manifest and receipt/evaluator foundation only.
 
+### Cross-host pooling gate: what “matching artifacts” means
+
+Cross-host pooling is the act of concatenating Codex and Grok observations into
+one statistical cohort used for model ranking or promotion. It does not mean
+that the hosts may not maintain the same candidate catalog. Raw evidence must
+remain separated by exact binding until all of the following are proven:
+
+1. **Matching manifest:** both hosts execute the same versioned case manifest,
+   with identical stable `case_id`, capability, difficulty, fixture/input
+   hashes, suite membership, and task parameters. A reviewed host crosswalk is
+   acceptable only when it proves semantic equivalence rather than merely
+   matching case names.
+2. **Matching checkers:** each case has the same objective pass/fail
+   requirements, checker/verifier version or content hash, sandbox/tool-trace
+   rules, and verification-state semantics. A structurally valid receipt is
+   not enough if one host's checker can accept an output the other host would
+   reject.
+3. **Complete receipts:** every attempt records the manifest hash, case and
+   cohort identity, provider/model/invocation/orchestrator/route binding,
+   harness and prompt/result contract, quota-pool/account/scope, requested and
+   effective/native effort, native args hash/reference, watchdog, latency and
+   time-to-verified-result, checker/version, tool trace where required,
+   verification state, attempt/retry identity, and failure/recovery class.
+   Unknown or unverified fields remain diagnostic-only.
+4. **Paired conformance validation:** run the same golden fixtures through both
+   host adapters, compare checker decisions and receipt validation, and test
+   duplicate, retry, timeout, quota, and route-block accounting. The validator
+   must reject mixed manifest hashes, checker versions, methods, efforts,
+   providers, routes, or orchestrators rather than silently merging them.
+5. **Cohort qualification:** after equivalence is proven, aggregate only the
+   exact binding/capability/effort/method cell, retain independent attempts, and
+   still meet the common N>=10 verified-success floor and Wilson lower-bound
+   requirement. Capacity recovery observations remain a separate pool-health
+   dataset even when the manifest and checker are shared.
+
+Current state: Codex has an offline 16-case manifest/evaluator foundation;
+Grok has a native pool runner and structured receipt filtering. The paired
+manifest/checker validation and complete paired live receipts do not yet exist,
+and Grok still cannot prove effective HTTP effort, provider-account scope, or
+tool traces for tool-loop records in the current runner. Therefore local test
+passes do not authorize cross-host pooling or model promotion.
+
 ### Capability/difficulty suites and provider-pool suites
 
 There are two different test families, and the names must not be collapsed:
@@ -662,19 +808,20 @@ process watchdog was 120 seconds. Those settings do not form the shared
 mechanical/reasoning/coding primary cohort (`low`/`high`/`medium`) and must not
 be ranked against a conformant run.
 
-**Grok-side conformance note (2026-08-10):** the Grok pool test harness
+**Grok-side conformance note (2026-08-11):** the Grok pool test harness
 (`~/.grok/skills/model-benchmark/scripts/pool_test.py`) implements the R5g
-effort contract as of commit `96cd88c`:
+effort and receipt contract as follows:
 
 - Capability-to-effort mapping: `mechanical`→`low`, `tool-loop`→`medium`,
   `reasoning`→`high`. Override via `--effort` for sensitivity runs.
-- HTTP method: sends `reasoning_effort` field in the OpenAI-compatible
-  payload where the provider supports it. The current implementation also
-  sends a `max_tokens` safety ceiling (floor 4096); this is a conformance
-  blocker until it is removed or proven non-constraining for every provider.
+- HTTP method: sends `reasoning_effort` where supported and does not send a
+  quality-run `max_tokens`, `max_output_tokens`, or `reasoning_tokens` cap. The
+  short `max_tokens` quick probe remains discovery-only. HTTP effective/native
+  effort is not promoted unless the provider-specific receipt proves it.
 - PI method: passes `--thinking <effort>` per the capability default.
-- Telemetry: every pool-test record encodes `effort=<level> method=<method>`
-  in the notes field, enabling cohort segmentation by requested effort.
+- Telemetry: every current pool-test attempt writes structured `receipt_json`
+  plus a human-readable notes field. Promotion requires the structured receipt;
+  notes-only or unknown-field records remain diagnostic-only.
 - Pool tests launched before this commit (NVIDIA reasoning run
   `019fee02`, ZAI tool-loop `019fee05`, OpenRouter free-tier `019fee11`)
   did not send or record effort parameters. Their results are retained as
@@ -684,16 +831,15 @@ Specifically: NVIDIA reasoning = `high` (was: no effort sent),
 ZAI tool-loop = `medium` (was: no effort sent),
 OpenRouter free-tier tool-loop = `medium` (was: no effort sent).
 
-**HTTP/receipt conformance blocker (2026-08-11):** The common policy does
-not permit `max_tokens`, `max_output_tokens`, or `reasoning_tokens` to be sent
-as test-set request caps. The current HTTP adapter still sends a floor-4096
-`max_tokens` field, while its reachability `quick_probe` uses `max_tokens: 5`.
-The latter is allowed only as a discovery probe and must never enter quality
-or promotion evidence. Do not run or promote HTTP certification cells until
-the adapter removes the request cap or records provider-specific proof that it
-cannot constrain the tested output. The current HTTP adapter serializes only
+**HTTP/receipt conformance note (2026-08-11):** The common policy does not
+permit `max_tokens`, `max_output_tokens`, or `reasoning_tokens` to be sent as
+test-set request caps. The quality HTTP adapter now omits them; its
+reachability `quick_probe` uses `max_tokens: 5` only for discovery and never
+enters quality or promotion evidence. The current HTTP adapter serializes only
 `low|medium|high`; `xhigh` is unsupported/unknown over HTTP until explicitly
-implemented and verified, so it must not be pooled as an xhigh result.
+implemented and verified, so it must not be pooled as an xhigh result. HTTP
+promotion also remains closed when provider-account scope or effective effort
+is unknown in the structured receipt.
 
 ### Benchmark rerun decision (2026-08-11)
 
@@ -711,6 +857,47 @@ diagnostic-only and must not be relabeled as conformant evidence.
 The corrected rerun state and authorization packet is
 `P:\tmp\benchmark-protocol-rerun-20260811\state.json`.
 
+The authoritative post-fix full rerun artifacts are:
+
+- manifest:
+  `P:\tmp\benchmark-protocol-rerun-20260811\codex-pi-capability-full-all-r5h-effort-20260811b.json`
+- live approval:
+  `P:\tmp\benchmark-protocol-rerun-20260811\live-approval-full-all-r5h-effort-receipt-fix.json`
+- raw batch summary:
+  `P:\tmp\benchmark-protocol-rerun-20260811\full-effort-artifacts-fixed-20260811\codex-pi-capability-full-all-r5h-effort-20260811b\batch-summary.json`
+- normalized audit:
+  `P:\tmp\benchmark-protocol-rerun-20260811\full-fixed-receipt-audit.json`
+- parent checker receipt:
+  `P:\tmp\benchmark-protocol-rerun-20260811\capability-run-opencode-go-deepseek-v4-flash-fixed.json`
+
+The raw batch summary predates the later accounting-field patch. The
+normalized audit is therefore the authoritative classification for this
+rerun: it explicitly reclassifies one post-route execution block as
+`execution_blocked` instead of folding it into route-blocked or worker-failed.
+
+The audit proves that all 7 successful worker receipts retain benchmark
+identity, requested effort, observed usage, and a boolean absence of token-cap
+flags, with zero identity mismatches. It does not prove effective provider
+effort, independent N>=10 cohorts, or fleet quality. The checker receipt
+verified these four cases:
+`capability.contract_following.easy.001`,
+`capability.contract_following.medium.001`,
+`code_pool.syntax_contract.easy.001`, and
+`code_pool.regression_fix.expert.001`.
+It failed `code_pool.localized_patch.easy.001`,
+`code_pool.test_authoring.medium.001`, and
+`code_pool.multi_file_invariant.hard.001`; the remaining nine cases were not
+runnable for that binding.
+
+The rerun also hit a capacity failure: one late worktree could not be
+provisioned after the generated disposable worktrees exhausted the P: drive.
+Those disposable worktrees were cleaned; the receipt and summary artifacts
+were preserved. The Codex harness now preflights benchmark scratch capacity,
+records the measured free-space evidence, blocks before provisioning when the
+guard is not met, and cleans only empty benchmark worktrees. Future full runs
+must retain the normalized `execution_blocked` count; dirty worktrees remain
+available for parent inspection.
+
 **Required rerun sequence:**
 
 1. Run all three primary PI capability cells for each approved binding:
@@ -724,10 +911,11 @@ The corrected rerun state and authorization packet is
    they do not become model-quality failures or silent fallbacks. Respect the
    provider concurrency ceilings and run one capability per provider at a
    time to avoid self-inflicted 429 cascades.
-4. Run HTTP baseline cells only after the request-cap blocker and receipt
-   contract are resolved. Run OpenCode cells only when OpenCode is an enabled
-   target route; first verify multiline prompt preservation because the current
-   OpenCode call passes the prompt positionally.
+4. Run HTTP baseline cells only with the current no-cap adapter and structured
+   receipt writer. Treat any record with unknown provider-account scope or
+   effective effort as diagnostic-only. Run OpenCode cells only when OpenCode
+   is an enabled target route; first verify multiline prompt preservation
+   because the current OpenCode call passes the prompt positionally.
 5. Do not pool the 16-case Codex suite with Grok's 18/8/8 suites until a
    canonical shared manifest, checker/version, difficulty cohorts, and receipt
    schema are selected and hashed.
@@ -742,6 +930,39 @@ The top-level pool record retains capability-specific `task_domain`, and the
 current call forces the model with `max_retries=0`, but the effect on quota
 telemetry and future retries must be verified before capability-specific
 capacity claims are promoted.
+
+**Codex harness files updated for this contract:**
+
+- `P:\packages\codex-external-delegation\src\commands.mjs` preserves the
+  requested effort level for PI and write-mode commands.
+- `P:\packages\codex-external-delegation\src\packet.mjs` carries the
+  benchmark identity, lane, case, binding, manifest, quota/account, provider,
+  and effort fields into the immutable packet.
+- `P:\packages\codex-external-delegation\src\runner.mjs` records requested,
+  effective, and native effort receipts; runtime usage; exact command/args;
+  watchdog outcome; token-cap flag evidence; structured quota/rate-limit
+  recovery diagnostics; and benchmark scratch-capacity evidence.
+- `P:\packages\codex-external-delegation\src\failures.mjs` preserves the
+  existing failure classes and derives redacted retry/recovery signals.
+- `P:\packages\codex-external-delegation\src\review-relay.mjs` remains the
+  authoritative path-derived registry implementation; its fixture tests now
+  discover the record bucket from the returned record path.
+- `P:\packages\codex-external-delegation\src\batch.mjs` preserves benchmark
+  telemetry during redaction and separates route-blocked from post-route
+  execution-blocked outcomes.
+- `P:\packages\codex-external-delegation\src\packet.mjs` carries the
+  benchmark free-space guard and safe cleanup default into the hashed packet.
+- Regression coverage is in
+  `P:\packages\codex-external-delegation\tests\runner.test.mjs`,
+  `P:\packages\codex-external-delegation\tests\batch.test.mjs`,
+  `P:\packages\codex-external-delegation\tests\policy.test.mjs`, and
+  `P:\packages\codex-external-delegation\tests\review-relay.test.mjs`.
+
+The complete package suite passes 172/172 after the fixes; the receipt is
+`P:\tmp\codex-external-delegation-tests-20260811-fixes.log`. This clean local
+suite still does not authorize benchmark promotion: provider availability,
+effective effort, independent verified-success cohorts, and checker quality
+remain separate evidence gates.
 
 ### Tool-evidence requirement for tool-loop capability
 
@@ -1060,6 +1281,25 @@ Codex and Grok should share or conform to:
 
 The implementations may remain native: JavaScript for Codex and Python for
 Grok. The shared schema and golden vectors are the compatibility boundary.
+
+### Host implementation crosswalk
+
+The following crosswalk prevents terminology from turning into accidental
+evidence pooling:
+
+| Shared semantic | Grok implementation term | Codex implementation term | Evidence rule |
+|---|---|---|---|
+| `tool-loop` | `tool-loop` (legacy CLI alias: `coding`) | `code_pool` / tool-loop cases | Normalize the alias at the adapter boundary; do not create a second lane. |
+| `reasoning` | `reasoning` | `capability` reasoning cases | Keep reasoning effort and orchestrator/method identity in the receipt. |
+| `mechanical` | `mechanical` | `capability` mechanical cases | Exact or checker-backed verification is required. |
+| invocation method | `http`, `pi`, optional `opencode` | `pi` and any explicitly enabled route | Run all three capabilities for each enabled method; do not require disabled routes. |
+| result evidence | telemetry plus structured benchmark receipt | `capability-difficulty-run.v1` receipt | A notes-only record is diagnostic, not promotion evidence. |
+
+Both hosts must also record the manifest/checker hashes, complete binding,
+requested/effective/native effort, support/clamping state, watchdog and
+time-to-verified-result, attempt/retry identity, and failure/recovery class.
+Provider-pool health and quota-recovery tests remain separate from
+capability/difficulty quality cohorts.
 
 ### Separate
 
@@ -2071,12 +2311,14 @@ evidence for all of the following:
 
 ## Operator acceptance
 
-This proposal (Revision 5h) preserves the output of six cross-orchestrator
+This proposal (Revision 5m) preserves the output of six cross-orchestrator
 review relay sessions (all converged, zero disputes across 42 total findings),
 adds the targeted recovery/evidence hardening update, and records the direct
 red-team findings on pool-test scope, promotion identity, evidence cohorts,
-recovery semantics, cross-host effort comparability, and the corrected rerun
-gate. No new cross-host relay re-review has been performed for Revision 5h.
+recovery semantics, cross-host effort comparability, the corrected rerun gate,
+the verified Codex harness diagnostics/capacity fixes, the host implementation
+crosswalk, fail-closed Grok receipt enforcement, and the local harness-repair
+audit. No new cross-host relay re-review has been performed for Revision 5m.
 Review convergence is provenance; it is not evidence that either live
 selector is conformant.
 

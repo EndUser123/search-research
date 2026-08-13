@@ -14,6 +14,9 @@ Usage:
   # Dry run (export + cluster + synthesize + reconcile, no page writes)
   python sync.py --notebook <uuid> --dry-run
 
+  # Force semantic regeneration even when source IDs are unchanged
+  python sync.py --notebook <uuid> --force-resynthesis --synth-backend mmx
+
   # v3: with optional vision enrichment (high-scene-change videos only)
   python sync.py --notebook <uuid> --enrich-vision --max-subtopics 12
 
@@ -26,6 +29,7 @@ concept pages per sub-topic (LLM) → reconcile → write+validate → link/log.
 from __future__ import annotations
 
 import argparse
+import fasteners
 import hashlib
 import json
 import os
@@ -33,6 +37,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from datetime import date
 from pathlib import Path
 
@@ -48,6 +53,7 @@ SKILL_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = SKILL_ROOT / "scripts"
 WIKI_VAULT = Path("P:/.data/wiki")
 SYNC_MANIFEST = WIKI_VAULT / "_state" / "nlm-sync-manifest.json"
+CHILD_FAILURE_ROOT = Path("P:/.logs/wiki-yt-queue/child-failures")
 
 
 def log(msg: str) -> None:
@@ -60,6 +66,48 @@ def run(cmd: list[str], timeout: int = 1800, capture: bool = True) -> tuple[int,
         return r.returncode, r.stdout or "", r.stderr or ""
     except subprocess.TimeoutExpired:
         return 124, "", f"TIMEOUT after {timeout}s"
+
+
+def persist_child_failure(
+    notebook_id: str,
+    stage: str,
+    returncode: int,
+    stdout: str,
+    stderr: str,
+) -> str:
+    """Persist complete child output before the temporary sync run disappears."""
+    safe_stage = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in stage)
+    path = CHILD_FAILURE_ROOT / (
+        f"{notebook_id[:16]}-{safe_stage}-{uuid.uuid4().hex}.json"
+    )
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _write_and_fsync(
+            path,
+            json.dumps(
+                {
+                    "notebook_id": notebook_id,
+                    "stage": stage,
+                    "returncode": returncode,
+                    "stdout": stdout or "",
+                    "stderr": stderr or "",
+                    "created_at_epoch": time.time(),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+        )
+    except OSError as exc:
+        log(f"WARN unable to persist {stage} child failure: {type(exc).__name__}: {exc}")
+        return ""
+
+    # Keep stable classifier markers visible in the outer queue receipt even
+    # when the detailed child stderr is longer than the summary log window.
+    for line in (stderr or "").splitlines():
+        if line.startswith(("FAILURE_CLASS=", "SYNTHESIS_QUALITY=")):
+            log(line)
+    log(f"CHILD_FAILURE_RECEIPT={path}")
+    return str(path)
 
 
 def ensure_auth(profile: str) -> bool:
@@ -111,21 +159,53 @@ def load_manifest() -> dict:
 
 def save_manifest(m: dict) -> None:
     SYNC_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    tmp = SYNC_MANIFEST.with_suffix(".tmp")
-    tmp.write_text(json.dumps(m, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.replace(tmp, SYNC_MANIFEST)
+    lock_path = SYNC_MANIFEST.with_name(SYNC_MANIFEST.name + ".lock")
+    with fasteners.InterProcessLock(str(lock_path)):
+        # Multiple queue workers can finish concurrently. Merge the caller's
+        # notebook updates into the latest on-disk state while holding the
+        # lock, rather than replacing newer siblings from a stale snapshot.
+        current = load_manifest()
+        current_notebooks = current.setdefault("notebooks", {})
+        current_notebooks.update(m.get("notebooks", {}))
+        tmp = SYNC_MANIFEST.with_suffix(".tmp")
+        _write_and_fsync(tmp, json.dumps(current, ensure_ascii=False, indent=2))
+        os.replace(tmp, SYNC_MANIFEST)
+
+
+def _export_receipt(export_result: dict) -> dict[str, int]:
+    """Select deterministic export outcome counters for durable sync receipts."""
+    return {
+        key: int(export_result.get(key, 0) or 0)
+        for key in (
+            "from_cache_count",
+            "cache_hit_count",
+            "cache_miss_count",
+            "cache_unresolved_count",
+            "feed_forward_success_count",
+            "feed_forward_failure_count",
+        )
+    }
 
 
 def sync_one(nb_id: str, profile: str, dry_run: bool,
              clusters_path: Path | None,
              enrich_vision: bool = False,
              max_subtopics: int = 10,
-             synth_backend: str | None = None) -> dict:
+             synth_backend: str | None = None,
+             allow_degraded_fallback: bool = False,
+             force_resynthesis: bool = False,
+             synth_context_budget: int | None = None,
+             synth_checkpoint: Path | None = None,
+             synth_resume: Path | None = None) -> dict:
     """Run the full v3 pipeline on one notebook. Returns result record.
 
     Pipeline: export transcripts → cluster → synthesize → reconcile →
     write pages → link/log/manifest. Vision enrichment is opt-in.
     """
+    if synth_context_budget is not None and synth_context_budget <= 0:
+        raise ValueError("synth_context_budget must be > 0")
+    if synth_checkpoint is not None and synth_resume is not None:
+        raise ValueError("synth_checkpoint and synth_resume are mutually exclusive")
     import time as _time
     sync_start_time = _time.time()
     title = notebook_title(nb_id, profile)
@@ -140,9 +220,11 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
                 "status": "source_snapshot_failed", "error": str(exc)}
     manifest = load_manifest()
     prior = manifest["notebooks"].get(nb_id, {})
-    if prior.get("source_hash") == source_hash and source_hash:
+    if prior.get("source_hash") == source_hash and source_hash and not force_resynthesis:
         log("SKIP (source_ids unchanged since last sync)")
         return {"notebook_id": nb_id, "title": title, "status": "skipped_unchanged"}
+    if force_resynthesis and prior.get("source_hash") == source_hash and source_hash:
+        log("FORCE RESYNTHESIS (source_ids unchanged; rebuilding semantic pages)")
 
     # Transcripts are durable (wiki/sources/transcripts/); cluster+synthesize use tmp.
     transcripts_dir = WIKI_VAULT / "sources" / "transcripts"
@@ -162,6 +244,7 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
     n_exported = export_result.get("exported", 0)
     n_skipped = export_result.get("skipped", 0)
     n_failed = export_result.get("failed", 0)
+    export_receipt = _export_receipt(export_result)
     log(f"  exported {n_exported} new, {n_skipped} already present, {n_failed} failed (status=3/unrecoverable)")
     if rc != 0 or export_result.get("auth_failed") or export_result.get("fatal_error"):
         status = "export_partial" if rc == 5 and n_exported + n_skipped else "export_failed"
@@ -216,13 +299,41 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
                      "-o", str(concepts_path)]
         if synth_backend:
             synth_cmd.extend(["--backend", synth_backend])
+        if synth_context_budget is not None:
+            synth_cmd.extend(["--context-budget", str(synth_context_budget)])
+        if synth_resume is not None:
+            synth_cmd.extend(["--resume", str(synth_resume)])
+        elif synth_checkpoint is not None:
+            synth_cmd.extend(["--checkpoint", str(synth_checkpoint)])
+        if allow_degraded_fallback:
+            synth_cmd.append("--allow-degraded-fallback")
         rc, out, err = run(synth_cmd, timeout=3600)
         if rc != 0:
-            log(f"FATAL synthesize rc={rc}: {err[:300]}")
+            receipt = persist_child_failure(nb_id, "synthesis", rc, out, err)
+            detail = f"{err[:300]}"
+            if receipt:
+                detail += f"; child_receipt={receipt}"
+            log(f"FATAL synthesize rc={rc}: {detail}")
             return {"notebook_id": nb_id, "title": title, "status": "synthesis_failed",
-                    "error": err[:400], "transcripts_exported": n_exported}
+                    "error": err[:400], "child_receipt": receipt,
+                    "transcripts_exported": n_exported}
         concepts = json.loads(concepts_path.read_text(encoding="utf-8"))
         log(f"  synthesized {len(concepts)} concept pages")
+        degraded_fallback_count = sum(
+            1 for concept in concepts
+            if concept.get("synthesis_quality") == "degraded_fallback"
+        )
+        if degraded_fallback_count:
+            if not allow_degraded_fallback:
+                log("FATAL degraded synthesis appeared without explicit promotion opt-in")
+                return {"notebook_id": nb_id, "title": title,
+                        "status": "synthesis_degraded",
+                        "error": "degraded fallback requires explicit promotion opt-in",
+                        "transcripts_exported": n_exported}
+            log(
+                f"SYNTHESIS_QUALITY=degraded_fallback "
+                f"count={degraded_fallback_count}"
+            )
         if not concepts:
             return {"notebook_id": nb_id, "title": title, "status": "no_concepts"}
 
@@ -252,7 +363,10 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
 
         # Stage E: write pages (with validation)
         log("Stage E: write + validate pages...")
-        staging = tmp_dir / "failed-pages"
+        staging = (
+            WIKI_VAULT / "_state" / "nlm-sync-staging"
+            / f"{nb_id[:8]}-{uuid.uuid4().hex}"
+        )
         write_cmd = ["python", str(SCRIPTS / "write_pages.py"),
                      "--input", str(reconciled_path),
                      "--vault", str(WIKI_VAULT),
@@ -275,6 +389,10 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
 
         # Stage F: auto-link + log + manifest
         log("Stage F: auto-link + log + manifest...")
+        synthesis_quality_counts: dict[str, int] = {}
+        for written_page in write_summary["written"]:
+            quality = str(written_page.get("synthesis_quality", "llm_validated"))
+            synthesis_quality_counts[quality] = synthesis_quality_counts.get(quality, 0) + 1
         auto_link(write_summary["written"])
         append_log_entries(nb_id, title, write_summary["written"])
         manifest["notebooks"][nb_id] = {
@@ -285,6 +403,8 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
             "source_ids": source_ids,
             "pipeline": "v3-transcript-cluster",
             "concept_slugs": [w["slug"] for w in write_summary["written"]],
+            "synthesis_quality_counts": synthesis_quality_counts,
+            "export_receipt": export_receipt,
         }
         save_manifest(manifest)
         # Reindex removed (qmd was uninstalled from the workspace; pages are
@@ -317,10 +437,15 @@ def sync_one(nb_id: str, profile: str, dry_run: bool,
             # Print the Level 1 + Level 2 summary to stderr (sync logs go to stderr)
             print(out.strip(), file=sys.stderr)
 
+        sync_status = "synced_degraded_fallback" if degraded_fallback_count else "synced"
+        if degraded_fallback_count:
+            log("DEGRADED_FALLBACK_PROMOTED=1 pages passed citation and wiki validation")
         return {
-            "notebook_id": nb_id, "title": title, "status": "synced",
+            "notebook_id": nb_id, "title": title, "status": sync_status,
             "written": n_written, "failed_validation": n_failed,
             "transcripts_exported": n_exported,
+            "export_receipt": export_receipt,
+            "synthesis_quality_counts": synthesis_quality_counts,
             "url": f"https://notebooklm.google.com/notebook/{nb_id}",
         }
 
@@ -363,8 +488,17 @@ def save_state(state: dict, path: Path | None) -> None:
     if not path:
         return
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _write_and_fsync(tmp, json.dumps(state, ensure_ascii=False, indent=2))
     os.replace(tmp, path)
+
+
+def _write_and_fsync(path: Path, content: str) -> None:
+    """Flush a durable state file before atomically publishing its replacement."""
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(content)
+        handle.flush()
+        os.fsync(handle.fileno())
 
 
 def list_notebooks(profile: str) -> list[dict]:
@@ -457,9 +591,22 @@ def main() -> int:
                     help="v3: run crv vision enrichment on high-scene-change videos (opt-in)")
     ap.add_argument("--max-subtopics", type=int, default=10,
                     help="v3: max sub-topic clusters per notebook (default 10)")
-    ap.add_argument("--synth-backend", choices=["mmx", "dgemma"], default=None,
-                    help="v3: LLM backend for sub-topic synthesis (default mmx)")
+    ap.add_argument("--synth-backend", choices=["mmx", "dgemma", "deterministic"], default=None,
+                    help="v3: synthesis backend; deterministic preserves cited excerpts without an LLM")
+    ap.add_argument("--allow-degraded-fallback", action="store_true",
+                    help="explicitly allow citation-backed excerpt pages after backend exhaustion")
+    ap.add_argument("--force-resynthesis", action="store_true",
+                    help="rerun export/cluster/synthesis even when source IDs are unchanged")
+    ap.add_argument("--synth-context-budget", type=int, default=None,
+                    help="override synthesis map-reduce threshold in characters")
+    ap.add_argument("--synth-checkpoint", type=Path,
+                    help="durable per-notebook Stage-C checkpoint to create")
+    ap.add_argument("--synth-resume", type=Path,
+                    help="durable per-notebook Stage-C checkpoint to resume")
     args = ap.parse_args()
+
+    if (args.synth_checkpoint or args.synth_resume) and not args.notebook:
+        ap.error("--synth-checkpoint/--synth-resume require --notebook")
 
     # No target → status picker (the friendly default)
     if not (args.notebook or args.all or args.from_clusters or args.status):
@@ -518,9 +665,16 @@ def main() -> int:
         result = sync_one(nb_id, args.profile, args.dry_run, args.from_clusters,
                           enrich_vision=args.enrich_vision,
                           max_subtopics=args.max_subtopics,
-                          synth_backend=args.synth_backend)
+                          synth_backend=args.synth_backend,
+                          allow_degraded_fallback=args.allow_degraded_fallback,
+                          force_resynthesis=args.force_resynthesis,
+                          synth_context_budget=args.synth_context_budget,
+                          synth_checkpoint=args.synth_checkpoint,
+                          synth_resume=args.synth_resume)
         state.setdefault("results", []).append(result)
-        if result.get("status") in ("synced", "skipped_unchanged", "dry_run"):
+        if result.get("status") in (
+            "synced", "synced_degraded_fallback", "skipped_unchanged", "dry_run"
+        ):
             state.setdefault("synced", []).append(nb_id)
         else:
             state.setdefault("failed", []).append(nb_id)

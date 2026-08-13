@@ -182,6 +182,29 @@ test("infers write mode from declared write intent while honoring explicit mode"
   assert.equal(explicitlyReadOnly.packet.containment, "read_only");
 });
 
+test("adds benchmark-only worktree safeguards without changing ordinary write packets", () => {
+  const benchmark = compilePacket({
+    ...bounded,
+    task_id: "benchmark-scratch-guard",
+    mode: "write",
+    write_scope: ["src/example.mjs"],
+    worktree_request: { worktreeRoot: "P:/tmp/worktrees", intendedFiles: ["src/example.mjs"] },
+    benchmark_manifest_id: "capability-difficulty-test",
+  }).packet;
+  assert.equal(benchmark.worktree_cleanup, "clean_if_empty");
+  assert.equal(benchmark.benchmark_min_free_bytes, 1024 * 1024 * 1024);
+
+  const ordinary = compilePacket({
+    ...bounded,
+    task_id: "ordinary-scratch-guard",
+    mode: "write",
+    write_scope: ["src/example.mjs"],
+    worktree_request: { worktreeRoot: "P:/tmp/worktrees", intendedFiles: ["src/example.mjs"] },
+  }).packet;
+  assert.equal(ordinary.worktree_cleanup, "preserve");
+  assert.equal(ordinary.benchmark_min_free_bytes, null);
+});
+
 test("uses authoritative provider state when the caller leaves model selection open", async () => {
   const now = Date.now();
   const paths = await createSelectorFixture(now);

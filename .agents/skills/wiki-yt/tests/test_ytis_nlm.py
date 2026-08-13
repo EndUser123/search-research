@@ -60,6 +60,37 @@ class _FakeClient:
         self.closed = True
 
 
+def test_sync_persists_complete_child_failure_output(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(sync_orchestrator, "CHILD_FAILURE_ROOT", tmp_path)
+
+    receipt = sync_orchestrator.persist_child_failure(
+        "notebook-123",
+        "synthesis",
+        5,
+        "child stdout",
+        "FAILURE_CLASS=synthesis_backend_exhausted\nfull backend error",
+    )
+
+    payload = __import__("json").loads(Path(receipt).read_text(encoding="utf-8"))
+    assert payload["notebook_id"] == "notebook-123"
+    assert payload["stage"] == "synthesis"
+    assert payload["returncode"] == 5
+    assert payload["stdout"] == "child stdout"
+    assert "full backend error" in payload["stderr"]
+
+
+def test_queue_snapshot_fsync_before_publish(monkeypatch, tmp_path: Path) -> None:
+    queue_path = tmp_path / "queue.json"
+    fsync_calls = []
+    monkeypatch.setattr(queue_sync, "QUEUE_FILE", queue_path)
+    monkeypatch.setattr(queue_sync.os, "fsync", lambda descriptor: fsync_calls.append(descriptor))
+
+    queue_sync.save_queue(queue_sync._empty_queue())
+
+    assert len(fsync_calls) == 1
+    assert queue_path.is_file()
+
+
 def test_legacy_shapes_are_recreated_from_direct_client() -> None:
     client = _FakeClient()
 
@@ -143,11 +174,161 @@ def test_queue_failure_and_retry_records_preserve_account_identity() -> None:
     assert failure["source_count"] == 80
 
 
+def test_retry_poisoned_reopens_exact_item_and_preserves_history(monkeypatch, tmp_path) -> None:
+    queue_path = tmp_path / "queue.json"
+    monkeypatch.setattr(queue_sync, "QUEUE_FILE", queue_path)
+    queue = queue_sync._empty_queue()
+    queue["poisoned"] = [
+        {
+            "nb_id": "poison-1",
+            "title": "Poison one",
+            "source_count": 27,
+            "profile": "a.hominidae",
+            "error": "failed (synthesis_backend_exhausted)",
+            "attempts": 3,
+        },
+        {
+            "nb_id": "poison-2",
+            "title": "Poison two",
+            "source_count": 36,
+            "profile": "a.hominidae",
+            "error": "failed (synthesis_backend_exhausted)",
+            "attempts": 3,
+        },
+    ]
+    queue_sync.save_queue(queue)
+
+    assert queue_sync.do_retry_poisoned(
+        ["poison-1"], "dgemma", "bounded alternate-backend validation"
+    ) == 0
+
+    updated = queue_sync.load_queue()
+    assert [item["nb_id"] for item in updated["pending"]] == ["poison-1"]
+    assert updated["pending"][0]["attempts"] == 3
+    assert updated["pending"][0]["retry_backend"] == "dgemma"
+    assert updated["pending"][0]["force_resynthesis"] is True
+    assert [item["nb_id"] for item in updated["poisoned"]] == ["poison-2"]
+    assert len(updated["poisoned_history"]) == 1
+    assert updated["poisoned_history"][0]["nb_id"] == "poison-1"
+    assert updated["poisoned_history"][0]["history_status"] == "reopened"
+    assert updated["poisoned_history"][0]["force_resynthesis"] is True
+
+
+def test_retry_poisoned_preserves_synthesis_context_budget(monkeypatch, tmp_path) -> None:
+    queue_path = tmp_path / "queue.json"
+    monkeypatch.setattr(queue_sync, "QUEUE_FILE", queue_path)
+    queue = queue_sync._empty_queue()
+    queue["poisoned"] = [{
+        "nb_id": "poison-budget",
+        "title": "Budget",
+        "source_count": 27,
+        "profile": "a.hominidae",
+        "error": "failed (synthesis_degraded)",
+    }]
+    queue_sync.save_queue(queue)
+
+    assert queue_sync.do_retry_poisoned(
+        ["poison-budget"],
+        "dgemma",
+        "bounded context budget",
+        synth_context_budget=500_000,
+    ) == 0
+
+    updated = queue_sync.load_queue()
+    assert updated["pending"][0]["synth_context_budget"] == 500_000
+    assert updated["poisoned_history"][0]["synth_context_budget"] == 500_000
+
+
+def test_retry_poisoned_persists_per_notebook_checkpoint_path(monkeypatch, tmp_path) -> None:
+    queue_path = tmp_path / "queue.json"
+    checkpoint_dir = tmp_path / "checkpoints"
+    monkeypatch.setattr(queue_sync, "QUEUE_FILE", queue_path)
+    queue = queue_sync._empty_queue()
+    queue["poisoned"] = [{
+        "nb_id": "poison-checkpoint",
+        "title": "Checkpoint",
+        "source_count": 27,
+        "profile": "a.hominidae",
+        "error": "failed (synthesis_backend_exhausted)",
+    }]
+    queue_sync.save_queue(queue)
+
+    assert queue_sync.do_retry_poisoned(
+        ["poison-checkpoint"],
+        "dgemma",
+        "bounded checkpoint retry",
+        synth_checkpoint_dir=checkpoint_dir,
+    ) == 0
+
+    updated = queue_sync.load_queue()
+    checkpoint = Path(updated["pending"][0]["synth_checkpoint_path"])
+    assert checkpoint == checkpoint_dir.resolve() / "a.hominidae-poison-checkpoint.stage-c.json"
+    assert updated["poisoned_history"][0]["synth_checkpoint_path"] == str(checkpoint)
+
+
+def test_queue_checkpoint_args_create_then_resume(tmp_path) -> None:
+    checkpoint = tmp_path / "stage-c.json"
+    item = {"synth_checkpoint_path": str(checkpoint)}
+    assert queue_sync._synth_checkpoint_args(item) == ["--synth-checkpoint", str(checkpoint)]
+    checkpoint.write_text("{}", encoding="utf-8")
+    assert queue_sync._synth_checkpoint_args(item) == ["--synth-resume", str(checkpoint)]
+
+
 def test_queue_requires_explicit_pipeline_success() -> None:
     assert queue_sync.classify_sync_result(0, "Synced: 1/1", "") == "synced"
     assert queue_sync.classify_sync_result(0, "SKIP (source_ids unchanged since last sync)", "") == "skipped_unchanged"
     assert queue_sync.classify_sync_result(0, "Synced: 0/1\nFailed: ['nb-1']", "") == "failed (pipeline_not_complete)"
     assert queue_sync.classify_sync_result(1, "Synced: 0/1", "") == "failed (rc=1)"
+    assert queue_sync.classify_sync_result(5, "", "FAILURE_CLASS=citation_invalid") == "failed (citation_invalid)"
+    assert queue_sync.classify_sync_result(5, "FAILURE_CLASS=synthesis_degraded", "") == "failed (synthesis_degraded)"
+    assert queue_sync.classify_sync_result(1, "", "FAILURE_CLASS=synthesis_backend_exhausted") == "failed (synthesis_backend_exhausted)"
+    assert queue_sync.classify_sync_result(
+        0,
+        "SYNTHESIS_QUALITY=degraded_fallback\nSynced: 1/1",
+        "",
+    ) == "failed (degraded_fallback_not_promoted)"
+    assert queue_sync.classify_sync_result(
+        0,
+        "SYNTHESIS_QUALITY=degraded_fallback\nDEGRADED_FALLBACK_PROMOTED=1\nSynced: 1/1",
+        "",
+    ) == "synced_degraded_fallback"
+
+
+def test_queue_success_archives_prior_failed_attempts() -> None:
+    queue = queue_sync._empty_queue()
+    queue["pending"] = [{"nb_id": "nb-1", "title": "Notebook", "profile": "a.hominidae"}]
+    claim, reason = queue_sync._claim_pending(queue, "worker-1", "a.hominidae")
+    assert reason == "claimed"
+    claimed, lease_id = claim
+    queue["failed"] = [{
+        "nb_id": "nb-1",
+        "title": "Notebook",
+        "profile": "a.hominidae",
+        "attempts": 1,
+        "error": "failed (rc=1)",
+    }]
+
+    assert queue_sync._record_success(
+        queue, "worker-1", lease_id, claimed, "a.hominidae", "synced", 2.5
+    )
+    assert queue["failed"] == []
+    assert queue["failure_history"][0]["nb_id"] == "nb-1"
+    assert queue["failure_history"][0]["history_status"] == "resolved_terminal"
+
+
+def test_queue_reconcile_archives_stale_failures_for_success_and_poison() -> None:
+    queue = queue_sync._empty_queue()
+    queue["completed"] = [{"nb_id": "done", "profile": "a.hominidae"}]
+    queue["poisoned"] = [{"nb_id": "poison", "profile": "troup.hominidae"}]
+    queue["failed"] = [
+        {"nb_id": "done", "profile": "a.hominidae", "attempts": 1},
+        {"nb_id": "poison", "profile": "troup.hominidae", "attempts": 2},
+        {"nb_id": "active", "profile": "a.hominidae", "attempts": 1},
+    ]
+
+    assert queue_sync.reconcile_terminal_records(queue) == 2
+    assert [item["nb_id"] for item in queue["failed"]] == ["active"]
+    assert {item["nb_id"] for item in queue["failure_history"]} == {"done", "poison"}
 
 
 def test_queue_claim_enforces_global_and_per_account_capacity() -> None:

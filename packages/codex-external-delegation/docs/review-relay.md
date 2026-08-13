@@ -149,6 +149,9 @@ content hash; do not fabricate those fields in the scratchpad.
 
 ## Lease and failure behavior
 
+- New sessions default to a 600-second (10-minute) turn lease. This is the
+  exclusive claim window for one bounded turn, not the seven-day session TTL;
+  pass `--lease-seconds` when a deliberately different window is needed.
 - `tick` claims exactly one expected actor/turn using an expiring lease.
 - A concurrent claimant waits; it cannot create a second active attempt.
 - A brief half-created active directory is reported as pending. After the

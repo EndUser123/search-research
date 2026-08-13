@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { dirname, join, relative, resolve } from "node:path";
@@ -100,7 +100,148 @@ async function gitWorktrees(repoRoot) {
   }));
 }
 
-export async function provisionWorktree({ taskId, title, objective = "", repoRoot, stateDir, canonicalBranch = "main", worktreeRoot, intendedFiles = [], ownerSession = "codex" } = {}) {
+function isWithin(root, candidate) {
+  const rootPath = resolve(root);
+  const candidatePath = resolve(candidate);
+  const relativePath = relative(rootPath, candidatePath);
+  return relativePath === "" || (relativePath !== ".." && !relativePath.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) && !/^[A-Za-z]:[\\/]/.test(relativePath));
+}
+
+function safeRelativePath(value, field) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${field} must be a non-empty relative path`);
+  const normalized = value.replaceAll("\\", "/");
+  if (normalized.startsWith("/") || /^[A-Za-z]:\//.test(normalized)) throw new Error(`${field} must be relative`);
+  const parts = normalized.split("/").filter(Boolean);
+  if (!parts.length || parts.includes("..")) throw new Error(`${field} escapes its root`);
+  return parts.join("/");
+}
+
+async function copyMaterializedEntry(source, destination) {
+  const sourceStat = await lstat(source);
+  if (sourceStat.isSymbolicLink()) throw new Error(`materialization source symlink is not allowed: ${source}`);
+  if (sourceStat.isDirectory()) {
+    await mkdir(destination, { recursive: true });
+    for (const entry of await readdir(source, { withFileTypes: true })) {
+      await copyMaterializedEntry(join(source, entry.name), join(destination, entry.name));
+    }
+    return;
+  }
+  if (!sourceStat.isFile()) throw new Error(`materialization source is not a regular file or directory: ${source}`);
+  await mkdir(dirname(destination), { recursive: true });
+  const contents = await readFile(source);
+  try {
+    await writeFile(destination, contents, { flag: "wx" });
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    const existing = await readFile(destination);
+    if (!existing.equals(contents)) throw new Error(`materialization destination already exists with different content: ${destination}`);
+  }
+}
+
+async function rejectDestinationSymlinks(destinationRoot, destination) {
+  const rootPath = resolve(destinationRoot);
+  const candidatePath = resolve(destination);
+  const rootStat = await lstat(rootPath).catch((error) => {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  });
+  if (!rootStat) return;
+  if (rootStat.isSymbolicLink()) throw new Error(`materialization destination root symlink is not allowed: ${rootPath}`);
+  let current = rootPath;
+  const parts = relative(rootPath, candidatePath).split(/[\\/]/).filter(Boolean);
+  for (const part of parts) {
+    current = join(current, part);
+    const entry = await lstat(current).catch((error) => {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    });
+    if (entry?.isSymbolicLink()) throw new Error(`materialization destination symlink is not allowed: ${current}`);
+    if (!entry) break;
+  }
+}
+
+/**
+ * Copy benchmark-owned, untracked inputs into a disposable worktree.
+ * Sources must be relative to the logical repository cwd and destinations
+ * must be relative to the isolated cwd. This keeps the parent checker and
+ * the main checkout out of the worker's write surface.
+ */
+export async function materializeWorktreePaths({ paths = [], sourceRoot, destinationRoot } = {}) {
+  if (!Array.isArray(paths) || paths.length === 0) return [];
+  if (!sourceRoot || !destinationRoot) throw new Error("materialization roots are required");
+  const materialized = [];
+  for (const value of paths) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("materialization entries must be objects");
+    const sourceRelative = safeRelativePath(value.source, "materialization source");
+    const destinationRelative = safeRelativePath(value.destination, "materialization destination");
+    const source = resolve(sourceRoot, sourceRelative);
+    const destination = resolve(destinationRoot, destinationRelative);
+    if (!isWithin(sourceRoot, source)) throw new Error("materialization source escapes the logical cwd");
+    if (!isWithin(destinationRoot, destination)) throw new Error("materialization destination escapes the isolated cwd");
+    await rejectDestinationSymlinks(destinationRoot, destination);
+    await copyMaterializedEntry(source, destination);
+    materialized.push({ source: sourceRelative, destination: destinationRelative });
+  }
+  return materialized;
+}
+
+function timeoutEvidence(error) {
+  return /timed out|timeoutexpired|timeout/i.test(`${error?.stderr || ""}\n${error?.message || ""}`);
+}
+
+async function recoverTimedOutProvision({ taskId, title, objective, gitRepoRoot, stateDir, canonicalBranch, worktreeRoot, intendedFiles, ownerSession } = {}) {
+  if (!worktreeRoot) return null;
+  const expectedPath = resolve(join(worktreeRoot, taskId));
+  let git = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const registrations = await gitWorktrees(gitRepoRoot);
+    git = registrations.find((entry) => samePath(entry.path, expectedPath));
+    if (git?.branch && await stat(expectedPath).catch(() => null)) break;
+    git = null;
+    if (attempt < 4) await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+  }
+  if (!git) return null;
+  const metadataFile = metadataPath(stateDir, taskId);
+  try {
+    const existing = await readMetadata(metadataFile);
+    if (existing?.schema === "worktree-task.v1" && existing.task_id === taskId) return existing;
+  } catch { /* helper timed out before writing metadata */ }
+  const now = new Date().toISOString();
+  const metadata = {
+    schema: "worktree-task.v1",
+    task_id: taskId,
+    title: title || taskId,
+    objective: objective || "",
+    branch: git.branch.replace(/^refs\/heads\//, ""),
+    worktree_path: expectedPath,
+    base_commit: git.head || "",
+    canonical_branch: canonicalBranch,
+    repo_root: gitRepoRoot,
+    owner_session: ownerSession || "",
+    owner_run_id: "",
+    intended_files: intendedFiles,
+    integration_sensitive_files_touched: [],
+    status: "active",
+    created_at: now,
+    updated_at: now,
+    tests_run: null,
+    cache_version_decision: null,
+    cleanup_state: "recovered_after_helper_timeout",
+    provisioning_recovery: "git_worktree_registered_without_helper_metadata",
+  };
+  await mkdir(dirname(metadataFile), { recursive: true });
+  try {
+    await writeFile(metadataFile, JSON.stringify(metadata, null, 2), { encoding: "utf8", flag: "wx" });
+    return metadata;
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    const existing = await readMetadata(metadataFile);
+    if (existing?.schema === "worktree-task.v1" && existing.task_id === taskId) return existing;
+    throw error;
+  }
+}
+
+export async function provisionWorktree({ taskId, title, objective = "", repoRoot, stateDir, canonicalBranch = "main", worktreeRoot, intendedFiles = [], materializePaths = [], ownerSession = "codex" } = {}) {
   if (!taskId || !repoRoot || !stateDir) throw new Error("taskId, repoRoot, and stateDir are required");
   const { stdout: gitRootOutput } = await execFileAsync("git", ["-C", repoRoot, "rev-parse", "--show-toplevel"], { windowsHide: true, maxBuffer: 1024 * 1024 });
   const gitRepoRoot = resolve(gitRootOutput.trim());
@@ -112,10 +253,17 @@ export async function provisionWorktree({ taskId, title, objective = "", repoRoo
   const args = [helperPath(), "--state-dir", stateDir, "start", "--task-id", taskId, "--title", title || taskId, "--objective", objective, "--repo-root", gitRepoRoot, "--canonical-branch", canonicalBranch, "--owner-session", ownerSession];
   if (worktreeRoot) args.push("--worktree-root", worktreeRoot);
   if (intendedFiles.length) args.push("--intended-files", intendedFiles.join(","));
-  try { await execFileAsync(pythonCommand(), args, { windowsHide: true, maxBuffer: 1024 * 1024 }); }
-  catch (error) { throw new Error(`worktree provisioning failed: ${error.stderr || error.message}`); }
+  let metadata;
+  try {
+    await execFileAsync(pythonCommand(), args, { windowsHide: true, maxBuffer: 1024 * 1024 });
+  } catch (error) {
+    if (timeoutEvidence(error)) {
+      metadata = await recoverTimedOutProvision({ taskId, title, objective, gitRepoRoot, stateDir, canonicalBranch, worktreeRoot, intendedFiles, ownerSession });
+    }
+    if (!metadata) throw new Error(`worktree provisioning failed: ${error.stderr || error.message}`);
+  }
   const metadataFile = metadataPath(stateDir, taskId);
-  const metadata = await readMetadata(metadataFile);
+  metadata ||= await readMetadata(metadataFile);
   if (metadata.schema !== "worktree-task.v1" || metadata.task_id !== taskId) throw new Error("worktree metadata contract mismatch");
   if (!samePath(metadata.repo_root, gitRepoRoot) || samePath(metadata.worktree_path, gitRepoRoot)) throw new Error("worktree metadata repository identity mismatch");
   const isolatedCwd = logicalRelative ? join(metadata.worktree_path, logicalRelative) : metadata.worktree_path;
@@ -125,9 +273,13 @@ export async function provisionWorktree({ taskId, title, objective = "", repoRoo
     logical_relative: logicalRelative,
     isolated_cwd: isolatedCwd,
   });
+  const materialized = await materializeWorktreePaths({ paths: materializePaths, sourceRoot: logicalCwd, destinationRoot: isolatedCwd });
+  const finalMetadata = materialized.length
+    ? await updateMetadata(metadataFile, { task_id: taskId, materialized_paths: materialized })
+    : updated;
   const git = (await gitWorktrees(gitRepoRoot)).find((entry) => samePath(entry.path, metadata.worktree_path));
   if (!git) throw new Error("provisioned worktree is not registered with Git");
-  return { ...updated, git, metadata_file: metadataFile, isolated_cwd: isolatedCwd };
+  return { ...finalMetadata, git, metadata_file: metadataFile, isolated_cwd: isolatedCwd };
 }
 
 export async function validateWorktree({ isolatedCwd, repoRoot, taskId, stateDir } = {}) {

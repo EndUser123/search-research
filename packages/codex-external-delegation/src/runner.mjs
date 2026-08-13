@@ -1,9 +1,9 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, statfs, writeFile } from "node:fs/promises";
 import { spawn as defaultSpawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { validatePacket, validateResult, validateResultPayloadSchema } from "./contract.mjs";
 import { buildCommand, spawnSpec } from "./commands.mjs";
-import { classifyFailure } from "./failures.mjs";
+import { classifyFailure, failureDiagnostics } from "./failures.mjs";
 import { extractJsonEventText, extractResultPayload, renderPrompt } from "./prompt.mjs";
 import { hashPacket } from "./packet.mjs";
 import { buildHistoryEntry, historyRootForArtifact, writeHistoryEntry } from "./memory.mjs";
@@ -72,6 +72,132 @@ function identityMismatch(packet, stdout) {
     : null;
 }
 
+function benchmarkIdentity(packet) {
+  const fields = [
+    "task_domain",
+    "benchmark_role",
+    "benchmark_lane",
+    "benchmark_case_id",
+    "benchmark_binding_id",
+    "benchmark_manifest_id",
+    "benchmark_manifest_sha256",
+    "quota_pool",
+    "provider_account",
+    "provider_scope",
+  ];
+  const identity = Object.fromEntries(fields
+    .filter((field) => packet[field] !== undefined && packet[field] !== null && packet[field] !== "")
+    .map((field) => [field, packet[field]]));
+  return Object.keys(identity).length ? identity : null;
+}
+
+function effortReceipt(packet) {
+  const requested = packet.requested_effort ?? packet.thinking ?? null;
+  if (requested === null) {
+    return {
+      requested_effort: null,
+      effective_effort: null,
+      native_effort: null,
+      effort_support: "not_requested",
+      effort_source: "none",
+      clamped: null,
+    };
+  }
+  return {
+    requested_effort: requested,
+    effective_effort: null,
+    native_effort: packet.worker === "pi" ? requested : null,
+    effort_support: packet.worker === "pi" ? "native_flag_requested_effective_unverified" : "method_native_effective_unverified",
+    effort_source: packet.worker === "pi" ? "pi_cli_thinking_flag" : "packet_request",
+    clamped: null,
+  };
+}
+
+function runtimeUsage(stdout) {
+  let last = null;
+  let samples = 0;
+  for (const line of String(stdout).split(/\r?\n/)) {
+    let event;
+    try { event = JSON.parse(line); } catch { continue; }
+    const candidates = [event.message?.usage, event.assistantMessageEvent?.partial?.usage, event.partial?.usage];
+    for (const usage of candidates) {
+      if (!usage || typeof usage !== "object") continue;
+      samples += 1;
+      last = {
+        input: usage.input ?? null,
+        output: usage.output ?? null,
+        cacheRead: usage.cacheRead ?? null,
+        cacheWrite: usage.cacheWrite ?? null,
+        reasoning: usage.reasoning ?? null,
+        totalTokens: usage.totalTokens ?? null,
+        cost: usage.cost ?? null,
+      };
+    }
+  }
+  return { observed: Boolean(last), samples, final: last };
+}
+
+function worktreeFailure(error) {
+  const message = String(error?.stderr || error?.message || error || "");
+  const capacity = /no space left|disk full|insufficient.*space|not enough space/i.test(message);
+  return {
+    failure_class: capacity ? "worktree_capacity" : "worktree_error",
+    failure_diagnostics: {
+      failure_class: capacity ? "worktree_capacity" : "worktree_error",
+      signals: [capacity ? "storage_capacity" : "worktree_provisioning"],
+      provider_error_types: [],
+      retryable: capacity,
+      retry_after_ms: null,
+      internal_retry_count: 0,
+      exit_code: null,
+      recovery_state: capacity ? "free_scratch_then_retry" : "worktree_configuration_fix",
+    },
+  };
+}
+
+async function benchmarkCapacityPreflight(packet) {
+  if (packet.mode !== "write" || packet.isolated_cwd || !packet.worktree_request || !packet.benchmark_manifest_id) return null;
+  const minimumFreeBytes = Number(packet.benchmark_min_free_bytes);
+  if (!Number.isFinite(minimumFreeBytes) || minimumFreeBytes <= 0) return null;
+
+  const requestedRoot = packet.worktree_request.worktreeRoot || packet.cwd;
+  const roots = [...new Set([requestedRoot, packet.cwd].filter(Boolean))];
+  let lastError = null;
+  for (const root of roots) {
+    try {
+      const stats = await statfs(root);
+      const freeBytes = Number(stats.bavail) * Number(stats.bsize);
+      const evidence = {
+        status: freeBytes >= minimumFreeBytes ? "passed" : "blocked",
+        requested_root: requestedRoot,
+        capacity_root: root,
+        free_bytes: freeBytes,
+        minimum_free_bytes: minimumFreeBytes,
+        observed_at: new Date().toISOString(),
+      };
+      if (evidence.status === "passed") return evidence;
+      return {
+        ...evidence,
+        failure_class: "worktree_capacity",
+        recovery_state: "free_scratch_then_retry",
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  return {
+    status: "error",
+    requested_root: requestedRoot,
+    capacity_root: null,
+    minimum_free_bytes: minimumFreeBytes,
+    observed_at: new Date().toISOString(),
+    failure_class: "worktree_capacity_check_failed",
+    recovery_state: "capacity_check_fix",
+    error: lastError?.message || "capacity measurement failed",
+  };
+}
+
 async function killProcessTree(child) {
   if (!child || child.killed) return;
   if (process.platform === "win32" && child.pid) {
@@ -117,6 +243,14 @@ function createResult(packet, attempt, details) {
     model: packet.model,
     invocation_method: packet.invocation_method || (packet.worker === "pi" ? "pi" : packet.worker),
     orchestrator: packet.orchestrator || "codex",
+    benchmark_identity: benchmarkIdentity(packet),
+    effort_receipt: details.effort_receipt,
+    usage_receipt: details.usage_receipt,
+    command_receipt: details.command_receipt,
+    failure_diagnostics: details.failure_diagnostics,
+    benchmark_capacity_preflight: packet.benchmark_capacity_preflight || null,
+    isolated_cwd: packet.isolated_cwd || null,
+    worktree_path: packet.worktree?.worktree_path || null,
     attempt,
     exit_code: details.exitCode,
     timed_out: details.timedOut,
@@ -199,6 +333,13 @@ async function runAttempt(packet, attempt, artifactDir, spawnImpl) {
   const prompt = renderPrompt(packet);
   const command = buildCommand(packet, prompt);
   const launch = spawnSpec(command.command, command.args);
+  const commandReceipt = {
+    command: launch.command,
+    args: launch.args,
+    cwd: command.cwd,
+    stdin: command.stdin === null ? "none" : "pipe",
+    token_cap_flags_present: launch.args.some((arg) => ["--max_tokens", "--max-tokens", "--max_output_tokens", "--max-output-tokens", "--reasoning_tokens", "--reasoning-tokens"].includes(arg)),
+  };
   const child = spawnImpl(launch.command, launch.args, {
     cwd: command.cwd,
     env: workerEnvironment(packet),
@@ -224,7 +365,20 @@ async function runAttempt(packet, attempt, artifactDir, spawnImpl) {
       : collected.exitCode === 0 && payload
         ? "none"
         : classifiedFailure;
-  const details = { ...collected, payload, failureClass, artifactDir };
+  const details = {
+    ...collected,
+    payload,
+    failureClass,
+    artifactDir,
+    benchmark_identity: benchmarkIdentity(packet),
+    effort_receipt: effortReceipt(packet),
+    usage_receipt: runtimeUsage(collected.stdout),
+    command_receipt: commandReceipt,
+    failure_diagnostics: failureDiagnostics({
+      failureClass,
+      ...collected,
+    }),
+  };
 
   await writeFile(join(artifactDir, `attempt-${attempt}.stdout.log`), redactText(collected.stdout), "utf8");
   await writeFile(join(artifactDir, `attempt-${attempt}.stderr.log`), redactText(collected.stderr), "utf8");
@@ -256,6 +410,50 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn,
     return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
   }
 
+  const capacityPreflight = await benchmarkCapacityPreflight(inputPacket);
+  if (capacityPreflight) {
+    inputPacket = { ...inputPacket, benchmark_capacity_preflight: capacityPreflight, packet_hash: undefined };
+    inputPacket.packet_hash = hashPacket(inputPacket);
+    if (capacityPreflight.status !== "passed") {
+      const isCapacityFailure = capacityPreflight.failure_class === "worktree_capacity";
+      const result = {
+        schema_version: "2",
+        task_id: inputPacket.task_id || "unknown",
+        session_id: inputPacket.session_id || null,
+        run_id: inputPacket.run_id || null,
+        request_id: inputPacket.request_id || null,
+        invocation_id: inputPacket.invocation_id || null,
+        status: "blocked",
+        failure_class: capacityPreflight.failure_class,
+        worker: inputPacket.worker || null,
+        provider: inputPacket.requested_provider || null,
+        model: inputPacket.model || null,
+        attempt: 0,
+        exit_code: null,
+        timed_out: false,
+        result_payload: null,
+        benchmark_capacity_preflight: capacityPreflight,
+        message: capacityPreflight.error
+          || `benchmark worktree capacity preflight found ${capacityPreflight.free_bytes} free bytes; ${capacityPreflight.minimum_free_bytes} required`,
+        failure_diagnostics: {
+          failure_class: capacityPreflight.failure_class,
+          signals: [isCapacityFailure ? "storage_capacity" : "capacity_measurement"],
+          provider_error_types: [],
+          retryable: isCapacityFailure,
+          retry_after_ms: null,
+          internal_retry_count: 0,
+          exit_code: null,
+          recovery_state: capacityPreflight.recovery_state,
+          capacity_root: capacityPreflight.capacity_root,
+          free_bytes: capacityPreflight.free_bytes ?? null,
+          minimum_free_bytes: capacityPreflight.minimum_free_bytes,
+        },
+        artifact_dir: resolvedArtifactDir,
+      };
+      return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
+    }
+  }
+
   let worktree = null;
   if (inputPacket.mode === "write" && !inputPacket.isolated_cwd && inputPacket.worktree_request) {
     try {
@@ -272,7 +470,8 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn,
       inputPacket = { ...inputPacket, isolated_cwd: worktree.isolated_cwd, worktree, packet_hash: undefined };
       inputPacket.packet_hash = hashPacket(inputPacket);
     } catch (error) {
-      const result = { schema_version: "2", task_id: inputPacket.task_id || "unknown", session_id: inputPacket.session_id || null, run_id: inputPacket.run_id || null, request_id: inputPacket.request_id || null, invocation_id: inputPacket.invocation_id || null, status: "blocked", failure_class: "worktree_error", worker: inputPacket.worker || null, provider: inputPacket.requested_provider || null, model: inputPacket.model || null, attempt: 0, exit_code: null, timed_out: false, result_payload: null, message: error.message, artifact_dir: resolvedArtifactDir };
+      const worktreeFailureDetails = worktreeFailure(error);
+      const result = { schema_version: "2", task_id: inputPacket.task_id || "unknown", session_id: inputPacket.session_id || null, run_id: inputPacket.run_id || null, request_id: inputPacket.request_id || null, invocation_id: inputPacket.invocation_id || null, status: "blocked", failure_class: worktreeFailureDetails.failure_class, worker: inputPacket.worker || null, provider: inputPacket.requested_provider || null, model: inputPacket.model || null, attempt: 0, exit_code: null, timed_out: false, result_payload: null, message: error.message, failure_diagnostics: worktreeFailureDetails.failure_diagnostics, artifact_dir: resolvedArtifactDir };
       return finalizeResult(inputPacket, result, { startedAt, artifactDir: resolvedArtifactDir, historyDir, memoryWriter });
     }
   }

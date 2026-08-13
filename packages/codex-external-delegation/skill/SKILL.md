@@ -147,3 +147,22 @@ launch. Once a worker starts, failures halt without automatic fallback.
 The bridge records the selected candidate, quota pool, reasons, alternatives,
 and confidence in `packet.model_selection`. If no candidate clears the gates,
 routing blocks with `no_eligible_external_candidate`.
+
+## Benchmark conformance with Grok
+
+When Codex benchmark receipts are compared with Grok, use the shared policy at
+`P:\docs\designs\2026-08-08-common-model-selection-policy-for-codex-and-grok.md`
+as the semantic authority while keeping native runners separate. Normalize
+Grok's legacy `coding` label to the canonical `tool-loop`; it is not a fourth
+capability. Compare only equivalent manifest/checker versions and stable case
+IDs, and aggregate each `(provider, model, invocation_method, orchestrator,
+route, verifier, quota_pool, account, scope)` binding separately.
+
+The common route matrix requires all three capabilities for each enabled method:
+HTTP and PI are the baseline; OpenCode is optional when enabled. Quality runs
+must not use `max_tokens`, `max_output_tokens`, or `reasoning_tokens` as
+provider request caps. Evaluation envelopes and watchdogs are recorded as
+metadata, not silently treated as model controls. A promotion claim needs N>=10
+independent verified successes plus the configured Wilson lower-bound floor,
+complete receipts, and no terminal or unresolved recovery failure. Provider
+pool/recovery tests remain separate from capability/difficulty quality tests.

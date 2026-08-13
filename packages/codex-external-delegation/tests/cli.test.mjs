@@ -14,7 +14,7 @@ test("help lists the complete command surface", () => {
   assert.equal(result.status, 0, result.stderr);
   const output = JSON.parse(result.stdout);
   assert.match(output.usage, /<run\|classify\|route\|batch\|check>/);
-  assert.equal(output.commands.batch, "batch <route|run> --manifest <path> [--dry-run]");
+  assert.equal(output.commands.batch, "batch <route|run> --manifest <path> [--dry-run] [--approval-receipt <path>]");
 });
 
 async function packetFile(packet) {

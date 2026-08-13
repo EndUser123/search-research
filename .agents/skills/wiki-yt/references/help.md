@@ -13,6 +13,7 @@ account identity is `a.hominidae` (= `a.hominidae@gmail.com` on this host).
 | List notebooks + sync status (the default) | `python sync.py` or `python sync.py --status` |
 | Sync one notebook | `python sync.py --notebook <uuid>` |
 | Dry run (no page writes) | `python sync.py --notebook <uuid> --dry-run` |
+| Force semantic rebuild | `python sync.py --notebook <uuid> --force-resynthesis --synth-backend mmx` |
 | Sync with vision enrichment | `python sync.py --notebook <uuid> --enrich-vision` |
 | Re-sync (skips unchanged) | `python sync.py --notebook <uuid>` |
 | Round-trip from bulk-ingest clusters | `python sync.py --from-clusters clusters.json` |
@@ -26,7 +27,10 @@ account identity is `a.hominidae` (= `a.hominidae@gmail.com` on this host).
 | Bulk ingestion (queue worker) | `python scripts/bin/queue_sync.py --worker --worker-id w1` |
 | Enqueue from both accounts | `python scripts/bin/queue_sync.py --enqueue --all-profiles` |
 | Check bulk queue status | `python scripts/bin/queue_sync.py --status` |
-| Retry failed queue items | `python scripts/bin/queue_sync.py --retry-failed` |
+| Retry failed queue items | `python scripts/bin/queue_sync.py --retry-failed` (fails closed if any failed record lacks an exact canonical account profile) |
+| Retry deferred degraded pages | `python scripts/bin/queue_sync.py --retry-deferred --notebook-id <uuid> --synth-backend mmx --timeout-s 1200 --max-attempts 1` (keeps the deferred obligation until true semantic success and bounds this retry to one worker attempt) |
+| Retry one poisoned item | `python scripts/bin/queue_sync.py --retry-poisoned --notebook-id <uuid> --synth-backend dgemma --timeout-s 1200` (force-resynthesis is on by default; timeout kills the owned child tree) |
+| Recover a dead queue worker | `python scripts/bin/queue_sync.py --recover-worker --worker-id <worker-id>` (refuses live PIDs; records an orphaned claim as failed unless `--requeue-orphan` is explicitly authorized) |
 
 ## Common questions
 
@@ -99,10 +103,11 @@ limit and do not run two jobs against the same notebook state concurrently.
 | Clustering produces 1 giant cluster | Too few transcripts or `--min-cluster-size` too high for the input | Normal for tiny notebooks; real notebooks (50+ sources) produce 5-15 clusters. Lower `--min-cluster-size` for small test runs. |
 | Synthesis returns no JSON (parse fail) | LLM wrapped output in prose or hit `stop_reason: length` | Re-run; if persistent, switch `--synth-backend dgemma` or narrow input via `--max-members` |
 | Pages fail `validate_wiki_entry.py` (too thin) | Synthesis produced <40 lines or <3 wikilinks | Inspect staging dir; re-run synthesis with a different backend or raise `--max-members` for richer input |
+| A poisoned retry times out | Backend or child process exceeded the bounded retry window | Treat it as blocked; verify no child processes or staging output remain, preserve the receipt, and do not mark the notebook synced or repeat without a new backend/timeout decision |
 | Manifest has stale `concept_slugs` after manual page deletion | Pages were removed but manifest wasn't updated | `python maintenance.py --fix-stale-slugs --confirm` |
 | Transcripts exist for a notebook that's gone from NotebookLM | Notebook was deleted in the UI | `python maintenance.py --remove-orphaned-transcripts --confirm` (or `--prune-notebook <id> --confirm` to also clear manifest + concept pages) |
 | `qmd` not found / reconcile fails | qmd CLI missing or not on PATH | Sync fails closed before writing a completion manifest; install qmd or fix the reconcile stage, then retry. |
-| Queue worker produces 0 pages for every notebook | Canonical auth failure, direct-client error, or stale queue state | Inspect the worker's canonical probe/error, verify the queue item's exact account identity, and retry only after the account probe passes. |
+| Queue worker produces 0 pages for every notebook | Canonical auth failure, direct-client error, or stale queue state | Inspect the worker's canonical probe/error, verify the queue item's exact account identity, and retry only after the account probe passes. Profileless legacy failures are not retried until ownership is recovered from exact evidence. |
 | Export returns rc=5 for some sources | Individual source fetch failure (status=3, video unavailable) | **Partial, not success** — transcripts are preserved, but sync does not write a manifest or rename the notebook; queue retry is required. |
 | Worker log shows `synced_0_pages` | The sync returned zero valid pages | The worker records a retryable failure; it never records completion for zero pages. |
 | Legacy CLI/CDP login error | A retired auth path was invoked | Do not repair it inside wiki-yt. Use `ensure_account_session()` and inspect the durable YTIS auth result instead. |

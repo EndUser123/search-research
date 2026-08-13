@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,8 @@ def build_frontmatter(c: dict, cluster_info: dict | None) -> str:
     """Emit YAML frontmatter per wiki SCHEMA §2-3."""
     today = date.today().isoformat()
     tags = ["nlm-synced", "reference"]
+    if c.get("synthesis_quality") == "degraded_fallback":
+        tags.append("degraded-fallback")
     # Add topic-ish tag from cluster name if available
     if cluster_info and cluster_info.get("name"):
         tags.append(cluster_info["name"].split("-")[0])
@@ -127,6 +130,7 @@ agent: grok
 host: both
 cognitive_load: 2
 verification: single-source-verified
+provenance_status: {c.get("provenance_status", "source_id_only")}
 sources:
 {sources_block}
 provenance:
@@ -139,6 +143,13 @@ def build_body(c: dict) -> str:
     parts = [f"# {c['title']}", ""]
     parts.append("## Decision context")
     parts.append("")
+    if c.get("synthesis_quality") == "degraded_fallback":
+        parts.append(
+            "**Synthesis quality:** degraded fallback. The available synthesis "
+            "backends were unavailable, so this page preserves bounded transcript "
+            "excerpts and citations without claiming an interpreted summary."
+        )
+        parts.append("")
     defn = c.get("definition", "").strip()
     if defn:
         parts.append(f"**Definition:** {defn}")
@@ -153,11 +164,17 @@ def build_body(c: dict) -> str:
     is_tc = c.get("source_mode") == "transcript-cluster"
     if is_tc:
         n_members = c.get("member_count") or len(c.get("member_sources", []))
+        provenance_note = (
+            "the frontmatter provenance chain carries the full concept → notebook → "
+            "cluster → source URL hops."
+            if c.get("provenance_status") == "complete_4_hop"
+            else "the frontmatter preserves concept → notebook → cluster → source ID provenance; "
+                 "source URLs were not available in the transcript records."
+        )
         parts.append(f"Synthesized from **{n_members} contributing transcripts** in NotebookLM notebook "
                      f"*{c.get('notebook_title', '')}*, clustered into the \"{c.get('cluster_name', '')}\" "
                      f"sub-topic. Each claim below cites the specific transcript (source_id + title) that "
-                     f"supports it; the frontmatter provenance chain carries the full concept → notebook → "
-                     f"cluster → source URL hops.")
+                     f"supports it; {provenance_note}")
     else:
         parts.append(f"Extracted from NotebookLM notebook *{c.get('notebook_title', '')}* via Report + Data-Table artifacts. "
                      f"The notebook contains sources on this topic; the concept page distills the Report + Data-Table "
@@ -285,8 +302,9 @@ def main() -> int:
     args = ap.parse_args()
 
     args.staging.mkdir(parents=True, exist_ok=True)
+    candidate_dir = args.staging / "candidates"
+    candidate_dir.mkdir(parents=True, exist_ok=True)
     concepts_out_dir = args.vault / "concepts"
-    concepts_out_dir.mkdir(parents=True, exist_ok=True)
 
     # Build cluster lookup if provided
     cluster_lookup: dict[str, dict] = {}
@@ -307,6 +325,7 @@ def main() -> int:
     concepts = json.loads(args.input.read_text(encoding="utf-8"))
     written: list[dict] = []
     failed: list[dict] = []
+    validated: list[tuple[Path, Path, dict]] = []
 
     for c in concepts:
         # v3 transcript-cluster records carry their own cluster provenance;
@@ -322,21 +341,47 @@ def main() -> int:
         content = frontmatter + "\n\n" + body
 
         out_path = concepts_out_dir / f"{c['slug']}.md"
-        atomic_write(out_path, content)
+        candidate_path = candidate_dir / f"{c['slug']}.md"
+        atomic_write(candidate_path, content)
 
-        ok, msg = validate(out_path, args.validator)
-        record = {"slug": c["slug"], "path": str(out_path), "disposition": c.get("disposition"),
-                  "title": c["title"]}
+        ok, msg = validate(candidate_path, args.validator)
+        record = {
+            "slug": c["slug"],
+            "path": str(out_path if ok else candidate_path),
+            "disposition": c.get("disposition"),
+            "title": c["title"],
+            "synthesis_quality": c.get("synthesis_quality", "llm_validated"),
+        }
         if ok:
-            written.append(record)
-            print(f"WROTE: {out_path}", file=sys.stderr)
+            validated.append((candidate_path, out_path, record))
+            print(f"VALIDATED: {candidate_path}", file=sys.stderr)
         else:
             failed.append({**record, "validator_msg": msg})
-            print(f"FAILED validation: {out_path}", file=sys.stderr)
+            print(f"FAILED validation: {candidate_path}", file=sys.stderr)
             print(f"  {msg[:300]}", file=sys.stderr)
 
+    if not failed:
+        concepts_out_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            for candidate_path, out_path, record in validated:
+                os.replace(candidate_path, out_path)
+                written.append(record)
+                print(f"WROTE: {out_path}", file=sys.stderr)
+        except OSError as exc:
+            failed.append({
+                "slug": record["slug"],
+                "path": str(candidate_path),
+                "disposition": record.get("disposition"),
+                "title": record["title"],
+                "synthesis_quality": record.get("synthesis_quality", "llm_validated"),
+                "validator_msg": f"page promotion failed: {type(exc).__name__}: {exc}",
+            })
+    if not failed:
+        shutil.rmtree(args.staging, ignore_errors=True)
+
     summary = {"written": written, "failed": failed,
-               "vault": str(concepts_out_dir), "staging": str(args.staging)}
+               "vault": str(concepts_out_dir), "staging": str(args.staging),
+               "promotion": "complete" if not failed else "incomplete"}
     print(json.dumps(summary, indent=2))
     return 0 if not failed else 5
 

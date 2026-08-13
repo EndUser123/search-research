@@ -67,6 +67,39 @@ test("batch run dry-run uses route semantics and returns before worker execution
   assert.equal(output.entries[0].status, "ok");
 });
 
+test("batch run dry-run reports expected preflight blocks without a failure exit", async () => {
+  const artifactRoot = await mkdtemp(join(tmpdir(), "codex-batch-cli-blocked-dry-artifacts-"));
+  const blockedManifest = manifest(artifactRoot);
+  blockedManifest.tasks[0].input.benchmark_preflight = {
+    status: "blocked",
+    failure_class: "quota_or_rate_limit",
+    reasons: ["test-only preflight block"],
+  };
+  const file = await manifestFile(blockedManifest);
+  const result = spawnSync(process.execPath, [cli, "batch", "run", "--manifest", file.path, "--dry-run"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.status, "blocked");
+  assert.equal(output.dry_run, true);
+  assert.equal(output.counts.blocked, 1);
+  assert.equal(output.entries[0].failure_class, "quota_or_rate_limit");
+});
+
+test("benchmark CLI blocks before any provider worker without live approval", async () => {
+  const artifactRoot = await mkdtemp(join(tmpdir(), "codex-batch-cli-approval-artifacts-"));
+  const benchmarkManifest = manifest(artifactRoot);
+  benchmarkManifest.batch_id = "benchmark-cli-approval";
+  benchmarkManifest.tasks[0].input.benchmark_manifest_id = "capability-difficulty-test";
+  benchmarkManifest.tasks[0].input.benchmark_manifest_sha256 = "manifest-hash-test";
+  const file = await manifestFile(benchmarkManifest);
+  const result = spawnSync(process.execPath, [cli, "batch", "run", "--manifest", file.path], { encoding: "utf8" });
+  assert.equal(result.status, 20, result.stderr);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.failure_class, "benchmark_live_approval_required");
+  assert.equal(output.benchmark_gate.status, "blocked");
+  assert.equal(output.counts.blocked, 1);
+});
+
 test("batch CLI rejects an invalid manifest with setup exit code", async () => {
   const file = await manifestFile({ schema_version: "batch.v1" });
   const result = spawnSync(process.execPath, [cli, "batch", "route", "--manifest", file.path], { encoding: "utf8" });

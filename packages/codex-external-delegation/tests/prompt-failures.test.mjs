@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderPrompt, extractJsonEventText, extractResultPayload } from "../src/prompt.mjs";
-import { classifyFailure } from "../src/failures.mjs";
+import { classifyFailure, failureDiagnostics } from "../src/failures.mjs";
 
 const packet = {
   schema_version: "2",
@@ -91,7 +91,27 @@ test("classifies missing commands and provider failures", () => {
   assert.equal(classifyFailure({ exitCode: 1, stdout: "", stderr: "connection refused" }), "provider_unavailable");
   assert.equal(classifyFailure({ exitCode: 0, stdout: "Error: RegionError: requires explicit opt in", stderr: "" }), "provider_unavailable");
   assert.equal(classifyFailure({ exitCode: 0, stdout: "invalid_request_error: failed to deserialize developer role", stderr: "" }), "provider_unavailable");
+  assert.equal(classifyFailure({ exitCode: 1, stdout: "", stderr: "404 model not found: provider discontinued this route" }), "provider_unavailable");
   assert.equal(classifyFailure({ exitCode: 1, stdout: "", stderr: "context window exceeded" }), "context_limit");
+});
+
+test("distinguishes a retired route from a temporary provider failure", () => {
+  const result = failureDiagnostics({
+    failureClass: "provider_unavailable",
+    exitCode: 1,
+    stderr: "404 model not found: provider discontinued this route",
+  });
+  assert.ok(result.signals.includes("route_retired"));
+  assert.equal(result.retryable, false);
+  assert.equal(result.recovery_state, "route_retired");
+
+  const auth = failureDiagnostics({
+    failureClass: "auth_or_quota",
+    exitCode: 1,
+    stderr: "401 unauthorized; quota unavailable",
+  });
+  assert.equal(auth.retryable, false);
+  assert.equal(auth.recovery_state, "account_or_permission_action");
 });
 
 test("classifies protocol and worker failures", () => {

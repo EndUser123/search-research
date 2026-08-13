@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import {
+  DEFAULT_LEASE_SECONDS,
   initReview,
   readRelayStatus,
   sha256,
@@ -51,6 +52,10 @@ async function setup({ maxTurns = null, firstActor = "codex", clock = at(Date.pa
 
 async function writeResult(path, value = { status: "submitted", findings: [], unresolved: [] }) {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function registryBucketPath(result) {
+  return dirname(result.registry_record_path);
 }
 
 test("init creates an isolated immutable snapshot and per-conversation event log", async () => {
@@ -129,7 +134,7 @@ test("filename-only start-or-join creates once and lets the other actor attach",
   assert.equal(attached.handoff.receive_from_partner.actor, "codex");
   assert.match(attached.handoff.receive_from_partner.result_path, /attempt-[^\\/]+\\result\.json$/);
   assert.match(attached.handoff.receive_from_partner.receipt_path, /attempt-[^\\/]+\\receipt\.json$/);
-  const records = (await readdir(join(options.registryRoot, created.input_set_hash)))
+  const records = (await readdir(registryBucketPath(created)))
     .filter((name) => name.endsWith(".json"));
   assert.deepEqual(records, [`${created.review_id}.json`]);
 });
@@ -161,7 +166,7 @@ test("filename-only start-or-join reuses one matching terminal session", async (
   assert.equal(reused.reason, "matching_content_already_terminal");
   assert.equal(reused.review_id, created.review_id);
   assert.equal(reused.artifact_root, created.artifact_root);
-  const records = (await readdir(join(options.registryRoot, created.input_set_hash)))
+  const records = (await readdir(registryBucketPath(created)))
     .filter((name) => name.endsWith(".json"));
   assert.deepEqual(records, [`${created.review_id}.json`]);
 });
@@ -347,7 +352,7 @@ test("concurrent filename-only starts converge to one discoverable session", asy
 
   assert.deepEqual(results.map((result) => result.status).sort(), ["attached", "created"]);
   assert.equal(new Set(results.map((result) => result.review_id)).size, 1);
-  const records = (await readdir(join(options.registryRoot, results[0].input_set_hash)))
+  const records = (await readdir(registryBucketPath(results[0])))
     .filter((name) => name.endsWith(".json"));
   assert.equal(records.length, 1);
 });
@@ -401,7 +406,7 @@ test("malformed discovery metadata fails closed instead of guessing a session", 
   };
   const created = await startOrJoinReview(options);
   await rm(created.registry_record_path);
-  await writeFile(join(options.registryRoot, created.input_set_hash, "corrupt.json"), "{not-json", "utf8");
+  await writeFile(join(registryBucketPath(created), "corrupt.json"), "{not-json", "utf8");
 
   await assert.rejects(
     startOrJoinReview(options),
@@ -430,6 +435,8 @@ test("CLI accepts filename arguments and returns a structured join result", asyn
   const payload = JSON.parse(result.stdout);
 
   assert.equal(payload.status, "created");
+  const manifest = JSON.parse(await readFile(join(payload.artifact_root, "manifest.json"), "utf8"));
+  assert.equal(manifest.lease_seconds, DEFAULT_LEASE_SECONDS);
   assert.equal(payload.tick.status, "act");
   assert.equal(payload.input_set_hash.length, 64);
   assert.ok(payload.registry_record_path.endsWith(`${payload.review_id}.json`));

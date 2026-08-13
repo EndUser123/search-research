@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { validatePacket } from "../src/contract.mjs";
 import {
   expandBatchManifest,
+  redactValue,
   routeBatch,
   runBatch,
   validateBatchManifest,
@@ -14,6 +15,20 @@ import {
 async function artifactRoot() {
   return mkdtemp(join(tmpdir(), "codex-batch-artifacts-"));
 }
+
+test("redaction preserves benchmark telemetry while masking credential fields", () => {
+  const redacted = redactValue({
+    api_key: "secret-value",
+    token: "secret-token",
+    token_cap_flags_present: false,
+    usage_token_count: 17,
+  });
+
+  assert.equal(redacted.api_key, "[REDACTED]");
+  assert.equal(redacted.token, "[REDACTED]");
+  assert.equal(redacted.token_cap_flags_present, false);
+  assert.equal(redacted.usage_token_count, 17);
+});
 
 function inputFor(taskId, overrides = {}) {
   return {
@@ -169,6 +184,140 @@ test("keeps a blocked route visible for that repetition without fallback", async
   assert.equal(calls.length, 2);
 });
 
+test("records benchmark preflight blocks without invoking the worker", async () => {
+  const root = await artifactRoot();
+  let runCalls = 0;
+  const result = await runBatch(manifest(root, [{
+    task_id: "benchmark-preflight-blocked",
+    repetitions: 1,
+    candidate_mode: "explicit",
+    input: {
+      ...explicitInput("benchmark-preflight-blocked", "opencode-go"),
+      benchmark_preflight: {
+        status: "blocked",
+        failure_class: "provider_unavailable",
+        reasons: ["test preflight block"],
+      },
+    },
+  }]), {
+    compile: (input) => fakeCompiler([])(input),
+    validate: validatePacket,
+    run: async () => { runCalls += 1; throw new Error("must not run"); },
+  });
+  assert.equal(result.status, "failed");
+  assert.deepEqual(result.counts, { total: 1, routed: 0, blocked: 1, execution_blocked: 0, worker_blocked: 0, succeeded: 0, failed: 0 });
+  assert.equal(result.entries[0].failure_class, "provider_unavailable");
+  assert.equal(runCalls, 0);
+
+  const plan = result.plans[0];
+  assert.ok(plan.packet_path);
+  assert.ok(plan.result_path);
+  const packet = JSON.parse(await readFile(plan.packet_path, "utf8"));
+  const blocked = JSON.parse(await readFile(plan.result_path, "utf8"));
+  assert.equal(packet.task_id, "batch-test--benchmark-preflight-blocked--r001");
+  assert.equal(blocked.status, "blocked");
+  assert.equal(blocked.failure_class, "provider_unavailable");
+  assert.deepEqual(blocked.contract_errors, ["test preflight block"]);
+});
+
+test("blocks benchmark live execution without a matching parent approval receipt", async () => {
+  const root = await artifactRoot();
+  let runCalls = 0;
+  const result = await runBatch(manifest(root, [{
+    task_id: "benchmark-approval-required",
+    repetitions: 1,
+    candidate_mode: "explicit",
+    input: {
+      ...explicitInput("benchmark-approval-required", "zai"),
+      benchmark_manifest_id: "capability-difficulty-test",
+      benchmark_manifest_sha256: "manifest-hash-test",
+    },
+  }]), {
+    compile: (input) => fakeCompiler([])(input),
+    validate: validatePacket,
+    run: async () => { runCalls += 1; throw new Error("must not run"); },
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "benchmark_live_approval_required");
+  assert.equal(result.benchmark_gate.status, "blocked");
+  assert.equal(result.counts.blocked, 1);
+  assert.equal(result.entries[0].failure_class, "benchmark_live_approval_required");
+  assert.equal(runCalls, 0);
+  const blocked = JSON.parse(await readFile(result.plans[0].result_path, "utf8"));
+  assert.equal(blocked.failure_class, "benchmark_live_approval_required");
+});
+
+test("accepts only an unexpired approval receipt bound to the exact benchmark batch", async () => {
+  const root = await artifactRoot();
+  const now = Date.parse("2026-08-09T12:00:00.000Z");
+  let runCalls = 0;
+  const benchmarkTasks = [{
+    task_id: "benchmark-approved",
+    repetitions: 1,
+    candidate_mode: "explicit",
+    input: {
+      ...explicitInput("benchmark-approved", "zai"),
+      benchmark_manifest_id: "capability-difficulty-test",
+      benchmark_manifest_sha256: "manifest-hash-test",
+    },
+  }];
+  const benchmarkBatch = manifest(root, benchmarkTasks, { batch_id: "benchmark-approved-batch" });
+  const approval = {
+    schema_version: "codex-pi-benchmark-live-approval.v1",
+    status: "approved",
+    authorization_id: "approval-test-1",
+    benchmark_manifest_id: "capability-difficulty-test",
+    manifest_sha256: "manifest-hash-test",
+    batch_id: "wrong-batch",
+    max_calls: 1,
+    scope: "capability-difficulty",
+    orchestrator: "codex",
+    worker: "pi",
+    invocation_method: "pi",
+    fallback_policy: "halt_no_automatic_fallback",
+    approved_at: "2026-08-09T10:00:00.000Z",
+    expires_at: "2026-08-09T11:00:00.000Z",
+  };
+  const rejected = await runBatch(benchmarkBatch, {
+    compile: (input) => fakeCompiler([])(input),
+    validate: validatePacket,
+    benchmarkApproval: approval,
+    clock: () => now,
+    run: async () => { runCalls += 1; throw new Error("must not run"); },
+  });
+  assert.equal(rejected.failure_class, "benchmark_live_approval_required");
+  assert.equal(runCalls, 0);
+
+  const result = await runBatch(benchmarkBatch, {
+    compile: (input) => fakeCompiler([])(input),
+    validate: validatePacket,
+    benchmarkApproval: {
+      ...approval,
+      batch_id: "benchmark-approved-batch",
+      approved_at: "2026-08-09T11:00:00.000Z",
+      expires_at: "2026-08-09T13:00:00.000Z",
+    },
+    clock: () => now,
+    run: async (packet) => {
+      runCalls += 1;
+      return {
+        schema_version: "2",
+        task_id: packet.task_id,
+        status: "ok",
+        failure_class: "none",
+        result_payload: { observations: packet.task_id },
+        attempt: 1,
+        exit_code: 0,
+        timed_out: false,
+        artifact_dir: null,
+      };
+    },
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.counts.succeeded, 1);
+  assert.equal(runCalls, 1);
+});
+
 test("preserves write scope and deferred worktree requirements for execution", async () => {
   const root = await artifactRoot();
   const result = await routeBatch(manifest(root, [{
@@ -239,7 +388,7 @@ test("runs each routed repetition once, respects global/provider limits, and con
     },
   });
   assert.equal(result.status, "failed");
-  assert.deepEqual(result.counts, { total: 4, routed: 4, blocked: 0, succeeded: 3, failed: 1 });
+  assert.deepEqual(result.counts, { total: 4, routed: 4, blocked: 0, execution_blocked: 0, worker_blocked: 0, succeeded: 3, failed: 1 });
   assert.equal(calls.length, 4);
   assert.equal(new Set(calls).size, 4);
   assert.ok(maxActive <= 2);
@@ -249,6 +398,32 @@ test("runs each routed repetition once, respects global/provider limits, and con
   assert.equal(result.entries[3].status, "ok");
   const summaryText = await readFile(result.summary_path, "utf8");
   assert.match(summaryText, /batch-summary/);
+});
+
+test("accounts for worker policy blocks without double-counting route blocks", async () => {
+  const root = await artifactRoot();
+  const result = await runBatch(manifest(root, [
+    { task_id: "worker-blocked", repetitions: 1, candidate_mode: "explicit", input: explicitInput("worker-blocked", "alpha") },
+  ]), {
+    compile: fakeCompiler(),
+    validate: validatePacket,
+    validateResult: () => ({ ok: true, errors: [] }),
+    run: async (packet) => ({
+      schema_version: "2",
+      task_id: packet.task_id,
+      status: "blocked",
+      failure_class: "worker_blocked",
+      result_payload: { status: "blocked", blocked_reason: "policy refusal" },
+      attempt: 1,
+      exit_code: 0,
+      timed_out: false,
+      artifact_dir: null,
+    }),
+  });
+
+  assert.equal(result.status, "failed");
+  assert.deepEqual(result.counts, { total: 1, routed: 1, blocked: 0, execution_blocked: 1, worker_blocked: 1, succeeded: 0, failed: 0 });
+  assert.equal(result.entries[0].failure_class, "worker_blocked");
 });
 
 test("dry-run routes but never invokes the worker", async () => {

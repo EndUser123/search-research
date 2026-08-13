@@ -46,7 +46,7 @@ async function main(argv = process.argv.slice(2)) {
         run: "run --packet <path|-> [--dry-run]",
         classify: "classify --packet <path|->",
         route: "route --input <path|->",
-        batch: "batch <route|run> --manifest <path> [--dry-run]",
+        batch: "batch <route|run> --manifest <path> [--dry-run] [--approval-receipt <path>]",
         check: "check --worker <pi|opencode|all>",
         history: "history [--root <history-directory>]",
       },
@@ -113,9 +113,19 @@ async function main(argv = process.argv.slice(2)) {
       return 30;
     }
     const dryRun = batchCommand === "route" || batchArgs.includes("--dry-run");
+    let benchmarkApproval = null;
+    const approvalPath = option(batchArgs, "--approval-receipt");
+    if (approvalPath) {
+      try {
+        benchmarkApproval = await readPacket(approvalPath);
+      } catch (error) {
+        print({ status: "blocked", failure_class: "invalid_approval_receipt", message: error.message });
+        return 30;
+      }
+    }
     const result = batchCommand === "route"
       ? await routeBatch(manifest)
-      : await runBatch(manifest, { dryRun });
+      : await runBatch(manifest, { dryRun, benchmarkApproval });
     const output = { ...result };
     delete output.plans;
     print(output);

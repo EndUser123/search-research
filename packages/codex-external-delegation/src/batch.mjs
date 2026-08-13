@@ -5,6 +5,7 @@ import { validatePacket as defaultValidatePacket, validateResult as defaultValid
 import { runPacket as defaultRunPacket } from "./runner.mjs";
 
 export const BATCH_SCHEMA_VERSION = "batch.v1";
+export const BENCHMARK_APPROVAL_SCHEMA_VERSION = "codex-pi-benchmark-live-approval.v1";
 
 const MAX_REPETITIONS = 5;
 const MAX_CONCURRENCY = 256;
@@ -128,6 +129,66 @@ export function validateBatchManifest(manifest) {
   return errors;
 }
 
+function benchmarkManifestInfo(manifest) {
+  const inputs = (manifest?.tasks || [])
+    .map((task) => task?.input)
+    .filter((input) => isObject(input) && nonEmptyString(input.benchmark_manifest_id));
+  if (inputs.length === 0) return null;
+  const manifestIds = [...new Set(inputs.map((input) => input.benchmark_manifest_id))];
+  const manifestHashes = [...new Set(inputs.map((input) => input.benchmark_manifest_sha256).filter(nonEmptyString))];
+  return {
+    benchmark_manifest_ids: manifestIds,
+    benchmark_manifest_hashes: manifestHashes,
+    estimated_calls: (manifest.tasks || []).reduce((total, task) => total + (Number.isInteger(task?.repetitions) ? task.repetitions : 0), 0),
+  };
+}
+
+function benchmarkApprovalErrors(manifest, approval, now = Date.now()) {
+  const info = benchmarkManifestInfo(manifest);
+  if (!info) return [];
+  const errors = [];
+  const requireString = (key) => {
+    if (!nonEmptyString(approval?.[key])) errors.push(`benchmark approval ${key} is required`);
+  };
+
+  if (!isObject(approval)) {
+    return ["benchmark live execution requires an approval receipt"];
+  }
+  if (approval.schema_version !== BENCHMARK_APPROVAL_SCHEMA_VERSION) {
+    errors.push(`benchmark approval schema_version must equal ${BENCHMARK_APPROVAL_SCHEMA_VERSION}`);
+  }
+  if (approval.status !== "approved") errors.push("benchmark approval status must be approved");
+  for (const key of ["authorization_id", "benchmark_manifest_id", "manifest_sha256", "batch_id", "scope", "orchestrator", "worker", "invocation_method", "fallback_policy", "approved_at", "expires_at"]) {
+    requireString(key);
+  }
+  if (info.benchmark_manifest_ids.length !== 1 || approval.benchmark_manifest_id !== info.benchmark_manifest_ids[0]) {
+    errors.push("benchmark approval manifest id does not match the batch");
+  }
+  if (info.benchmark_manifest_hashes.length !== 1 || approval.manifest_sha256 !== info.benchmark_manifest_hashes[0]) {
+    errors.push("benchmark approval manifest hash does not match the batch");
+  }
+  if (approval.batch_id !== manifest.batch_id) errors.push("benchmark approval batch id does not match the batch");
+  if (approval.scope !== "capability-difficulty") errors.push("benchmark approval scope must be capability-difficulty");
+  if (approval.orchestrator !== "codex") errors.push("benchmark approval orchestrator must be codex");
+  if (approval.worker !== "pi") errors.push("benchmark approval worker must be pi");
+  if (approval.invocation_method !== "pi") errors.push("benchmark approval invocation_method must be pi");
+  if (approval.fallback_policy !== "halt_no_automatic_fallback") errors.push("benchmark approval fallback policy must disable fallback");
+  if (!Number.isInteger(approval.max_calls) || approval.max_calls < info.estimated_calls) {
+    errors.push(`benchmark approval max_calls must be an integer at least ${info.estimated_calls}`);
+  }
+
+  const approvedAt = Date.parse(approval.approved_at);
+  const expiresAt = Date.parse(approval.expires_at);
+  if (!Number.isFinite(approvedAt)) errors.push("benchmark approval approved_at must be an ISO timestamp");
+  if (!Number.isFinite(expiresAt)) errors.push("benchmark approval expires_at must be an ISO timestamp");
+  if (Number.isFinite(approvedAt) && approvedAt > now) errors.push("benchmark approval is not yet valid");
+  if (Number.isFinite(approvedAt) && Number.isFinite(expiresAt) && expiresAt <= approvedAt) {
+    errors.push("benchmark approval expires_at must be after approved_at");
+  }
+  if (Number.isFinite(expiresAt) && expiresAt <= now) errors.push("benchmark approval has expired");
+  return errors;
+}
+
 function assertValidManifest(manifest) {
   const errors = validateBatchManifest(manifest);
   if (errors.length) {
@@ -188,7 +249,9 @@ function redactString(value) {
 }
 
 export function redactValue(value, key = "") {
-  if (/api[_-]?key|access[_-]?token|token|password|secret|authorization/i.test(key)) return REDACTED;
+  // Do not redact telemetry fields such as token_cap_flags_present merely
+  // because their names contain "token". Credential fields are explicit.
+  if (/^(?:api[_-]?key|access[_-]?token|refresh[_-]?token|token|password|secret|authorization)$/i.test(key)) return REDACTED;
   if (typeof value === "string") return redactString(value);
   if (Array.isArray(value)) return value.map((entry) => redactValue(entry));
   if (isObject(value)) {
@@ -269,6 +332,16 @@ function routeOne(plan, { compilePacket, validatePacket }) {
   if (!validation.ok) {
     return routeFailure(plan, "contract_error", validation.errors, classification, packet);
   }
+  const preflight = plan.input?.benchmark_preflight;
+  if (preflight?.status === "blocked") {
+    return routeFailure(
+      plan,
+      preflight.failure_class || "preflight_blocked",
+      Array.isArray(preflight.reasons) && preflight.reasons.length ? preflight.reasons : ["benchmark_preflight_blocked"],
+      classification,
+      packet,
+    );
+  }
   plan.status = "ok";
   plan.failure_class = "none";
   plan.errors = [];
@@ -303,7 +376,7 @@ async function writeRouteArtifacts(manifest, route, plans) {
   await writeJson(join(batchDir, "manifest.redacted.json"), redactValue(manifest));
   for (const plan of plans) {
     Object.assign(plan, planPaths(plan));
-    if (plan.status === "ok") {
+    if (plan.packet) {
       await writeJson(plan.packet_path, redactValue(plan.packet));
     }
   }
@@ -495,6 +568,7 @@ function summaryEntry(plan, result) {
     attempt: result?.attempt ?? 0,
     elapsed_ms: result?.elapsed_ms ?? 0,
     selection: plan.selection,
+    failure_diagnostics: result?.failure_diagnostics || null,
   };
 }
 
@@ -503,6 +577,7 @@ export async function runBatch(manifest, {
   validate = defaultValidatePacket,
   validateResult = defaultValidateResult,
   run = defaultRunPacket,
+  benchmarkApproval = null,
   clock = () => Date.now(),
   writeArtifacts = true,
   dryRun = false,
@@ -517,6 +592,33 @@ export async function runBatch(manifest, {
   }
   if (dryRun) {
     return { ...route, status: route.status === "ok" ? "dry_run" : route.status, dry_run: true, elapsed_ms: Math.max(0, clock() - started) };
+  }
+
+  const approvalErrors = benchmarkApprovalErrors(manifest, benchmarkApproval, clock());
+  let preExecutionFailureClass = null;
+  if (approvalErrors.length > 0) {
+    preExecutionFailureClass = "benchmark_live_approval_required";
+    for (const plan of route.plans) {
+      if (plan.status === "ok") {
+        routeFailure(plan, preExecutionFailureClass, approvalErrors, plan.classification, plan.packet);
+      }
+    }
+    Object.assign(route, routeEnvelope(manifest, route.plans));
+    if (writeArtifacts) {
+      try {
+        await writeRouteArtifacts(manifest, route, route.plans);
+      } catch (error) {
+        return {
+          ...route,
+          status: "failed",
+          failure_class: "artifact_error",
+          errors: [error.message],
+          dry_run: false,
+          elapsed_ms: Math.max(0, clock() - started),
+          summary_path: null,
+        };
+      }
+    }
   }
 
   const results = await executePlans(route.plans, manifest, run, validateResult, clock);
@@ -540,23 +642,35 @@ export async function runBatch(manifest, {
     }
   }
   const entries = route.plans.map((plan) => summaryEntry(plan, results[plan.index]));
+  const routeBlocked = route.plans.filter((plan) => plan.status === "blocked").length;
+  const executionBlocked = entries.filter((entry, index) => route.plans[index]?.status === "ok" && entry.status === "blocked").length;
+  const workerBlocked = entries.filter((entry, index) => route.plans[index]?.status === "ok" && entry.failure_class === "worker_blocked").length;
   const counts = {
     total: entries.length,
     routed: route.plans.filter((plan) => plan.status === "ok").length,
-    blocked: entries.filter((entry) => entry.status === "blocked").length,
+    blocked: routeBlocked,
+    execution_blocked: executionBlocked,
+    worker_blocked: workerBlocked,
     succeeded: entries.filter((entry) => entry.status === "ok").length,
     failed: entries.filter((entry) => entry.status === "failed").length,
   };
-  const failed = counts.blocked > 0 || counts.failed > 0 || artifactErrors.length > 0;
+  const failed = counts.blocked > 0 || counts.execution_blocked > 0 || counts.failed > 0 || artifactErrors.length > 0;
   const summary = {
     schema_version: BATCH_SCHEMA_VERSION,
     batch_id: manifest.batch_id,
     status: failed ? "failed" : "ok",
-    failure_class: artifactErrors.length > 0 ? "artifact_error" : failed ? "batch_task_failed" : "none",
+    failure_class: artifactErrors.length > 0 ? "artifact_error" : failed ? (preExecutionFailureClass || "batch_task_failed") : "none",
     counts,
     elapsed_ms: Math.max(0, clock() - started),
     entries,
   };
+  if (approvalErrors.length > 0) {
+    summary.benchmark_gate = {
+      status: "blocked",
+      failure_class: preExecutionFailureClass,
+      errors: approvalErrors,
+    };
+  }
   if (artifactErrors.length > 0) summary.artifact_errors = artifactErrors;
   if (writeArtifacts) {
     try {
@@ -581,6 +695,7 @@ export async function runBatch(manifest, {
 
 export function batchExitCode(result) {
   if (result?.failure_class === "invalid_manifest" || result?.failure_class === "artifact_error") return 30;
+  if (result?.dry_run === true) return 0;
   if (result?.status === "ok" || result?.status === "dry_run") return 0;
   return 20;
 }

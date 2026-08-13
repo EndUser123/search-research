@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {
   RelayError,
+  DEFAULT_LEASE_SECONDS,
   heartbeatTurn,
   initReview,
   readRelayStatus,
@@ -38,7 +39,7 @@ Options for init:
   --actors codex,grok             Exactly two actor IDs (default: codex,grok)
   --first-actor <id>              Actor that claims turn 1 (default: first actor)
   --max-turns <n>                 Optional explicit turn fuse (default: unlimited)
-  --lease-seconds <n>             Claim lease duration (default: 120)
+  --lease-seconds <n>             Claim lease duration (default: ${DEFAULT_LEASE_SECONDS})
   --ttl-seconds <n>               Review expiry (default: 604800)
   --orphan-grace-seconds <n>      Grace for a claim directory before orphaning (default: 30)
 
@@ -48,7 +49,7 @@ Options for start-or-join:
   --review-id <id>               Attach/create a specific review when supplied
   --first-actor <id>             Actor that claims turn 1 (default: current actor)
   --max-turns <n>                Optional explicit turn fuse (default: unlimited)
-  --lease-seconds <n>            Claim lease duration (default: 120)
+  --lease-seconds <n>            Claim lease duration (default: ${DEFAULT_LEASE_SECONDS})
   --ttl-seconds <n>              Review expiry (default: 604800)
   --orphan-grace-seconds <n>     Grace for a claim directory before orphaning (default: 30)
 
@@ -58,7 +59,7 @@ Options for watch:
   --review-id <id>               Attach/create a specific review when supplied
   --first-actor <id>             Actor that claims turn 1 (default: current actor)
   --max-turns <n>                Optional explicit turn fuse (default: unlimited)
-  --lease-seconds <n>            Claim lease duration (default: 120)
+  --lease-seconds <n>            Claim lease duration (default: ${DEFAULT_LEASE_SECONDS})
   --ttl-seconds <n>              Review expiry (default: 604800)
   --orphan-grace-seconds <n>     Grace for a claim directory before orphaning (default: 30)
 
@@ -120,7 +121,7 @@ async function execute(options) {
         actors,
         firstActor: options.first_actor || actors[0],
         maxTurns: integer(options, "max_turns", null),
-        leaseSeconds: integer(options, "lease_seconds", 120),
+        leaseSeconds: integer(options, "lease_seconds", DEFAULT_LEASE_SECONDS),
         ttlSeconds: integer(options, "ttl_seconds", 7 * 24 * 60 * 60),
         orphanGraceSeconds: integer(options, "orphan_grace_seconds", 30),
       });
@@ -134,7 +135,7 @@ async function execute(options) {
         reviewId: options.review_id,
         firstActor: options.first_actor,
         maxTurns: integer(options, "max_turns", null),
-        leaseSeconds: integer(options, "lease_seconds", 120),
+        leaseSeconds: integer(options, "lease_seconds", DEFAULT_LEASE_SECONDS),
         ttlSeconds: integer(options, "ttl_seconds", 7 * 24 * 60 * 60),
         orphanGraceSeconds: integer(options, "orphan_grace_seconds", 30),
       });
@@ -147,7 +148,7 @@ async function execute(options) {
         reviewId: options.review_id,
         firstActor: options.first_actor,
         maxTurns: integer(options, "max_turns", null),
-        leaseSeconds: integer(options, "lease_seconds", 120),
+        leaseSeconds: integer(options, "lease_seconds", DEFAULT_LEASE_SECONDS),
         ttlSeconds: integer(options, "ttl_seconds", 7 * 24 * 60 * 60),
         orphanGraceSeconds: integer(options, "orphan_grace_seconds", 30),
       });

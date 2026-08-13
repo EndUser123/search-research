@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { classifyTask } from "./policy.mjs";
 import { selectModel } from "./model-selector.mjs";
 
+const DEFAULT_BENCHMARK_MIN_FREE_BYTES = 1024 * 1024 * 1024;
+
 function canonical(value) {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value && typeof value === "object") {
@@ -28,6 +30,7 @@ export function compilePacket(input = {}) {
   const classification = input.classification || classifyTask(input);
   const invocationId = input.invocation_id || randomUUID();
   const effectiveMode = inferMode(input);
+  const requestedEffort = input.requested_effort ?? input.effort ?? input.thinking ?? null;
   const hasExplicitModel = Boolean(input.model || input.requested_model);
   const selection = !hasExplicitModel && classification.lane === "pi"
     ? selectModel({ ...input, classification })
@@ -48,6 +51,20 @@ export function compilePacket(input = {}) {
     selected_lane: classification.lane,
     task_type: input.task_type || classification.role || null,
     task_class: input.task_class || classification.lane || null,
+    task_domain: input.task_domain || null,
+    benchmark_role: input.benchmark_role || null,
+    benchmark_lane: input.benchmark_lane || null,
+    benchmark_case_id: input.benchmark_case_id || null,
+    benchmark_binding_id: input.benchmark_binding_id || null,
+    benchmark_manifest_id: input.benchmark_manifest_id || null,
+    benchmark_manifest_sha256: input.benchmark_manifest_sha256 || null,
+    benchmark_min_free_bytes: input.benchmark_min_free_bytes
+      ?? (input.benchmark_manifest_id ? DEFAULT_BENCHMARK_MIN_FREE_BYTES : null),
+    quota_pool: input.quota_pool || null,
+    provider_account: input.provider_account || null,
+    provider_scope: input.provider_scope || null,
+    thinking: input.thinking ?? null,
+    requested_effort: requestedEffort,
     requested_worker: selectedWorker,
     requested_provider: selectedProvider,
     requested_model: selectedModel,
@@ -71,7 +88,8 @@ export function compilePacket(input = {}) {
     containment: input.containment || (effectiveMode === "write" ? "isolated_worktree_required" : "read_only"),
     isolated_cwd: input.isolated_cwd || null,
     worktree_request: input.worktree_request || null,
-    worktree_cleanup: input.worktree_cleanup || "preserve",
+    worktree_cleanup: input.worktree_cleanup
+      ?? (input.benchmark_manifest_id ? "clean_if_empty" : "preserve"),
     verification: { commands: input.verification_commands || input.verification?.commands || [] },
     evidence_requirements: input.evidence_requirements || ["raw_stdout", "raw_stderr", "result_json"],
     failure_policy: input.failure_policy || "halt_no_automatic_fallback",

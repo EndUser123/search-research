@@ -106,6 +106,17 @@ test("keeps read-only tools while enabling thinking for reasoning tasks", () => 
     thinking: "high",
   }, "do the task");
   assert.equal(explicit.args[explicit.args.indexOf("--thinking") + 1], "high");
+
+  const benchmark = buildCommand({
+    ...basePacket,
+    worker: "pi",
+    model: "nvidia/nemotron-3-ultra-550b-a55b",
+    requested_provider: "nvidia-nim",
+    task_type: "BOUNDED_EXECUTION",
+    task_class: "pi",
+    requested_effort: "high",
+  }, "do the task");
+  assert.equal(benchmark.args[benchmark.args.indexOf("--thinking") + 1], "high");
 });
 
 test("wraps Windows command files through cmd.exe without enabling a shell", () => {
@@ -144,8 +155,133 @@ test("normalizes a successful worker response and preserves artifacts", async ()
   assert.equal(result.status, "ok");
   assert.equal(result.result_payload.value, 42);
   assert.equal(result.failure_class, "none");
+  assert.equal(result.effort_receipt.effort_support, "not_requested");
+  assert.equal(result.command_receipt.token_cap_flags_present, false);
   assert.match(await readFile(join(artifactDir, "stdout.log"), "utf8"), /result_payload/);
   assert.match(await readFile(join(artifactDir, "result.json"), "utf8"), /"status": "ok"/);
+});
+
+test("records benchmark identity, requested effort, usage, and command evidence", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-benchmark-receipt-"));
+  const result = await runPacket({
+    ...basePacket,
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "zai",
+    model: "glm-5.2",
+    invocation_method: "pi",
+    task_domain: "reasoning",
+    benchmark_role: "reasoning",
+    benchmark_lane: "reasoning",
+    benchmark_case_id: "reasoning.standard.001",
+    benchmark_binding_id: "zai/glm-5.2",
+    benchmark_manifest_id: "manifest-1",
+    benchmark_manifest_sha256: "hash-1",
+    quota_pool: "zai",
+    provider_account: "account-1",
+    provider_scope: "shared_subscription",
+    requested_effort: "high",
+  }, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '{"type":"message_start","message":{"provider":"zai","model":"glm-5.2","usage":{"input":12,"output":8,"reasoning":4,"totalTokens":20}}}\n<external-delegation-result>{"status":"ok","result_payload":{"value":42}}</external-delegation-result>',
+    }),
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.benchmark_identity.benchmark_case_id, "reasoning.standard.001");
+  assert.equal(result.effort_receipt.requested_effort, "high");
+  assert.equal(result.effort_receipt.native_effort, "high");
+  assert.equal(result.effort_receipt.effective_effort, null);
+  assert.equal(result.usage_receipt.observed, true);
+  assert.equal(result.usage_receipt.final.reasoning, 4);
+  assert.equal(result.command_receipt.token_cap_flags_present, false);
+  assert.match(await readFile(join(artifactDir, "attempt-1.json"), "utf8"), /token_cap_flags_present/);
+});
+
+test("records bounded recovery diagnostics for quota and rate-limit failures", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-recovery-diagnostics-"));
+  const result = await runPacket({
+    ...basePacket,
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "minimax",
+    model: "MiniMax-M3",
+    invocation_method: "pi",
+  }, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: [
+        '{"type":"auto_retry_start","attempt":1,"delayMs":2000}',
+        '{"message":{"error":{"type":"rate_limit_error"}}}',
+        "429 rate limit: token plan usage limit reached; retry after 5 hours; request_id=req-123",
+      ].join("\n"),
+    }),
+  });
+
+  assert.equal(result.failure_class, "auth_or_quota");
+  assert.deepEqual(result.failure_diagnostics.signals, ["quota_exhausted", "rate_limit"]);
+  assert.deepEqual(result.failure_diagnostics.provider_error_types, ["rate_limit_error"]);
+  assert.equal(result.failure_diagnostics.retryable, true);
+  assert.equal(result.failure_diagnostics.retry_after_ms, 5 * 60 * 60 * 1000);
+  assert.equal(result.failure_diagnostics.internal_retry_count, 1);
+  assert.equal(result.failure_diagnostics.recovery_state, "defer_until_provider_reset_or_capacity");
+});
+
+test("blocks benchmark worktree provisioning when the scratch-capacity guard is not met", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-capacity-preflight-"));
+  let spawnCalls = 0;
+  const minimumFreeBytes = Number.MAX_SAFE_INTEGER;
+  const result = await runPacket({
+    ...basePacket,
+    task_id: "benchmark-capacity-preflight",
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "zai",
+    model: "glm-5.2",
+    invocation_method: "pi",
+    mode: "write",
+    write_scope: ["src/example.mjs"],
+    benchmark_manifest_id: "capability-difficulty-test",
+    benchmark_min_free_bytes: minimumFreeBytes,
+    worktree_request: { worktreeRoot: artifactDir, intendedFiles: ["src/example.mjs"] },
+  }, {
+    artifactDir,
+    spawnImpl: (...args) => {
+      spawnCalls += 1;
+      return fakeSpawn({})(...args);
+    },
+  });
+
+  assert.equal(result.status, "blocked");
+  assert.equal(result.failure_class, "worktree_capacity");
+  assert.equal(result.benchmark_capacity_preflight.status, "blocked");
+  assert.ok(result.benchmark_capacity_preflight.free_bytes < minimumFreeBytes);
+  assert.equal(result.failure_diagnostics.retryable, true);
+  assert.equal(result.failure_diagnostics.recovery_state, "free_scratch_then_retry");
+  assert.equal(spawnCalls, 0);
+});
+
+test("preserves isolated worktree identity in the result receipt", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-worktree-receipt-"));
+  const result = await runPacket({
+    ...basePacket,
+    worker: "pi",
+    requested_worker: "pi",
+    requested_provider: "minimax",
+    model: "MiniMax-M3",
+    invocation_method: "pi",
+    isolated_cwd: "P:/tmp/codex-pi-worktree",
+    worktree: { worktree_path: "P:/tmp/codex-pi-worktree" },
+  }, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '{"type":"message_start","message":{"provider":"minimax","model":"MiniMax-M3"}}\n<external-delegation-result>{"status":"ok","result_payload":{"value":42}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.isolated_cwd, "P:/tmp/codex-pi-worktree");
+  assert.equal(result.worktree_path, "P:/tmp/codex-pi-worktree");
 });
 
 test("uses the final valid marker when the worker echoes a placeholder marker", async () => {

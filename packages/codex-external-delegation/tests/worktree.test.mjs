@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathsWithinScope, preserveWorktree, validateWorktree } from "../src/worktree.mjs";
+import { materializeWorktreePaths, pathsWithinScope, preserveWorktree, validateWorktree } from "../src/worktree.mjs";
 
 test("identifies changed paths outside the declared write scope", () => {
   assert.deepEqual(
@@ -22,6 +22,32 @@ test("treats dot scope as the logical cwd while retaining parent escapes", () =>
 test("fails closed when worktree identity is incomplete", async () => {
   const result = await validateWorktree({ isolatedCwd: "P:/tmp/worktree" });
   assert.deepEqual(result, { ok: false, reason: "missing_worktree_identity" });
+});
+
+test("materializes benchmark-owned inputs inside the isolated cwd", async () => {
+  const root = await mkdtemp(join(tmpdir(), "codex-worktree-materialize-"));
+  const sourceRoot = join(root, "source");
+  const destinationRoot = join(root, "destination");
+  await mkdir(join(sourceRoot, "fixtures", "case"), { recursive: true });
+  await writeFile(join(sourceRoot, "fixtures", "case", "input.mjs"), "export const value = 1;\n", "utf8");
+
+  const materialized = await materializeWorktreePaths({
+    sourceRoot,
+    destinationRoot,
+    paths: [{ source: "fixtures/case", destination: "benchmarks/case" }],
+  });
+
+  assert.deepEqual(materialized, [{ source: "fixtures/case", destination: "benchmarks/case" }]);
+  assert.equal(await readFile(join(destinationRoot, "benchmarks", "case", "input.mjs"), "utf8"), "export const value = 1;\n");
+  await materializeWorktreePaths({
+    sourceRoot,
+    destinationRoot,
+    paths: [{ source: "fixtures/case", destination: "benchmarks/case" }],
+  });
+  await assert.rejects(
+    () => materializeWorktreePaths({ sourceRoot, destinationRoot, paths: [{ source: "fixtures/case", destination: "../escape" }] }),
+    /destination escapes its root/,
+  );
 });
 
 test("concurrent lifecycle metadata updates use isolated staging files", async () => {

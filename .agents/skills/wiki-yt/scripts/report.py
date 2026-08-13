@@ -40,6 +40,7 @@ WIKI_VAULT = Path("P:/.data/wiki")
 TRANSCRIPTS_DIR = WIKI_VAULT / "sources" / "transcripts"
 CONCEPTS_DIR = WIKI_VAULT / "concepts"
 SYNC_MANIFEST = WIKI_VAULT / "_state" / "nlm-sync-manifest.json"
+SOURCE_ID_RE = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 
 
 def run(cmd: list[str], timeout: int = 120) -> tuple[int, str, str]:
@@ -92,6 +93,28 @@ def notebook_title(nb_id: str, profile: str) -> str:
     return data.get("title", nb_id) or nb_id
 
 
+def extract_cited_source_ids(text: str) -> set[str]:
+    """Extract source IDs from legacy and transcript-cluster citations."""
+    cited_ids = set(
+        re.findall(rf"NotebookLM source ({SOURCE_ID_RE})", text, flags=re.IGNORECASE)
+    )
+    cited_ids.update(
+        re.findall(
+            rf"^\s*- Source:.*?\(`?({SOURCE_ID_RE})`?\)\s*$",
+            text,
+            flags=re.IGNORECASE | re.MULTILINE,
+        )
+    )
+    cited_ids.update(
+        re.findall(
+            rf"^\s*- Source:\s*`({SOURCE_ID_RE})`\s*$",
+            text,
+            flags=re.IGNORECASE | re.MULTILINE,
+        )
+    )
+    return set(cited_ids)
+
+
 # --- metric collection ---------------------------------------------------
 
 def collect_metrics(nb_id: str, profile: str, sync_result: dict | None = None) -> dict:
@@ -128,7 +151,7 @@ def collect_metrics(nb_id: str, profile: str, sync_result: dict | None = None) -
         t = p.read_text(encoding="utf-8")
         title_m = re.search(r'title:\s*"([^"]+)"', t)
         title = title_m.group(1) if title_m else slug
-        members = set(re.findall(r'NotebookLM source ([a-f0-9-]{36})', t))
+        members = extract_cited_source_ids(t)
         cited_ids.update(members)
         n_claims = t.count("- **Claim:**")
         cluster_data.append({

@@ -101,13 +101,18 @@ def _call_api(messages: list[dict], max_tokens: int = 600) -> str:
     req.add_header("Accept", "application/json")
     with urllib.request.urlopen(req, timeout=60) as resp:
         body = json.loads(resp.read().decode("utf-8"))
-        content = body["choices"][0]["message"]["content"]
+        choice = body["choices"][0]
+        if choice.get("finish_reason") == "length":
+            raise ValueError(
+                f"Output truncated at max_tokens. Usage: {body.get('usage', {})}"
+            )
+        content = choice["message"]["content"]
         if not content:
             raise ValueError(f"Empty content. Usage: {body.get('usage', {})}")
         return content
 
 
-def read_single(file_path: str, prompt: str | None = None) -> dict:
+def read_single(file_path: str, prompt: str | None = None, max_tokens: int = 600) -> dict:
     """Single-pass read. Fast (~1s). Good for breadth scanning."""
     content = Path(file_path).read_text(encoding="utf-8", errors="replace")
     user_prompt = prompt or DEFAULT_PROMPT
@@ -116,7 +121,7 @@ def read_single(file_path: str, prompt: str | None = None) -> dict:
         {"role": "system", "content": "You are a helpful assistant that reads files and summarizes them accurately."},
         {"role": "user", "content": f"{user_prompt}\n\n--- FILE CONTENT ---\n{content}"},
     ]
-    summary = _call_api(messages)
+    summary = _call_api(messages, max_tokens=max_tokens)
     elapsed = time.time() - start
     return {"summary": summary, "elapsed": elapsed, "mode": "single", "calls": 1}
 
@@ -319,11 +324,31 @@ def main():
     parser.add_argument("--batch", action="store_true", help="Batch multiple files in one call (files, directory, or glob pattern)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--prompt", default=None, help="Custom prompt")
+    parser.add_argument(
+        "--prompt-file",
+        type=Path,
+        default=None,
+        help="Read a custom prompt from a file (avoids Windows command-line limits)",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=600,
+        help="Maximum output tokens for single-file mode (default: 600)",
+    )
     parser.add_argument("--batch-size", type=int, default=20, help="Max files per API call (batch mode)")
     parser.add_argument("--pattern", default="*.md", help="Glob pattern for directory mode (default: *.md; use SKILL.md for skill trees)")
     args = parser.parse_args()
 
     try:
+        if args.max_tokens <= 0:
+            parser.error("--max-tokens must be positive")
+        if args.prompt and args.prompt_file:
+            parser.error("--prompt and --prompt-file are mutually exclusive")
+        custom_prompt = args.prompt
+        if args.prompt_file:
+            custom_prompt = args.prompt_file.read_text(encoding="utf-8")
+
         if args.batch:
             # Resolve files from: (a) multiple explicit paths, (b) a directory, (c) a glob.
             files = []
@@ -347,7 +372,7 @@ def main():
                 sys.exit(1)
 
             print(f"Batching {len(files)} files (batch_size={args.batch_size})...", file=sys.stderr)
-            result = read_batch(files, prompt=args.prompt, batch_size=args.batch_size)
+            result = read_batch(files, prompt=custom_prompt, batch_size=args.batch_size)
 
             if args.json:
                 print(json.dumps(result, indent=2))
@@ -365,7 +390,9 @@ def main():
                 print(f"\n--- {result['mode']} mode: {result['elapsed']:.1f}s, {result['calls']} calls ---", file=sys.stderr)
 
         else:
-            result = read_single(args.paths[0], prompt=args.prompt)
+            result = read_single(
+                args.paths[0], prompt=custom_prompt, max_tokens=args.max_tokens
+            )
             if args.json:
                 print(json.dumps(result, indent=2))
             else:

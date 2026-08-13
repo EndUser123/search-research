@@ -8,6 +8,7 @@ structured output for /maintain to display.
 
 Check types:
   - github_issue: checks if a GitHub issue/PR is closed or merged
+  - date: checks if a trigger date has been reached
 
 Usage:
     python scheduled_checks.py              # run due checks, print results
@@ -94,8 +95,26 @@ def check_github_issue(args):
         return {"resolved": False, "error": "gh returned invalid JSON"}
 
 
+def check_date(args):
+    """Check if a trigger date has been reached."""
+    trigger = args.get("trigger_date", "")
+    if not trigger:
+        return {"resolved": False, "error": "No trigger_date specified"}
+    today = date.today().isoformat()
+    if today >= trigger:
+        return {
+            "resolved": True,
+            "detail": f"Trigger date {trigger} reached (today: {today})",
+        }
+    return {
+        "resolved": False,
+        "detail": f"Trigger date {trigger} not yet reached (today: {today})",
+    }
+
+
 CHECK_HANDLERS = {
     "github_issue": check_github_issue,
+    "date": check_date,
 }
 
 

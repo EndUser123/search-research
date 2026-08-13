@@ -205,6 +205,11 @@ def _export_notebook(notebook_id: str, profile: str, out_dir: Path,
     out_dir.mkdir(parents=True, exist_ok=True)
     exported = skipped = failed = 0
     from_cache_count = 0
+    cache_hit_count = 0
+    cache_miss_count = 0
+    cache_unresolved_count = 0
+    feed_forward_success_count = 0
+    feed_forward_failure_count = 0
     errors: list[str] = []
 
     # Build yt-is title bridge once for forward-sync (skip NLM for cached transcripts)
@@ -244,11 +249,17 @@ def _export_notebook(notebook_id: str, profile: str, out_dir: Path,
                 content, cache_vid = fetch_from_yt_is_cache(src, _forward_sync_bridge)
                 if content:
                     from_cache_count += 1
+                    cache_hit_count += 1
                     _from_cache = True
                     if i % 25 == 0 or i <= 3:
                         log(f"    [cache] hit video_id={cache_vid} ({len(content)} chars)")
+                else:
+                    cache_miss_count += 1
             except Exception:
+                cache_unresolved_count += 1
                 pass  # fail-through to NLM
+        else:
+            cache_unresolved_count += 1
 
         if not content:
             content, err = fetch_content(sid, profile, notebook_id, client=client)
@@ -283,8 +294,14 @@ def _export_notebook(notebook_id: str, profile: str, out_dir: Path,
                         bind_verified=True,
                     )
                     fed_to_cache = True
+                    feed_forward_success_count += 1
+                else:
+                    feed_forward_failure_count += 1
             except Exception:
+                feed_forward_failure_count += 1
                 pass  # feed-forward is best-effort; never block the pipeline
+        else:
+            feed_forward_failure_count += 1
 
         exported += 1
         if fed_to_cache and (i <= 3 or i % 25 == 0):
@@ -301,6 +318,11 @@ def _export_notebook(notebook_id: str, profile: str, out_dir: Path,
         "skipped": skipped,
         "failed": failed,
         "from_cache_count": from_cache_count,
+        "cache_hit_count": cache_hit_count,
+        "cache_miss_count": cache_miss_count,
+        "cache_unresolved_count": cache_unresolved_count,
+        "feed_forward_success_count": feed_forward_success_count,
+        "feed_forward_failure_count": feed_forward_failure_count,
         "transcripts_dir": str(out_dir),
         "errors": errors[:20],
     }

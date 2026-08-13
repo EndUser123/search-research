@@ -14,6 +14,7 @@ const THINKING_TASK_TYPES = new Set(["reasoning", "planning", "debugging", "crit
 
 function thinkingLevel(packet) {
   if (packet.thinking !== undefined && packet.thinking !== null) return packet.thinking;
+  if (packet.requested_effort !== undefined && packet.requested_effort !== null) return packet.requested_effort;
   const taskHints = [packet.task_type, packet.task_class, packet.role]
     .map((value) => String(value || "").toLowerCase());
   return taskHints.some((value) => THINKING_TASK_TYPES.has(value)) ? "low" : "off";
@@ -51,7 +52,7 @@ export function buildCommand(packet, prompt, { platform = process.platform } = {
       // commands belong to the parent; enabling bash here would let a worker
       // mutate arbitrary paths or invoke network-capable tools outside the
       // worktree before post-run scope checks can observe the result.
-      args.push("--thinking", packet.thinking || "low", "--tools", "read,grep,find,ls,edit,write");
+      args.push("--thinking", packet.thinking || packet.requested_effort || "low", "--tools", "read,grep,find,ls,edit,write");
     }
   } else if (packet.worker === "opencode") {
     const model = !packet.requested_provider || packet.model.startsWith(`${packet.requested_provider}/`)

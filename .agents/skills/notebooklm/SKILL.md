@@ -9,6 +9,18 @@ domain: knowledge
 
 Complete programmatic access to Google NotebookLM—including capabilities not exposed in the web UI. Create notebooks, add sources (URLs, YouTube, PDFs, audio, video, images), chat with content, generate all artifact types, and download results in multiple formats.
 
+## Current runtime override (verified 2026-08-11)
+
+This workspace uses the unified `notebooklm-mcp-cli` package, currently
+`0.9.10`, which provides the `nlm` CLI and `notebooklm-mcp` server. Use the
+managed current guide at `C:\Users\brsth\.agents\skills\nlm-skill\SKILL.md`
+for the active CLI/MCP surface. The configured Codex server is named
+`gemini-notebook-mcp`.
+
+The installation and command examples below are retained as legacy
+`notebooklm-py` reference material. Do not install `notebooklm-py` or use its
+`notebooklm ...` commands for the configured MCP; use `nlm ...` instead.
+
 ## Installation
 
 **From PyPI (Recommended):**

@@ -13,6 +13,9 @@ Usage:
   # Audit (read-only, safe) — report all mismatches
   python maintenance.py --audit --account-profile a.hominidae
 
+  # Offline audit — inspect local state without querying NotebookLM
+  python maintenance.py --audit --offline
+
   # Fix stale manifest concept_slugs (pages deleted but slugs remain)
   python maintenance.py --fix-stale-slugs --confirm
 
@@ -31,12 +34,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import fasteners
 import json
 import os
 import shutil
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from ytis_nlm import ensure_account_session, list_notebooks as list_canonical_notebooks
@@ -72,11 +77,29 @@ def load_manifest() -> dict:
     return {"notebooks": {}}
 
 
-def save_manifest(m: dict) -> None:
+@contextmanager
+def _manifest_lock():
+    """Serialize manifest repairs with sync.py's per-file lock."""
     SYNC_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = SYNC_MANIFEST.with_name(SYNC_MANIFEST.name + ".lock")
+    with fasteners.InterProcessLock(str(lock_path)):
+        yield
+
+
+def _write_manifest_locked(m: dict) -> None:
     tmp = SYNC_MANIFEST.with_suffix(".tmp")
     tmp.write_text(json.dumps(m, ensure_ascii=False, indent=2), encoding="utf-8")
     os.replace(tmp, SYNC_MANIFEST)
+
+
+def _update_manifest(mutator) -> object:
+    """Apply one maintenance mutation to the latest manifest under lock."""
+    with _manifest_lock():
+        manifest = load_manifest()
+        result = mutator(manifest)
+        if result:
+            _write_manifest_locked(manifest)
+        return result
 
 
 def list_notebooks(profile: str) -> set[str] | None:
@@ -131,11 +154,14 @@ def fmt_bytes(n: int) -> str:
 
 # --- audits --------------------------------------------------------------
 
-def audit(profile: str) -> dict:
+def audit(profile: str, *, offline: bool = False) -> dict:
     """Run all audit checks; return a structured report."""
     manifest = load_manifest()
-    live_notebooks = list_notebooks(profile)
+    live_notebooks = None if offline else list_notebooks(profile)
     report = {
+        "live_inventory_status": "skipped" if offline else (
+            "available" if live_notebooks is not None else "unavailable"
+        ),
         "live_notebooks_available": live_notebooks is not None,
         "live_notebook_count": len(live_notebooks) if live_notebooks is not None else None,
         "tracked_notebook_count": len(manifest.get("notebooks", {})),
@@ -177,7 +203,9 @@ def audit(profile: str) -> dict:
 
 def print_audit(report: dict) -> None:
     print("\n=== wiki-yt audit ===\n")
-    if report.get("live_notebooks_available"):
+    if report.get("live_inventory_status") == "skipped":
+        print("Live notebooks in NotebookLM: SKIPPED (--offline; no orphan decisions made)")
+    elif report.get("live_notebooks_available"):
         print(f"Live notebooks in NotebookLM: {report['live_notebook_count']}")
     else:
         print("Live notebooks in NotebookLM: UNAVAILABLE (no orphan decisions made)")
@@ -226,26 +254,30 @@ def manifest_title(nb_id: str) -> str:
 
 def fix_stale_slugs(confirm: bool) -> int:
     """Clear manifest concept_slugs whose pages don't exist on disk."""
-    manifest = load_manifest()
-    cleared = 0
-    for nb_id, entry in manifest.get("notebooks", {}).items():
-        kept = []
-        for slug in entry.get("concept_slugs", []):
-            page = CONCEPTS_DIR / f"{slug}.md"
-            if page.exists():
-                kept.append(slug)
-            else:
-                cleared += 1
-                log(f"  clear stale slug: {nb_id[:12]}  {slug}")
-        entry["concept_slugs"] = kept
-    if cleared and confirm:
-        save_manifest(manifest)
-        log(f"Cleared {cleared} stale slug(s) from manifest.")
-    elif cleared:
-        log(f"DRY RUN: would clear {cleared} stale slug(s). Re-run with --confirm to apply.")
+    def clear_stale(manifest, *, report=False):
+        cleared = 0
+        for nb_id, entry in manifest.get("notebooks", {}).items():
+            kept = []
+            for slug in entry.get("concept_slugs", []):
+                page = CONCEPTS_DIR / f"{slug}.md"
+                if page.exists():
+                    kept.append(slug)
+                else:
+                    cleared += 1
+                    if report:
+                        log(f"  clear stale slug: {nb_id[:12]}  {slug}")
+            entry["concept_slugs"] = kept
+        return cleared
+
+    preview_count = clear_stale(load_manifest(), report=True)
+    if preview_count and confirm:
+        applied = _update_manifest(lambda current: clear_stale(current))
+        log(f"Cleared {applied} stale slug(s) from manifest.")
+    elif preview_count:
+        log(f"DRY RUN: would clear {preview_count} stale slug(s). Re-run with --confirm to apply.")
     else:
         log("No stale slugs found.")
-    return cleared
+    return preview_count
 
 
 def remove_orphaned_transcripts(confirm: bool) -> int:
@@ -334,9 +366,17 @@ def prune_notebook(nb_id: str, confirm: bool) -> int:
     kf = KEYFRAMES_DIR / nb_id
     if kf.exists():
         shutil.rmtree(kf, ignore_errors=True)
-    # Manifest
-    del manifest["notebooks"][nb_id]
-    save_manifest(manifest)
+    # Manifest: reload under the shared lock so a concurrent sync cannot erase
+    # unrelated notebook entries. Destructive maintenance should still run
+    # only while queue workers are idle because it moves files as well.
+    def remove_entry(current):
+        notebooks = current.setdefault("notebooks", {})
+        if nb_id not in notebooks:
+            return False
+        del notebooks[nb_id]
+        return True
+
+    _update_manifest(remove_entry)
     log(f"Pruned {removed} files. Concept pages moved to {trash}. Manifest entry removed.")
     return removed
 
@@ -382,11 +422,19 @@ def main() -> int:
     ap.add_argument("--prune-notebook", metavar="UUID", help="remove ALL state for a notebook")
     ap.add_argument("--all-fixes", action="store_true", help="run fix-stale-slugs + remove-orphaned-transcripts")
     ap.add_argument("--disk-report", action="store_true")
+    ap.add_argument(
+        "--offline",
+        action="store_true",
+        help="skip the live NotebookLM inventory query (audit/local repairs only)",
+    )
     ap.add_argument("--profile", "--account-profile", dest="profile", default="a.hominidae",
                     help="exact account identity (a.hominidae, troup.hominidae, or brsthomson)")
     ap.add_argument("--confirm", action="store_true",
                     help="required to apply any destructive change (default is dry-run)")
     args = ap.parse_args()
+
+    if args.offline and (args.remove_orphaned_transcripts or args.all_fixes):
+        ap.error("--offline cannot be combined with --remove-orphaned-transcripts or --all-fixes")
 
     GLOBAL_PROFILE = args.profile
 
@@ -397,9 +445,9 @@ def main() -> int:
 
     exit_code = 0
     if args.audit or args.all_fixes:
-        report = audit(args.profile)
+        report = audit(args.profile, offline=args.offline)
         print_audit(report)
-        if not report.get("live_notebooks_available"):
+        if not args.offline and not report.get("live_notebooks_available"):
             exit_code = 2
 
     if args.disk_report:
