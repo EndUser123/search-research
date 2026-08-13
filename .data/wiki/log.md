@@ -1,5 +1,11 @@
 # Vault Log
 
+## Automation Surprise as Diagnostic Signal
+Source: session 019ffb95 /tp improve
+Agent: grok
+Notes: hooks firing unexpectedly are trust calibration signals, not friction
+Page: concepts/automation-surprise-as-diagnostic-signal.md
+
 ## Adaptive Automation Landscape for LLM Agent Orchestration
 Source: /www research session 019ffb95
 Agent: grok
