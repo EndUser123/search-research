@@ -1,5 +1,11 @@
 # Vault Log
 
+## tuicommander-silent-three-location-mcp-registration
+Source: session-20260813
+Agent: grok
+Notes: TUICommander registered MCP in 3 config locations; diagnostic blind spot for ~/.claude.json
+Page: wiki/concepts/tuicommander-silent-three-location-mcp-registration.md
+
 ## PowerShell Profile Customization Landscape
 Source: /www research
 Agent: grok
