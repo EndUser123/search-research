@@ -17,7 +17,7 @@ Fix `/why`'s root-cause unreliability (verified: 3/8 wrong findings in session 0
 
 ## Status
 
-OPEN — design complete, acceptance criteria defined, not started. This handoff is the executable plan. A fresh session should be able to pick it up and act without re-deriving the analysis.
+PARTIALLY DONE — Workstream A (design complete, execution deferred to /skill-dev). Task B1 (Option F bridge test) DONE — bridge verified working 2026-08-13. Task B2 (Option G validator) and Workstream A execution remain. This handoff is the executable plan. A fresh session should be able to pick it up and act without re-deriving the analysis.
 
 ## Last user message (verbatim)
 
@@ -97,16 +97,14 @@ The diagnosis was verified by a 3/3 lens convergence (inline analysis + gpt-oss-
 
 ### WORKSTREAM B — Integration adoption gaps (independent, can ship anytime)
 
-#### Task B1 (Option F): Verify the existing `/tp`→`/todo` recommendation bridge end-to-end
+#### Task B1 (Option F): Verify the existing `/tp`→`/todo` recommendation bridge — DONE 2026-08-13
 
-- **What:** Run one `/tp` critique with `--recommendations '<JSON>'` populated, then run `/todo` and confirm each recommendation surfaces as an individual action item. The bridge is coded (`tp_critique_log.py:60-98` writes, `workspace_scanners.py:370-405` reads) but has never carried a payload (0/21 entries).
-- **Acceptance criteria:**
-  1. `/tp` critique emits `--recommendations` with ≥1 item
-  2. `/todo` scan surfaces each recommendation as a separate item (not collapsed)
-  3. If it works: document the verified bridge. If it doesn't: file the specific defect.
-- **Why this matters:** this is the 10-minute test that dissolves or confirms the entire "should we build a recommendation ledger" question. If the bridge works, the integration problem is mostly solved.
-- **Effort:** S (10 min)
-- **Confidence:** H
+- **STATUS: VERIFIED — bridge works end-to-end.**
+- **What was tested:** logged a real critique entry (`26b6f1251aa3`) with 5 `--recommendations` to `tp-critique-log.jsonl`, then ran `scan_functions.py --session <sid> --json` and inspected the output.
+- **Result:** all 5 recommendations surfaced as 5 individual `/todo` items with correct severities (3 high, 2 medium). Source field: `tp`. The pipeline `tp_critique_log.py --recommendations` → `scan_critique_log()` → `/todo` items is functional.
+- **One display defect found (minor, non-blocking):** the recommendation text is stored in the `title` field prepended with the critique target, producing verbose titles like `"From critique of <target> re: <recommendation text>"` rather than clean one-line items. The text field is empty. This is a formatting issue in `scan_critique_log()` (likely in `workspace_scanners.py`), not a data-loss issue.
+- **Resolution of the integration question:** Option A (recommendation ledger) is definitively REJECTED. The existing bridge works. The fix is (1) adoption — more producing skills should emit `--recommendations`; (2) minor display formatting — clean up the title field so recommendation text is the primary scannable line.
+- **Remaining from this task:** the display defect is a small code fix in the scanner (extract recommendation text to its own field, or strip the `"From critique of ... re: "` prefix from the title). Optional, non-blocking.
 
 #### Task B2 (Option G): Make handoff task packets a warning-level validator
 
