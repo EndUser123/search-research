@@ -1,5 +1,11 @@
 # Vault Log
 
+## Value-Conditional Automation Escalation
+Source: session 019ffb95 pattern synthesis
+Agent: grok
+Notes: blanket rules to conditional rules: /refine, /www search, /go gate, /handoff status
+Page: concepts/value-conditional-automation-escalation.md
+
 ## proactive-idea-surfacing-standing-invitation
 Source: session-019fee3d
 Agent: grok
