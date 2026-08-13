@@ -118,6 +118,22 @@ These are the recurring classes extracted from operator catches across sessions.
 
 **Reference:** Documented in AGENTS.md claims-require-receipts rule.
 
+### FC-11: Didn't search existing infrastructure before reimplementing
+
+**Pattern:** Agent writes new code to solve a problem that already has a solution in the codebase. The existing solution is often better-tested and session-scoped; the new code is often wrong (e.g., uses time-based git scope instead of hunk log).
+
+**Detection:** Before writing new code, grep the codebase for existing implementations of the same capability. If found, use it.
+
+**Reference:** Session 019fee3d — wrote `git log --since=12 hours ago` for coverage gap check when `_session_touched_paths(session_id)` already existed in the same package.
+
+### FC-12: Over-engineering when a simpler solution exists
+
+**Pattern:** Agent proposes a complex solution (wiki concept, scheduled task, configuration file) when a simpler one (filesystem glob, existing function, one-line fix) solves the same problem.
+
+**Detection:** Before implementing, state the simplest correct solution and why alternatives are rejected. If the simplest solution is a glob/existing-function/one-liner, use it.
+
+**Reference:** Session 019fee3d — proposed wiki-concept directory listing when filesystem discovery is simpler and more robust.
+
 ## How the self-check fires
 
 The self-check is **procedural, not behavioral**. It specifies a mechanical step the agent takes before presenting, not a disposition it should have. The difference:
@@ -133,6 +149,8 @@ The self-check section appears at the END of substantive outputs, before any "do
 - Field match: [verified or N/A]
 - Propagation: [grep results or N/A]
 - Known failure classes: [none match] or [FC-XX: addressed]
+- Searched existing infra: [grep results or "N/A — new capability"]
+- Simplest solution: [named or "considered [X], rejected because [Y]"]
 - Least confident about: [one sentence]
 ```
 

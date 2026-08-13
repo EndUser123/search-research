@@ -62,6 +62,29 @@ def _classify_pattern(message: str) -> str:
     return "general-fix"
 
 
+_COMMIT_PREFIX_ACTIONS = {
+    "fix": "fixed",
+    "feat": "implemented",
+    "docs": "documented",
+    "test": "tested",
+    "style": "formatted",
+    "refactor": "refactored",
+    "perf": "optimized",
+    "chore": "maintained",
+    "ci": "configured",
+    "revert": "reverted",
+}
+
+
+def _infer_action(message: str) -> str:
+    """Infer the action_taken from the commit message prefix."""
+    msg_lower = message.lower().strip()
+    for prefix, action in _COMMIT_PREFIX_ACTIONS.items():
+        if msg_lower.startswith(prefix + ":") or msg_lower.startswith(prefix + "("):
+            return action
+    return "committed"
+
+
 def capture_patterns(session_id: str, repos: list[str]) -> list[dict]:
     """Capture patterns from fix: commits and append to findings index."""
     captured = []
@@ -74,6 +97,7 @@ def capture_patterns(session_id: str, repos: list[str]) -> list[dict]:
                 continue
             message = parts[1]
             pattern_id = _classify_pattern(message)
+            action = _infer_action(message)
 
             entry = append(
                 source="commit",
@@ -84,7 +108,7 @@ def capture_patterns(session_id: str, repos: list[str]) -> list[dict]:
                 detail=f"Auto-captured from {repo}: {commit_line}",
                 path=repo,
                 pattern_id=pattern_id,
-                action_taken="fixed",
+                action_taken=action,
             )
             captured.append(entry)
 
