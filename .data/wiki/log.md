@@ -1,5 +1,11 @@
 # Vault Log
 
+## Adaptive Automation Landscape for LLM Agent Orchestration
+Source: /www research session 019ffb95
+Agent: grok
+Notes: 6 LLM autonomy taxonomies compared, Bernabei 2024 review, RL orchestration research, 12 repos
+Page: concepts/adaptive-automation-landscape-for-llm-agent-orchestration.md
+
 ## Value-Conditional Automation Escalation
 Source: session 019ffb95 pattern synthesis
 Agent: grok
