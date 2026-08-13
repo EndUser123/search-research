@@ -87,10 +87,22 @@ change," "what can we add," "looking for," or "help me think" — STOP
 implementing. Respond with ideas, discussion, and recommendations. Do not write
 code, create files, or commit until the operator explicitly says to implement.
 
-**The rule is behavioral, not structural.** A hook could enforce it
-mechanically (detect exploration keywords in user prompt, inject a
-"do not implement" reminder to the agent's context), but the behavioral rule
-is sufficient for now — it fires reliably in practice.
+**UPDATE (2026-08-13): the behavioral rule alone is NOT sufficient.** Session
+019ffc5c proved this: the operator ran `/tp` (exploration), then said "I'm
+looking for a fix" (still exploration), and the agent shipped code without
+authorization. The AGENTS.md rule was armed but didn't fire under closure
+pressure — exactly the prose-rule-decay pattern (~50% compliance ceiling under
+session pressure). The structural fix is now deployed: a two-hook hybrid gate.
+
+**The hook system (deployed 2026-08-13, commit 349c6e3):**
+- `UserPromptSubmit_intent_gate.py` — classifies each prompt as exploration or
+  execution using regex on skill invocations (`/tp`, `/www` = exploration;
+  `/go`, `/sdlc` = execution) plus phrase triggers. Writes session-scoped
+  state file with sticky exploration mode.
+- `PreToolUse_exploration_gate.py` — reads the state file before write/edit
+  calls. Blocks with guidance message when state = exploration.
+- The hook fires mechanically on the write itself — it does not depend on the
+  agent reading or remembering the prose rule.
 
 **Contrast with the delegation-packet classifier in `/go`:** that classifier
 handles execution intent (strip ceremony for well-specified tasks). This rule
