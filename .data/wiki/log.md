@@ -1,5 +1,11 @@
 # Vault Log
 
+## UTF-8 BOM Breaks Python Frontmatter Parsers
+Source: ship-py skill-dev phase
+Agent: grok
+Notes: BOM in SKILL.md broke script_scan.py frontmatter parser
+Page: concepts/utf-8-bom-breaks-python-frontmatter-parsers.md
+
 ## tuicommander-silent-three-location-mcp-registration
 Source: session-20260813
 Agent: grok
