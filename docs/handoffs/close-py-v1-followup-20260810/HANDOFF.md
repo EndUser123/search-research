@@ -12,7 +12,7 @@ accurate_as_of_head: 09900033069e30c89507329314e5f7f98428dde8
 # HANDOFF: close-py v1.0 follow-up work
 
 ## Status
-OPEN — follow-up tasks from the close-py v1.0 build
+OPEN — CF-01 verified 2026-08-13 (close-py ran end-to-end in session 019fee3d), CF-02 and CF-03 still open
 
 ## Objective
 Complete the follow-up work from the close-py v1.0 build: integration test against real /close scanner output, Stop hook quality_gates registration, and fresh-eyes review of the anti-fabrication code.
@@ -30,14 +30,14 @@ Verify close-py end-to-end against real /close scanner output, register its qual
 - [FACT] close-py v1.0 is committed at `b6434f8` on ~/.grok main, pushed. 18 files, 20 tests passing, ruff clean. (source: git log)
 - [FACT] The scan phase imports `close_accounting.scan_all`, `resolve_gates`, `compute_loop` from /close's `__lib__` but no test exercises these against real evidence. (source: `~/.grok/skills/close-py/__lib/phases/scan.py`)
 - [FACT] SKILL.md declares `quality_gates` frontmatter checking for `P:/.artifacts/close-py/*/state.json`, but no Stop hook reads it. (source: `~/.grok/skills/close-py/SKILL.md` frontmatter)
-- [FACT] ship-py's quality_gates are registered via `~/.grok/hooks/scripts/quality_gate.py` — close-py needs the same registration pattern. (source: `~/.grok/hooks/scripts/quality_gate.py`)
+- [FACT] ship-py's quality_gates are registered via `~/.grok/hooks/scripts/quality_gate/` — close-py needs the same registration pattern. (source: `~/.grok/hooks/scripts/quality_gate/`)
 - [FACT] The Stop hook blocked session close with: `[review] /review run manifest missing — run /review before claiming review done`. (source: Stop hook feedback in session)
 
 ## 3. What now works
 close-py v1.0 is built and unit-tested — state management, tamper-evident chain, inter-phase gates, verdict derivation, and receipt validation all work in isolation. The 8-phase pipeline structure is sound. The skill is registered in the catalog and invocable as `/close-py`.
 
 ## 4. Acceptance criteria
-- [ ] **CF-01: Integration test.** Run `python ~/.grok/skills/close-py/__lib/close_orchestrator.py detect --session-id <UUID>` followed by `scan` on a real session. Verify the scan phase produces valid gate states (not an import error or API mismatch).
+- [x] **CF-01: Integration test.** ✅ Verified 2026-08-13 — close-py ran detect+scan+session-completeness+resolve+coverage+handoff-resolve+git-state+accounting+verdict end-to-end in session 019fee3d. Scan phase produced valid 16-gate states. All imports resolved against `close-py/__lib/_scanners/`.
 - [ ] **CF-02: Stop hook registration.** Register close-py's `quality_gates` in `~/.grok/hooks/scripts/quality_gate.py` (or wherever ship-py's are registered). Verify the Stop hook reads close-py's state.json and enforces the completion gate.
 - [ ] **CF-03: Fresh-eyes review.** Run `/review` on the close-py skill to satisfy the Stop hook gate and catch edge cases the author missed (polling loop, gate logic, chain validation).
 
@@ -53,8 +53,8 @@ close-py v1.0 is built and unit-tested — state management, tamper-evident chai
 1. `~/.grok/skills/close-py/SKILL.md` — skill definition, phase docs, gate matrix
 2. `~/.grok/skills/close-py/__lib/phases/scan.py` — the scan phase that imports /close's scanners
 3. `~/.grok/skills/close-py/__lib/phases/verdict.py` — verdict derivation logic
-4. `~/.grok/hooks/scripts/quality_gate.py` — how ship-py's quality_gates are registered (for CF-02)
-5. `~/.grok/skills/close/__lib/close_accounting.py` — the scanner API close-py imports (verify signatures match)
+4. `~/.grok/hooks/scripts/quality_gate/` — how ship-py's quality_gates are registered (for CF-02)
+5. `~/.grok/skills/close-py/__lib/_scanners/close_accounting.py` — the scanner API (moved from /close during consolidation, commit 2fc3aa6)
 6. `P:/.data/wiki/concepts/python-orchestrated-skill-build-pattern-study-replicate-test.md` — the build pattern (context for how close-py was structured)
 7. `P:/docs/handoffs/close-py-design-20260808/HANDOFF.md` — parent handoff (CLOSED, documents the full build)
 
