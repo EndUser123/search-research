@@ -1,5 +1,17 @@
 # Vault Log
 
+## proactive-idea-surfacing-standing-invitation
+Source: session-019fee3d
+Agent: grok
+Notes: Standing invitation for agent to proactively surface ideas. Calibration principle from Chen et al. CHI 2025.
+Page: P:/.data/wiki/concepts/proactive-idea-surfacing-standing-invitation.md
+
+## [2026-08-13] ingest | Windows Terminal workflow for concurrent agent sessions
+Source: session-2026-08-13
+Agent: grok
+Notes: Documented the Windows Terminal concurrent-agent session workflow, rationale, settings, export path, evidence, and smoke-test boundary.
+Page: wiki/concepts/windows-terminal-concurrent-agent-session-workflow.md
+
 ## pre-presentation-self-check-gate
 Source: session-019fee3d
 Agent: grok
