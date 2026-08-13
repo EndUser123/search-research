@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import random
-import subprocess
 import sys
 from pathlib import Path
 
@@ -24,8 +23,6 @@ from findings_index import query  # noqa: E402
 def _verify_finding(finding: dict) -> tuple[bool, str]:
     """Verify a single finding against actual state. Returns (is_valid, reason)."""
     path = finding.get("path", "")
-    title = finding.get("title", "")
-    category = finding.get("category", "")
 
     # For findings with file paths, check if the issue still exists
     if path and Path(path).exists():
