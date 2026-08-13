@@ -1,5 +1,11 @@
 # Vault Log
 
+## pre-presentation-self-check-gate
+Source: session-019fee3d
+Agent: grok
+Notes: Known failure-class catalog (FC-01 through FC-10) + 5-question self-check gate pattern
+Page: P:/.data/wiki/concepts/pre-presentation-self-check-gate.md
+
 ## UTF-8 BOM Breaks Python Frontmatter Parsers
 Source: ship-py skill-dev phase
 Agent: grok
