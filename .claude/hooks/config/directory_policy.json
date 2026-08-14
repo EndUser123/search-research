@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "3.3.3",
-    "updated": "2026-08-10",
+    "updated": "2026-08-13",
     "description": "Single source of truth for directory structure policy - RESTORED & OPTIMIZED",
     "enforced_by": [
       "Claude: P:/.claude/hooks/__lib/pre_tool_use_logic.py + P:/.claude/hooks/__lib/path_validator.py",
@@ -133,6 +133,14 @@
       {
         "pattern": "tools",
         "reason": "Workspace tooling (mcp, ai_lane_controller, research_run_v1)"
+      },
+      {
+        "pattern": "exports",
+        "reason": "Exported data and reports"
+      },
+      {
+        "pattern": ".worktrees",
+        "reason": "Git worktrees for parallel development (canonical worktree dir)"
       }
     ],
     "allowed_config_files": [
