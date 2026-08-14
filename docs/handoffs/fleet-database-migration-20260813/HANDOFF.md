@@ -244,7 +244,9 @@ pattern (see "Stale JSONL consumers" below). When the data source changes,
 it's a one-file change, not a multi-file audit. Phase 2+ will add query
 functions for quarantine, telemetry counts, discovery probe results, etc.
 
-### Phase 2: quarantine.json → SQLite quarantine table
+### Phase 2: quarantine.json → SQLite quarantine table [SHIPPED — 1 DEFECT]
+
+**Status:** Read side complete (commit `6df3890`, 2026-08-13). **Defect D1 found by preflight 2026-08-14:** `PostToolUseFailure_spawn_quota.py:587 write_quarantine_record()` still writes quarantine.json. Read is either-or (SQLite first), so any SQLite row hides hook-written JSON records. **Fix before Phase 3:** (1) merge both stores in `load_quarantine_records()` (union on candidate_id+level, newest reprobe_after wins), (2) hook dual-writes (fleet_db.insert_quarantine + legacy JSON) during transition.
 
 **Scope:** Move circuit-breaker state to SQLite. Add quarantine query
 functions to `fleet_db.py` so all consumers go through the data access layer.
@@ -264,6 +266,16 @@ functions to `fleet_db.py` so all consumers go through the data access layer.
 - All existing tests pass
 
 ### Phase 3: fleet-models.json split + stale consumer migration + EOL wiring
+
+**Preflight status (2026-08-14): NEEDS REVIEW — 3 blockers. Packet: `P:/tmp/preflight-phase34-report.md`.**
+
+**Consumers MISSING from original scope (must add):**
+- `packages/codex-external-delegation/src/model-selector.mjs:5` — hardcodes fleet-models.json as DEFAULT_FLEET_REGISTRY; constraint violation with `[[codex-pi-grok-schema-v5-registry-integration]]` ("schema 5 is the only live registry contract"). Disposition needed: migrate selector in-phase OR keep generated fleet-models.json as compat export.
+- `~/.grok/hooks/PreToolUse_spawn_model_gate.py:40` — reads registry every spawn (serde_broken, fallbacks). Needs dual-read transition (multi-terminal isolation).
+- `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — serde_broken consumer + quarantine.json writer (see Phase 2 defect D1).
+- `model-quota/scripts/snapshot_manager.py:47` — registry + threshold_policy snapshots (also Phase 4 consumer; migrate once).
+- `model-benchmark/scripts/benchmark.py:37` — coverage print + slug defaults.
+- Historical (classify, no action): migrate_registry.py, migrate_to_v4.py.
 
 **Scope:** Split fleet-models.json into fleet-config.json (operator) +
 SQLite model_metadata table (automation). Migrate stale JSONL consumers.
