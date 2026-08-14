@@ -47,45 +47,56 @@ adding Grok session transcript parsing to the indexing pipeline.
 - **Commit message:** `refactor: rename claude-mem-grok → grok-tool-mem for clarity`
 - **Risk:** Low. The plugin is identified by directory name + plugin.json name. No hardcoded references to "claude-mem-grok" in the worker code.
 
-### 2. Port Grok session transcript parsing to episodic-memory → grok-chat-mem
+### 2. ✅ DONE — Grok session search via search-research CHS provider
 
-**Research completed (2026-08-13):** see
-`[[grok-chat-mem-candidate-repos-for-session-transcript-search]]` for the full
-15+ repo survey. Key finding: **marcelocantos/mnemo** is the only tool that
-already indexes Grok sessions out of the box, but it has 0 stars and 0 Windows
-downloads (unvalidated on our platform). Three paths identified:
+**Resolution (2026-08-13):** the operator pointed out that the Claude-side
+`search-research` plugin already had a full CHS (Chat History Search)
+subsystem with a Provider Protocol designed for adding new sources. This was
+dramatically better than any external repo surveyed in the /www research.
 
-- **Path A (mnemo):** install the Windows installer, test if Grok indexing
-  works. Zero code. Highest external risk (0-star single-author project).
-- **Path B (extend episodic-memory):** write `parseGrokConversation()` using
-  the existing AAR parser (`~/.grok/skills/aar/__lib/transcript_parser.py`)
-  as reference. Lowest risk. We control the code. ~2-4 hours.
-- **Path C (memory_mcp):** cleanest parser-extension architecture, but trades
-  episodic-memory's test suite for a 12-commit codebase.
+**What was done:**
+1. **Restored source** — the `search-research` marketplace dir was empty
+   (submodule `.git` deleted, pip editable install broken). Restored v0.1.123
+   from Claude plugin cache (812 files), `git init`, committed.
+2. **Wrote `grok_sessions.py` provider** — walks `~/.grok/sessions/`, parses
+   `chat_history.jsonl` (5 message types: user, assistant, tool_result,
+   system, reasoning). Registered alongside claude_code_raw, codex_desktop,
+   claude_log. 328 lines.
+3. **Wrote 23 tests** — all passing. Covers provider protocol, format parsing,
+   content hash stability, session dir parsing.
+4. **Wrote `reindex_grok.py` indexer** — permanent script in
+   `core/chs/scripts/`. Indexes Grok sessions into CHS DB.
+5. **Verified end-to-end** — 50 sessions → 6,748 messages → keyword search
+   returns hits. Provider discovers 2,827 sessions total.
+6. **Created `~/.grok/skills/chs/SKILL.md`** — Grok skill calling the same
+   shared CLI.
 
-This is the real work. Episodic-memory currently parses:
-- Claude Code JSONL format (`~/.claude/projects/`)
-- Codex rollout JSONL (`~/.codex/sessions/`)
+**Architecture (neutral/shared, not Claude-only):**
+```
+P:/packages/.claude-marketplace/plugins/search-research/   ← shared source
+  core/chs/providers/
+    claude_code_raw.py    ← Claude Code history
+    codex_desktop.py      ← Codex history
+    claude_log.py         ← Claude transcripts
+    grok_sessions.py      ← NEW: Grok Build sessions
+  core/chs/scripts/
+    reindex_grok.py       ← NEW: Grok indexer
 
-It needs to also parse:
-- **Grok Build session format** at `~/.grok/sessions/<encoded-cwd>/<session-id>/`
-  - `updates.jsonl` — tool calls and results
-  - `chat_history.jsonl` — user/assistant messages
-  - `summary.json` — session metadata
+~/.grok/skills/chs/SKILL.md    ← NEW: Grok skill entry point
+P:/__csf/data/grok_chat_history.db  ← Grok session DB
+```
 
-**Steps:**
-1. Read the episodic-memory source at `C:\Users\brsth\.grok\installed-plugins\episodic-memory-479fd403\src\parser.ts` to understand the parser interface
-2. Read the Grok session format (use `~/.grok/docs/user-guide/` and inspect actual session files)
-3. Write a Grok transcript parser that extracts user-agent exchanges from `chat_history.jsonl`
-4. Add `~/.grok/sessions/` to the sync source list in `src/sync.ts` / `src/index-cli.ts`
-5. Build + test
-6. Rename the plugin directory + plugin.json to `grok-chat-mem`
+**What episodic-memory is for now:** episodic-memory remains as-is for
+Claude Code + Codex MCP search. The CHS system in search-research is a
+superset — it has all three providers plus Grok, plus hybrid search,
+multi-terminal isolation, and 13 skills. The rename to "grok-chat-mem" is
+no longer needed because the functionality is provided by the shared
+search-research package, not by a renamed episodic-memory.
 
-**Key files to read first:**
-- `C:\Users\brsth\.grok\installed-plugins\episodic-memory-479fd403\src\parser.ts` — parser interface
-- `C:\Users\brsth\.grok\installed-plugins\episodic-memory-479fd403\src\sync.ts` — sync source configuration
-- `C:\Users\brsth\.grok\installed-plugins\episodic-memory-479fd403\CLAUDE.md` — build instructions
-- `~/.grok/sessions/P%3A%5C/019ffbf4-6734-77a3-bec3-ef4ae502814e/chat_history.jsonl` — Grok session format sample
+**Remaining work:**
+- Full index of all 2,827 Grok sessions (50 done as proof-of-concept)
+- FTS5 index population for full-text search (currently using LIKE queries)
+- Semantic embeddings (the schema supports it; daemon not yet wired for Grok DB)
 
 ### 3. Update wiki + handoff references
 - Update `[[three-tier-hedge-detection-regex-structural-nltk]]` if it references claude-mem-grok
