@@ -195,11 +195,13 @@ search_falsifier:
 
 decision_reversing_unknowns:
   - id: dcg-windows-compat
-    status: OPEN
+    status: RESOLVED
     falsification: "Install dcg on this Windows host, run dcg test 'git reset --hard', confirm it blocks; run dcg test 'git status', confirm it passes"
+    resolution: "dcg v0.10.0 installed on Windows. Binary verified: blocks git reset --hard (exit 0 + JSON deny), blocks git push --force, allows git status. GAP FOUND: dcg does not parse Grok's camelCase input format (toolName/toolInput vs tool_name/tool_input). Wrapper script (dcg_grok_wrapper.py) written to translate. Wrapper verified: deny with exit 2 for destructive, allow with exit 0 for safe. Grok loads hooks at session start only — dcg hook active starting next session."
   - id: gitleaks-staged-windows
-    status: OPEN
+    status: RESOLVED
     falsification: "Replace the per-file loop in .githooks/pre-commit with gitleaks git --pre-commit --staged, commit 416 files, confirm it completes in <10s"
+    resolution: "418-file wiki commit (785b49c) scanned in seconds (not backgrounded). Verified with controlled test: high-entropy fake API key (sk-ant-api03-..., entropy 5.30) correctly blocked by pre-commit hook via gitleaks git --pre-commit --staged. Low-entropy key (all A's, entropy ~0) correctly rejected by entropy filter — not a gitleaks failure."
 
 evidence_requirements:
   - claim: "dcg has native Grok Build support"
