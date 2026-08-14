@@ -1,0 +1,28 @@
+{
+  "name": "search-research",
+  "description": "Unified search and research system with async concurrent execution, HyDE enhancement, and 11 web providers. Replaces deprecated unified-search (EOL: 2026-09-01). pip-installable Python library with Claude Code plugin layer.",
+  "author": {
+    "name": "CSF Development Team",
+    "email": "bruce.thomson@example.com"
+  },
+  "version": "0.1.123",
+  "license": "MIT",
+  "keywords": [
+    "search",
+    "research",
+    "code search",
+    "knowledge search",
+    "web search",
+    "claude-code"
+  ],
+  "repository": "https://github.com/EndUser123/search-research",
+  "homepage": "https://github.com/EndUser123/search-research",
+  "mcpServers": {
+    "sr": {
+      "command": "P:/packages/.claude-marketplace/plugins/search-research/.venv/Scripts/python.exe",
+      "args": [
+        "P:/packages/.claude-marketplace/plugins/search-research/run_mcp.py"
+      ]
+    }
+  }
+}

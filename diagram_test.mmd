@@ -1,0 +1,17 @@
+flowchart TD
+subgraph L1 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L1 — Intent</B></TD></TR></TABLE>>"]
+L1_S1(["<b>/prd</b><br/>elicit · write · review"])
+L1_S2(["<b>/specify</b><br/>expand requirements<br/>user stories · acceptance criteria"])
+end
+
+subgraph L2 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L2 — Architecture</B></TD></TR></TABLE>>"]
+L2_S1(["<b>/arch</b><br/>explore_context · classify_intent<br/>contract_sensitivity · select_template"])
+L2_S2(["<b>/planning</b><br/>plan_edits() · glob_files()"])
+end
+
+L1_S1 --> L1_S2
+L1_S2 --> L2_S1
+L2_S1 --> L2_S2
+
+style L1 fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+style L2 fill:#fef9c3,stroke:#eab308,stroke-width:2px

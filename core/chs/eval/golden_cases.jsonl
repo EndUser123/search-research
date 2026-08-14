@@ -1,0 +1,26 @@
+{"id": "case-001", "query": "main\n/main\n--quick", "required_session_keys": ["9ce2bd45-e9db-4456-b405-c81a73f382ec"], "k": 10, "notes": "session 9ce2bd45…"}
+{"id": "case-002", "query": "Launching command: /zen-analyze", "required_session_keys": ["b21a491b-2bbe-4b21-8df4-85dff8b4171f"], "k": 10, "notes": "session b21a491b…"}
+{"id": "case-003", "query": "main\n/main\n--quick", "required_session_keys": ["19030079-8bdd-40af-a2a7-69a0acddf1c4"], "k": 10, "notes": "session 19030079…"}
+{"id": "case-004", "query": "main\n/main\n--quick", "required_session_keys": ["53ff0632-d543-4852-9de7-4cc991c1c86d"], "k": 10, "notes": "session 53ff0632…"}
+{"id": "case-005", "query": "main is running…\n/main", "required_session_keys": ["4e69bfba-403e-4693-addb-3d64d3aaffcc"], "k": 10, "notes": "session 4e69bfba…"}
+{"id": "case-006", "query": "main is running…\n/main\n--quick", "required_session_keys": ["93169b02-47fa-427d-a6ef-9180ef7e5b55"], "k": 10, "notes": "session 93169b02…"}
+{"id": "case-007", "query": "main is running…\n/main\n--quick", "required_session_keys": ["3bdab45d-71e9-45ed-90d3-2386f1634a8e"], "k": 10, "notes": "session 3bdab45d…"}
+{"id": "case-008", "query": "main is running…\n/main\n--quick", "required_session_keys": ["28ab9004-50d5-4433-bacd-80ad29f93361"], "k": 10, "notes": "session 28ab9004…"}
+{"id": "case-009", "query": "main\n/main\n--quick", "required_session_keys": ["64c8c87f-d683-4640-9490-64bbef37d36d"], "k": 10, "notes": "session 64c8c87f…"}
+{"id": "case-010", "query": "main is running…\n/main", "required_session_keys": ["415f5656-b1ae-4b67-8d07-92d0dbf5cbbf"], "k": 10, "notes": "session 415f5656…"}
+{"id": "case-011", "query": "main\n/main\n--quick", "required_session_keys": ["09ab5743-d585-4171-9de6-ac1c81ae5831"], "k": 10, "notes": "session 09ab5743…"}
+{"id": "case-012", "query": "main is running…\n/main", "required_session_keys": ["27bc54f0-710d-467d-b726-311be26e8b2f"], "k": 10, "notes": "session 27bc54f0…"}
+{"id": "case-013", "query": "main\n/main\n--quick", "required_session_keys": ["36091158-97b6-424a-b288-ee366cb092a0"], "k": 10, "notes": "session 36091158…"}
+{"id": "case-014", "query": "main is running…\n/main\n--quick", "required_session_keys": ["a798248e-9a48-40e0-9955-53de91b2c438"], "k": 10, "notes": "session a798248e…"}
+{"id": "case-015", "query": "main is running…\n/main", "required_session_keys": ["374af44d-ea2f-44d0-ade6-1a272c74de39"], "k": 10, "notes": "session 374af44d…"}
+{"id": "case-016", "query": "main is running…\n/main\n--quick", "required_session_keys": ["3844cb64-40ff-4653-a4b8-3adbce2d27ea"], "k": 10, "notes": "session 3844cb64…"}
+{"id": "case-017", "query": "main is running…\n/main", "required_session_keys": ["2597c708-b585-4b5b-900d-c5abb1265b0d"], "k": 10, "notes": "session 2597c708…"}
+{"id": "case-018", "query": "main is running…\n/main", "required_session_keys": ["a4652d01-8b4b-4523-bc4e-f55cb067031b"], "k": 10, "notes": "session a4652d01…"}
+{"id": "case-019", "query": "main is running…\n/main", "required_session_keys": ["68efedb7-6075-4fcf-888a-792c4048b2b4"], "k": 10, "notes": "session 68efedb7…"}
+{"id": "case-020", "query": "main\n/main\n--quick", "required_session_keys": ["60f77cbe-ff10-4dd5-9745-58e87f68b9f8"], "k": 10, "notes": "session 60f77cbe…"}
+{"id": "case-021", "query": "main is running…\n/main\n--quick", "required_session_keys": ["a9991d85-97dc-4352-987e-29071c1979a2"], "k": 10, "notes": "session a9991d85…"}
+{"id": "case-022", "query": "main\n/main\n--quick", "required_session_keys": ["99fc773a-698d-4a2e-8ec7-356b910da8f6"], "k": 10, "notes": "session 99fc773a…"}
+{"id": "case-023", "query": "Execute production deployment of all Phase 2 orchestrator services with comprehensive validation. **Phase 2 Services to Deploy:**\n1. **Research Engine Orchestrator** - Multi-modal research workflows with <5ms overhead\n2. **Chat Search Orchestrator** - Intelligent chat history search integration\n3.", "required_session_keys": ["cecf7f31-4aca-4664-a16f-5c6a49cd02b0"], "k": 10, "notes": "session cecf7f31…"}
+{"id": "case-024", "query": "main is running…\n/main", "required_session_keys": ["11c40a37-78d9-446d-9faa-17e50ae335f1"], "k": 10, "notes": "session 11c40a37…"}
+{"id": "case-025", "query": "main is running…\n/main", "required_session_keys": ["11b06a02-84ea-4b60-99cd-f8595435476c"], "k": 10, "notes": "session 11b06a02…"}
+{"id": "case-026", "query": "main is running…\n/main", "required_session_keys": ["96785b89-b6fc-4053-b4a6-0cf2be6a66bb"], "k": 10, "notes": "session 96785b89…"}

@@ -1,0 +1,23 @@
+{
+  "exceptions": [
+    {
+      "path": ".claude/",
+      "violation": ".claude/ directory not in plugin spec (skills forbidden under .claude/)",
+      "reason": "Project workspace hooks/state - git-tracked development artifacts. Hooks are global at P:\\\\\\.claude/hooks/ and registered in settings.json. This directory is NOT plugin content.",
+      "waived_until": null
+    },
+    {
+      "path": "src/",
+      "violation": "src/ directory not in plugin spec",
+      "reason": "Legacy daemon/ingestion code predates plugin migration. The main search_research package uses core/ and contrib/ via package-dir mapping in pyproject.toml.",
+      "waived_until": null
+    },
+    {
+      "path": "pyproject.toml",
+      "violation": "pyproject.toml forbidden in plugins",
+      "reason": "Required for pip-install compatibility. The search-research CLI entry point (search-research = search_research.cli:_main_sync) depends on this. Plugin structure coexists with pip-installable package.",
+      "waived_until": null
+    }
+  ],
+  "package_version": "0.1.0"
+}
