@@ -112,8 +112,8 @@ Rationale: Security audit requirement from 2026-01-15.
 
 ## Related
 
-- [[wiki/concepts/mandatory-step-enforcement-code-over-prose]] — the deterministic linter is an instance of moving verification from LLM to code
-- [[wiki/concepts/skill-step-downgraded-from-action-to-note]] — the momentum problem that makes enforcement necessary
+- [[mandatory-step-enforcement-code-over-prose]] — the deterministic linter is an instance of moving verification from LLM to code
+- [[skill-step-downgraded-from-action-to-note]] — the momentum problem that makes enforcement necessary
 
 ## Sources
 

@@ -146,9 +146,9 @@ The OODA framing wouldn't replace the AAR's phases — it would compress them fo
 
 ## Related
 
-- [[wiki/concepts/mandatory-step-enforcement-code-over-prose]] — the prose-vs-code distinction is itself a double-loop finding (why did we think prose rules would bind?)
-- [[wiki/concepts/skill-step-downgraded-from-action-to-note]] — single-loop would ask "how to make the step fire"; double-loop asks "why did we think advisory steps would work?"
-- [[wiki/concepts/parallel-safe-solution-decomposition]] — DSM/CPM decomposition is itself a mental model that should be in the handoff (so the next session knows the parallel structure)
+- [[mandatory-step-enforcement-code-over-prose]] — the prose-vs-code distinction is itself a double-loop finding (why did we think prose rules would bind?)
+- [[skill-step-downgraded-from-action-to-note]] — single-loop would ask "how to make the step fire"; double-loop asks "why did we think advisory steps would work?"
+- [[parallel-safe-solution-decomposition]] — DSM/CPM decomposition is itself a mental model that should be in the handoff (so the next session knows the parallel structure)
 
 ## Sources
 

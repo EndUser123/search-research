@@ -130,9 +130,9 @@ This is deterministic, mechanical, and cannot be downgraded by context momentum.
 
 ## Related
 
-- [[wiki/concepts/mandatory-step-enforcement-code-over-prose]] — this concept resolves the "open question" from that page (how to detect friction mechanically)
-- [[wiki/concepts/skill-step-downgraded-from-action-to-note]] — the failure pattern this trigger catches
-- [[wiki/concepts/skill-enforcement-layers]] — the broader enforcement model; this adds a Layer -1 (transcript-based trigger detection)
+- [[mandatory-step-enforcement-code-over-prose]] — this concept resolves the "open question" from that page (how to detect friction mechanically)
+- [[skill-step-downgraded-from-action-to-note]] — the failure pattern this trigger catches
+- [[skill-enforcement-layers]] — the broader enforcement model; this adds a Layer -1 (transcript-based trigger detection)
 
 ## Sources
 

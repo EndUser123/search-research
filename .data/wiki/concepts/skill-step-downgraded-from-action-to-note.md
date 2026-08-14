@@ -75,8 +75,8 @@ Any time the skill's imperative verb becomes a suggestive verb in the output, th
 ## Related
 
 - [[wiki/entities/skill-review-failure]] — the broader pattern of skill execution failures; this page refines it with a specific failure mode (action-to-note degradation)
-- [[wiki/concepts/skill-enforcement-layers]] — why prose-level skill instructions don't bind reliably
-- [[wiki/concepts/writing-discipline-not-enforced]] — the same root pattern: prose rules treated as advisory under momentum
+- [[skill-enforcement-layers]] — why prose-level skill instructions don't bind reliably
+- [[writing-discipline-not-enforced]] — the same root pattern: prose rules treated as advisory under momentum
 
 ## Auto-related
 

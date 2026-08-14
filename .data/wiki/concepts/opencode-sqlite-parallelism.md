@@ -94,7 +94,7 @@ No semantic changes to `await` behavior in 3.14. The asyncio introspection tools
 
 ## Related
 
-- [[wiki/concepts/pi-agent-harness]] — Pi avoids this problem entirely (in-process, not CLI+SQLite)
+- [[pi-agent-harness]] — Pi avoids this problem entirely (in-process, not CLI+SQLite)
 - [[wiki/concepts/opencode-windows-setup]] — OPENCODE_CONFIG_DIR setup on Windows 11
 ## Falsifier
 

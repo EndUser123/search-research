@@ -95,10 +95,10 @@ This moves the enforcement from prose ("run /aar") to code (the scanner blocks o
 
 ## Related
 
-- [[wiki/concepts/skill-enforcement-layers]] — the 3-layer model (PreToolUse 100% / UserPromptSubmit ~50% / Stop backstop); this page refines it with the state-machine and scanner-gate patterns
-- [[wiki/concepts/skill-step-downgraded-from-action-to-note]] — the specific failure pattern this concept addresses
-- [[wiki/concepts/skill-enforcement-deep-dive]] — the ~50% Layer 1 failure analysis; this page explains why Layer 1 (prose injection) can't reach 100%
-- [[wiki/concepts/writing-discipline-not-enforced]] — same root pattern: prose rules treated as advisory
+- [[skill-enforcement-layers]] — the 3-layer model (PreToolUse 100% / UserPromptSubmit ~50% / Stop backstop); this page refines it with the state-machine and scanner-gate patterns
+- [[skill-step-downgraded-from-action-to-note]] — the specific failure pattern this concept addresses
+- [[skill-enforcement-deep-dive]] — the ~50% Layer 1 failure analysis; this page explains why Layer 1 (prose injection) can't reach 100%
+- [[writing-discipline-not-enforced]] — same root pattern: prose rules treated as advisory
 
 ## Sources
 

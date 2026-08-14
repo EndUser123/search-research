@@ -140,9 +140,9 @@ The research confirms our architecture choices:
 
 ## Related
 
-- [[wiki/concepts/design-doc-spec-system-patterns]] — prior run's findings; this concept refines with deeper repo investigation
-- [[wiki/concepts/mandatory-step-enforcement-code-over-prose]] — our linter is an instance of the "Compiled AI" validation gauntlet
-- [[wiki/concepts/skill-step-downgraded-from-action-to-note]] — the momentum problem that makes all of this necessary
+- [[design-doc-spec-system-patterns]] — prior run's findings; this concept refines with deeper repo investigation
+- [[mandatory-step-enforcement-code-over-prose]] — our linter is an instance of the "Compiled AI" validation gauntlet
+- [[skill-step-downgraded-from-action-to-note]] — the momentum problem that makes all of this necessary
 
 ## Sources
 

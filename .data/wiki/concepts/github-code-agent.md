@@ -138,13 +138,13 @@ Synthesized from **15 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[agentpipe-(kevinelliott/agentpipe)---multi-agent-orchestration-cli]] — AgentPipe (kevinelliott/agentpipe) - multi-agent orchestration CLI
-- [[textual-tui-framework---underlying-terminal-ui-toolkit]] — Textual TUI framework - underlying terminal UI toolkit
-- [[rich-library---terminal-formatting-backbone]] — Rich library - terminal formatting backbone
-- [[pydantic-ai---structured-output-agent-framework]] — Pydantic AI - structured-output agent framework
-- [[dbos-durable-execution---checkpointing-integration]] — DBOS durable execution - checkpointing integration
-- [[harbor---containerized-eval-sandbox-backend]] — Harbor - containerized eval sandbox backend
-- [[openthoughts-agent---data-recipes-for-training-agentic-models]] — OpenThoughts-Agent - data recipes for training agentic models
+- /agentpipe-(kevinelliott/agentpipe)---multi-agent-orchestration-cli — AgentPipe (kevinelliott/agentpipe) - multi-agent orchestration CLI
+- /textual-tui-framework---underlying-terminal-ui-toolkit — Textual TUI framework - underlying terminal UI toolkit
+- /rich-library---terminal-formatting-backbone — Rich library - terminal formatting backbone
+- /pydantic-ai---structured-output-agent-framework — Pydantic AI - structured-output agent framework
+- /dbos-durable-execution---checkpointing-integration — DBOS durable execution - checkpointing integration
+- /harbor---containerized-eval-sandbox-backend — Harbor - containerized eval sandbox backend
+- /openthoughts-agent---data-recipes-for-training-agentic-models — OpenThoughts-Agent - data recipes for training agentic models
 
 ## Citations (from contributing transcripts)
 

@@ -180,8 +180,8 @@ These mental models are not isolated to `/tp` and `/brainstorming`. They feed in
 
 ## Related
 
-- [[wiki/concepts/mental-models-for-handoff-and-aar]] — companion analysis; this extends to /tp and /brainstorming
-- [[wiki/concepts/mandatory-step-enforcement-code-over-prose]] — the prose-vs-code distinction is itself a double-loop + pre-mortem finding
+- [[mental-models-for-handoff-and-aar]] — companion analysis; this extends to /tp and /brainstorming
+- [[mandatory-step-enforcement-code-over-prose]] — the prose-vs-code distinction is itself a double-loop + pre-mortem finding
 
 ## Sources
 

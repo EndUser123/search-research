@@ -99,9 +99,9 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[notebooklm]] — NotebookLM
-- [[transcript-provenance]] — Transcript Provenance
-- [[source-derived-concepts]] — Source-Derived Concepts
+- /notebooklm — NotebookLM
+- /transcript-provenance — Transcript Provenance
+- /source-derived-concepts — Source-Derived Concepts
 
 ## Citations (from contributing transcripts)
 
