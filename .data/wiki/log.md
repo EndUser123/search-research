@@ -1,5 +1,17 @@
 # Vault Log
 
+## Three-tier hedge detection: regex + structural + NLTK POS
+Source: session-20260813
+Agent: grok
+Notes: Architectural decision for uncertainty_gate Stop hook. Supersedes pure-regex approach.
+Page: P:/.data/wiki/concepts/three-tier-hedge-detection-regex-structural-nltk.md
+
+## git-hook-enforcement-repos-and-ports-for-grok-build
+Source: session-019ffd2a /www
+Agent: grok
+Notes: dcg for destructive-git, gitleaks --staged for performance, anti-bleed wiring
+Page: concepts/git-hook-enforcement-repos-and-ports-for-grok-build.md
+
 ## Automation Surprise as Diagnostic Signal
 Source: session 019ffb95 /tp improve
 Agent: grok
