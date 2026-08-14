@@ -633,3 +633,8 @@ packages/.github_repos/
 packages/installers/ornith-server.log*
 
 .artifacts/grok-aar/*/preprocess/
+
+# Regenerable package caches and runtime output
+.pnpm-store/
+.logs/
+.continue/
