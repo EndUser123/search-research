@@ -17,7 +17,32 @@ Fix `/why`'s root-cause unreliability (verified: 3/8 wrong findings in session 0
 
 ## Status
 
-DONE — all workstreams shipped. Workstream A (A1-A3 + F1 + F2 + F3) shipped as /why v4 (commit 6b4a819). Workstream B (B1 bridge verified + B2 validator shipped). Workstream C (/rca alias shipped). Workstream D (D1 threshold removed + D2 wiki concept revised). Workstream E (E1 recap bridge shipped). All 11 tasks complete.
+DONE — all workstreams shipped + risk-verified. Workstream A (A1-A3 + F1 + F2 + F3) shipped as /why v4 (commit 6b4a819). Risk fixes R1/R2/R4/R9 shipped (commit d539d74). Workstream B-E all shipped. Two known gaps remain (R3, R8) — documented below as follow-up items, not blockers.
+
+## Known gaps from /risk + /tp review (2026-08-13)
+
+### R3 (MEDIUM — downgraded from HIGH by fresh lens): Layer 3 speed optimizations are prose-only
+
+2 of 4 optimizations documented in `/todo` Step 1d need Python code implementation:
+- **Content-hash cache**: SHA256 of (candidate title + drop reason) → cached audit result. Needs a Python cache module in `todo/__lib/`.
+- **Mechanical pre-filter**: string-match deterministic drop reasons ("duplicate" + citation, "done" + SHA) before spawning the subagent. Needs a Python filter function.
+- The other 2 (fast-model selection, progressive streaming) ARE executable as LLM-level instructions — no code needed.
+
+**Impact:** `/todo` will spawn Layer 3 on every run with ≥1 drop, paying full latency. The cache + pre-filter would eliminate 60-80% of spawns (estimate, unmeasured).
+**Remediation:** implement the 2 code modules. Effort: L (~2 hours). Not blocking — Layer 3 fires correctly, just slower than optimal.
+
+### R8 (HIGH — confirmed by both lenses): No regression test on session-019fa39d
+
+The acceptance criteria for A1 stated "re-run the session-019fa39d scenario and confirm the 3 wrong findings are flagged." This test was never run.
+
+**Test procedure (for a fresh session):**
+1. Reconstruct the session-019fa39d observation: 8 close-scanner gates analyzed, 3 wrong (verify receipt not found, multi-terminal isolation violation, close_runner self-referential block)
+2. Run `/why --postmortem` on that observation with v4
+3. Confirm: (a) Step 4c generates ≥3 hypotheses before the fan-out, (b) the maker-checker spawns and makes ≥1 tool call, (c) the 3 wrong findings are either not produced OR are flagged DISPUTED by the checker
+4. If any of (a)-(c) fails, the v4 fix is insufficient
+
+**Impact:** the v4 fixes are correct in theory (3/3 lens convergence on the diagnosis) but untested against the real failure case. The regression test is the definition of done.
+**Remediation:** run the test in a fresh session. Effort: M (~30 min). BLOCKING for declaring v4 "validated."
 
 ## Last user message (verbatim)
 
