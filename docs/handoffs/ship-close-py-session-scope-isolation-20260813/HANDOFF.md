@@ -1,7 +1,7 @@
 # Handoff: ship-py + close-py session scope isolation and multi-terminal immunity
 
 ## Status
-OPEN — needs-refinement → ready-to-implement
+OPEN — items 1-3 SHIPPED this session; item 3 (compaction chain) and item 4 (scope_quality flag) still open
 
 ## Objective
 
@@ -184,3 +184,20 @@ None — all four root causes are identified with file:line evidence.
 - close-py coverage: `degraded: true` from scanning 449 sibling handoffs
 - Handoff already written: `P:\docs\handoffs\ship-py-regret-scan-scope-contamination\HANDOFF.md`
 - Wiki concept: `utf-8-bom-breaks-python-frontmatter-parsers.md` (related BOM fix)
+
+---
+
+## Revision 1 — 2026-08-13T22:30:00Z (session 019ffb95)
+
+**Trigger:** auto-update — items 1-3 were shipped this session.
+
+**What changed since the original:**
+- ✅ **Item 1 (regret_scan.py scope):** FIXED. `git diff HEAD` now scoped to session files via `-- <files>`. Commit `d35206b`.
+- ✅ **Item 2 (close-py coverage handoff filtering):** FIXED. `scanners.py:431` now reads 4KB frontmatter only instead of full handoff file. Commit `d35206b`.
+- ✅ **Item 3 (BOM hardening):** FIXED. `script_scan.py:617` now uses `encoding="utf-8-sig"`. Commit `d35206b`.
+- ⏳ **Item 4 (compaction chain support):** Not started. `_get_session_files()` still reads only current segment's hunk log.
+- ⏳ **Item 5 (scope_quality flag):** Not started.
+
+**Validation:** ship-py run-all confirmed regret-scan passes with 0 findings (was 10 false positives). Close-py coverage still reports degraded — the 4KB read fix helped performance but the scanner still processes all 449 handoffs (session-scoping at the handoff-filter level hasn't been implemented yet).
+
+**Remaining work:** items 4-5 from the original handoff + close-py coverage session-scoping.
