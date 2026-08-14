@@ -1,5 +1,11 @@
 # Vault Log
 
+## Gate Auto-Fix: Static Safe/Unsafe Fix Registry
+Source: session 019ffb95
+Agent: grok
+Notes: design decision for ship-py pre-review gate auto-fix mechanism
+Page: concepts/gate-auto-fix-static-safe-unsafe-registry.md
+
 ## [2026-08-13] ingest | Scanner skill landscape: inventory and capability map
 Source: session-2026-08-13
 Agent: grok
