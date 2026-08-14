@@ -10,7 +10,13 @@ last_updated_at: 2026-08-14T02:30:00Z
 status: open
 handoff_type: architectural
 accurate_as_of_head: f2c2a51
+assigned_to: grok
+assigned_at: 2026-08-14T04:32:33
+assigned_by: 019ffc5c-22cc-7453-a45c-613fb50d6cf1
 ---
+
+
+
 
 # Scanner skill decomposition: /defect, /risk, /insight
 
@@ -34,10 +40,14 @@ OPEN — design complete, implementation not started
 2. `P:/.data/wiki/concepts/discover-first-prompt-patterns-for-unbiased-work-item-discovery.md` — the category taxonomy (blocker/error/inefficiency/risk/opportunity/unknown/other) and 5 bias-checking templates from the Perplexity research
 3. `P:/.data/wiki/concepts/todo-triage-insight-skill-separation-crud-vs-analysis-vs-discovery.md` — the architectural decision for skill separation (CRUD vs analysis vs discovery)
 4. `P:/.data/wiki/concepts/delegation-memory-evidence-based-model-routing.md` — evidence-based routing vision (Phase 1/2)
-5. `C:/Users/brsth/.grok/skills/todo/SKILL.md` — the current /todo scanner including Step 0.5 (parallel /insight + /aar subagents)
-6. `C:/Users/brsth/.grok/skills/insight/SKILL.md` — the current /insight skill (10 categories, dual-stream routing)
-7. `P:/.data/wiki/concepts/capability-node-architecture.md` — the two-layer capability node system (lean contracts + design notes)
-8. `P:/.data/wiki/concepts/skill-graph-representational-limits.md` — why the skill graph can't represent scanning relationships (and how capability nodes fix it)
+5. `P:/.data/wiki/concepts/orchestration-engine-decision-langgraph.md` — LangGraph chosen as orchestration engine (written this session)
+6. `P:/.data/wiki/concepts/agentic-sdlc-skill-lifecycle-architecture.md` — the SDLC lifecycle mapping against industry standard
+7. `C:/Users/brsth/.grok/skills/todo/SKILL.md` — the current /todo scanner including Step 0.5 (parallel /insight + /aar subagents)
+8. `C:/Users/brsth/.grok/skills/insight/SKILL.md` — the current /insight skill (10 categories, dual-stream routing)
+9. `P:/.data/wiki/concepts/capability-node-architecture.md` — the two-layer capability node system (lean contracts + design notes)
+10. `P:/.data/wiki/concepts/skill-graph-representational-limits.md` — why the skill graph can't represent scanning relationships (and how capability nodes fix it)
+11. `P:/packages/.chat_exports/2026-08-10_-_Kestra_For_LLM_Skills.md` — the orchestration bake-off comparison (Python vs LangGraph vs Kestra vs Temporal)
+12. `P:/packages/.chat_exports/2026-08-10_-_Explain_Agentic_Skill_Graphs.md` — the layered architecture proposal (capability graph + orchestration engine + model router)
 
 ## Verified facts
 
@@ -152,6 +162,23 @@ OPEN — design complete, implementation not started
 - **Current lead:** (B) /dream stays separate — it writes proposal files for promotion, not inline findings
 - **What would change:** If dream proposals are consistently treated as insight findings.
 
+### D4: Orchestration engine — RESOLVED: LangGraph
+
+- **Decision:** LangGraph is the orchestration engine for skill pipeline execution. See `[[orchestration-engine-decision-langgraph]]`.
+- **Rationale:** Maps directly onto /go phase architecture (state + nodes + edges + conditional routing + checkpointing + interrupts). Python-native, no external server. Deterministic enforcement breaks the ~50% prose-rule compliance ceiling.
+- **Validation step:** Before broad adoption, run the bake-off — take 5-10 existing /go transitions, encode as LangGraph graph, compare against prose-driven orchestration for skipped capabilities, invalid transitions, and premature completions.
+
+### AC-CONSOLIDATE-06: LangGraph bake-off — validate deterministic enforcement
+
+- **goal:** Take 5-10 existing /go transitions, encode as a LangGraph graph, compare against prose-driven orchestration for skipped capabilities, invalid transitions, and premature completions
+- **in scope:** Pick one real task that previously caused the agent to violate /go; implement the same mini-pipeline in LangGraph (recon → validate → implement → test → review → complete); run adversarial tests (lying agent, premature completion, missing evidence); measure outcomes
+- **out of scope:** Full fleet migration to LangGraph; rewriting all skills
+- **files:** New `P:/packages/langgraph-pilot/` directory with the graph definition, test cases, and results
+- **acceptance:** LangGraph enforcement measurably reduces skipped capabilities and invalid transitions compared to prose-driven /go (same task, same models, same prompts)
+- **falsifier:** LangGraph shows no improvement over prose rules for the same transitions (dependency adds cost without benefit)
+- **verification level:** LIVE_BEHAVIOR
+- **estimate:** 3-4 hours (graph definition + test cases + comparison)
+
 ## Hard constraints
 
 - `/todo` remains the aggregation hub — it invokes the 3 scanners in parallel and merges by tier
@@ -219,4 +246,5 @@ OPEN — design complete, implementation not started
 
 | Date | Session | Action |
 |------|---------|--------|
+| 2026-08-14T04:32:33 | 019ffc5c... | claimed by grok |
 | 2026-08-14T02:30 | 019ffc5c | created |

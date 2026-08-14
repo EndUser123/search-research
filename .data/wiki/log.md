@@ -1,5 +1,11 @@
 # Vault Log
 
+## [2026-08-13] ingest | Orchestration engine decision: LangGraph for skill pipeline execution
+Source: session-2026-08-13
+Agent: grok
+Notes: LangGraph chosen as orchestration engine
+Page: wiki/concepts/orchestration-engine-decision-langgraph.md
+
 ## Gate Auto-Fix: Static Safe/Unsafe Fix Registry
 Source: session 019ffb95
 Agent: grok
