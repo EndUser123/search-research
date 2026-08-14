@@ -1,7 +1,0 @@
-# This file lists modules that the Test Coverage Analyst should ignore.
-# Add file paths or glob patterns (e.g., "yt_sync/module.py", "yt_sync/tui/*").
-
-# TUI is not complete and should not be tested yet.
-yt_sync/tui*
-dev/
-docs/

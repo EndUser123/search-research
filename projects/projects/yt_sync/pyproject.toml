@@ -1,6 +1,0 @@
-[project]
-name = "yt-sync"
-version = "85.0"
-
-[tool.setuptools]
-packages = ["yt_sync"]

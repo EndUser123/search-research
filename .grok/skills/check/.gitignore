@@ -1,4 +1,0 @@
-# Test/framework artifacts — never commit
-.pytest_cache/
-__pycache__/
-*.pyc

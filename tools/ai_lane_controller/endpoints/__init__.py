@@ -1,1 +1,0 @@
-"""Endpoints package — Chrome (CDP) and Claude (terminal adapter) daemons."""

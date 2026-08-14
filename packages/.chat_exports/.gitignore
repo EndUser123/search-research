@@ -1,6 +1,0 @@
-# Large Perplexity export source files (56MB JSON, xlsx) — split into individual .md files instead
-Perplexity-sessions/*.json
-Perplexity-sessions/*.xlsx
-
-# Redundant zips — content is already extracted in sibling directories
-*.zip

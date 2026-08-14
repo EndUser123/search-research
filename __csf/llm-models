@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-cd "$(dirname "$0")" && python src/commands/llm_models.py "$@"

@@ -1,1 +1,0 @@
-P:/packages/cc-skills-thinking/reasoning/ReasoningHooks/reasoning_quality_gate_monitor.py
