@@ -12,10 +12,22 @@ title = "csf"
 [extend]
 useDefault = true
 
-# Path-level allowlist was tried and does NOT work for the pre-commit flow:
-# the hook runs `git diff --cached | gitleaks stdin`, and stdin-scanned
-# findings have File="" (empty), so gitleaks' path allowlist has nothing to
-# match. The catalog cache lists the public "sourcegraph" plugin name next
+# Path-level allowlist for ingested external content. Works as of the
+# 2026-08-13 pre-commit fix: the hook now uses gitleaks git --pre-commit --staged
+# (scans the staged diff in one invocation), which preserves file paths in
+# findings so gitleaks' path allowlist matches correctly.
+#
+# .data/wiki/sources/ contains scraped public docs (Cohere S3 presigned URLs,
+# etc.) and public YouTube transcripts (educational API-key discussions).
+# Secret-shaped strings there are presigned URLs or educational content, not
+# real credentials.
+[allowlist]
+description = "Wiki sources — scraped public docs + public transcripts; secret-shaped strings are presigned URLs or educational content, not real credentials"
+paths = [
+  '''\.data/wiki/sources/.*''',
+]
+
+# The catalog cache lists the public "sourcegraph" plugin name next
 # to 40-char git SHAs, which the default sourcegraph-access-token rule
 # (keyword "sourcegraph" + loose hex regex) reads as a token. The override
 # below tightens that default rule to require the real `sgp_` token prefix.
