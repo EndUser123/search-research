@@ -12,10 +12,13 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 
 -- Sessions: logical conversation threads
+-- provider: which history provider owns this session
+--   ('claude_code_raw', 'codex_desktop', 'claude_log', 'grok_sessions')
 CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY,
     session_key TEXT NOT NULL,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL DEFAULT 'unknown',
     started_at INTEGER NOT NULL,
     ended_at INTEGER,
     is_closed INTEGER NOT NULL DEFAULT 0,
@@ -44,6 +47,7 @@ CREATE TABLE IF NOT EXISTS messages (
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     timestamp INTEGER NOT NULL,
     role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'tool', 'system')),
+    provider TEXT NOT NULL DEFAULT 'unknown',
     content TEXT NOT NULL,
     has_code INTEGER NOT NULL DEFAULT 0,
     has_error INTEGER NOT NULL DEFAULT 0,
@@ -204,6 +208,7 @@ END;
 
 CREATE INDEX IF NOT EXISTS idx_sessions_project_id ON sessions(project_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_messages_provider ON messages(provider);
 CREATE INDEX IF NOT EXISTS idx_turns_session_id ON turns(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_topics_session_id ON session_topics(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_topics_topic_id ON session_topics(topic_id);

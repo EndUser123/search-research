@@ -116,6 +116,23 @@ def _discover_session_files():
     return sorted(results, key=lambda p: p.stat().st_mtime, reverse=True)
 
 
+# Per-process index: session uuid -> chat_history.jsonl path.
+# Avoids re-walking the sessions tree per fetch_session call (O(n^2) otherwise).
+_FILE_INDEX: dict[str, Path] | None = None
+
+
+def _file_for_source(source_id: str) -> Path | None:
+    """Locate a session's chat_history.jsonl via the cached uuid->path index."""
+    global _FILE_INDEX
+    if _FILE_INDEX is None:
+        _FILE_INDEX = {}
+        for chat_file in _discover_session_files():
+            sid = chat_file.parent.name
+            if sid not in _FILE_INDEX:
+                _FILE_INDEX[sid] = chat_file
+    return _FILE_INDEX.get(source_id)
+
+
 def _stale_lock_recovery(lock_path):
     try:
         if lock_path.exists():
@@ -150,6 +167,7 @@ class GrokSessionsProvider:
                 "type": "session",
                 "cwd": info["cwd"],
                 "project": info["project"],
+                "path": str(chat_file),
             })
         return sources
 
@@ -246,46 +264,45 @@ class GrokSessionsProvider:
         return events
 
     def fetch_session(self, source_id):
-        for chat_file in _discover_session_files():
-            session_dir = chat_file.parent
-            info = _session_dir_to_source(session_dir)
-            if info["source_id"] != source_id:
-                continue
-            entries = []
-            try:
-                with open(chat_file, encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        try:
-                            obj = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        msg_type = obj.get("type", "")
-                        role = _ROLE_MAP.get(msg_type)
-                        if role is None:
-                            continue
-                        content = _extract_text_content(obj)
-                        if not content.strip():
-                            continue
-                        entries.append({
-                            "type": msg_type, "role": role, "content": content,
-                            "tool_calls": obj.get("tool_calls"),
-                            "tool_call_id": obj.get("tool_call_id"),
-                        })
-            except OSError:
-                return {}
-            if not entries:
-                return {}
-            mtime = chat_file.stat().st_mtime
-            return {
-                "session_id": source_id, "entries": entries,
-                "message_count": len(entries),
-                "started_at": datetime.fromtimestamp(mtime, tz=UTC).isoformat(),
-                "cwd": info["cwd"], "project": info["project"],
-            }
-        return {}
+        chat_file = _file_for_source(source_id)
+        if chat_file is None:
+            return {}
+        session_dir = chat_file.parent
+        info = _session_dir_to_source(session_dir)
+        entries = []
+        try:
+            with open(chat_file, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    msg_type = obj.get("type", "")
+                    role = _ROLE_MAP.get(msg_type)
+                    if role is None:
+                        continue
+                    content = _extract_text_content(obj)
+                    if not content.strip():
+                        continue
+                    entries.append({
+                        "type": msg_type, "role": role, "content": content,
+                        "tool_calls": obj.get("tool_calls"),
+                        "tool_call_id": obj.get("tool_call_id"),
+                    })
+        except OSError:
+            return {}
+        if not entries:
+            return {}
+        mtime = chat_file.stat().st_mtime
+        return {
+            "session_id": source_id, "entries": entries,
+            "message_count": len(entries),
+            "started_at": datetime.fromtimestamp(mtime, tz=UTC).isoformat(),
+            "cwd": info["cwd"], "project": info["project"],
+        }
 
     def fetch_message(self, source_id, message_id):
         parts = message_id.rsplit("_", 1)
