@@ -88,7 +88,9 @@ def classify(state: DefectState) -> DefectState:
     target_path = Path(target)
     target_str = str(target_path).lower().replace("\\", "/")
 
-    if target_str.endswith(".py") or "/src/" in target_str or "/packages/" in target_str:
+    if _SESSION_ID_RE.match(target.strip()) or target.strip().lower() in ("latest", "current"):
+        state["defect_type"] = "session"
+    elif target_str.endswith(".py") or "/src/" in target_str or "/packages/" in target_str:
         state["defect_type"] = "code"
     elif "/skills/" in target_str and target_path.name == "SKILL.md":
         state["defect_type"] = "skill"
@@ -418,15 +420,185 @@ def scan_doc(state: DefectState) -> DefectState:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Node 2e: SCAN SESSION — unverified claims (simplified for pilot)
+# Node 2e: SCAN SESSION — unverified claims in the session transcript chain
 # ─────────────────────────────────────────────────────────────────────────────
 
+# [FACT]/[INFERENCE] assertion markers in assistant output (epistemic format)
+_FACT_RE = re.compile(r"\[FACT\]", re.IGNORECASE)
+_RECEIPT_RE = re.compile(
+    # tool-call receipts that back a claim: file:line, exit code, command output
+    r"(?:source:|receipt:|\(source:|\(receipt:|exit (?:code)?:|→ "
+    r"|tool[_ ]call|toolcall|verified via|cited? (?:from|at)|"
+    r"file:[^\s]+\.(?:py|md|json|toml)|https?://[^\s\)\"]+)",
+    re.IGNORECASE,
+)
+# session id: 8-4-4-4-12 hex
+_SESSION_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
+
+
+def _find_session_dir(session_id: str) -> Path | None:
+    """Locate the session directory under ~/.grok/sessions/<encoded-cwd>/<id>."""
+    sessions_root = Path.home() / ".grok/sessions"
+    if not sessions_root.exists():
+        return None
+    for encoded_cwd_dir in sessions_root.iterdir():
+        if not encoded_cwd_dir.is_dir():
+            continue
+        session_dir = encoded_cwd_dir / session_id
+        if session_dir.exists():
+            return session_dir
+    return None
+
+
+def _load_session_lines(session_id: str) -> list[str]:
+    """Load chat_history.jsonl + compaction segment_*.md as synthetic JSONL lines.
+
+    Mirrors scan_transcript.py's loader: post-compaction history first, then
+    pre-compaction segments (assistant turns wrapped as role=assistant entries,
+    user turns as role=user entries).
+    """
+    session_dir = _find_session_dir(session_id)
+    if not session_dir:
+        return []
+
+    lines: list[str] = []
+    chat_path = session_dir / "chat_history.jsonl"
+    if chat_path.exists():
+        with open(chat_path, encoding="utf-8", errors="replace") as f:
+            lines.extend(f)
+
+    compaction_dir = session_dir / "compaction"
+    if compaction_dir.is_dir():
+        for seg in sorted(compaction_dir.glob("segment_*.md")):
+            try:
+                seg_text = seg.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for para in seg_text.split("\n\n"):
+                if not para.strip():
+                    continue
+                # Best-effort role detection from the segment's plain markdown
+                if para.lstrip().startswith(("#", "**Human", "**User", "> ")):
+                    role = "user"
+                else:
+                    role = "assistant"
+                lines.append(json.dumps({"type": role, "message": {"content": {"text": para}}}))
+
+    return lines
+
+
 def scan_session(state: DefectState) -> DefectState:
-    """Scan a session transcript for unverified assertions (simplified)."""
-    # Placeholder for pilot — full implementation requires transcript parsing
-    # which is already in scan_transcript.py
-    state["findings"] = state.get("findings", [])
+    """Scan the session transcript chain for defect-tier issues.
+
+    Detects [FACT]-labeled assertions that lack a backing receipt in the
+    same message (the epistemic-format defect: a claim stated as fact with
+    no citation). This is the mechanical layer; LLM judgment layers on top.
+    """
+    findings = state.get("findings", [])
+    target = state["target"]
+
+    # Resolve the session id: explicit id, or "latest" inference
+    session_id = target.strip()
+    if session_id in ("latest", "current", "."):
+        session_id = _latest_session_id()
+    if not session_id or not _SESSION_ID_RE.match(session_id):
+        findings.append(Finding(
+            id="SESSION-TARGET-001",
+            severity="REVISE",
+            title="Invalid session target",
+            detail=f"'{target}' is not a session id (use a UUID or 'latest').",
+            evidence="",
+            source="session_scan",
+        ).to_dict())
+        state["findings"] = findings
+        return state
+
+    lines = _load_session_lines(session_id)
+    if not lines:
+        findings.append(Finding(
+            id="SESSION-LOAD-001",
+            severity="REVISE",
+            title=f"No transcript found for session {session_id[:8]}",
+            detail="Session dir or chat_history.jsonl not found under ~/.grok/sessions/.",
+            evidence="",
+            source="session_scan",
+        ).to_dict())
+        state["findings"] = findings
+        return state
+
+    fact_no_receipt = 0
+    first_offender = None
+    session_dir = _find_session_dir(session_id)
+    chat_rel = ""
+    if session_dir is not None:
+        chat_rel = str(session_dir / "chat_history.jsonl")
+
+    for i, line in enumerate(lines):
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if entry.get("type") not in ("assistant",):
+            continue
+        text = _extract_text(entry)
+        if not text or not _FACT_RE.search(text):
+            continue
+        if not _RECEIPT_RE.search(text):
+            fact_no_receipt += 1
+            if first_offender is None:
+                excerpt = text.strip().replace("\n", " ")[:100]
+                first_offender = (excerpt, i + 1)
+
+    if fact_no_receipt:
+        findings.append(Finding(
+            id="SESSION-FACT-001",
+            severity="REVISE",
+            title=f"{fact_no_receipt} assistant message(s) assert [FACT] with no receipt",
+            detail=(
+                f"First offender (line {first_offender[1]}): \"{first_offender[0]}...\" — "
+                "claims labeled [FACT] must cite a receipt in the same message "
+                "(source:, exit code, file:line, or URL)."
+            ),
+            evidence=f"{chat_rel}:{first_offender[1]}" if chat_rel else "",
+            source="session_scan",
+        ).to_dict())
+
+    state["findings"] = findings
     return state
+
+
+def _extract_text(entry: dict) -> str:
+    """Pull assistant text out of a chat_history.jsonl entry, tolerating shapes."""
+    msg = entry.get("message", entry)
+    content = msg.get("content", msg)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, dict):
+        text = content.get("text", "")
+        if isinstance(text, list):  # content blocks
+            text = " ".join(
+                b.get("text", "") for b in text if isinstance(b, dict)
+            )
+        return str(text)
+    return ""
+
+
+def _latest_session_id() -> str:
+    """Infer the most recently modified session dir across encoded cwds."""
+    sessions_root = Path.home() / ".grok/sessions"
+    if not sessions_root.exists():
+        return ""
+    best_mtime, best_id = 0.0, ""
+    for encoded_cwd_dir in sessions_root.iterdir():
+        if not encoded_cwd_dir.is_dir():
+            continue
+        for session_dir in encoded_cwd_dir.iterdir():
+            if not session_dir.is_dir():
+                continue
+            mtime = session_dir.stat().st_mtime
+            if mtime > best_mtime:
+                best_mtime, best_id = mtime, session_dir.name
+    return best_id
 
 
 # ─────────────────────────────────────────────────────────────────────────────
