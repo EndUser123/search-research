@@ -4,7 +4,7 @@ title: "Fleet model registry migration: static JSON → SQLite + git-versioned c
 created: 2026-08-13T22:47:00Z
 session: 019fee3d-50cb-7553-83c6-558c06919132
 status: OPEN
-last_updated_at: 2026-08-13T23:15:00Z
+last_updated_at: 2026-08-14T00:55:00Z
 ---
 
 # Handoff — Fleet model registry migration
@@ -244,9 +244,11 @@ pattern (see "Stale JSONL consumers" below). When the data source changes,
 it's a one-file change, not a multi-file audit. Phase 2+ will add query
 functions for quarantine, telemetry counts, discovery probe results, etc.
 
-### Phase 2: quarantine.json → SQLite quarantine table [SHIPPED — 1 DEFECT]
+### Phase 2: quarantine.json → SQLite quarantine table [SHIPPED — D1 FIXED]
 
-**Status:** Read side complete (commit `6df3890`, 2026-08-13). **Defect D1 found by preflight 2026-08-14:** `PostToolUseFailure_spawn_quota.py:587 write_quarantine_record()` still writes quarantine.json. Read is either-or (SQLite first), so any SQLite row hides hook-written JSON records. **Fix before Phase 3:** (1) merge both stores in `load_quarantine_records()` (union on candidate_id+level, newest reprobe_after wins), (2) hook dual-writes (fleet_db.insert_quarantine + legacy JSON) during transition.
+**Status:** Complete. Read side (commit `6df3890`, 2026-08-13). D1 fix (commit `d105c07`, 2026-08-14): `load_quarantine_records()` now MERGES both stores (union on candidate_id+level, newest `quarantined_at` wins); `PostToolUseFailure_spawn_quota.py write_quarantine_record()` dual-writes (legacy JSON atomic replace + `fleet_db.insert_quarantine`). Tests: merge-survival + newest-wins (426/426 pass).
+
+**Still open from original scope (fold into Phase 3):** serde_broken / spawn_broken arrays → quarantine table entries; `circuit_breaker.py` write path via `fleet_db.py`; JSON file removal after transition window.
 
 **Scope:** Move circuit-breaker state to SQLite. Add quarantine query
 functions to `fleet_db.py` so all consumers go through the data access layer.
@@ -267,12 +269,18 @@ functions to `fleet_db.py` so all consumers go through the data access layer.
 
 ### Phase 3: fleet-models.json split + stale consumer migration + EOL wiring
 
-**Preflight status (2026-08-14): NEEDS REVIEW — 3 blockers. Packet: `P:/tmp/preflight-phase34-report.md`.**
+**Preflight status (2026-08-14): NEEDS REVIEW — blockers reduced to 2 (D1 fixed; Codex disposition LOCKED = (a)). Packet: `P:/tmp/preflight-phase34-report.md`.**
 
-**Consumers MISSING from original scope (must add):**
-- `packages/codex-external-delegation/src/model-selector.mjs:5` — hardcodes fleet-models.json as DEFAULT_FLEET_REGISTRY; constraint violation with `[[codex-pi-grok-schema-v5-registry-integration]]` ("schema 5 is the only live registry contract"). Disposition needed: migrate selector in-phase OR keep generated fleet-models.json as compat export.
-- `~/.grok/hooks/PreToolUse_spawn_model_gate.py:40` — reads registry every spawn (serde_broken, fallbacks). Needs dual-read transition (multi-terminal isolation).
-- `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — serde_broken consumer + quarantine.json writer (see Phase 2 defect D1).
+**DISPOSITION (a) LOCKED 2026-08-14 (operator decision):** the Codex selector migrates in-phase to the split stores. NO compat export. Mechanics: `model-selector.mjs` keeps reading JSON but switches to `fleet-config.json` + a `model_metadata.json` export emitted from SQLite by `fleet_db.py` at write time (same dual-write pattern as D1) — avoids any Node-SQLite dependency. **Acceptance condition: run the Codex test suite (`cd P:/packages/codex-external-delegation && node --test`) as part of Phase 3 verification — the cross-language change must be verified, not assumed.** Also update wiki `[[codex-pi-grok-schema-v5-registry-integration]]` (the "schema 5 fleet-models.json contract" wording becomes obsolete when the file dies).
+
+**Remaining blockers (both now have concrete plans):**
+- `~/.grok/hooks/PreToolUse_spawn_model_gate.py:40` — reads registry every spawn (serde_broken, fallbacks). Gets the same dual-read transition (new stores first, fleet-models.json fallback) so in-flight sessions on other terminals don't break at cutover.
+- `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — serde_broken consumer; quarantine write side already fixed (D1). Remains in scope for serde_broken → quarantine-table migration.
+
+**Consumers MISSING from original scope (all now in scope):**
+- `packages/codex-external-delegation/src/model-selector.mjs:5` — see disposition (a) above. Its test suite: `model-selector.test.mjs`, `policy.test.mjs`, `route.test.mjs`.
+- `~/.grok/hooks/PreToolUse_spawn_model_gate.py:40` — dual-read transition (multi-terminal isolation).
+- `~/.grok/hooks/PostToolUseFailure_spawn_quota.py` — serde_broken consumer + quarantine.json writer (write side fixed in D1).
 - `model-quota/scripts/snapshot_manager.py:47` — registry + threshold_policy snapshots (also Phase 4 consumer; migrate once).
 - `model-benchmark/scripts/benchmark.py:37` — coverage print + slug defaults.
 - Historical (classify, no action): migrate_registry.py, migrate_to_v4.py.
@@ -295,6 +303,9 @@ Wire EOL detector from discovery probe data.
 
 **Acceptance criteria:**
 - No `fleet-models.json` file exists
+- Codex selector reads the split stores; `node --test` in `packages/codex-external-delegation` passes
+- Both hooks read via the new stores with fleet-models.json fallback during transition
+- Wiki `codex-pi-grok-schema-v5-registry-integration` updated to the new contract
 - No script reads `usage.jsonl` directly (all go through `fleet_db.py`)
 - Operator edits `fleet-config.json` (git-versioned) for capabilities/policy
 - Automation writes lifecycle/promotion to `model_metadata` table via `fleet_db.py`
@@ -302,7 +313,7 @@ Wire EOL detector from discovery probe data.
 - EOL detector flags models with <50% discovery probe success in 7-day window
 - Cohere quota counter returns correct count from SQLite
 - Pool health reports use current data from SQLite
-- All existing tests pass
+- All existing tests pass (model-quota suite + ship-py suite)
 
 ### Phase 4: threshold_policy → SQLite
 
@@ -321,6 +332,35 @@ Wire EOL detector from discovery probe data.
 4. Evidence refreshes after benchmark batches (Option A) + EOL staleness signal
 5. Operator edits JSON directly (Option A), CLI for runtime overrides
 6. Incremental implementation, 3-4 phases, each independently shippable
+7. **Codex selector disposition (a)** (2026-08-14): migrate `model-selector.mjs` in Phase 3 to the split stores via JSON export from SQLite. NO compat export of fleet-models.json. Codex test suite is a Phase 3 acceptance gate.
+8. **2 lanes only** (2026-08-13, shipped): coding + reasoning. Critic/mechanical lanes eliminated; cross-family exclusion is a dynamic filter (reads orchestrator family from `config.toml [models].default`).
+
+## Cold-start execution guide (Phase 3 — read this first)
+
+**State at handoff:** Phases 1-2 complete and verified. Phase 3 designed, preflighted, disposition locked. Nothing blocked except session budget.
+
+**Read before starting:**
+1. This handoff (architecture + decisions + Phase 3 scope)
+2. `P:/tmp/preflight-phase34-report.md` — full consumer inventory + constraint audit
+3. `~/.grok/skills/model-quota/scripts/fleet_db.py` — the existing data-access-layer pattern (extend it; do not read `usage.db` directly anywhere)
+4. Wiki `[[codex-pi-grok-schema-v5-registry-integration]]` — the contract being superseded
+
+**Suggested implementation order (sub-steps, each independently committable):**
+1. `fleet_db.py`: add `model_metadata` DDL + CRUD + `count_calls_by_provider()` + `detect_suspected_eol()` + the `model_metadata.json` export emitter
+2. Migration script: split existing `fleet-models.json` → `fleet-config.json` (operator fields) + `model_metadata` table (automation fields); commit fleet-config.json to git
+3. `pick_model.py` `load_registry()`: dual-source read (fleet-config.json + model_metadata export/table), join in memory; keep fleet-models.json as fallback
+4. Lane derivation from capabilities (`derive_lanes()` per Decision 2) with operator override field
+5. Hooks dual-read: `PreToolUse_spawn_model_gate.py` (spawn gate must not break concurrent terminals — new stores first, old file fallback)
+6. Codex selector: switch `model-selector.mjs:5` to the new stores; run `node --test` in `packages/codex-external-delegation`
+7. serde_broken/spawn_broken arrays → quarantine-table entries (completes Phase 2 remainder); rewrite `model_router.py:707` filter to query quarantine
+8. Stale consumers: `fleet_quota.py:820` Cohere counter + `pool_health.py:35` via `fleet_db.py`
+9. EOL wiring: `detect_suspected_eol()` → `promote_models.py` sets `lifecycle='suspected_eol'`; lifecycle gate excludes it
+10. Consumer-audit sweep (grep fleet-models.json + usage.jsonl), update wiki concept, THEN delete `fleet-models.json` — deletion is the last step, not the first
+11. Phase 4 (threshold_policy → SQLite) after Phase 3 is green
+
+**Test gates per step:** model-quota suite (`cd ~/.grok/skills/model-quota/scripts && python -m pytest ../tests/`), Codex suite (`cd P:/packages/codex-external-delegation && node --test`), and a live picker run (`python pick_model.py reasoning`). Steps 5-6 need extra care: hooks run on every spawn across all terminals.
+
+**Commit both repos:** `~/.grok` repo (skills, hooks, lib) and `P:/` repo (packages, docs). Standing policy: push after each logical unit.
 
 ## Provenance
 
