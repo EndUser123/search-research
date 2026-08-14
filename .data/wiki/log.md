@@ -1,5 +1,11 @@
 # Vault Log
 
+## [2026-08-13] ingest | Scanner skill landscape: inventory and capability map
+Source: session-2026-08-13
+Agent: grok
+Notes: Scanner landscape inventory + 4 capability nodes for scanning relationships
+Page: wiki/concepts/scanner-skill-landscape-inventory-and-capability-map.md
+
 ## [2026-08-13] ingest | Todo-triage-insight skill separation: CRUD vs analysis vs discovery
 Source: session-2026-08-13
 Agent: grok
