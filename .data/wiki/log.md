@@ -1,5 +1,11 @@
 # Vault Log
 
+## --concept
+Source: zai-glm-coding-plan-rate-limits-and-model-cards
+Agent: --action
+Notes: created
+Page: --source
+
 ## [2026-08-13] ingest | Orchestration engine decision: LangGraph for skill pipeline execution
 Source: session-2026-08-13
 Agent: grok

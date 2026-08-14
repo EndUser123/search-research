@@ -1,6 +1,6 @@
 ---
 title: "Skill dependency graph: who calls what and who consumes which providers"
-created: 2026-08-13
+created: 2026-08-14
 source: auto-generated
 generator: P:/.data/wiki/scripts/build_skill_graph.py
 tags: [skill-graph, dependencies, providers, delegation, blast-radius, maintenance, reference]
@@ -43,7 +43,7 @@ When a provider is disabled/broken/migrated, these skills need updates:
 | `chrome-devtools-mcp-tools` | 1 | `model-web` |
 | `codex` | 11 | `codex`, `codex-cli-runtime`, `executing-plans`, `mmx`, `model-benchmark`, `resume-codex`, `review`, `review-relay`, `talking-head-recut`, `tp`, `wargame` |
 | `coding-model-pool` | 2 | `go`, `review` |
-| `context7` | 2 | `claude-automation-recommender`, `refactor` |
+| `context7` | 3 | `claude-automation-recommender`, `context7`, `refactor` |
 | `critic-model-pool` | 3 | `aar`, `review`, `tp` |
 | `ddg` | 5 | `go`, `search-fleet`, `tp`, `web`, `www` |
 | `duckduckgo` | 2 | `bright-data-best-practices`, `web` |
@@ -56,14 +56,16 @@ When a provider is disabled/broken/migrated, these skills need updates:
 | `mechanical-model-pool` | 3 | `handoff`, `refine`, `www` |
 | `minimax-search` | 1 | `design` |
 | `mmx` | 11 | `design`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `minimax-music-playlist`, `mmx`, `model-benchmark`, `model-quota`, `search-fleet`, `web`, `wiki-yt`, `www` |
-| `nlm` | 6 | `aar`, `go`, `nlm`, `nlm-to-wiki`, `refactor`, `wiki-yt` |
-| `notebooklm` | 5 | `nlm`, `todo`, `wiki-yt`, `wowerpoint`, `yt-nlm` |
+| `nlm` | 7 | `aar`, `gitingest`, `go`, `nlm`, `nlm-to-wiki`, `refactor`, `wiki-yt` |
+| `notebooklm` | 6 | `nlm`, `todo`, `web`, `wiki-yt`, `wowerpoint`, `yt-nlm` |
 | `perplexity` | 3 | `model-web`, `search-fleet`, `web` |
 | `pwm` | 2 | `perplexity-web-mcp`, `search-fleet` |
+| `py_compile` | 1 | `defect` |
 | `reasoning-model-pool` | 3 | `aar`, `tp`, `why` |
 | `reddit` | 4 | `search-fleet`, `todo`, `web`, `www` |
-| `ruff` | 1 | `doc-check` |
+| `ruff` | 2 | `defect`, `doc-check` |
 | `search-research` | 4 | `prospect`, `search-fleet`, `web`, `why` |
+| `serper` | 1 | `web` |
 | `spawn-subagent` | 4 | `close-py`, `ship-py`, `tp`, `why` |
 | `stackexchange` | 1 | `web` |
 | `tavily` | 10 | `academic-scientific-research`, `investment-research-briefs`, `model-quota`, `product-competitor-intelligence`, `sales-account-intelligence`, `search-fleet`, `tavily-web`, `threat-intelligence-enrichment`, `vendor-risk-kyc-screening`, `web` |
@@ -76,26 +78,26 @@ When a skill changes its interface or behavior, these callers are affected:
 |-------------|-------------|-----------|
 | `aar` | 15 | `ask`, `close-py`, `dream`, `handoff`, `insight`, `model-web`, `notice`, `packet`, `recap-grok`, `skill-dev`, `slc`, `todo`, `tp`, `wargame`, `why` |
 | `agy` | 7 | `check`, `codex`, `mmx`, `model-web`, `search-fleet`, `tp`, `why` |
-| `check` | 19 | `aar`, `ask`, `close-py`, `doc-check`, `doc-compiler`, `dream`, `go`, `grok-verify`, `model-benchmark`, `refactor`, `refine`, `review`, `ship-py`, `skill-dev`, `skill-to-page`, `todo`, `tp`, `triage`, `www` |
+| `check` | 20 | `aar`, `ask`, `close-py`, `defect`, `doc-check`, `doc-compiler`, `dream`, `go`, `grok-verify`, `model-benchmark`, `refactor`, `refine`, `review`, `ship-py`, `skill-dev`, `skill-to-page`, `todo`, `tp`, `triage`, `www` |
 | `chrome-devtools` | 1 | `model-web` |
 | `close` | 14 | `aar`, `ask`, `check`, `close-py`, `dream`, `handoff`, `insight`, `maintain`, `recap-grok`, `review`, `skill-dev`, `todo`, `tp`, `wiki` |
 | `codex` | 5 | `codex-result-handling`, `mmx`, `model-web`, `tp`, `why` |
 | `config-audit` | 1 | `maintain` |
 | `crawl4ai` | 1 | `wiki-crawl4ai` |
 | `create-skill` | 1 | `skill-dev` |
-| `debrief` | 16 | `aar`, `behave`, `claude-audit`, `codex`, `dream`, `friction`, `handoff`, `improve`, `lmc`, `mlc`, `recap`, `recap-grok`, `retro`, `skill-audit`, `top-problems`, `tp` |
-| `design` | 22 | `ask`, `behave`, `code`, `domain-terms`, `dream`, `evolve`, `execute-plan`, `go`, `grill-me`, `handoff`, `plan-writer`, `planning`, `prompt_refiner`, `recap`, `refine`, `s`, `specify`, `tp`, `wargame`, `web`, `why`, `www` |
+| `debrief` | 17 | `aar`, `behave`, `claude-audit`, `codex`, `dream`, `export-session`, `friction`, `handoff`, `improve`, `lmc`, `mlc`, `recap`, `recap-grok`, `retro`, `skill-audit`, `top-problems`, `tp` |
+| `design` | 23 | `ask`, `behave`, `code`, `discover`, `domain-terms`, `dream`, `evolve`, `execute-plan`, `go`, `grill-me`, `handoff`, `plan-writer`, `planning`, `prompt_refiner`, `recap`, `refine`, `s`, `specify`, `tp`, `wargame`, `web`, `why`, `www` |
 | `diagnosing-bugs` | 1 | `ask-matt` |
 | `doc-check` | 1 | `ship-py` |
 | `domain-terms` | 1 | `grill-me` |
-| `fmea` | 1 | `skill-dev` |
-| `go` | 28 | `aar`, `ask`, `check`, `code`, `design`, `doc-check`, `grill-me`, `grok-go`, `grok-parallel`, `grok-sdlc`, `handoff`, `logfire-instrumentation`, `maintain`, `model-benchmark`, `notice`, `plan-writer`, `refactor`, `refine`, `req-check`, `review`, `rns`, `skill-dev`, `todo`, `tp`, `triage`, `wargame`, `why`, `www` |
+| `fmea` | 2 | `defect`, `skill-dev` |
+| `go` | 29 | `aar`, `ask`, `check`, `code`, `design`, `doc-check`, `grill-me`, `grok-go`, `grok-parallel`, `grok-sdlc`, `handoff`, `logfire-instrumentation`, `maintain`, `model-benchmark`, `notice`, `plan-writer`, `refactor`, `refine`, `req-check`, `research`, `review`, `rns`, `skill-dev`, `todo`, `tp`, `triage`, `wargame`, `why`, `www` |
 | `grill-me` | 2 | `ask-matt`, `domain-terms` |
 | `grok-discovery` | 2 | `go`, `grok-parallel` |
 | `grok-parallel` | 2 | `go`, `notice` |
 | `grok-route` | 3 | `go`, `grok-parallel`, `grok-verify` |
 | `grok-safe-git` | 4 | `go`, `grok-parallel`, `grok-verify`, `ship-py` |
-| `grok-verify` | 3 | `go`, `grok-parallel`, `skill-dev` |
+| `grok-verify` | 4 | `defect`, `go`, `grok-parallel`, `skill-dev` |
 | `handoff` | 29 | `aar`, `ask`, `ask-matt`, `behave`, `close-py`, `design`, `dream`, `go`, `insight`, `maintain`, `model-web`, `notice`, `packet`, `plan-writer`, `prompt-patterns`, `rca`, `recap`, `recap-grok`, `refactor`, `refine`, `review-relay`, `risk`, `ship-py`, `skill-dev`, `tp`, `triage`, `why`, `wiki`, `www` |
 | `help` | 1 | `command-development` |
 | `improve-codebase-architecture` | 3 | `ask-matt`, `check`, `diagnosing-bugs` |
@@ -112,7 +114,7 @@ When a skill changes its interface or behavior, these callers are affected:
 | `red-team` | 13 | `claude-audit`, `debrief`, `fmea`, `improve`, `pre-mortem`, `preflight`, `redteam`, `retro`, `review`, `risk`, `risks`, `skill-audit`, `www` |
 | `refactor` | 1 | `ship-py` |
 | `refine` | 9 | `aar`, `design`, `domain-terms`, `dream`, `go`, `grill-me`, `handoff`, `plan-writer`, `refactor` |
-| `review` | 32 | `aar`, `ask`, `behave`, `check`, `claude-audit`, `command-development`, `debrief`, `design-is`, `doc-check`, `domain-terms`, `dream`, `go`, `improve`, `insight`, `learn`, `maintain`, `marketplace-bridge`, `model-benchmark`, `plugin-structure`, `refactor`, `refine`, `review-pr`, `review-relay`, `risks`, `ship-py`, `skill-audit`, `skill-dev`, `sqd`, `todo`, `tp`, `triage`, `uci` |
+| `review` | 33 | `aar`, `ask`, `behave`, `check`, `claude-audit`, `command-development`, `debrief`, `defect`, `design-is`, `doc-check`, `domain-terms`, `dream`, `go`, `improve`, `insight`, `learn`, `maintain`, `marketplace-bridge`, `model-benchmark`, `plugin-structure`, `refactor`, `refine`, `review-pr`, `review-relay`, `risks`, `ship-py`, `skill-audit`, `skill-dev`, `sqd`, `todo`, `tp`, `triage`, `uci` |
 | `risk` | 2 | `req-check`, `ship-py` |
 | `skill-dev` | 8 | `create-skill`, `insight`, `maintain`, `maintain-ifile`, `ship-py`, `todo`, `tp`, `www` |
 | `skill-prune` | 9 | `config-audit`, `create-skill`, `insight`, `maintain`, `maintain-ifile`, `skill-dev`, `todo`, `wiki`, `workspace-health` |
@@ -121,15 +123,16 @@ When a skill changes its interface or behavior, these callers are affected:
 | `test-driven-development` | 1 | `go` |
 | `to-spec` | 1 | `ask-matt` |
 | `to-tickets` | 1 | `ask-matt` |
-| `todo` | 14 | `aar`, `ask`, `design`, `email-skill`, `insight`, `model-quota`, `recap-grok`, `refactor`, `review`, `risk`, `skill-dev`, `tp`, `wiki`, `www` |
+| `todo` | 15 | `aar`, `ask`, `defect`, `design`, `email-skill`, `insight`, `model-quota`, `recap-grok`, `refactor`, `review`, `risk`, `skill-dev`, `tp`, `wiki`, `www` |
 | `tp` | 27 | `aar`, `ask`, `behave`, `design`, `domain-terms`, `dream`, `fmea`, `go`, `handoff`, `insight`, `maintain`, `model-benchmark`, `model-web`, `notice`, `plan-writer`, `recap-grok`, `refactor`, `refine`, `req-check`, `review`, `risk`, `skill-dev`, `slc`, `todo`, `triage`, `why`, `www` |
+| `trace` | 1 | `defect` |
 | `triage` | 2 | `ask-matt`, `setup-matt-pocock-skills` |
 | `using-git-worktrees` | 1 | `go` |
 | `wargame` | 3 | `plan-writer`, `req-check`, `risk` |
 | `wayfinder` | 1 | `ask-matt` |
-| `web` | 5 | `scraper-builder`, `tp`, `why`, `wiki-crawl4ai`, `www` |
-| `why` | 17 | `aar`, `ask`, `behave`, `design`, `dream`, `model-benchmark`, `model-web`, `notice`, `rca`, `review`, `risk`, `skill-dev`, `todo`, `tp`, `triage`, `wargame`, `www` |
-| `wiki` | 39 | `aar`, `claude-audit`, `close-py`, `create-skill`, `debrief`, `design`, `domain-terms`, `dream`, `go`, `grok-safe-git`, `handoff`, `improve`, `insight`, `main`, `maintain`, `maintain-ifile`, `model-benchmark`, `nlm-to-wiki`, `notice`, `plan-writer`, `prompt-patterns`, `rca`, `recap-grok`, `refactor`, `refine`, `req-check`, `review`, `risk`, `ship-py`, `skill-dev`, `todo`, `tp`, `ux`, `wargame`, `web`, `why`, `wiki-crawl4ai`, `wiki-yt`, `www` |
+| `web` | 8 | `find`, `keep`, `note`, `scraper-builder`, `tp`, `why`, `wiki-crawl4ai`, `www` |
+| `why` | 18 | `aar`, `ask`, `behave`, `defect`, `design`, `dream`, `model-benchmark`, `model-web`, `notice`, `rca`, `review`, `risk`, `skill-dev`, `todo`, `tp`, `triage`, `wargame`, `www` |
+| `wiki` | 40 | `aar`, `claude-audit`, `close-py`, `crawl`, `create-skill`, `debrief`, `design`, `domain-terms`, `dream`, `go`, `grok-safe-git`, `handoff`, `improve`, `insight`, `main`, `maintain`, `maintain-ifile`, `model-benchmark`, `nlm-to-wiki`, `notice`, `plan-writer`, `prompt-patterns`, `rca`, `recap-grok`, `refactor`, `refine`, `req-check`, `review`, `risk`, `ship-py`, `skill-dev`, `todo`, `tp`, `ux`, `wargame`, `web`, `why`, `wiki-crawl4ai`, `wiki-yt`, `www` |
 | `wiki-crawl4ai` | 1 | `www` |
 | `wizard` | 1 | `ask-matt` |
 | `writing-great-skills` | 1 | `ask-matt` |
@@ -160,6 +163,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `critical-friend-critique` | `tp` |
 | `cross-model-second-opinion` | `agy`, `codex`, `mmx` |
 | `decision-tree-elicitation` | `grill-me` |
+| `defect-detection` | `defect` |
 | `design-doc-production` | `design` |
 | `discovery-dispatch` | `go` |
 | `documentation-readiness-check` | `doc-check` |
@@ -222,7 +226,7 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `rrf-aggregation` | `search-fleet` |
 | `rrf-merge` | `web` |
 | `safe-git-preflight-dispatch` | `go` |
-| `scan-code-quality` | `check`, `grok-verify`, `review`, `trace` |
+| `scan-code-quality` | `check`, `defect`, `grok-verify`, `review`, `trace` |
 | `scan-risk` | `risk`, `tp` |
 | `scan-session-transcript` | `aar`, `insight`, `todo`, `triage` |
 | `scan-workspace-state` | `maintain`, `skill-prune`, `todo` |
@@ -268,7 +272,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | Service | Type | Consumer count | Skills |
 |---------|------|---------------|--------|
 | `cross-model-second-opinion` | capability | 3 | `agy`, `codex`, `mmx` |
-| `scan-code-quality` | capability | 4 | `check`, `grok-verify`, `review`, `trace` |
+| `scan-code-quality` | capability | 5 | `check`, `defect`, `grok-verify`, `review`, `trace` |
 | `scan-session-transcript` | capability | 4 | `aar`, `insight`, `todo`, `triage` |
 | `scan-workspace-state` | capability | 3 | `maintain`, `skill-prune`, `todo` |
 | `subagent-dispatch` | capability | 5 | `check`, `grok-parallel`, `review`, `tp`, `www` |
@@ -279,8 +283,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `firecrawl` | tool | 17 | `design`, `firecrawl-agent`, `firecrawl-cli`, `firecrawl-crawl`, `firecrawl-download`, `firecrawl-interact`, `firecrawl-map`, `firecrawl-monitor`... |
 | `gh` | tool | 28 | `aar`, `agy`, `codex`, `design`, `dream`, `go`, `grok-discovery`, `grok-parallel`... |
 | `mmx` | tool | 11 | `design`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `minimax-music-playlist`, `mmx`, `model-benchmark`, `model-quota`, `search-fleet`... |
-| `nlm` | tool | 6 | `aar`, `go`, `nlm`, `nlm-to-wiki`, `refactor`, `wiki-yt` |
-| `notebooklm` | tool | 5 | `nlm`, `todo`, `wiki-yt`, `wowerpoint`, `yt-nlm` |
+| `nlm` | tool | 7 | `aar`, `gitingest`, `go`, `nlm`, `nlm-to-wiki`, `refactor`, `wiki-yt` |
+| `notebooklm` | tool | 6 | `nlm`, `todo`, `web`, `wiki-yt`, `wowerpoint`, `yt-nlm` |
 | `tavily` | tool | 10 | `academic-scientific-research`, `investment-research-briefs`, `model-quota`, `product-competitor-intelligence`, `sales-account-intelligence`, `search-fleet`, `tavily-web`, `threat-intelligence-enrichment`... |
 
 ## Capabilities by domain
@@ -446,12 +450,13 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `code-review` | `review` |
 | `content-discipline-for-plans` | `wargame` |
 | `critical-friend-critique` | `tp` |
+| `defect-detection` | `defect` |
 | `failure-modes-analysis` | `fmea` |
 | `risk-assessment` | `risk` |
 | `risk-escalation` | `risk` |
 | `risk-priority-scoring` | `fmea` |
 | `risk-scan` | `risk` |
-| `scan-code-quality` | `check`, `grok-verify`, `review`, `trace` |
+| `scan-code-quality` | `check`, `defect`, `grok-verify`, `review`, `trace` |
 | `scan-risk` | `risk`, `tp` |
 | `session-opportunity-review` | `tp` |
 | `system-exploration` | `tp` |
@@ -519,6 +524,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `ai-probe-nim` | — | — | — |
 | `ai-probe-openrouter` | — | — | — |
 | `ai-probe-router` | — | — | — |
+| `aid` | — | — | — |
+| `all` | — | — | — |
 | `ask` | `aar`, `check`, `close`, `go`, `handoff`, `review`, `todo`, `tp`, `why` | — | `skill-routing` |
 | `ask` | `design` | — | — |
 | `ask-matt` | `diagnosing-bugs`, `grill-me`, `handoff`, `improve-codebase-architecture`, `tdd`, `teach`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `wizard` | — | — |
@@ -563,6 +570,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `chrome-devtools` | — | — | — |
 | `chrome-devtools-cli` | — | `chrome-devtools` | — |
 | `chrome-extensions` | — | — | — |
+| `chs` | — | — | — |
+| `chs` | — | — | — |
+| `chs-eval` | — | — | — |
 | `cks` | — | — | — |
 | `claude-audit` | `debrief`, `red-team`, `review`, `wiki` | — | — |
 | `claude-automation-recommender` | — | `context7` | — |
@@ -597,8 +607,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `configure` | — | — | — |
 | `constitutional-patterns` | — | — | — |
 | `constraints` | — | — | — |
+| `context7` | — | `context7` | — |
 | `contract-status` | — | — | — |
 | `convert-web-app` | — | — | — |
+| `crawl` | `wiki` | — | — |
 | `create-mcp-app` | — | — | — |
 | `create-skill` | `skill-dev`, `skill-prune`, `wiki` | `exa` | `skill-scaffolding` |
 | `create-skill` | — | — | — |
@@ -614,6 +626,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `deepeval` | — | — | — |
 | `deepeval-otel` | — | — | — |
 | `deepeval-tracing` | — | — | — |
+| `defect` | `check`, `fmea`, `grok-verify`, `review`, `todo`, `trace`, `why` | `py_compile`, `ruff` | `defect-detection`, `scan-code-quality` |
 | `design` | `go`, `handoff`, `plan-writer`, `preflight`, `refine`, `todo`, `tp`, `why`, `wiki` | `exa`, `firecrawl`, `gh`, `mmx` | `design-doc-production` |
 | `design` | `preflight` | `minimax-search` | — |
 | `design` | `go` | — | — |
@@ -628,6 +641,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `diagnosing-bugs` | `improve-codebase-architecture` | — | `systematic-debugging` |
 | `diagnosing-bugs` | `improve-codebase-architecture` | — | — |
 | `diagnosing-bugs` | `improve-codebase-architecture` | — | — |
+| `discover` | `design` | — | — |
 | `discover-api` | — | — | — |
 | `dispatching-parallel-agents` | — | — | — |
 | `dispatching-parallel-agents` | — | — | — |
@@ -653,9 +667,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `executing-plans` | — | `codex` | — |
 | `executing-plans` | — | — | — |
 | `execution-clarity` | — | — | — |
+| `export-session` | `debrief` | — | — |
 | `faceless-explainer` | — | — | — |
 | `fetch` | — | — | — |
 | `figma` | — | — | — |
+| `find` | `web` | — | — |
 | `finishing-a-development-branch` | — | — | — |
 | `finishing-a-development-branch` | — | — | — |
 | `firecrawl-agent` | — | — | — |
@@ -694,6 +710,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `git` | — | — | — |
 | `git-guardrails-claude-code` | — | — | — |
 | `git-guardrails-claude-code` | — | — | — |
+| `gitingest` | — | `nlm` | — |
+| `gitpack` | — | — | — |
 | `gitready` | — | — | — |
 | `go` | `check`, `design`, `grok-discovery`, `grok-parallel`, `grok-route`, `grok-safe-git`, `grok-verify`, `handoff`, `plan-writer`, `refine`, `review`, `test-driven-development`, `tp`, `using-git-worktrees`, `wiki` | `brave`, `coding-model-pool`, `ddg`, `exa`, `gh`, `nlm` | `discovery-dispatch`, `engineering-orchestration`, `parallel-implement-dispatch`, `safe-git-preflight-dispatch`, `verify-dispatch` |
 | `go` | `design`, `tdd` | — | — |
@@ -767,6 +785,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `intelligence-stream-ingest` | — | — | — |
 | `investment-research-briefs` | — | `tavily` | — |
 | `js-sdk-best-practices` | — | — | — |
+| `keep` | `web` | — | — |
 | `knowledge` | — | — | — |
 | `knowledge-agent` | — | — | — |
 | `langfuse` | — | — | — |
@@ -815,6 +834,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `nlm` | — | `nlm`, `notebooklm` | — |
 | `nlm-bulk-ingest` | — | — | — |
 | `nlm-to-wiki` | `wiki` | `nlm` | — |
+| `note` | `web` | — | — |
 | `notebooklm` | — | — | — |
 | `notice` | `aar`, `go`, `grok-parallel`, `handoff`, `tp`, `why`, `wiki` | `exa`, `gh` | `mid-conversation-observation-surfacing` |
 | `obsidian-vault` | — | — | — |
@@ -886,12 +906,14 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `refresh` | — | — | — |
 | `remembering-conversations` | — | `episodic-memory` | — |
 | `remotion-to-hyperframes` | — | — | — |
+| `repomix` | — | — | — |
 | `req-check` | `go`, `risk`, `tp`, `wargame`, `wiki` | — | — |
 | `request-refactor-plan` | — | — | — |
 | `requesting-code-review` | — | — | — |
 | `research` | — | — | — |
 | `research` | — | — | — |
 | `research` | — | — | — |
+| `research` | `go` | — | — |
 | `resolving-merge-conflicts` | — | — | — |
 | `resolving-merge-conflicts` | — | — | — |
 | `response-atomicity` | — | — | — |
@@ -1033,6 +1055,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `wayfinder` | — | — | — |
 | `wayfinder` | — | — | — |
 | `web` | `design`, `mmx`, `wiki` | `brave`, `ddg`, `duckduckgo`, `exa`, `firecrawl`, `hn-algolia`, `mmx`, `perplexity`, `reddit`, `search-research`, `stackexchange`, `tavily` | `multi-backend-search`, `rrf-merge` |
+| `web` | — | `notebooklm`, `serper` | — |
 | `weekly-digests` | — | — | — |
 | `what-the` | — | — | — |
 | `why` | `aar`, `agy`, `codex`, `design`, `go`, `handoff`, `mmx`, `tp`, `web`, `wiki` | `reasoning-model-pool`, `spawn-subagent` | `feedback-to-wiki`, `pattern-library-query`, `root-cause-analysis` |
@@ -1197,6 +1220,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
+      "name": "chs",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\chs\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "close-py",
       "path": "C:\\Users\\brsth\\.grok\\skills\\close-py\\SKILL.md",
       "scope": "grok-user",
@@ -1259,6 +1292,33 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "skill-scaffolding"
       ],
       "domain": "self-improvement"
+    },
+    {
+      "name": "defect",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\defect\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [
+        "check",
+        "fmea",
+        "grok-verify",
+        "review",
+        "todo",
+        "trace",
+        "why"
+      ],
+      "consumes_provider": [
+        "py_compile",
+        "ruff"
+      ],
+      "references_wiki": [
+        "orchestration-engine-decision-langgraph",
+        "scanner-skill-landscape-inventory-and-capability-map"
+      ],
+      "provides": [
+        "defect-detection",
+        "scan-code-quality"
+      ],
+      "domain": "review"
     },
     {
       "name": "design",
@@ -7995,6 +8055,190 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
+      "name": "aid",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\aid\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "all",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\all\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "chs",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\chs\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "chs-eval",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\chs-eval\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "context7",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\context7\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [
+        "context7"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "crawl",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\crawl\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [
+        "wiki"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [
+        "page",
+        "wikilinks"
+      ],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "discover",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\discover\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [
+        "design"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "export-session",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\export-session\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [
+        "debrief"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "find",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\find\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [
+        "web"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "gitingest",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\gitingest\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [
+        "nlm"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "gitpack",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\gitpack\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "keep",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\keep\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [
+        "web"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "note",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\note\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [
+        "web"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "repomix",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\repomix\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "research",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\research\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [
+        "go"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "web",
+      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\web\\SKILL.md",
+      "scope": "marketplace",
+      "delegates_to": [],
+      "consumes_provider": [
+        "notebooklm",
+        "serper"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "id",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\snapshot\\skills\\id\\SKILL.md",
       "scope": "marketplace",
@@ -8017,45 +8261,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
   ],
   "reverse": {
     "provider_consumers": {
-      "critic-model-pool": [
-        "aar",
-        "review",
-        "tp"
-      ],
       "reasoning-model-pool": [
         "aar",
         "tp",
         "why"
-      ],
-      "gh": [
-        "aar",
-        "agy",
-        "codex",
-        "design",
-        "dream",
-        "go",
-        "grok-discovery",
-        "grok-parallel",
-        "grok-safe-git",
-        "grok-verify",
-        "handoff",
-        "imagine",
-        "maintain",
-        "mmx",
-        "model-benchmark",
-        "notice",
-        "plan-writer",
-        "prompt-patterns",
-        "refactor",
-        "refine",
-        "review",
-        "search-fleet",
-        "skill-dev",
-        "todo",
-        "wargame",
-        "wiki",
-        "wiki-crawl4ai",
-        "www"
       ],
       "exa": [
         "aar",
@@ -8088,8 +8297,44 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki",
         "wiki-crawl4ai"
       ],
+      "gh": [
+        "aar",
+        "agy",
+        "codex",
+        "design",
+        "dream",
+        "go",
+        "grok-discovery",
+        "grok-parallel",
+        "grok-safe-git",
+        "grok-verify",
+        "handoff",
+        "imagine",
+        "maintain",
+        "mmx",
+        "model-benchmark",
+        "notice",
+        "plan-writer",
+        "prompt-patterns",
+        "refactor",
+        "refine",
+        "review",
+        "search-fleet",
+        "skill-dev",
+        "todo",
+        "wargame",
+        "wiki",
+        "wiki-crawl4ai",
+        "www"
+      ],
+      "critic-model-pool": [
+        "aar",
+        "review",
+        "tp"
+      ],
       "nlm": [
         "aar",
+        "gitingest",
         "go",
         "nlm",
         "nlm-to-wiki",
@@ -8124,18 +8369,12 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "tp",
         "wargame"
       ],
-      "mmx": [
-        "design",
-        "minimax-multimodal-toolkit",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mmx",
-        "model-benchmark",
-        "model-quota",
-        "search-fleet",
-        "web",
-        "wiki-yt",
-        "www"
+      "ruff": [
+        "defect",
+        "doc-check"
+      ],
+      "py_compile": [
+        "defect"
       ],
       "firecrawl": [
         "design",
@@ -8156,12 +8395,26 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki-crawl4ai",
         "www"
       ],
-      "ruff": [
-        "doc-check"
+      "mmx": [
+        "design",
+        "minimax-multimodal-toolkit",
+        "minimax-music-gen",
+        "minimax-music-playlist",
+        "mmx",
+        "model-benchmark",
+        "model-quota",
+        "search-fleet",
+        "web",
+        "wiki-yt",
+        "www"
       ],
       "episodic-memory": [
         "dream",
         "remembering-conversations"
+      ],
+      "brave": [
+        "go",
+        "web"
       ],
       "ddg": [
         "go",
@@ -8169,10 +8422,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "tp",
         "web",
         "www"
-      ],
-      "brave": [
-        "go",
-        "web"
       ],
       "coding-model-pool": [
         "go",
@@ -8199,17 +8448,24 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "chrome-devtools-cli",
         "model-web"
       ],
+      "chrome-devtools-mcp-tools": [
+        "model-web"
+      ],
       "perplexity": [
         "model-web",
         "search-fleet",
         "web"
       ],
-      "chrome-devtools-mcp-tools": [
-        "model-web"
-      ],
       "context7": [
         "claude-automation-recommender",
+        "context7",
         "refactor"
+      ],
+      "reddit": [
+        "search-fleet",
+        "todo",
+        "web",
+        "www"
       ],
       "search-research": [
         "prospect",
@@ -8221,24 +8477,19 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "perplexity-web-mcp",
         "search-fleet"
       ],
-      "reddit": [
-        "search-fleet",
-        "todo",
-        "web",
-        "www"
-      ],
       "notebooklm": [
         "nlm",
         "todo",
+        "web",
         "wiki-yt",
         "wowerpoint",
         "yt-nlm"
       ],
-      "duckduckgo": [
-        "bright-data-best-practices",
+      "stackexchange": [
         "web"
       ],
-      "stackexchange": [
+      "duckduckgo": [
+        "bright-data-best-practices",
         "web"
       ],
       "hn-algolia": [
@@ -8250,15 +8501,109 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "minimax-search": [
         "design"
+      ],
+      "serper": [
+        "web"
       ]
     },
     "skill_callers": {
+      "refine": [
+        "aar",
+        "design",
+        "domain-terms",
+        "dream",
+        "go",
+        "grill-me",
+        "handoff",
+        "plan-writer",
+        "refactor"
+      ],
+      "wiki": [
+        "aar",
+        "claude-audit",
+        "close-py",
+        "crawl",
+        "create-skill",
+        "debrief",
+        "design",
+        "domain-terms",
+        "dream",
+        "go",
+        "grok-safe-git",
+        "handoff",
+        "improve",
+        "insight",
+        "main",
+        "maintain",
+        "maintain-ifile",
+        "model-benchmark",
+        "nlm-to-wiki",
+        "notice",
+        "plan-writer",
+        "prompt-patterns",
+        "rca",
+        "recap-grok",
+        "refactor",
+        "refine",
+        "req-check",
+        "review",
+        "risk",
+        "ship-py",
+        "skill-dev",
+        "todo",
+        "tp",
+        "ux",
+        "wargame",
+        "web",
+        "why",
+        "wiki-crawl4ai",
+        "wiki-yt",
+        "www"
+      ],
+      "todo": [
+        "aar",
+        "ask",
+        "defect",
+        "design",
+        "email-skill",
+        "insight",
+        "model-quota",
+        "recap-grok",
+        "refactor",
+        "review",
+        "risk",
+        "skill-dev",
+        "tp",
+        "wiki",
+        "www"
+      ],
+      "why": [
+        "aar",
+        "ask",
+        "behave",
+        "defect",
+        "design",
+        "dream",
+        "model-benchmark",
+        "model-web",
+        "notice",
+        "rca",
+        "review",
+        "risk",
+        "skill-dev",
+        "todo",
+        "tp",
+        "triage",
+        "wargame",
+        "www"
+      ],
       "debrief": [
         "aar",
         "behave",
         "claude-audit",
         "codex",
         "dream",
+        "export-session",
         "friction",
         "handoff",
         "improve",
@@ -8270,17 +8615,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "skill-audit",
         "top-problems",
         "tp"
-      ],
-      "refine": [
-        "aar",
-        "design",
-        "domain-terms",
-        "dream",
-        "go",
-        "grill-me",
-        "handoff",
-        "plan-writer",
-        "refactor"
       ],
       "handoff": [
         "aar",
@@ -8313,6 +8647,28 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki",
         "www"
       ],
+      "check": [
+        "aar",
+        "ask",
+        "close-py",
+        "defect",
+        "doc-check",
+        "doc-compiler",
+        "dream",
+        "go",
+        "grok-verify",
+        "model-benchmark",
+        "refactor",
+        "refine",
+        "review",
+        "ship-py",
+        "skill-dev",
+        "skill-to-page",
+        "todo",
+        "tp",
+        "triage",
+        "www"
+      ],
       "tp": [
         "aar",
         "ask",
@@ -8342,24 +8698,21 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "why",
         "www"
       ],
-      "why": [
+      "close": [
         "aar",
         "ask",
-        "behave",
-        "design",
+        "check",
+        "close-py",
         "dream",
-        "model-benchmark",
-        "model-web",
-        "notice",
-        "rca",
+        "handoff",
+        "insight",
+        "maintain",
+        "recap-grok",
         "review",
-        "risk",
         "skill-dev",
         "todo",
         "tp",
-        "triage",
-        "wargame",
-        "www"
+        "wiki"
       ],
       "review": [
         "aar",
@@ -8369,6 +8722,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "claude-audit",
         "command-development",
         "debrief",
+        "defect",
         "design-is",
         "doc-check",
         "domain-terms",
@@ -8415,6 +8769,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "refactor",
         "refine",
         "req-check",
+        "research",
         "review",
         "rns",
         "skill-dev",
@@ -8423,100 +8778,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "triage",
         "wargame",
         "why",
-        "www"
-      ],
-      "check": [
-        "aar",
-        "ask",
-        "close-py",
-        "doc-check",
-        "doc-compiler",
-        "dream",
-        "go",
-        "grok-verify",
-        "model-benchmark",
-        "refactor",
-        "refine",
-        "review",
-        "ship-py",
-        "skill-dev",
-        "skill-to-page",
-        "todo",
-        "tp",
-        "triage",
-        "www"
-      ],
-      "close": [
-        "aar",
-        "ask",
-        "check",
-        "close-py",
-        "dream",
-        "handoff",
-        "insight",
-        "maintain",
-        "recap-grok",
-        "review",
-        "skill-dev",
-        "todo",
-        "tp",
-        "wiki"
-      ],
-      "wiki": [
-        "aar",
-        "claude-audit",
-        "close-py",
-        "create-skill",
-        "debrief",
-        "design",
-        "domain-terms",
-        "dream",
-        "go",
-        "grok-safe-git",
-        "handoff",
-        "improve",
-        "insight",
-        "main",
-        "maintain",
-        "maintain-ifile",
-        "model-benchmark",
-        "nlm-to-wiki",
-        "notice",
-        "plan-writer",
-        "prompt-patterns",
-        "rca",
-        "recap-grok",
-        "refactor",
-        "refine",
-        "req-check",
-        "review",
-        "risk",
-        "ship-py",
-        "skill-dev",
-        "todo",
-        "tp",
-        "ux",
-        "wargame",
-        "web",
-        "why",
-        "wiki-crawl4ai",
-        "wiki-yt",
-        "www"
-      ],
-      "todo": [
-        "aar",
-        "ask",
-        "design",
-        "email-skill",
-        "insight",
-        "model-quota",
-        "recap-grok",
-        "refactor",
-        "review",
-        "risk",
-        "skill-dev",
-        "tp",
-        "wiki",
         "www"
       ],
       "aar": [
@@ -8540,6 +8801,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "ask",
         "behave",
         "code",
+        "discover",
         "domain-terms",
         "dream",
         "evolve",
@@ -8569,6 +8831,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "tp",
         "why"
       ],
+      "skill-dev": [
+        "create-skill",
+        "insight",
+        "maintain",
+        "maintain-ifile",
+        "ship-py",
+        "todo",
+        "tp",
+        "www"
+      ],
       "skill-prune": [
         "config-audit",
         "create-skill",
@@ -8580,15 +8852,18 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki",
         "workspace-health"
       ],
-      "skill-dev": [
-        "create-skill",
-        "insight",
-        "maintain",
-        "maintain-ifile",
-        "ship-py",
-        "todo",
-        "tp",
-        "www"
+      "grok-verify": [
+        "defect",
+        "go",
+        "grok-parallel",
+        "skill-dev"
+      ],
+      "trace": [
+        "defect"
+      ],
+      "fmea": [
+        "defect",
+        "skill-dev"
       ],
       "plan-writer": [
         "design",
@@ -8617,17 +8892,14 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "grok-verify",
         "ship-py"
       ],
-      "grok-discovery": [
-        "go",
-        "grok-parallel"
-      ],
       "grok-route": [
         "go",
         "grok-parallel",
         "grok-verify"
       ],
-      "test-driven-development": [
-        "go"
+      "grok-discovery": [
+        "go",
+        "grok-parallel"
       ],
       "grok-parallel": [
         "go",
@@ -8636,10 +8908,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "using-git-worktrees": [
         "go"
       ],
-      "grok-verify": [
-        "go",
-        "grok-parallel",
-        "skill-dev"
+      "test-driven-development": [
+        "go"
       ],
       "domain-terms": [
         "grill-me"
@@ -8651,9 +8921,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "skill-dev",
         "todo"
       ],
-      "maintain-ifile": [
-        "maintain"
-      ],
       "config-audit": [
         "maintain"
       ],
@@ -8663,6 +8930,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "maintain",
         "skill-prune",
         "workspace-health"
+      ],
+      "maintain-ifile": [
+        "maintain"
       ],
       "codex": [
         "codex-result-handling",
@@ -8711,34 +8981,34 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "req-check",
         "ship-py"
       ],
+      "doc-check": [
+        "ship-py"
+      ],
       "refactor": [
         "ship-py"
       ],
-      "doc-check": [
-        "ship-py"
+      "create-skill": [
+        "skill-dev"
       ],
       "notice": [
         "skill-dev",
         "slc"
       ],
-      "fmea": [
-        "skill-dev"
-      ],
-      "create-skill": [
-        "skill-dev"
-      ],
       "insight": [
         "todo"
       ],
+      "packet": [
+        "tp"
+      ],
       "web": [
+        "find",
+        "keep",
+        "note",
         "scraper-builder",
         "tp",
         "why",
         "wiki-crawl4ai",
         "www"
-      ],
-      "packet": [
-        "tp"
       ],
       "crawl4ai": [
         "wiki-crawl4ai"
@@ -8748,9 +9018,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "help": [
         "command-development"
-      ],
-      "diagnosing-bugs": [
-        "ask-matt"
       ],
       "tdd": [
         "ask-matt",
@@ -8763,23 +9030,26 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "subagent-driven-development",
         "t"
       ],
-      "teach": [
-        "ask-matt"
-      ],
       "triage": [
         "ask-matt",
         "setup-matt-pocock-skills"
       ],
-      "to-tickets": [
-        "ask-matt"
-      ],
-      "to-spec": [
+      "teach": [
         "ask-matt"
       ],
       "wayfinder": [
         "ask-matt"
       ],
+      "diagnosing-bugs": [
+        "ask-matt"
+      ],
+      "to-tickets": [
+        "ask-matt"
+      ],
       "wizard": [
+        "ask-matt"
+      ],
+      "to-spec": [
         "ask-matt"
       ],
       "writing-great-skills": [
@@ -8791,6 +9061,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "aar",
         "notice"
       ],
+      "friction-detection-operator-pushback-as-trigger": [
+        "aar"
+      ],
       "tool-fallbacks": [
         "aar",
         "design",
@@ -8801,8 +9074,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "aar",
         "www"
       ],
-      "friction-detection-operator-pushback-as-trigger": [
-        "aar"
+      "signal-based-intent-expansion": [
+        "ask",
+        "handoff",
+        "todo",
+        "tp"
       ],
       "skill-catalog": [
         "ask",
@@ -8814,42 +9090,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-graph": [
         "ask"
       ],
-      "signal-based-intent-expansion": [
-        "ask",
-        "handoff",
-        "todo",
-        "tp"
-      ],
       "governance-pattern-library": [
         "behave"
+      ],
+      "pipeline-detect-phase-state-reset-sequential-contamination": [
+        "close-py"
       ],
       "skill-pipeline-integration-testing": [
         "close-py",
         "ship-py",
         "skill-dev"
       ],
-      "pipeline-detect-phase-state-reset-sequential-contamination": [
-        "close-py"
+      "scanner-skill-landscape-inventory-and-capability-map": [
+        "defect"
       ],
-      "adr-0009-extend-unverified-stance": [
-        "design"
-      ],
-      "llm-synthesis-quality-and-speed-techniques": [
-        "design"
-      ],
-      "design-choice-audit-challenge-every-decision-against-first-principles": [
-        "design",
-        "go",
-        "plan-writer",
-        "refactor",
-        "tp"
-      ],
-      "multi-model-ensemble-design-patterns-for-agent-skills": [
-        "design",
-        "review"
-      ],
-      "exemption-logic-as-conflict-signal": [
-        "design"
+      "orchestration-engine-decision-langgraph": [
+        "defect"
       ],
       "invariants-beat-environment-comfort": [
         "design",
@@ -8864,43 +9120,64 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "refine",
         "review"
       ],
+      "raising-coding-best-practices-in-ai-agents": [
+        "design"
+      ],
+      "consistency-drift-as-waste-source-in-iterative-refinement": [
+        "design"
+      ],
+      "design-choice-audit-challenge-every-decision-against-first-principles": [
+        "design",
+        "go",
+        "plan-writer",
+        "refactor",
+        "tp"
+      ],
+      "adr-0009-extend-unverified-stance": [
+        "design"
+      ],
+      "exemption-logic-as-conflict-signal": [
+        "design"
+      ],
+      "multi-model-ensemble-design-patterns-for-agent-skills": [
+        "design",
+        "review"
+      ],
+      "llm-synthesis-quality-and-speed-techniques": [
+        "design"
+      ],
       "design-doc-conformance-check-procedure": [
         "design",
         "risk",
         "tp"
       ],
-      "consistency-drift-as-waste-source-in-iterative-refinement": [
-        "design"
-      ],
-      "raising-coding-best-practices-in-ai-agents": [
-        "design"
-      ],
       "page": [
+        "crawl",
         "doc-check",
         "wiki-crawl4ai"
       ],
-      "llm-dreaming-memory-consolidation": [
+      "self-improving-agent-systems-techniques-and-workspace-gaps": [
         "dream"
       ],
       "operator-collaboration-style-and-leverage": [
         "dream"
       ],
-      "self-improving-agent-systems-techniques-and-workspace-gaps": [
+      "llm-dreaming-memory-consolidation": [
         "dream"
       ],
-      "scatter-gather-for-single-artifact-parallel-analysis": [
-        "go",
-        "review"
-      ],
       "framing-check-pattern": [
-        "go"
-      ],
-      "solution-unit-validation-before-build": [
         "go"
       ],
       "prompting-patterns-for-ai-agent-control": [
         "go",
         "prompt-patterns"
+      ],
+      "scatter-gather-for-single-artifact-parallel-analysis": [
+        "go",
+        "review"
+      ],
+      "solution-unit-validation-before-build": [
+        "go"
       ],
       "subagent-shell-quoting-durable-fix": [
         "go",
@@ -8924,32 +9201,29 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "scheduled-checks-in-maintain": [
         "maintain"
       ],
-      "llm-instruction-non-compliance-activation-gap-2026": [
-        "config-audit",
-        "maintain-ifile",
-        "skill-prune"
-      ],
-      "agents-md-construction-best-practices": [
-        "maintain-ifile"
-      ],
       "agents-md-optimization-tools-landscape-2026": [
         "maintain-ifile"
       ],
       "enforcement-hierarchy-and-compaction-strategy": [
         "maintain-ifile"
       ],
-      "model-pool-not-chain": [
-        "model-benchmark",
-        "tp"
+      "agents-md-construction-best-practices": [
+        "maintain-ifile"
+      ],
+      "llm-instruction-non-compliance-activation-gap-2026": [
+        "config-audit",
+        "maintain-ifile",
+        "skill-prune"
       ],
       "model-benchmark-testing-quirks": [
         "model-benchmark"
       ],
+      "model-pool-not-chain": [
+        "model-benchmark",
+        "tp"
+      ],
       "model-fleet-provider-pools": [
         "model-benchmark"
-      ],
-      "chrome-job-object-escape-via-task-scheduler": [
-        "model-web"
       ],
       "chromium-cdp-websocket-origin-restriction": [
         "model-web"
@@ -8957,10 +9231,13 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "multi-llm-aggregator-landscape": [
         "model-web"
       ],
+      "chrome-job-object-escape-via-task-scheduler": [
+        "model-web"
+      ],
       "cdp-network-interception-and-sse-capture-for-llm-chat": [
         "model-web"
       ],
-      "proactive-ai-volunteering-mechanisms": [
+      "wiki-concept": [
         "notice"
       ],
       "mechanisms-for-thought-partner-behavior": [
@@ -8973,7 +9250,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "notice",
         "www"
       ],
-      "wiki-concept": [
+      "proactive-ai-volunteering-mechanisms": [
         "notice"
       ],
       "maker-checker-required-for-enforcement-work": [
@@ -8982,7 +9259,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "verification-before-completion-principle": [
         "refactor"
       ],
-      "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
+      "task-refinement-interview-detection-template-patterns": [
         "refine"
       ],
       "workflow-definition-over-agent-capability": [
@@ -8991,7 +9268,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "trust-escalation-ladder-autonomous-agent-work": [
         "refine"
       ],
-      "task-refinement-interview-detection-template-patterns": [
+      "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
         "refine"
       ],
       "x": [
@@ -9005,6 +9282,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "fix-introduces-regression-by-trading-properties": [
         "review"
       ],
+      "adaptive-expansion-evidence-triggered-conditional-steps": [
+        "risk"
+      ],
       "concurrent-cdp-auth-contention": [
         "email-skill",
         "risk",
@@ -9015,13 +9295,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "skill-dev",
         "www"
       ],
-      "adaptive-expansion-evidence-triggered-conditional-steps": [
-        "risk"
-      ],
       "specification-gaming-in-llm-agent-pipelines": [
         "ship-py"
       ],
-      "claude-side-skill-improvement-tooling-2026": [
+      "skill-development-portfolio": [
+        "skill-dev"
+      ],
+      "skill-effectiveness-measurement-gaps-trigger-accuracy-token-efficiency": [
+        "skill-dev"
+      ],
+      "execution-receipts-for-executable-artifacts": [
         "skill-dev"
       ],
       "cross-invocation-skills-proactively-suggest-complementary-skills": [
@@ -9031,87 +9314,91 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-techniques-index": [
         "skill-dev"
       ],
-      "execution-receipts-for-executable-artifacts": [
-        "skill-dev"
+      "self-reflective-gap-discovery-indirect-hunting-prompts": [
+        "skill-dev",
+        "www"
       ],
-      "skill-effectiveness-measurement-gaps-trigger-accuracy-token-efficiency": [
-        "skill-dev"
-      ],
-      "skill-development-portfolio": [
-        "skill-dev"
-      ],
-      "code-output-passthrough-narration-over-script-output": [
+      "skill-management-in-agentic-systems-research-survey": [
         "skill-dev"
       ],
       "mechanical-enforcement-of-llm-skill-steps-2026": [
         "skill-dev"
       ],
-      "skill-management-in-agentic-systems-research-survey": [
+      "code-output-passthrough-narration-over-script-output": [
         "skill-dev"
       ],
-      "self-reflective-gap-discovery-indirect-hunting-prompts": [
-        "skill-dev",
-        "www"
+      "claude-side-skill-improvement-tooling-2026": [
+        "skill-dev"
       ],
       "thought-partner-standard": [
         "slc"
       ],
-      "llm-judgment-hooks": [
+      "evidence-first-default-and-needless-confirmation": [
         "todo"
       ],
       "no-question-theater": [
         "todo"
       ],
-      "evidence-first-default-and-needless-confirmation": [
+      "llm-judgment-hooks": [
         "todo"
       ],
       "externalized-verification-over-intrinsic-self-correction": [
         "todo"
       ],
-      "analyst-exhibits-pattern-being-analyzed": [
+      "code-orchestrates-model-judges-skill-scale": [
         "tp"
       ],
       "research-quality-principle-efficiency-not-censorship": [
         "tp",
         "www"
       ],
-      "model-pool-selection-policy-speed-quota-diversity": [
-        "check",
-        "tp"
-      ],
       "model-fit-and-post-hoc-behavioral-detection": [
-        "tp"
-      ],
-      "inter-skill-output-bridges-and-temporal-surfacing-layers": [
         "tp"
       ],
       "markdown-mermaid-rendering-agentic-clis-windows-11": [
         "tp"
       ],
-      "code-orchestrates-model-judges-skill-scale": [
+      "model-tool-calling-capability-matrix": [
+        "tp"
+      ],
+      "inter-skill-output-bridges-and-temporal-surfacing-layers": [
         "tp"
       ],
       "mechanical-as-input-not-mechanical-as-frame": [
         "tp"
       ],
-      "model-tool-calling-capability-matrix": [
+      "analyst-exhibits-pattern-being-analyzed": [
         "tp"
       ],
-      "reading-chatgpt-shared-links-js-spa": [
-        "web",
-        "www"
+      "model-pool-selection-policy-speed-quota-diversity": [
+        "check",
+        "tp"
       ],
       "optimal-multi-backend-search-strategy": [
         "web"
       ],
-      "search-tool-landscape-2026": [
+      "web-research-state-2026": [
         "web"
       ],
       "web-search-tool-routing": [
         "web"
       ],
-      "web-research-state-2026": [
+      "reading-chatgpt-shared-links-js-spa": [
+        "web",
+        "www"
+      ],
+      "search-tool-landscape-2026": [
         "web"
+      ],
+      "problem-first-systems-decomposition": [
+        "why"
+      ],
+      "compaction-inherited-diagnosis-unverified-propagation": [
+        "why"
+      ],
+      "self-reflection-in-llms-fails-without-external-evidence": [
+        "why",
+        "www"
       ],
       "multidimensional-root-cause-analysis-ai-agent-failures": [
         "why"
@@ -9119,29 +9406,17 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "reactive-pattern-matching-and-closure-pressure": [
         "why"
       ],
-      "self-reflection-in-llms-fails-without-external-evidence": [
-        "why",
-        "www"
-      ],
-      "compaction-inherited-diagnosis-unverified-propagation": [
-        "why"
-      ],
-      "problem-first-systems-decomposition": [
-        "why"
-      ],
-      "concept": [
-        "wiki"
-      ],
-      "couple-triggers-to-events-that-actually-fire": [
-        "wiki"
-      ],
-      "inline-conditional-over-dispatch-for-skill-design": [
+      "synchronous-review-direct-write-pattern": [
         "wiki"
       ],
       "existing-concept": [
         "wiki"
       ],
+      "couple-triggers-to-events-that-actually-fire": [
+        "wiki"
+      ],
       "wikilinks": [
+        "crawl",
         "nlm-to-wiki",
         "obsidian-vault",
         "skill-prune",
@@ -9150,28 +9425,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki-yt",
         "www"
       ],
-      "synchronous-review-direct-write-pattern": [
+      "inline-conditional-over-dispatch-for-skill-design": [
         "wiki"
       ],
       "knowledge-capture-cant-afford-to-lose": [
         "wiki"
       ],
-      "ai-thought-partner-landscape-and-tp-improvements-2026": [
-        "www"
+      "concept": [
+        "wiki"
       ],
-      "compound-skill-improvement-patterns": [
-        "www"
-      ],
-      "decision-integrity-in-research-blocking-unknowns-and-decision-red-teaming": [
-        "www"
-      ],
-      "adaptive-orchestration-task-shape-classification": [
-        "www"
-      ],
-      "two-component-research-winnowing-pattern": [
+      "adaptive-research-depth-preventing-incomplete-www-coverage": [
         "www"
       ],
       "assumption-auditing-and-unknown-unknown-discovery": [
+        "www"
+      ],
+      "decision-integrity-in-research-blocking-unknowns-and-decision-red-teaming": [
         "www"
       ],
       "notebooklm-cli-operational-gotchas": [
@@ -9180,16 +9449,25 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki-yt",
         "www"
       ],
+      "compound-skill-improvement-patterns": [
+        "www"
+      ],
+      "two-component-research-winnowing-pattern": [
+        "www"
+      ],
       "plausible-narratives-substitute-for-verification": [
         "www"
       ],
-      "research-vs-design-vs-architect-skills-and-www-self-assessment": [
+      "ai-thought-partner-landscape-and-tp-improvements-2026": [
+        "www"
+      ],
+      "adaptive-orchestration-task-shape-classification": [
         "www"
       ],
       "research-applicability-checking-dont-cite-without-verifying-assumptions": [
         "www"
       ],
-      "adaptive-research-depth-preventing-incomplete-www-coverage": [
+      "research-vs-design-vs-architect-skills-and-www-self-assessment": [
         "www"
       ],
       "structural-enforcement-for-skipped-rules-grok-build-2026": [
@@ -9226,22 +9504,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ]
     },
     "capability_providers": {
+      "value-accounting": [
+        "aar"
+      ],
       "scan-session-transcript": [
         "aar",
         "insight",
         "todo",
         "triage"
       ],
-      "after-action-review": [
-        "aar"
-      ],
       "opportunity-landscape": [
         "aar"
       ],
-      "value-accounting": [
+      "session-retrospective": [
         "aar"
       ],
-      "session-retrospective": [
+      "after-action-review": [
         "aar"
       ],
       "gemini-reasoning": [
@@ -9255,13 +9533,13 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-routing": [
         "ask"
       ],
+      "close-verdict": [
+        "close-py"
+      ],
       "anti-fabrication-close": [
         "close-py"
       ],
       "session-close-pipeline": [
-        "close-py"
-      ],
-      "close-verdict": [
         "close-py"
       ],
       "openai-reasoning": [
@@ -9270,34 +9548,44 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-scaffolding": [
         "create-skill"
       ],
+      "defect-detection": [
+        "defect"
+      ],
+      "scan-code-quality": [
+        "check",
+        "defect",
+        "grok-verify",
+        "review",
+        "trace"
+      ],
       "design-doc-production": [
         "design"
       ],
       "systematic-debugging": [
         "diagnosing-bugs"
       ],
-      "readme-staleness-detection": [
-        "doc-check"
-      ],
       "skill-frontmatter-validation": [
         "doc-check"
       ],
-      "broken-link-detection": [
-        "doc-check"
-      ],
-      "repo-file-completeness": [
-        "doc-check"
-      ],
-      "documentation-readiness-check": [
+      "readme-staleness-detection": [
         "doc-check"
       ],
       "wikilink-resolution": [
+        "doc-check"
+      ],
+      "repo-file-completeness": [
         "doc-check"
       ],
       "changelog-validation": [
         "doc-check"
       ],
       "code-fence-validation": [
+        "doc-check"
+      ],
+      "broken-link-detection": [
+        "doc-check"
+      ],
+      "documentation-readiness-check": [
         "doc-check"
       ],
       "domain-term-extraction": [
@@ -9349,12 +9637,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "completion-gate": [
         "grok-verify"
       ],
-      "scan-code-quality": [
-        "check",
-        "grok-verify",
-        "review",
-        "trace"
-      ],
       "handoff-auto-update": [
         "handoff"
       ],
@@ -9367,40 +9649,31 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "image-generation-guidance": [
         "imagine"
       ],
-      "capture-coverage-check": [
-        "insight"
-      ],
-      "workflow-automation-analysis": [
-        "insight"
-      ],
       "proactive-knowledge-capture": [
         "insight"
       ],
       "friction-detection": [
         "insight"
       ],
-      "improvement-opportunity-scan": [
+      "capture-coverage-check": [
         "insight"
       ],
-      "fleet-maintenance": [
-        "maintain"
+      "workflow-automation-analysis": [
+        "insight"
+      ],
+      "improvement-opportunity-scan": [
+        "insight"
       ],
       "scan-workspace-state": [
         "maintain",
         "skill-prune",
         "todo"
       ],
+      "fleet-maintenance": [
+        "maintain"
+      ],
       "marketplace-skill-discovery": [
         "marketplace-bridge"
-      ],
-      "minimax-music-generation": [
-        "mmx"
-      ],
-      "minimax-vision": [
-        "mmx"
-      ],
-      "minimax-speech-synthesis": [
-        "mmx"
       ],
       "minimax-image-generation": [
         "mmx"
@@ -9411,13 +9684,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "minimax-web-search": [
         "mmx"
       ],
+      "minimax-vision": [
+        "mmx"
+      ],
+      "minimax-music-generation": [
+        "mmx"
+      ],
+      "minimax-speech-synthesis": [
+        "mmx"
+      ],
+      "cost-tracking": [
+        "model-benchmark"
+      ],
       "latency-benchmark": [
         "model-benchmark"
       ],
       "quality-scoring": [
-        "model-benchmark"
-      ],
-      "cost-tracking": [
         "model-benchmark"
       ],
       "model-discovery": [
@@ -9426,22 +9708,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "quota-dashboard": [
         "model-quota"
       ],
-      "conversation-selection": [
-        "model-web"
-      ],
-      "fusion-portal-orchestration": [
+      "browser-llm-bridge": [
         "model-web"
       ],
       "sse-response-capture": [
         "model-web"
       ],
+      "conversation-selection": [
+        "model-web"
+      ],
       "model-web-advisory": [
         "model-web"
       ],
-      "multi-model-ensemble": [
+      "fusion-portal-orchestration": [
         "model-web"
       ],
-      "browser-llm-bridge": [
+      "multi-model-ensemble": [
         "model-web"
       ],
       "mid-conversation-observation-surfacing": [
@@ -9463,10 +9745,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "rca",
         "why"
       ],
-      "session-chain-walk": [
+      "session-recap-grok": [
         "recap-grok"
       ],
-      "session-recap-grok": [
+      "session-chain-walk": [
         "recap-grok"
       ],
       "structural-refactor": [
@@ -9484,18 +9766,18 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "risk-assessment": [
         "risk"
       ],
-      "risk-escalation": [
+      "scan-risk": [
+        "risk",
+        "tp"
+      ],
+      "risk-scan": [
         "risk"
       ],
       "adversarial-review": [
         "risk"
       ],
-      "risk-scan": [
+      "risk-escalation": [
         "risk"
-      ],
-      "scan-risk": [
-        "risk",
-        "tp"
       ],
       "capability-routed-search": [
         "search-fleet"
@@ -9512,10 +9794,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "public-readiness-gate": [
         "ship-py"
       ],
-      "skill-improvement": [
+      "skill-measurement": [
         "skill-dev"
       ],
-      "skill-measurement": [
+      "skill-improvement": [
         "skill-dev"
       ],
       "behavioral-reset": [
@@ -9527,10 +9809,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "workspace-prioritized-action-list": [
         "todo"
       ],
-      "session-opportunity-review": [
+      "critical-friend-critique": [
         "tp"
       ],
-      "critical-friend-critique": [
+      "session-opportunity-review": [
         "tp"
       ],
       "system-exploration": [
@@ -9545,10 +9827,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "session-finding-triage": [
         "triage"
       ],
-      "finding-lifecycle": [
+      "evidence-anchored-review": [
         "triage"
       ],
-      "evidence-anchored-review": [
+      "finding-lifecycle": [
         "triage"
       ],
       "content-discipline-for-plans": [
@@ -9584,10 +9866,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "session-verification": [
         "check"
       ],
-      "failure-modes-analysis": [
+      "risk-priority-scoring": [
         "fmea"
       ],
-      "risk-priority-scoring": [
+      "failure-modes-analysis": [
         "fmea"
       ],
       "evidence-backed-inventory": [
@@ -9601,45 +9883,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ]
     },
     "shared_services": {
-      "critic-model-pool": [
-        "aar",
-        "review",
-        "tp"
-      ],
       "reasoning-model-pool": [
         "aar",
         "tp",
         "why"
-      ],
-      "gh": [
-        "aar",
-        "agy",
-        "codex",
-        "design",
-        "dream",
-        "go",
-        "grok-discovery",
-        "grok-parallel",
-        "grok-safe-git",
-        "grok-verify",
-        "handoff",
-        "imagine",
-        "maintain",
-        "mmx",
-        "model-benchmark",
-        "notice",
-        "plan-writer",
-        "prompt-patterns",
-        "refactor",
-        "refine",
-        "review",
-        "search-fleet",
-        "skill-dev",
-        "todo",
-        "wargame",
-        "wiki",
-        "wiki-crawl4ai",
-        "www"
       ],
       "exa": [
         "aar",
@@ -9672,8 +9919,44 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki",
         "wiki-crawl4ai"
       ],
+      "gh": [
+        "aar",
+        "agy",
+        "codex",
+        "design",
+        "dream",
+        "go",
+        "grok-discovery",
+        "grok-parallel",
+        "grok-safe-git",
+        "grok-verify",
+        "handoff",
+        "imagine",
+        "maintain",
+        "mmx",
+        "model-benchmark",
+        "notice",
+        "plan-writer",
+        "prompt-patterns",
+        "refactor",
+        "refine",
+        "review",
+        "search-fleet",
+        "skill-dev",
+        "todo",
+        "wargame",
+        "wiki",
+        "wiki-crawl4ai",
+        "www"
+      ],
+      "critic-model-pool": [
+        "aar",
+        "review",
+        "tp"
+      ],
       "nlm": [
         "aar",
+        "gitingest",
         "go",
         "nlm",
         "nlm-to-wiki",
@@ -9708,19 +9991,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "tp",
         "wargame"
       ],
-      "mmx": [
-        "design",
-        "minimax-multimodal-toolkit",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mmx",
-        "model-benchmark",
-        "model-quota",
-        "search-fleet",
-        "web",
-        "wiki-yt",
-        "www"
-      ],
       "firecrawl": [
         "design",
         "firecrawl-agent",
@@ -9738,6 +10008,19 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "tp",
         "web",
         "wiki-crawl4ai",
+        "www"
+      ],
+      "mmx": [
+        "design",
+        "minimax-multimodal-toolkit",
+        "minimax-music-gen",
+        "minimax-music-playlist",
+        "mmx",
+        "model-benchmark",
+        "model-quota",
+        "search-fleet",
+        "web",
+        "wiki-yt",
         "www"
       ],
       "ddg": [
@@ -9769,11 +10052,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "search-fleet",
         "web"
       ],
-      "search-research": [
-        "prospect",
-        "search-fleet",
-        "web",
-        "why"
+      "context7": [
+        "claude-automation-recommender",
+        "context7",
+        "refactor"
       ],
       "reddit": [
         "search-fleet",
@@ -9781,9 +10063,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "web",
         "www"
       ],
+      "search-research": [
+        "prospect",
+        "search-fleet",
+        "web",
+        "why"
+      ],
       "notebooklm": [
         "nlm",
         "todo",
+        "web",
         "wiki-yt",
         "wowerpoint",
         "yt-nlm"
