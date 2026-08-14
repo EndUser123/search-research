@@ -46,7 +46,7 @@ The scan of 2,496 Grok sessions and 8 Claude session files found **zero** occurr
 
 **Before building a detection hook for a "known failure pattern," measure the pattern's actual incidence rate in historical session data.** The measurement is cheap (grep `chat_history.jsonl` across sessions). The cost of not measuring is investing design and implementation effort on phantom problems, then calibrating shadow periods for firing rates that don't exist.
 
-This is the same evidence-first principle the session was diagnosing in the equivalence-bypass gate: the gate detected justification language without checking whether the obligation was actually unmet ([[obligation-enforcement-vs-justification-detection]]). Here, I proposed a hook pattern without checking whether the pattern actually occurs. The [[narrative-as-signal-anti-dismissal-rule]] applies: "this pattern is worth hooking" was a plausible narrative, not a verified finding.
+This is the same evidence-first principle the session was diagnosing in the equivalence-bypass gate: the gate detected justification language without checking whether the obligation was actually unmet ([[obligation-enforcement-vs-justification-detection]]). Here, I proposed a hook pattern without checking whether the pattern actually occurs. The /narrative-as-signal-anti-dismissal-rule applies: "this pattern is worth hooking" was a plausible narrative, not a verified finding.
 
 ## Worked example
 

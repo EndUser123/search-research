@@ -125,7 +125,7 @@ the only layer.
   disambiguation.
 - The `[[groq-free-tier-tpm-limit-6000]]` concept documents the Groq free-tier
   constraint that is relevant to any hook considering LLM-based detection.
-- Connects to `[[claims-require-receipts]]` — the uncertainty gate is the
+- Connects to `/claims-require-receipts` — the uncertainty gate is the
   enforcement layer for the receipt principle at the linguistic level.
 - Related to `[[narrative-as-signal]]` — hedge words are the linguistic
   signal that a narrative is being constructed rather than verified.

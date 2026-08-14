@@ -1,7 +1,7 @@
 ---
 title: "stop-hooks-enforce"
-created: 2026-08-09
-source: nlm-sync-2026-08-09
+created: 2026-08-11
+source: nlm-sync-2026-08-11
 tags: [nlm-synced, reference, degraded-fallback, stop]
 summary: >
   This page preserves source excerpts associated with 'stop-hooks-enforce'. It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
@@ -11,18 +11,18 @@ cognitive_load: 2
 verification: single-source-verified
 provenance_status: complete_4_hop
 sources:
-  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" (Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-09)
-  - "NotebookLM source 03585e5b-6aa8-4960-afbf-5fb9c306740f" (go_full.md, synced 2026-08-09)
-  - "NotebookLM source 36efff38-c1ca-4156-b685-1bcc2e82fca9" (cc-skills-sdlc_full.md, synced 2026-08-09)
-  - "NotebookLM source 3b5367e8-bde2-4358-b2a2-efd10f099904" (go_sig.md, synced 2026-08-09)
-  - "NotebookLM source 93b5c441-880d-4eef-b506-9472a5a0aee2" (cc-skills-sdlc_sig.md, synced 2026-08-09)
+  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" ([INGESTED] - Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-11)
+  - "NotebookLM source 03585e5b-6aa8-4960-afbf-5fb9c306740f" (go_full.md, synced 2026-08-11)
+  - "NotebookLM source 36efff38-c1ca-4156-b685-1bcc2e82fca9" (cc-skills-sdlc_full.md, synced 2026-08-11)
+  - "NotebookLM source 3b5367e8-bde2-4358-b2a2-efd10f099904" (go_sig.md, synced 2026-08-11)
+  - "NotebookLM source 93b5c441-880d-4eef-b506-9472a5a0aee2" (cc-skills-sdlc_sig.md, synced 2026-08-11)
 provenance:
   chain:
     - level: concept
       id: stop-hooks-enforce
     - level: notebook
       id: 4017aa6e-35fb-426d-bc53-34620bec405e
-      title: Claude Code Guide: Production Hooks and Agent Skills
+      title: [INGESTED] - Claude Code Guide: Production Hooks and Agent Skills
       url: https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e
     - level: cluster
       id: 3
@@ -44,7 +44,7 @@ relations:
 
 **Definition:** This page preserves source excerpts associated with "stop-hooks-enforce". It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
 
-Synthesized from **4 contributing transcripts** in NotebookLM notebook *Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "stop-hooks-enforce" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
+Synthesized from **4 contributing transcripts** in NotebookLM notebook *[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "stop-hooks-enforce" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
 
 **Why this matters:** concepts synced from NotebookLM carry provenance back to the source material (notebook → cluster → original URL when invoked via `--from-clusters`). A reader can verify any claim by following the provenance chain in the frontmatter.
 
@@ -97,5 +97,5 @@ If a re-sync of the source notebook produces a different definition or different
 
 ## Sources
 
-- NotebookLM notebook [Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
+- NotebookLM notebook [[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
 - Studio artifacts: Report (concept extraction) + Data-Table (tabular facts)

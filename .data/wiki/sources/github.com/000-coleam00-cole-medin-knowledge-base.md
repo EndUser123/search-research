@@ -88,8 +88,8 @@ See [`SCHEMA.md`](SCHEMA.md) for the full contract and [`docs/ingestion-workflow
 Knowledge is synthesized from publicly available YouTube videos by Cole Medin; each page cites its sources. Raw transcripts are included under `raw/` for provenance and auditability.
 
 ## Related
-[[adhd parallel frame divergent ideation integration]]@related
-[[adhd friendly unified todo workspace email scanning]]@related
-[[adaptive orchestration task shape classification]]@related
-[[aar skill install scope user not workspace]]@related
-[[advisory vs blocking enforcement decision 2026]]@related
+[[adhd-parallel-frame-divergent-ideation-integration]]@related
+[[adhd-friendly-unified-todo-workspace-email-scanning]]@related
+[[adaptive-orchestration-task-shape-classification]]@related
+[[aar-skill-install-scope-user-not-workspace]]@related
+[[advisory-vs-blocking-enforcement-decision-2026]]@related

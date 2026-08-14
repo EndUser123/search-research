@@ -1,7 +1,7 @@
 ---
 title: "claude-github-https"
-created: 2026-08-09
-source: nlm-sync-2026-08-09
+created: 2026-08-11
+source: nlm-sync-2026-08-11
 tags: [nlm-synced, reference, degraded-fallback, claude]
 summary: >
   This page preserves source excerpts associated with 'claude-github-https'. It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
@@ -11,18 +11,18 @@ cognitive_load: 2
 verification: single-source-verified
 provenance_status: complete_4_hop
 sources:
-  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" (Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-09)
-  - "Dive into Claude Code: The Design Space of Today's and Future AI Agent Systems - arXiv" (https://arxiv.org/html/2604.14228v1, transcript synced 2026-08-09)
-  - "Claude Code's 9-block safety override fires on every persistence mode (ultrawork/ralph/autopilot/ultragoal/...) · Issue #3138 · Yeachan-Heo/oh-my-claudecode - GitHub" (https://github.com/Yeachan-Heo/oh-my-claudecode/issues/3138, transcript synced 2026-08-09)
-  - "Hook Lifecycle - Claude-Mem" (https://docs.claude-mem.ai/architecture/hooks, transcript synced 2026-08-09)
-  - "[BUG] Per-turn smoosh pipeline folds dynamic <system-reminder> text into tool_result.content, breaking prompt cache · Issue #49585 · anthropics/claude-code - GitHub" (https://github.com/anthropics/claude-code/issues/49585, transcript synced 2026-08-09)
+  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" ([INGESTED] - Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-11)
+  - "Dive into Claude Code: The Design Space of Today's and Future AI Agent Systems - arXiv" (https://arxiv.org/html/2604.14228v1, transcript synced 2026-08-11)
+  - "Claude Code's 9-block safety override fires on every persistence mode (ultrawork/ralph/autopilot/ultragoal/...) · Issue #3138 · Yeachan-Heo/oh-my-claudecode - GitHub" (https://github.com/Yeachan-Heo/oh-my-claudecode/issues/3138, transcript synced 2026-08-11)
+  - "Hook Lifecycle - Claude-Mem" (https://docs.claude-mem.ai/architecture/hooks, transcript synced 2026-08-11)
+  - "[BUG] Per-turn smoosh pipeline folds dynamic <system-reminder> text into tool_result.content, breaking prompt cache · Issue #49585 · anthropics/claude-code - GitHub" (https://github.com/anthropics/claude-code/issues/49585, transcript synced 2026-08-11)
 provenance:
   chain:
     - level: concept
       id: claude-github-https
     - level: notebook
       id: 4017aa6e-35fb-426d-bc53-34620bec405e
-      title: Claude Code Guide: Production Hooks and Agent Skills
+      title: [INGESTED] - Claude Code Guide: Production Hooks and Agent Skills
       url: https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e
     - level: cluster
       id: 4
@@ -56,7 +56,7 @@ relations:
 
 **Definition:** This page preserves source excerpts associated with "claude-github-https". It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
 
-Synthesized from **4 contributing transcripts** in NotebookLM notebook *Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "claude-github-https" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
+Synthesized from **4 contributing transcripts** in NotebookLM notebook *[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "claude-github-https" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
 
 **Why this matters:** concepts synced from NotebookLM carry provenance back to the source material (notebook → cluster → original URL when invoked via `--from-clusters`). A reader can verify any claim by following the provenance chain in the frontmatter.
 
@@ -109,5 +109,5 @@ If a re-sync of the source notebook produces a different definition or different
 
 ## Sources
 
-- NotebookLM notebook [Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
+- NotebookLM notebook [[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
 - Studio artifacts: Report (concept extraction) + Data-Table (tabular facts)

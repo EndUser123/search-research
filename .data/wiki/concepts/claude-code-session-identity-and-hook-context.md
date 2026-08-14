@@ -97,13 +97,13 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[claude-code-hooks-(pretooluse-/-posttooluse-/-stop-/-subagentstop-/-sessionstart-/-sessionend-/-userpromptsubmit-/-precompact-/-notification)]] — Claude Code Hooks (PreToolUse / PostToolUse / Stop / SubagentStop / SessionStart / SessionEnd / UserPromptSubmit / PreCompact / Notification)
-- [[claude-code-skills-(skill.md-frontmatter-hooks)]] — Claude Code Skills (SKILL.md frontmatter hooks)
-- [[claude-code-sessionstart-hook-pattern-for-env-injection-via-$claude_env_file]] — Claude Code SessionStart hook pattern for env injection via $CLAUDE_ENV_FILE
-- [[claude-code-global-vs-project-settings-precedence]] — Claude Code global vs project settings precedence
-- [[claude-code-tasks-system-(~/.claude/tasks/)]] — Claude Code Tasks system (~/.claude/tasks/)
-- [[claude-code-agent-teams-(~/.claude/teams/)]] — Claude Code Agent Teams (~/.claude/teams/)
-- [[claude-code-plugins-(hooks/hooks.json-wrapper-format,-${claude_plugin_root})]] — Claude Code Plugins (hooks/hooks.json wrapper format, ${CLAUDE_PLUGIN_ROOT})
+- /claude-code-hooks-(pretooluse-/-posttooluse-/-stop-/-subagentstop-/-sessionstart-/-sessionend-/-userpromptsubmit-/-precompact-/-notification) — Claude Code Hooks (PreToolUse / PostToolUse / Stop / SubagentStop / SessionStart / SessionEnd / UserPromptSubmit / PreCompact / Notification)
+- /claude-code-skills-(skill.md-frontmatter-hooks) — Claude Code Skills (SKILL.md frontmatter hooks)
+- /claude-code-sessionstart-hook-pattern-for-env-injection-via-$claude_env_file — Claude Code SessionStart hook pattern for env injection via $CLAUDE_ENV_FILE
+- /claude-code-global-vs-project-settings-precedence — Claude Code global vs project settings precedence
+- /claude-code-tasks-system-(~/.claude/tasks/) — Claude Code Tasks system (~/.claude/tasks/)
+- /claude-code-agent-teams-(~/.claude/teams/) — Claude Code Agent Teams (~/.claude/teams/)
+- /claude-code-plugins-(hooks/hooks.json-wrapper-format,-${claude_plugin_root}) — Claude Code Plugins (hooks/hooks.json wrapper format, ${CLAUDE_PLUGIN_ROOT})
 
 ## Citations (from contributing transcripts)
 

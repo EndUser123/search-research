@@ -68,9 +68,9 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[phase-ledger]] — Phase Ledger
-- [[pointer-based-state]] — Pointer-based state
-- [[sdlc-hard-gate]] — SDLC hard-gate
+- /phase-ledger — Phase Ledger
+- /pointer-based-state — Pointer-based state
+- /sdlc-hard-gate — SDLC hard-gate
 
 ## Citations (from contributing transcripts)
 

@@ -87,11 +87,11 @@ Synthesized from **4 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[compaction-pipeline]] — Compaction Pipeline
-- [[tool-authorization-pipeline]] — Tool Authorization Pipeline
-- [[permission-modes]] — Permission Modes
-- [[stop-conditions]] — Stop Conditions
-- [[reactive-compaction]] — Reactive Compaction
+- /compaction-pipeline — Compaction Pipeline
+- /tool-authorization-pipeline — Tool Authorization Pipeline
+- /permission-modes — Permission Modes
+- /stop-conditions — Stop Conditions
+- /reactive-compaction — Reactive Compaction
 
 ## Citations (from contributing transcripts)
 

@@ -128,23 +128,23 @@ Synthesized from **10 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[claude-code-skills-(skill.md-system)]] — Claude Code Skills (SKILL.md system)
-- [[agent-skills-open-standard-(agentskills.io)]] — Agent Skills open standard (agentskills.io)
-- [[claude-code-mcp-documentation]] — Claude Code MCP documentation
-- [[claude-code-hooks-guide]] — Claude Code Hooks Guide
-- [[claude-code-permissions-documentation]] — Claude Code Permissions documentation
-- [[claude-code-settings-documentation]] — Claude Code Settings documentation
-- [[claude-code-agents-documentation]] — Claude Code Agents documentation
-- [[claude-code-sub-agents-documentation]] — Claude Code Sub-agents documentation
-- [[claude-code-jsonl-transcript-format]] — Claude Code JSONL transcript format
-- [[claude-code-session-management]] — Claude Code session management
-- [[claude-code-plugins-system]] — Claude Code Plugins system
-- [[http-hooks-(post-based-hook-handler-type)]] — HTTP hooks (POST-based hook handler type)
-- [[stop-hook-(task-enforcement-pattern)]] — Stop hook (task enforcement pattern)
-- [[claude.md-delivery-semantics]] — CLAUDE.md delivery semantics
-- [[subagent-fork-semantics]] — Subagent fork semantics
-- [[prompt-cache-boundary-(system_prompt_dynamic_boundary)]] — Prompt cache boundary (SYSTEM_PROMPT_DYNAMIC_BOUNDARY)
-- [[memory-directory-(memdir)-and-auto-memory]] — Memory directory (memdir) and auto-memory
+- /claude-code-skills-(skill.md-system) — Claude Code Skills (SKILL.md system)
+- /agent-skills-open-standard-(agentskills.io) — Agent Skills open standard (agentskills.io)
+- /claude-code-mcp-documentation — Claude Code MCP documentation
+- /claude-code-hooks-guide — Claude Code Hooks Guide
+- /claude-code-permissions-documentation — Claude Code Permissions documentation
+- /claude-code-settings-documentation — Claude Code Settings documentation
+- /claude-code-agents-documentation — Claude Code Agents documentation
+- /claude-code-sub-agents-documentation — Claude Code Sub-agents documentation
+- /claude-code-jsonl-transcript-format — Claude Code JSONL transcript format
+- /claude-code-session-management — Claude Code session management
+- /claude-code-plugins-system — Claude Code Plugins system
+- /http-hooks-(post-based-hook-handler-type) — HTTP hooks (POST-based hook handler type)
+- /stop-hook-(task-enforcement-pattern) — Stop hook (task enforcement pattern)
+- /claude.md-delivery-semantics — CLAUDE.md delivery semantics
+- /subagent-fork-semantics — Subagent fork semantics
+- /prompt-cache-boundary-(system_prompt_dynamic_boundary) — Prompt cache boundary (SYSTEM_PROMPT_DYNAMIC_BOUNDARY)
+- /memory-directory-(memdir)-and-auto-memory — Memory directory (memdir) and auto-memory
 
 ## Citations (from contributing transcripts)
 

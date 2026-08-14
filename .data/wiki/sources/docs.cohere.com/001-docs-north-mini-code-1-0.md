@@ -268,8 +268,8 @@ Tip: You can toggle this pane with
 ![](https://t.co/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=a4223737-b26a-45eb-9b80-a8896c1ce8c6&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=906f4c74-f33b-4c7d-b2ec-a00f670e5ee7&pt=North%20Mini%20Code%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Fdocs%2Fnorth-mini-code-1.0&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)![](https://analytics.twitter.com/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=a4223737-b26a-45eb-9b80-a8896c1ce8c6&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=906f4c74-f33b-4c7d-b2ec-a00f670e5ee7&pt=North%20Mini%20Code%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Fdocs%2Fnorth-mini-code-1.0&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)
 
 ## Related
-[[adaptive ai agent systems]]@related
-[[adaptive expansion evidence triggered conditional steps]]@related
-[[adapting prompts for literal ai models]]@related
-[[adaptive orchestration task shape classification]]@related
-[[a1111 ecosystem python compatibility 2026]]@related
+[[adaptive-ai-agent-systems]]@related
+[[adaptive-expansion-evidence-triggered-conditional-steps]]@related
+[[adapting-prompts-for-literal-ai-models]]@related
+[[adaptive-orchestration-task-shape-classification]]@related
+[[a1111-ecosystem-python-compatibility-2026]]@related

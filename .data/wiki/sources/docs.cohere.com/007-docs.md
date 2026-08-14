@@ -287,8 +287,8 @@ Was this page helpful?
 #### [ Installation Next](https://docs.cohere.com/docs/get-started-installation)[Built with](https://buildwithfern.com/?utm_campaign=buildWith&utm_medium=docs&utm_source=docs.cohere.com)
 
 ## Related
-[[adaptive risk assessment single pass first architecture]]@related
-[[agent skills architecture]]@related
-[[agent control plane enforcement architectures 2026]]@related
-[[agent failure modes 2026]]@related
-[[agent skills fleet patterns solo director 2026]]@related
+[[adaptive-risk-assessment-single-pass-first-architecture]]@related
+[[agent-skills-architecture]]@related
+[[agent-control-plane-enforcement-architectures-2026]]@related
+[[agent-failure-modes-2026]]@related
+[[agent-skills-fleet-patterns-solo-director-2026]]@related

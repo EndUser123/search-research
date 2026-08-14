@@ -1,7 +1,7 @@
 ---
 title: "claude-code-https"
-created: 2026-08-09
-source: nlm-sync-2026-08-09
+created: 2026-08-11
+source: nlm-sync-2026-08-11
 tags: [nlm-synced, reference, degraded-fallback, claude]
 summary: >
   This page preserves source excerpts associated with 'claude-code-https'. It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
@@ -11,24 +11,24 @@ cognitive_load: 2
 verification: single-source-verified
 provenance_status: complete_4_hop
 sources:
-  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" (Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-09)
-  - "Extend Claude with skills - Claude Code Docs" (https://code.claude.com/docs/en/skills, transcript synced 2026-08-09)
-  - "Best practices for Claude Code - Claude Code Docs" (https://code.claude.com/docs/en/best-practices, transcript synced 2026-08-09)
-  - "Manage sessions - Claude Code Docs" (https://code.claude.com/docs/en/sessions, transcript synced 2026-08-09)
-  - "Claude Code JSONL transcript format explained" (https://claude-dev.tools/docs/jsonl-format, transcript synced 2026-08-09)
-  - "Claude Code Ignores Your CLAUDE.md? It's the Delivery Mechanism, Not a Bug (2026 Fix)" (https://www.shareuhack.com/en/posts/claude-code-claude-md-setup-guide-2026, transcript synced 2026-08-09)
-  - "Anatomy of the .claude Folder - Every File Explained (2026) - codewithmukesh" (https://codewithmukesh.com/blog/anatomy-of-the-claude-folder/, transcript synced 2026-08-09)
-  - "Claude Code Source Code Deep Research Report" (https://claudeai.dev/docs/mechanics/development/claude-code-source-deep-research/, transcript synced 2026-08-09)
-  - "Claude Code Hooks: Complete Guide to All 12 Lifecycle Events" (https://claudefa.st/blog/tools/hooks/hooks-guide, transcript synced 2026-08-09)
-  - "Claude Code Stop Hook: Force Task Completion" (https://claudefa.st/blog/tools/hooks/stop-hook-task-enforcement, transcript synced 2026-08-09)
-  - "Hooks reference - Claude Code Docs" (https://code.claude.com/docs/en/hooks, transcript synced 2026-08-09)
+  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" ([INGESTED] - Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-11)
+  - "Extend Claude with skills - Claude Code Docs" (https://code.claude.com/docs/en/skills, transcript synced 2026-08-11)
+  - "Best practices for Claude Code - Claude Code Docs" (https://code.claude.com/docs/en/best-practices, transcript synced 2026-08-11)
+  - "Manage sessions - Claude Code Docs" (https://code.claude.com/docs/en/sessions, transcript synced 2026-08-11)
+  - "Claude Code JSONL transcript format explained" (https://claude-dev.tools/docs/jsonl-format, transcript synced 2026-08-11)
+  - "Claude Code Ignores Your CLAUDE.md? It's the Delivery Mechanism, Not a Bug (2026 Fix)" (https://www.shareuhack.com/en/posts/claude-code-claude-md-setup-guide-2026, transcript synced 2026-08-11)
+  - "Anatomy of the .claude Folder - Every File Explained (2026) - codewithmukesh" (https://codewithmukesh.com/blog/anatomy-of-the-claude-folder/, transcript synced 2026-08-11)
+  - "Claude Code Source Code Deep Research Report" (https://claudeai.dev/docs/mechanics/development/claude-code-source-deep-research/, transcript synced 2026-08-11)
+  - "Claude Code Hooks: Complete Guide to All 12 Lifecycle Events" (https://claudefa.st/blog/tools/hooks/hooks-guide, transcript synced 2026-08-11)
+  - "Claude Code Stop Hook: Force Task Completion" (https://claudefa.st/blog/tools/hooks/stop-hook-task-enforcement, transcript synced 2026-08-11)
+  - "Hooks reference - Claude Code Docs" (https://code.claude.com/docs/en/hooks, transcript synced 2026-08-11)
 provenance:
   chain:
     - level: concept
       id: claude-code-https
     - level: notebook
       id: 4017aa6e-35fb-426d-bc53-34620bec405e
-      title: Claude Code Guide: Production Hooks and Agent Skills
+      title: [INGESTED] - Claude Code Guide: Production Hooks and Agent Skills
       url: https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e
     - level: cluster
       id: 1
@@ -80,7 +80,7 @@ relations:
 
 **Definition:** This page preserves source excerpts associated with "claude-code-https". It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
 
-Synthesized from **10 contributing transcripts** in NotebookLM notebook *Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "claude-code-https" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
+Synthesized from **10 contributing transcripts** in NotebookLM notebook *[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "claude-code-https" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
 
 **Why this matters:** concepts synced from NotebookLM carry provenance back to the source material (notebook → cluster → original URL when invoked via `--from-clusters`). A reader can verify any claim by following the provenance chain in the frontmatter.
 
@@ -157,5 +157,5 @@ If a re-sync of the source notebook produces a different definition or different
 
 ## Sources
 
-- NotebookLM notebook [Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
+- NotebookLM notebook [[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
 - Studio artifacts: Report (concept extraction) + Data-Table (tabular facts)

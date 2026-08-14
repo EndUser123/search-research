@@ -309,8 +309,8 @@ Was this page helpful?
 [Previous](https://docs.cohere.com/docs/deprecations)#### [ Integrating Embedding Models with Other Tools Use Cohere's Embeddings with the tools you love. Next](https://docs.cohere.com/docs/integrations)[Built with](https://buildwithfern.com/?utm_campaign=buildWith&utm_medium=docs&utm_source=docs.cohere.com)
 
 ## Related
-[[a1111 ecosystem python compatibility 2026]]@related
-[[accumulation problem resolution rate binding constraint]]@related
-[[adaptive expansion evidence triggered conditional steps]]@related
-[[aar skill install scope user not workspace]]@related
-[[adaptive risk assessment single pass first architecture]]@related
+[[a1111-ecosystem-python-compatibility-2026]]@related
+[[accumulation-problem-resolution-rate-binding-constraint]]@related
+[[adaptive-expansion-evidence-triggered-conditional-steps]]@related
+[[aar-skill-install-scope-user-not-workspace]]@related
+[[adaptive-risk-assessment-single-pass-first-architecture]]@related

@@ -229,8 +229,8 @@ Tip: You can toggle this pane with
 ![](https://t.co/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=8efaf99c-67ec-45bf-8b15-acd88c1f18c7&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=67011ce5-9d32-4fce-8634-e7ecba4bc906&pt=Cookbooks%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Fpage%2Fcookbooks&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)![](https://analytics.twitter.com/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=8efaf99c-67ec-45bf-8b15-acd88c1f18c7&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=67011ce5-9d32-4fce-8634-e7ecba4bc906&pt=Cookbooks%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Fpage%2Fcookbooks&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)
 
 ## Related
-[[agent failure modes 2026]]@related
-[[autonomous ai coding agents]]@related
-[[claude code dynamic workflows]]@related
-[[claude code automation capabilities]]@related
-[[claude code multi agent collaboration patterns]]@related
+[[agent-failure-modes-2026]]@related
+[[autonomous-ai-coding-agents]]@related
+[[claude-code-dynamic-workflows]]@related
+[[claude-code-automation-capabilities]]@related
+[[claude-code-multi-agent-collaboration-patterns]]@related

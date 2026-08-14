@@ -667,8 +667,8 @@ Tip: You can toggle this pane with
 ![](https://t.co/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=da807cb5-6fd8-4e5d-9a47-e9becf60fe7d&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=a69f213b-f098-4e05-bb5b-2263cf21976f&pt=Working%20with%20Cohere's%20API%20and%20SDK%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Freference%2Fabout&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)![](https://analytics.twitter.com/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=da807cb5-6fd8-4e5d-9a47-e9becf60fe7d&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=a69f213b-f098-4e05-bb5b-2263cf21976f&pt=Working%20with%20Cohere's%20API%20and%20SDK%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Freference%2Fabout&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)
 
 ## Related
-[[accumulation problem resolution rate binding constraint]]@related
-[[aar skill install scope user not workspace]]@related
-[[aar always deep mode operator directive]]@related
-[[a1111 ecosystem python compatibility 2026]]@related
-[[adhd friendly unified todo workspace email scanning]]@related
+[[accumulation-problem-resolution-rate-binding-constraint]]@related
+[[aar-skill-install-scope-user-not-workspace]]@related
+[[aar-always-deep-mode-operator-directive]]@related
+[[a1111-ecosystem-python-compatibility-2026]]@related
+[[adhd-friendly-unified-todo-workspace-email-scanning]]@related

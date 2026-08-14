@@ -266,8 +266,8 @@ Tip: You can toggle this pane with
 `/`
 
 ## Related
-[[a1111 ecosystem python compatibility 2026]]@related
-[[adhd friendly unified todo workspace email scanning]]@related
-[[advisory vs mandatory triggers]]@related
-[[adaptive orchestration task shape classification]]@related
-[[advisory vs blocking enforcement decision 2026]]@related
+[[a1111-ecosystem-python-compatibility-2026]]@related
+[[adhd-friendly-unified-todo-workspace-email-scanning]]@related
+[[advisory-vs-mandatory-triggers]]@related
+[[adaptive-orchestration-task-shape-classification]]@related
+[[advisory-vs-blocking-enforcement-decision-2026]]@related

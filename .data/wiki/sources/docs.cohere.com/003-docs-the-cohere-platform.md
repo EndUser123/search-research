@@ -297,8 +297,8 @@ Tip: You can toggle this pane with
 ![](https://t.co/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=452c2a41-6fb4-4384-a1aa-24c0731d93b2&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=5c2a8894-f2a9-40e3-85e9-7c18eda0a568&pt=An%20Overview%20of%20The%20Cohere%20Platform%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Fdocs%2Fthe-cohere-platform&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)![](https://analytics.twitter.com/1/i/adsct?bci=4&dv=America%2FEdmonton%26en-US%26Google%20Inc.%26Win32%26255%261080%26600%2616%2624%261080%26600%260%26na&eci=3&event=%7B%7D&event_id=452c2a41-6fb4-4384-a1aa-24c0731d93b2&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=5c2a8894-f2a9-40e3-85e9-7c18eda0a568&pt=An%20Overview%20of%20The%20Cohere%20Platform%20%7C%20Cohere&tw_document_href=https%3A%2F%2Fdocs.cohere.com%2Fdocs%2Fthe-cohere-platform&tw_iframe_status=0&tw_pid_src=2&twpid=tw.1786016019504.332503167246485634&txn_id=o8y8u&type=javascript&version=2.4.1)
 
 ## Related
-[[agent memory systems]]@related
-[[agent failure modes 2026]]@related
-[[agentic software engineering]]@related
-[[adaptive risk assessment single pass first architecture]]@related
-[[agent skills architecture]]@related
+[[agent-memory-systems]]@related
+[[agent-failure-modes-2026]]@related
+[[agentic-software-engineering]]@related
+[[adaptive-risk-assessment-single-pass-first-architecture]]@related
+[[agent-skills-architecture]]@related

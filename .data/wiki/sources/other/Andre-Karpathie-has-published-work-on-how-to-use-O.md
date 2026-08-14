@@ -158,13 +158,13 @@ Use this as `CLAUDE.md` root file (adapt from Karpathy ):[^2_1]
 title: Name
 type: concept|entity|source-summary
 sources: [raw/file1.md]
-related: [[page1]]
+related: page1
 confidence: high|medium|low
 ---
 
 ## Workflows
 Ingest: Read raw/, summary → wiki/sources/, update 10-15 pages, index/log.
-Query: Read index → synthesize w/ [[links]]; file answers as new pages.
+Query: Read index → synthesize w/ links; file answers as new pages.
 Lint: Contradictions, orphans, gaps.
 ```
 
@@ -210,7 +210,7 @@ Entity pages track specifics (e.g., `wiki/entities/React.md`):
 title: React
 type: entity
 sources: [raw/articles/react-19.md]
-related: [[React-Hooks]], [[NextJS]]
+related: React-Hooks, NextJS
 confidence: high
 ---
 # React
@@ -369,7 +369,7 @@ Karpathy's core, adapted for code wiki:[^4_1]
 title: Page Name
 type: concept|entity|source|comparison
 sources: [raw/file1.md]
-related: [[Entity1]], [[Concept2]]
+related: Entity1, Concept2
 confidence: high|medium|low
 updated: YYYY-MM-DD
 ---
@@ -378,7 +378,7 @@ updated: YYYY-MM-DD
 ### Ingest raw/articles/filename.md
 1. Read file.
 2. Extract: summary → wiki/sources/filename.md; entities/concepts → new/update pages (10-15).
-3. Cross-link [[links]].
+3. Cross-link links.
 4. Update index.md/log.md.
 
 ### Query "compare React Vue"
@@ -521,8 +521,8 @@ Obsidian plugins like Local REST API enable LLM editing via HTTP endpoints, whil
 
 1. BRAT (Beta Reviewer App) or community install: `penfieldlabs/obsidian-wikilink-types`.[^6_6][^6_7]
 2. Settings > Wikilink Types > Configure types (e.g., @supports, @contradicts, @extends for wiki relations).[^6_6]
-3. Usage: `[[React]]@supports` → auto YAML frontmatter `relations: {supports: [React]}`; bidirectional sync.[^6_7]
-4. Karpathy fit: Typed links in index.md (e.g., [[React-Hooks]]@implements); Dataview queries on relations.[^6_6]
+3. Usage: `React@supports` → auto YAML frontmatter `relations: {supports: [React]}`; bidirectional sync.[^6_7]
+4. Karpathy fit: Typed links in index.md (e.g., React-Hooks@implements); Dataview queries on relations.[^6_6]
 
 ## npx llm-kb Guide
 
@@ -547,7 +547,7 @@ Integrate: `claude` → "Use llm-kb MCP for vault".[^6_3]
 ## NoteMD Features
 
 - AI chunking/processing (OpenAI/Anthropic/Ollama): Bulk docs → wiki-links, concept notes.[^6_8]
-- Auto-linking: Context-aware inserts [[links]] during summarization.[^6_8]
+- Auto-linking: Context-aware inserts links during summarization.[^6_8]
 - Web search (Tavily): Gap-fill summaries.
 - Dupe detection, Mermaid/LaTeX fix, retry logic.
 Karpathy use: Process raw/ → auto-links in wiki/sources/.[^6_8]

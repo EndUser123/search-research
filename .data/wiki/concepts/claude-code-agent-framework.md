@@ -110,9 +110,9 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[model-context-protocol-(mcp)]] — Model Context Protocol (MCP)
-- [[agentic-coding]] — Agentic Coding
-- [[claude.md-pattern]] — CLAUDE.md pattern
+- /model-context-protocol-(mcp) — Model Context Protocol (MCP)
+- /agentic-coding — Agentic Coding
+- /claude.md-pattern — CLAUDE.md pattern
 
 ## Citations (from contributing transcripts)
 

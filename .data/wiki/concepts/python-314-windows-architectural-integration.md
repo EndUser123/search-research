@@ -98,20 +98,20 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[pep-734-subinterpreters]] — PEP 734 Subinterpreters
-- [[pep-750-template-strings]] — PEP 750 Template Strings
-- [[pep-779-free-threading-criteria]] — PEP 779 Free-Threading Criteria
-- [[pep-768-safe-external-debugger]] — PEP 768 Safe External Debugger
-- [[rich-14.x-nested-live-display]] — Rich 14.x Nested Live Display
-- [[textual-reactive-workers]] — Textual Reactive Workers
-- [[compression.zstd-module]] — compression.zstd Module
-- [[concurrent.interpreters-module]] — concurrent.interpreters Module
-- [[annotationlib-module]] — annotationlib Module
-- [[python-install-manager-(pymanager)]] — Python Install Manager (PyManager)
-- [[windows-terminal-atlas-engine]] — Windows Terminal Atlas Engine
-- [[template-string-processors]] — Template String Processors
-- [[biased-reference-counting]] — biased reference counting
-- [[mimalloc-allocator]] — Mimalloc allocator
+- /pep-734-subinterpreters — PEP 734 Subinterpreters
+- /pep-750-template-strings — PEP 750 Template Strings
+- /pep-779-free-threading-criteria — PEP 779 Free-Threading Criteria
+- /pep-768-safe-external-debugger — PEP 768 Safe External Debugger
+- /rich-14.x-nested-live-display — Rich 14.x Nested Live Display
+- /textual-reactive-workers — Textual Reactive Workers
+- /compression.zstd-module — compression.zstd Module
+- /concurrent.interpreters-module — concurrent.interpreters Module
+- /annotationlib-module — annotationlib Module
+- /python-install-manager-(pymanager) — Python Install Manager (PyManager)
+- /windows-terminal-atlas-engine — Windows Terminal Atlas Engine
+- /template-string-processors — Template String Processors
+- /biased-reference-counting — biased reference counting
+- /mimalloc-allocator — Mimalloc allocator
 
 ## Citations (from contributing transcripts)
 

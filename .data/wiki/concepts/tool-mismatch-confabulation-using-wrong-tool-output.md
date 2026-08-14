@@ -113,7 +113,7 @@ This concept is wrong if:
 - [[causal-mechanism-claims-require-source-receipts-before-durable-write]] — the general rule this refines
 - [[agent-fabricated-architectural-decisions-in-wiki-concepts]] — another instance of the confabulation pattern
 - [[asserting-runtime-behavior-from-memory-not-testing]] — the broader "don't claim without testing" pattern
-- [[confabulation-gate-stop-hook]] — the hook that catches pure confabulation (but not tool-mismatch)
+- /confabulation-gate-stop-hook — the hook that catches pure confabulation (but not tool-mismatch)
 
 ## Auto-related
 

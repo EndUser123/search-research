@@ -125,14 +125,14 @@ Synthesized from **12 contributing transcripts** in NotebookLM notebook *[INGEST
 
 ## Related concepts
 
-- [[claude-code-subagents]] — Claude Code Subagents
+- /claude-code-subagents — Claude Code Subagents
 - [[claude-code-hooks]] — Claude Code Hooks
-- [[model-context-protocol-(mcp)]] — Model Context Protocol (MCP)
-- [[claude-code-agent-teams]] — Claude Code Agent Teams
-- [[claude.md-project-instructions]] — CLAUDE.md project instructions
-- [[claude-code-plugins]] — Claude Code Plugins
-- [[progressive-disclosure-architecture]] — Progressive Disclosure Architecture
-- [[explore-plan-code-workflow]] — Explore-Plan-Code Workflow
+- /model-context-protocol-(mcp) — Model Context Protocol (MCP)
+- /claude-code-agent-teams — Claude Code Agent Teams
+- /claude.md-project-instructions — CLAUDE.md project instructions
+- /claude-code-plugins — Claude Code Plugins
+- /progressive-disclosure-architecture — Progressive Disclosure Architecture
+- /explore-plan-code-workflow — Explore-Plan-Code Workflow
 
 ## Citations (from contributing transcripts)
 

@@ -168,7 +168,7 @@ ambiguous tasks, reads dropped from 5 to 2.
 - Injection-order-aware duplicate detection
 
 **From wrsmith108:**
-- The "rich abstract" pattern for our pitch-style pointers (upgrade from "Before X → [[concept]]" to 3-5 sentence synopses with concrete facts)
+- The "rich abstract" pattern for our pitch-style pointers (upgrade from "Before X → /concept" to 3-5 sentence synopses with concrete facts)
 - Zero-loss validation (diff total content before/after)
 
 **What they should borrow from us:**

@@ -775,8 +775,8 @@ There’s much more to be said about working with images, various limitations, a
 #### [Older posts Next](https://docs.cohere.com/v2/changelog#page-2)[Built with](https://buildwithfern.com/?utm_campaign=buildWith&utm_medium=docs&utm_source=docs.cohere.com)
 
 ## Related
-[[adhd friendly unified todo workspace email scanning]]@related
-[[advanced prompting patterns for ai agents]]@related
-[[agent memory systems]]@related
-[[agent failure modes 2026]]@related
-[[a1111 ecosystem python compatibility 2026]]@related
+[[adhd-friendly-unified-todo-workspace-email-scanning]]@related
+[[advanced-prompting-patterns-for-ai-agents]]@related
+[[agent-memory-systems]]@related
+[[agent-failure-modes-2026]]@related
+[[a1111-ecosystem-python-compatibility-2026]]@related

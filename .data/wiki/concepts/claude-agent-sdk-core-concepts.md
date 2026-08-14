@@ -81,10 +81,10 @@ Synthesized from **5 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[claude-code]] — Claude Code
-- [[model-context-protocol-(mcp)]] — Model Context Protocol (MCP)
+- /claude-code — Claude Code
+- /model-context-protocol-(mcp) — Model Context Protocol (MCP)
 - [[agent-skills]] — Agent Skills
-- [[structured-outputs]] — Structured Outputs
+- /structured-outputs — Structured Outputs
 
 ## Citations (from contributing transcripts)
 

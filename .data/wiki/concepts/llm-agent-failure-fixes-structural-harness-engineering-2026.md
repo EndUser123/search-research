@@ -55,7 +55,7 @@ summary: >
 - `[[premature-closure-narrative-sufficiency-external-approaches]]` — 5 approaches evaluated
 - `[[llm-overconfidence-documentation-as-truth-bias-field-solutions-2026]]` — Spiral of Hallucination, verbalization gap, Silicon Mirror three-gate sycophancy
 - `[[mechanical-enforcement-of-llm-skill-steps-2026]]` — work-trail validators, Stop hooks, CI gates
-- `[[claims-require-receipts]]` — the prose-level receipt rule
+- `/claims-require-receipts` — the prose-level receipt rule
 - `[[framing-check-pattern]]` — 4 questions including goal match
 
 This concept extends those with the 2025-2026 field consensus on **structural harness engineering** as the answer to prose-rule unreliability.
@@ -222,7 +222,7 @@ Spawn a fresh subagent after every task that: (a) reads the modified files, (b) 
 
 **Framing:** "The AI that did the work is anchored to what it intended to do, not what it actually did. Same-context-window self-auditing is structurally broken because the context that holds the task also holds the compliance report."
 
-**Maps 1:1** to the workspace's `[[self-verification-prohibition-for-enforcement-claims]]` rule.
+**Maps 1:1** to the workspace's `/self-verification-prohibition-for-enforcement-claims` rule.
 
 ### The Hard 70% — premature task completion trace pattern
 

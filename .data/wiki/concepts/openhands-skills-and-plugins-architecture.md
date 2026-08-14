@@ -108,12 +108,12 @@ Synthesized from **9 contributing transcripts** in NotebookLM notebook *[INGESTE
 
 ## Related concepts
 
-- [[openhands-software-agent-sdk]] — OpenHands Software Agent SDK
-- [[model-context-protocol-(mcp)-integration]] — Model Context Protocol (MCP) integration
-- [[agent-computer-interface-(swe-agent-aci)]] — Agent-Computer Interface (SWE-Agent ACI)
-- [[claude-code-skills-ecosystem]] — Claude Code Skills ecosystem
-- [[event-sourced-agent-state-management]] — Event-sourced agent state management
-- [[sandboxed-code-execution-backends]] — Sandboxed code execution backends
+- /openhands-software-agent-sdk — OpenHands Software Agent SDK
+- /model-context-protocol-(mcp)-integration — Model Context Protocol (MCP) integration
+- /agent-computer-interface-(swe-agent-aci) — Agent-Computer Interface (SWE-Agent ACI)
+- /claude-code-skills-ecosystem — Claude Code Skills ecosystem
+- /event-sourced-agent-state-management — Event-sourced agent state management
+- /sandboxed-code-execution-backends — Sandboxed code execution backends
 
 ## Citations (from contributing transcripts)
 

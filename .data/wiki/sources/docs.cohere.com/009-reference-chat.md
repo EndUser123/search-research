@@ -425,8 +425,8 @@ Tip: You can toggle this pane with
 `/`
 
 ## Related
-[[adapting prompts for literal ai models]]@related
-[[agent config directory taxonomy]]@related
-[[advanced prompting patterns for ai agents]]@related
-[[advanced prompt engineering effectiveness]]@related
-[[aar skill install scope user not workspace]]@related
+[[adapting-prompts-for-literal-ai-models]]@related
+[[agent-config-directory-taxonomy]]@related
+[[advanced-prompting-patterns-for-ai-agents]]@related
+[[advanced-prompt-engineering-effectiveness]]@related
+[[aar-skill-install-scope-user-not-workspace]]@related

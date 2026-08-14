@@ -144,7 +144,7 @@ reasoning — not teaching the agent better taxonomy.
 Per operator directive (2026-08-12), this workspace uses two tiers:
 
 - **Surface (advisory):** report any refactor opportunity (>0). The human
-  filters. This follows the [[completeness-over-curation]] principle — surface
+  filters. This follows the /completeness-over-curation principle — surface
   everything, don't pre-judge.
 - **Block (gate):** enforce at ≥3 coupling signals. This is grounded in the
   Rule of Three — the one threshold with real backing. The gate blocks and

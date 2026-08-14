@@ -1068,8 +1068,8 @@ Was this page helpful?
 [Previous](https://docs.cohere.com/docs/amazon-sagemaker-setup-guide)#### [ Cohere on the Microsoft Azure Platform Next](https://docs.cohere.com/docs/cohere-on-microsoft-azure)[Built with](https://buildwithfern.com/?utm_campaign=buildWith&utm_medium=docs&utm_source=docs.cohere.com)
 
 ## Related
-[[adversarial multi agent code review]]@related
-[[advisory vs blocking enforcement decision 2026]]@related
-[[advanced prompt engineering effectiveness]]@related
-[[adaptive risk assessment single pass first architecture]]@related
-[[advanced prompting patterns for ai agents]]@related
+[[adversarial-multi-agent-code-review]]@related
+[[advisory-vs-blocking-enforcement-decision-2026]]@related
+[[advanced-prompt-engineering-effectiveness]]@related
+[[adaptive-risk-assessment-single-pass-first-architecture]]@related
+[[advanced-prompting-patterns-for-ai-agents]]@related

@@ -5096,7 +5096,7 @@ file layout.tsx
 
  
 
-dir website/app/docs/[[...slug]]/
+dir website/app/docs/...slug/
 
  
 
@@ -5112,7 +5112,7 @@ file route.ts
 
  
 
-dir website/app/llms.mdx/docs/[[...slug]]/
+dir website/app/llms.mdx/docs/...slug/
 
  
 
@@ -79286,7 +79286,7 @@ https://fumadocs.dev
 [288 bytes]
 
 
-### `website/app/docs/[[...slug]]/page.tsx` (file)
+### `website/app/docs/...slug/page.tsx` (file)
 
 
 
@@ -79328,7 +79328,7 @@ https://fumadocs.dev
 [257 bytes]
 
 
-### `website/app/llms.mdx/docs/[[...slug]]/route.ts` (file)
+### `website/app/llms.mdx/docs/...slug/route.ts` (file)
 
 
 

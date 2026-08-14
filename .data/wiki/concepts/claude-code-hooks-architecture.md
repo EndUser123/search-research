@@ -115,9 +115,9 @@ Synthesized from **13 contributing transcripts** in NotebookLM notebook *[INGEST
 ## Related concepts
 
 - [[claude-skills]] — Claude Skills
-- [[mcp-servers]] — MCP servers
-- [[subagents]] — Subagents
-- [[claude.md]] — CLAUDE.md
+- /mcp-servers — MCP servers
+- /subagents — Subagents
+- /claude.md — CLAUDE.md
 
 ## Citations (from contributing transcripts)
 

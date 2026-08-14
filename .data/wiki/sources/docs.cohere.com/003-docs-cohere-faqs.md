@@ -478,8 +478,8 @@ Was this page helpful?
 [Previous](https://docs.cohere.com/docs/playground-overview)#### [ An Overview of Cohere's Models Next](https://docs.cohere.com/docs/models)[Built with](https://buildwithfern.com/?utm_campaign=buildWith&utm_medium=docs&utm_source=docs.cohere.com)
 
 ## Related
-[[a1111 ecosystem python compatibility 2026]]@related
-[[aar always deep mode operator directive]]@related
-[[adapting prompts for literal ai models]]@related
-[[adaptive research depth preventing incomplete www coverage]]@related
-[[adaptive ai agent systems]]@related
+[[a1111-ecosystem-python-compatibility-2026]]@related
+[[aar-always-deep-mode-operator-directive]]@related
+[[adapting-prompts-for-literal-ai-models]]@related
+[[adaptive-research-depth-preventing-incomplete-www-coverage]]@related
+[[adaptive-ai-agent-systems]]@related

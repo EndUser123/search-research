@@ -1,7 +1,7 @@
 ---
 title: "github-claude-code"
-created: 2026-08-09
-source: nlm-sync-2026-08-09
+created: 2026-08-11
+source: nlm-sync-2026-08-11
 tags: [nlm-synced, reference, degraded-fallback, github]
 summary: >
   This page preserves source excerpts associated with 'github-claude-code'. It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
@@ -11,19 +11,19 @@ cognitive_load: 2
 verification: single-source-verified
 provenance_status: complete_4_hop
 sources:
-  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" (Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-09)
-  - "Expose CLAUDE_SESSION_ID as environment variable in tool execution context · Issue #47018 · anthropics/claude-code - GitHub" (https://github.com/anthropics/claude-code/issues/47018, transcript synced 2026-08-09)
-  - "Stop hooks in Skills never fire · Issue #19225 · anthropics/claude-code - GitHub" (https://github.com/anthropics/claude-code/issues/19225, transcript synced 2026-08-09)
-  - "[BUG] `CLAUDE_SESSION_ID` not found in env · Issue #24371 · anthropics/claude-code" (https://github.com/anthropics/claude-code/issues/24371, transcript synced 2026-08-09)
-  - "claude-code-best-practice/reports/claude-global-vs-project-settings.md at main - GitHub" (https://github.com/shanraisshan/claude-code-best-practice/blob/main/reports/claude-global-vs-project-settings.md, transcript synced 2026-08-09)
-  - "claude-code/plugins/plugin-dev/skills/hook-development/SKILL.md at main - GitHub" (https://github.com/anthropics/claude-code/blob/main/plugins/plugin-dev/skills/hook-development/SKILL.md?plain=1, transcript synced 2026-08-09)
+  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" ([INGESTED] - Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-11)
+  - "Expose CLAUDE_SESSION_ID as environment variable in tool execution context · Issue #47018 · anthropics/claude-code - GitHub" (https://github.com/anthropics/claude-code/issues/47018, transcript synced 2026-08-11)
+  - "Stop hooks in Skills never fire · Issue #19225 · anthropics/claude-code - GitHub" (https://github.com/anthropics/claude-code/issues/19225, transcript synced 2026-08-11)
+  - "[BUG] `CLAUDE_SESSION_ID` not found in env · Issue #24371 · anthropics/claude-code" (https://github.com/anthropics/claude-code/issues/24371, transcript synced 2026-08-11)
+  - "claude-code-best-practice/reports/claude-global-vs-project-settings.md at main - GitHub" (https://github.com/shanraisshan/claude-code-best-practice/blob/main/reports/claude-global-vs-project-settings.md, transcript synced 2026-08-11)
+  - "claude-code/plugins/plugin-dev/skills/hook-development/SKILL.md at main - GitHub" (https://github.com/anthropics/claude-code/blob/main/plugins/plugin-dev/skills/hook-development/SKILL.md?plain=1, transcript synced 2026-08-11)
 provenance:
   chain:
     - level: concept
       id: github-claude-code
     - level: notebook
       id: 4017aa6e-35fb-426d-bc53-34620bec405e
-      title: Claude Code Guide: Production Hooks and Agent Skills
+      title: [INGESTED] - Claude Code Guide: Production Hooks and Agent Skills
       url: https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e
     - level: cluster
       id: 2
@@ -60,7 +60,7 @@ relations:
 
 **Definition:** This page preserves source excerpts associated with "github-claude-code". It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
 
-Synthesized from **5 contributing transcripts** in NotebookLM notebook *Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "github-claude-code" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
+Synthesized from **5 contributing transcripts** in NotebookLM notebook *[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "github-claude-code" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
 
 **Why this matters:** concepts synced from NotebookLM carry provenance back to the source material (notebook → cluster → original URL when invoked via `--from-clusters`). A reader can verify any claim by following the provenance chain in the frontmatter.
 
@@ -117,5 +117,5 @@ If a re-sync of the source notebook produces a different definition or different
 
 ## Sources
 
-- NotebookLM notebook [Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
+- NotebookLM notebook [[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
 - Studio artifacts: Report (concept extraction) + Data-Table (tabular facts)

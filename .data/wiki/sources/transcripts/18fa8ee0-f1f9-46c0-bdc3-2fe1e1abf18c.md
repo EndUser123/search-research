@@ -1,0 +1,30 @@
+---
+source_id: "18fa8ee0-f1f9-46c0-bdc3-2fe1e1abf18c"
+title: "grok_report (1).pdf"
+notebook_id: 0fa07246-ba84-43fd-a9cd-f86999f24286
+url: null
+type: 3
+exported: 2026-08-08
+---
+
+# grok_report (1).pdf
+https://lh3.googleusercontent.com/notebooklm/AKYWMX8jgkil0KdbVzcLwOKdx3I6Pxdc9lOz6Rt09AxeyPyts0DD9m1hsOg618FfZVduEFTd7PxSYm38PStcVEgORBfssbJAppit_qFGY3OS2DzLqOPArlDvcbkubHRnzBUi7m9Q7luU=w862-h1116-v0
+67996e89-5d71-4ee2-bf35-13ae2edcc7e7
+https://lh3.googleusercontent.com/notebooklm/AKYWMX9vdpq-SPxkKvixogh7E5UP5yU2ok_jxuGWehrsrO2JEeHC9kdi4RMKFQwJ0IdMbVdm2y6450usYqf6_9BFTbv_p7ri9lGXDnbl-FUd7AHeex2d_hNsXWPwb7qBzUHw890E6L6agw=w862-h1116-v0
+915a8090-94c1-481c-9ba3-d0a2d8ae24d1
+https://lh3.googleusercontent.com/notebooklm/AKYWMX9E-OOJF9Zdb-y2kZ92pt9qyftI5vtpJ5PQ3lTLScMWxOFqVQ33zsVHT9XWO9NqbpvPcmLfJGThdvTEgZ_cDZVTayau4_2tT6X-tCnSbkj0-a1VZSPkATc7sYzfqt_VM77N9I3RQw=w862-h1116-v0
+f7d77954-384e-46f0-99f3-9cdcab96d89e
+https://lh3.googleusercontent.com/notebooklm/AKYWMX8r3K_a1d5E12RqE_2L6oZDHMUucRWrtHwhlTcRS8f6mFjcihpfBdWW5HV7pjlv5kB09FI8XBR300bYBeTI8MYO1sYoFrYok9cA1CP850YQ3-OoPn-ZrmpLXo8EHYe4ieP20zAaUA=w862-h1116-v0
+549719c9-cca5-4450-8d6c-d3e027e275dc
+https://lh3.googleusercontent.com/notebooklm/AKYWMX_w4HoxZ_0jjc3M2UPrKQWAFh8CWoSVkeaIPf44NMUW1OTl63YO0tc0Y76sZSXwYT2ikk8LXFDMUG0Bz2WIOgJqHPg5T6NAfYgPwXfATt1iC9unbOAOyMDZCSfXzJBasBjYy9k47w=w862-h1116-v0
+30fc6dc6-8106-47f0-aae3-fe3092707294
+https://lh3.googleusercontent.com/notebooklm/AKYWMX9Iu-6-9ZagdPPxtGAVEF4and9vLKbh_llZY4d_qQ68BzkT2ECA6JVHJepAU72kzik55rhNyaeKfnpLiN4AOG8gpLxazrmzXjxp8WWfs_8dKQib_VL0FeZrWYljmbku2rcViZhwUw=w862-h1116-v0
+0b3e3e4f-27c5-4239-bd2e-1b7ba4139120
+https://lh3.googleusercontent.com/notebooklm/AKYWMX8EnmUAxkBtIV_oawjOkW1IbFsF6MziQW1ErcSKBcSdM2HVptAFyX1czq_SU21PBSxJKdmD0YgwCMoy26rio_4iRAHDlCiQO7GDL9BM2bhG2ylxHxk4WwmZLLfQ9nAg6Iw8U0HmDQ=w862-h1116-v0
+33290e44-0f77-4284-b0fe-ae1e2db1a86a
+https://lh3.googleusercontent.com/notebooklm/AKYWMX_3RVXERfc5r3_e0xNLIaNdyciKdZAOCCTRu4xfBCCA4ZTWcZodU2hqbjY9ybyTQp0Z2eBIp_lvTON9Cfx3r0HwgKz0duaAmf7GcbdjGXTStRpPlfmZI2cSwFk07ppSX_ZuNcTsbw=w862-h1116-v0
+1a34897b-b5eb-4afc-9706-d0c8b0fc1c12
+https://lh3.googleusercontent.com/notebooklm/AKYWMX_GnZTy7_bUyIljr9fdEAiu_n01i523O_j6_-HTteg5Et1p-fLM7SIF82EhZAcSEd0izhXlFCeOGp0__ItjaRR2l7hnJcbuAhwYIInKva4mJHghbQ1pSVcbP_nUC1YoTOvDVp8-YQ=w862-h1116-v0
+a42619ac-6030-4682-b323-471e7c8e1131
+https://lh3.googleusercontent.com/notebooklm/AKYWMX9yLQg7oknS8llpnXKkIfMmxa63IaNsDJ_EpMRajvEeacKRNGCGyDG5I6tRbUuBE7ZGlzUx_zXcc7LBsxT5GTXCMCyDI_i5-V9P44981Otng1ZChvVMLV7NdZ3NI40kQi3Iy7NBPg=w862-h1116-v0
+f1dc3dd0-188c-4b05-9e4b-6607e7ffd293

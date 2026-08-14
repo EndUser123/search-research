@@ -123,9 +123,9 @@ infrastructure failures produce 0-scores that look like valid results.
 ## Related
 
 - [[plausible-narratives-substitute-for-verification]] — parent pattern
-- [[narrative-sufficiency-external-approaches]] — external mitigations
+- /narrative-sufficiency-external-approaches — external mitigations
 - [[diagnostic-logging-by-default-in-fleet-tooling]] — failure mode breakdown
-- [[claims-require-receipts]] — the receipt rule applied to task results
+- /claims-require-receipts — the receipt rule applied to task results
 
 ## Receipts
 

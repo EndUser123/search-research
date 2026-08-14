@@ -1,7 +1,7 @@
 ---
 title: "claude-https-code"
-created: 2026-08-09
-source: nlm-sync-2026-08-09
+created: 2026-08-11
+source: nlm-sync-2026-08-11
 tags: [nlm-synced, reference, degraded-fallback, claude]
 summary: >
   This page preserves source excerpts associated with 'claude-https-code'. It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
@@ -11,27 +11,27 @@ cognitive_load: 2
 verification: single-source-verified
 provenance_status: complete_4_hop
 sources:
-  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" (Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-09)
-  - "Claude Code Hooks (2026): 6 Production Hooks + Common Gotchas | Setup Guide" (https://sandlabs.com.au/blog/claude-code-hooks-guide, transcript synced 2026-08-09)
-  - "Claude Code Hooks Complete Guide - Deterministic Enforcement Across the Tool Lifecycle" (https://hidekazu-konishi.com/entry/claude_code_hooks_complete_guide.html, transcript synced 2026-08-09)
-  - "Claude Code Skills Complete Guide - Creating, Testing, and Distributing Agent Skills" (https://hidekazu-konishi.com/entry/claude_code_skills_complete_guide.html, transcript synced 2026-08-09)
-  - "Claude Code Hooks Explained: The Deterministic Layer Around Your Agent - Blake Crosley" (https://blakecrosley.com/blog/claude-code-hooks-explained, transcript synced 2026-08-09)
-  - "Exploring Conversation History | CodeSignal Learn" (https://codesignal.com/learn/courses/foundation-getting-started-with-claude-code/lessons/exploring-conversation-history, transcript synced 2026-08-09)
-  - "Claude Code: Hooks, Subagents & Skills Complete Guide - OfoxAI" (https://ofox.ai/blog/claude-code-hooks-subagents-skills-complete-guide-2026/, transcript synced 2026-08-09)
-  - "get-session-id | Skills Marketplace - LobeHub" (https://lobehub.com/de/skills/cowwoc-cat-get-session-id, transcript synced 2026-08-09)
-  - "Top 8 Claude Skills for Developers - Snyk" (https://snyk.io/articles/top-claude-skills-developers/, transcript synced 2026-08-09)
-  - "Claude Code Extension Layer Decision Guide - Choosing Among Skills, Subagents, Hooks, and Plugins | hidekazu-konishi.com" (https://hidekazu-konishi.com/entry/claude_code_extension_layers_decision_guide.html, transcript synced 2026-08-09)
-  - "Skills in Claude Code - Reusable Prompts and Workflows - codewithmukesh" (https://codewithmukesh.com/blog/skills-claude-code/, transcript synced 2026-08-09)
-  - "Best Claude Code Skills to Try in 2026 - Firecrawl" (https://www.firecrawl.dev/blog/best-claude-code-skills, transcript synced 2026-08-09)
-  - "NotebookLM source ee1b3b77-265d-4c43-904f-4bda0325edd0" (Unified Technical Specification for Claude Code Plugin Lifecycles: Deterministic State Machines, Session Boundary Isolation, and Quality Gate Hook Remediation, synced 2026-08-09)
-  - "Claude Code Internal Architecture Analysis | Taeho Kim" (https://taeho.io/en/reading/claude-code-internal-architecture-analysis_20264, transcript synced 2026-08-09)
+  - "NotebookLM notebook 4017aa6e-35fb-426d-bc53-34620bec405e" ([INGESTED] - Claude Code Guide: Production Hooks and Agent Skills, synced 2026-08-11)
+  - "Claude Code Hooks (2026): 6 Production Hooks + Common Gotchas | Setup Guide" (https://sandlabs.com.au/blog/claude-code-hooks-guide, transcript synced 2026-08-11)
+  - "Claude Code Hooks Complete Guide - Deterministic Enforcement Across the Tool Lifecycle" (https://hidekazu-konishi.com/entry/claude_code_hooks_complete_guide.html, transcript synced 2026-08-11)
+  - "Claude Code Skills Complete Guide - Creating, Testing, and Distributing Agent Skills" (https://hidekazu-konishi.com/entry/claude_code_skills_complete_guide.html, transcript synced 2026-08-11)
+  - "Claude Code Hooks Explained: The Deterministic Layer Around Your Agent - Blake Crosley" (https://blakecrosley.com/blog/claude-code-hooks-explained, transcript synced 2026-08-11)
+  - "Exploring Conversation History | CodeSignal Learn" (https://codesignal.com/learn/courses/foundation-getting-started-with-claude-code/lessons/exploring-conversation-history, transcript synced 2026-08-11)
+  - "Claude Code: Hooks, Subagents & Skills Complete Guide - OfoxAI" (https://ofox.ai/blog/claude-code-hooks-subagents-skills-complete-guide-2026/, transcript synced 2026-08-11)
+  - "get-session-id | Skills Marketplace - LobeHub" (https://lobehub.com/de/skills/cowwoc-cat-get-session-id, transcript synced 2026-08-11)
+  - "Top 8 Claude Skills for Developers - Snyk" (https://snyk.io/articles/top-claude-skills-developers/, transcript synced 2026-08-11)
+  - "Claude Code Extension Layer Decision Guide - Choosing Among Skills, Subagents, Hooks, and Plugins | hidekazu-konishi.com" (https://hidekazu-konishi.com/entry/claude_code_extension_layers_decision_guide.html, transcript synced 2026-08-11)
+  - "Skills in Claude Code - Reusable Prompts and Workflows - codewithmukesh" (https://codewithmukesh.com/blog/skills-claude-code/, transcript synced 2026-08-11)
+  - "Best Claude Code Skills to Try in 2026 - Firecrawl" (https://www.firecrawl.dev/blog/best-claude-code-skills, transcript synced 2026-08-11)
+  - "NotebookLM source ee1b3b77-265d-4c43-904f-4bda0325edd0" (Unified Technical Specification for Claude Code Plugin Lifecycles: Deterministic State Machines, Session Boundary Isolation, and Quality Gate Hook Remediation, synced 2026-08-11)
+  - "Claude Code Internal Architecture Analysis | Taeho Kim" (https://taeho.io/en/reading/claude-code-internal-architecture-analysis_20264, transcript synced 2026-08-11)
 provenance:
   chain:
     - level: concept
       id: claude-https-code
     - level: notebook
       id: 4017aa6e-35fb-426d-bc53-34620bec405e
-      title: Claude Code Guide: Production Hooks and Agent Skills
+      title: [INGESTED] - Claude Code Guide: Production Hooks and Agent Skills
       url: https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e
     - level: cluster
       id: 0
@@ -89,7 +89,7 @@ relations:
 
 **Definition:** This page preserves source excerpts associated with "claude-https-code". It is a degraded, citation-backed record created without an available synthesis backend; readers should consult the cited transcripts for interpretation.
 
-Synthesized from **13 contributing transcripts** in NotebookLM notebook *Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "claude-https-code" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
+Synthesized from **13 contributing transcripts** in NotebookLM notebook *[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills*, clustered into the "claude-https-code" sub-topic. Each claim below cites the specific transcript (source_id + title) that supports it; the frontmatter provenance chain carries the full concept → notebook → cluster → source URL hops.
 
 **Why this matters:** concepts synced from NotebookLM carry provenance back to the source material (notebook → cluster → original URL when invoked via `--from-clusters`). A reader can verify any claim by following the provenance chain in the frontmatter.
 
@@ -169,5 +169,5 @@ If a re-sync of the source notebook produces a different definition or different
 
 ## Sources
 
-- NotebookLM notebook [Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
+- NotebookLM notebook [[INGESTED] - Claude Code Guide: Production Hooks and Agent Skills](https://notebooklm.google.com/notebook/4017aa6e-35fb-426d-bc53-34620bec405e)
 - Studio artifacts: Report (concept extraction) + Data-Table (tabular facts)

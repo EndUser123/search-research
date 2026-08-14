@@ -621,7 +621,7 @@ https://www.reddit.com/r/Python/comments/1rlho78/comment/o8sk2xo/
 
 Custom rules just shipped in v0.2.0. You can define your own patterns in .grain.toml now: 
 
-[[grain.custom_rules]]
+grain.custom_rules
 
  
 
@@ -985,7 +985,7 @@ https://www.reddit.com/r/Python/comments/1rlho78/comment/o8sjzgm/
 
 Update -- v0.2.0 just shipped with custom rule support. Your CONST_SETTING idea is now a one-liner: 
 
-[[grain.custom_rules]]
+grain.custom_rules
 
  
 

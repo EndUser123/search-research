@@ -45982,7 +45982,7 @@ config_file")
 
  
 
-if [[ -n "$skip_reason" ]]; then
+if /-n "$skip_reason"; then
 
  
 
@@ -46020,9 +46020,9 @@ args=()
 
 args+=(-d "$dir/policy.rego")
 
-if [[ -f "
+if /-f "
 
-dir/input.json" ]]; then
+dir/input.json"; then
 args+=(-i "
 
 dir/input.json")
@@ -46031,9 +46031,9 @@ dir/input.json")
 
 fi
 
-if [[ -f "
+if /-f "
 
-dir/data.json" ]]; then
+dir/data.json"; then
 args+=(-d "
 
 dir/data.json")
@@ -46179,9 +46179,9 @@ yaml_file" | sed 's/^title: *//; s/^"//; s/"$//')
 
 If no title, try sidebar_label
 
-if [[ -z "
+if /-z "
 
-title" ]]; then
+title"; then
 title=
 
 (grep '^sidebar_label:' "
@@ -46196,11 +46196,11 @@ fi
 
 If still no title, extract from first H1 in markdown
 
-if [[ -z "
+if /-z "
 
 title" && -f "
 
-md_file" ]]; then
+md_file"; then
 
  
 
@@ -46216,7 +46216,7 @@ fi
 
 Default fallback
 
-if [[ -z "$title" ]]; then
+if /-z "$title"; then
 
  
 
@@ -46240,7 +46240,7 @@ ref="heads/main"
 
  
 
-if [[ -v VERSION ]]; then
+if -v VERSION; then
 
  
 
@@ -46264,7 +46264,7 @@ curl --silent -L -o regal.zip "$url"
 
 }
 
-if [[ -v REGAL_LOCAL_PATH && -d "$REGAL_LOCAL_PATH" ]]; then
+if /-v REGAL_LOCAL_PATH && -d "$REGAL_LOCAL_PATH"; then
 
  
 
@@ -46281,7 +46281,7 @@ else
 
  
 
-if [[ ! -e regal.zip ]]; then
+if /! -e regal.zip; then
 
  
 
@@ -46359,9 +46359,9 @@ file"
 
  
 
-if [[ -f "
+if /-f "
 
-section_path" ]]; then
+section_path"; then
 cat "
 
 section_path"
@@ -46416,7 +46416,7 @@ regal_docs_dest/$md_file_rel"
 
 mkdir -p "$(dirname $dest_md_file)"
 
-if [[ ! -e $md_file ]]; then
+if /! -e $md_file; then
 
  
 
@@ -46507,7 +46507,7 @@ curl --silent -L -o rego-cheat-sheet.zip "$url"
 
 }
 
-if [[ ! -e rego-cheat-sheet.zip ]]; then
+if /! -e rego-cheat-sheet.zip; then
 
  
 
@@ -46547,9 +46547,9 @@ cheatsheet_pdf_dest="static/cheatsheet.pdf"
 
 Copy the markdown file
 
-if [[ -f "
+if /-f "
 
-cheatsheet_src/cheatsheet.md" ]]; then
+cheatsheet_src/cheatsheet.md"; then
 cp "
 
 cheatsheet_src/cheatsheet.md" "$cheatsheet_md_dest"
@@ -46576,9 +46576,9 @@ fi
 
 Copy the PDF file
 
-if [[ -f "
+if /-f "
 
-cheatsheet_src/cheatsheet.pdf" ]]; then
+cheatsheet_src/cheatsheet.pdf"; then
 cp "
 
 cheatsheet_src/cheatsheet.pdf" "$cheatsheet_pdf_dest"
@@ -46669,7 +46669,7 @@ curl --silent -L -o rego-style-guide.zip "$url"
 
 }
 
-if [[ ! -e rego-style-guide.zip ]]; then
+if /! -e rego-style-guide.zip; then
 
  
 
@@ -46705,9 +46705,9 @@ style_guide_dest="docs/style-guide.md"
 
 Copy the markdown file
 
-if [[ -f "
+if /-f "
 
-style_guide_src" ]]; then
+style_guide_src"; then
 cp "
 
 style_guide_src" "$style_guide_dest"
@@ -46788,9 +46788,9 @@ status=
 
 url")
 
-if [[ "
+if /"
 
-status" =~ ^2|^3 ]]; then
+status" =~ ^2; then
 echo "PASS (
 
 status)"
@@ -47809,3 +47809,4 @@ export default OverviewDiagram;
  
 
 
+```

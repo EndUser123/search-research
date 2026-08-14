@@ -39,7 +39,7 @@ summary: >
 
 ### 1. Immediate application for trivial fixes
 
-If a fix is ≤5 lines, verified, and the file is known: apply it in the same turn it's discovered. Don't defer to a handoff. The [[no-deferred-persistence]] rule already covers this for writes — extend the principle to code fixes.
+If a fix is ≤5 lines, verified, and the file is known: apply it in the same turn it's discovered. Don't defer to a handoff. The /no-deferred-persistence rule already covers this for writes — extend the principle to code fixes.
 
 ### 2. Close-py COMPLETENESS SCAN extension
 
@@ -68,6 +68,6 @@ This concept is wrong if applying trivial fixes immediately (rather than batchin
 
 ## Relationship to other concepts
 
-- [[no-deferred-persistence]] — the parent principle. Documented-but-unapplied is the code-fix-specific instance.
+- /no-deferred-persistence — the parent principle. Documented-but-unapplied is the code-fix-specific instance.
 - [[claims-require-receipts-worked-examples]] — documenting a fix is a "claim" of solving the problem; the receipt is the commit, not the handoff.
 - [[specification-gaming-in-llm-agent-pipelines]] — adjacent: the agent satisfies the "we solved it" expectation by writing documentation instead of code.
