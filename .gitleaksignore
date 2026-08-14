@@ -420,3 +420,5 @@ f9492afc6bd427831f13da16adb3d41197057215:scripts/security/REMEDIATION-QUICKSTART
 # 2026-08-08: pre-existing Reddit/dev.to source URLs in transcript-extraction concept (false positive on URL fragments)
 .data/wiki/concepts/youtube-transcript-extraction-techniques.md:generic-api-key:65
 .data/wiki/concepts/youtube-transcript-extraction-techniques.md:generic-api-key:209
+# 2026-08-13: ChatGPT export with Upwork/Fiverr URLs — false positive on URL fragments
+packages/.chat_exports/2026-08-10_-_Canada_Alberta_Software_Grants.md:generic-api-key:412

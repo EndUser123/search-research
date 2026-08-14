@@ -1,0 +1,6 @@
+# Large Perplexity export (56MB JSON — over GitHub 50MB warning threshold)
+Perplexity-sessions/*.json
+Perplexity-sessions/*.xlsx
+
+# Redundant zips — content is already extracted in sibling directories
+*.zip
