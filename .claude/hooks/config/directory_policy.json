@@ -141,6 +141,74 @@
       {
         "pattern": ".worktrees",
         "reason": "Git worktrees for parallel development (canonical worktree dir)"
+      },
+      {
+        "pattern": ".githooks",
+        "reason": "Active git hooks (anti-bleed, pre-commit, pre-push)"
+      },
+      {
+        "pattern": ".github",
+        "reason": "GitHub convention (copilot-instructions, PR template)"
+      },
+      {
+        "pattern": ".logs",
+        "reason": "Experiment logs from yt-is, benchmarks, and subsystems"
+      },
+      {
+        "pattern": ".cache",
+        "reason": "Wiki search index (index.pkl) and multilang cache"
+      },
+      {
+        "pattern": ".model_cache",
+        "reason": "HuggingFace hub cache (HF_HOME, SENTENCE_TRANSFORMERS_HOME)"
+      },
+      {
+        "pattern": ".serena",
+        "reason": "Serena MCP server config and cache"
+      },
+      {
+        "pattern": ".gemini",
+        "reason": "Gemini CLI config (GEMINI.md, settings.json)"
+      },
+      {
+        "pattern": ".opencode",
+        "reason": "OpenCode CLI config"
+      },
+      {
+        "pattern": ".pi",
+        "reason": "Pi CLI handoff and risk log"
+      },
+      {
+        "pattern": ".mypy_cache",
+        "reason": "Mypy type checker cache"
+      },
+      {
+        "pattern": ".ruff_cache",
+        "reason": "Ruff linter cache"
+      },
+      {
+        "pattern": ".pytest_cache",
+        "reason": "Pytest cache"
+      },
+      {
+        "pattern": ".pnpm-store",
+        "reason": "pnpm package manager store"
+      },
+      {
+        "pattern": "__pycache__",
+        "reason": "Python bytecode cache"
+      },
+      {
+        "pattern": ".vscode",
+        "reason": "VS Code workspace settings"
+      },
+      {
+        "pattern": ".benchmarks",
+        "reason": "Benchmark tooling (codspeed and similar)"
+      },
+      {
+        "pattern": ".deepeval",
+        "reason": "DeepEval plugin data"
       }
     ],
     "allowed_config_files": [

@@ -326,3 +326,26 @@ Wire EOL detector from discovery probe data.
 - `serde-broken-false-positive-sweep-20260801.md` — incident #4
 - `multi-terminal-shared-state-contamination-transport-mismatch.md` — incident #1
 - `pick-model-stale-spawn-notes-failure-pattern.md` — incident #5
+
+## Related handoffs (authority split, added 2026-08-14 by session 019ffd06)
+
+**`P:/docs/handoffs/model-benchmark-effort-20260813/HANDOFF.md`** — the model-benchmark skill cleanup + telemetry wiring handoff. Authority split locked 2026-08-14:
+
+| This handoff (migration) owns | Sibling handoff (model-benchmark) owns |
+|---|---|
+| Fleet infrastructure: SQLite migration, `fleet-models.json` elimination, stale-JSONL consumer migration, EOL detector, quarantine table, `model_metadata` table, `model_router.py:707` serde_broken filter rewrite | `/model-benchmark` skill cleanup, telemetry wiring into 7 skills, Groq/SKILL.md fixes, GPT-5.6 bridge validation, code-exec benchmark expansion |
+
+The sibling handoff was downsized (option b) on 2026-08-14: 10 of its original 22 task packets were deferred here because they target code this migration eliminates or replaces. Deferred items (for traceability — do NOT execute from the sibling handoff):
+
+- MBE-01..04 (dispatch-paths fallback) — Phase 2 deletes `model_router.py:707`
+- MBE-11..13 (benchmark coverage / `dispatch_latency`) — Phase 3 eliminates `fleet-models.json`
+- MBE-20 (pool wiring validation) — Phase 3 changes lane derivation
+- NEW-1/2/3 (stale JSONL consumers + EOL detector) — already in Phase 3 acceptance criteria
+- MBE-26 (verify `promote_models.py`) — subsumed by Phase 3 acceptance criteria
+
+**Coordination points** (files both handoffs touch — sequence to avoid merge conflicts):
+- `fleet_quota.py` — this handoff's Phase 3 modifies lines 820-827 (Cohere counter JSONL→SQLite); sibling's MBE-06 modifies lines 916-936 (Cohere provider map). Sequence sibling's MBE-06 AFTER Phase 3.
+- Wiki concept `model-fleet-provider-pools.md` — sibling's MBE-18 updates the architecture description; sequence AFTER Phase 3 ships so the wiki describes the new storage model, not the legacy `fleet-models.json`.
+- `fleet-config.json` (new file, Phase 3) — sibling's MBE-19 (operator decisions on Kimi K3 + dead NIM) targets this file; sequence AFTER Phase 3.
+
+**Cross-reference added by:** session `019ffd06-0d7f-7f21-98fc-6117652ba7e3` (the sibling session), 2026-08-14, with operator authorization to override single-writer for this bidirectional reference.
