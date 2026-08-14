@@ -269,7 +269,7 @@ functions to `fleet_db.py` so all consumers go through the data access layer.
 
 ### Phase 3: fleet-models.json split + stale consumer migration + EOL wiring
 
-**Preflight status (2026-08-14): NEEDS REVIEW — blockers reduced to 2 (D1 fixed; Codex disposition LOCKED = (a)). Packet: `P:/tmp/preflight-phase34-report.md`.**
+**Preflight status (2026-08-14): NEEDS REVIEW — blockers reduced to 2 (D1 fixed; Codex disposition LOCKED = (a)). Packet: `preflight-phase34-report.md` (this directory).**
 
 **DISPOSITION (a) LOCKED 2026-08-14 (operator decision):** the Codex selector migrates in-phase to the split stores. NO compat export. Mechanics: `model-selector.mjs` keeps reading JSON but switches to `fleet-config.json` + a `model_metadata.json` export emitted from SQLite by `fleet_db.py` at write time (same dual-write pattern as D1) — avoids any Node-SQLite dependency. **Acceptance condition: run the Codex test suite (`cd P:/packages/codex-external-delegation && node --test`) as part of Phase 3 verification — the cross-language change must be verified, not assumed.** Also update wiki `[[codex-pi-grok-schema-v5-registry-integration]]` (the "schema 5 fleet-models.json contract" wording becomes obsolete when the file dies).
 
@@ -341,7 +341,7 @@ Wire EOL detector from discovery probe data.
 
 **Read before starting:**
 1. This handoff (architecture + decisions + Phase 3 scope)
-2. `P:/tmp/preflight-phase34-report.md` — full consumer inventory + constraint audit
+2. `preflight-phase34-report.md` in this directory — full consumer inventory + constraint audit (the .json alongside it is the raw audit output)
 3. `~/.grok/skills/model-quota/scripts/fleet_db.py` — the existing data-access-layer pattern (extend it; do not read `usage.db` directly anywhere)
 4. Wiki `[[codex-pi-grok-schema-v5-registry-integration]]` — the contract being superseded
 
