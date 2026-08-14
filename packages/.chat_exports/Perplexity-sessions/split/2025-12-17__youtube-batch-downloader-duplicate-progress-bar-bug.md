@@ -10,176 +10,348 @@ entry_count: 3
 
 ● CRITICAL BUG PROMPT: YouTube Batch Downloader Duplicate Progress Bars
 
+
+
   Problem Description
+
+
 
   The YouTube batch downloader is displaying duplicate progress bar lines for the same channel during execution. Despite implementing multiple fix attempts (boolean flag, progress introspection, and ProgressStateManager), the issue persists.
 
+
+
   Current Behavior
 
+
+
   🚀 Starting Batch Download...
+
   ⏱️  Delay between channels: 60.0s
+
     ai-foundations - No new videos to download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
     ai-foundations - No new videos to download                        ━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
     ai-foundations - No new videos to download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
     ai-foundations - No new videos to download               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
     ai-foundations - No new videos to download                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
     ai-foundations - No new videos to download                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
     ai-foundations - No new videos to download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
     ai-jason - No new videos to download       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
+
 
   Expected Behavior
 
+
+
   🚀 Starting Batch Download...
+
   ⏱️  Delay between channels: 60.0s
+
   ✅ ai-foundations - No new videos to download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
   ✅ ai-jason - No new videos to download       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+
+
 
   Issue: Each channel should appear exactly once with a single progress bar completion line.
 
+
+
   ---
+
   Technical Environment
+
+
 
   Technology Stack
 
+
+
   - Language: Python 3.10+
+
   - Progress Library: Rich (13.7.1) with Progress, SpinnerColumn, TextColumn, BarColumn
+
   - Threading: Uses threading.Lock() for state management
+
   - YouTube Integration: yt-dlp (2025.6.30)
+
+
 
   Key Components
 
+
+
   - BatchDownloader: Main orchestrator in src/yt_fts/batch_downloader.py
+
   - ProgressStateManager: Centralized state management class (lines 23-81)
+
   - ChannelProcessor: Handles individual channel processing with progress callbacks
+
   - Rich Progress Bars: Visual progress tracking component
+
+
 
   Current Architecture
 
+
+
   BatchDownloader
+
   ├── ProgressStateManager (thread-safe state tracking)
+
   ├── ChannelProcessor (async channel processing)
+
   ├── Rich Progress (visual progress bars)
+
   └── Progress Callback (duplicate prevention logic)
 
+
+
   ---
+
   Previous Fix Attempts (All Failed)
+
+
 
   1. Boolean Flag Approach
 
+
+
   - Implementation: progress_callback.is_completed flag
+
   - Problem: Race conditions, not atomic, failed in concurrent scenarios
+
+
 
   2. Progress Introspection Approach
 
+
+
   - Implementation: progress.tasks[task_id].completed >= 100 checks
+
   - Problem: Depended on Rich progress bar internals, unreliable
+
+
 
   3. ProgressStateManager Approach
 
+
+
   - Implementation: Centralized state with threading.Lock() and deduplication
+
   - Problem: Still showing duplicates - indicates deeper architectural issue
 
+
+
   ---
+
   Root Cause Analysis Requirements
+
+
 
   Critical Questions to Investigate:
 
+
+
   1. Multiple Task Creation: Are multiple Rich progress tasks being created for the same channel?
+
   2. Callback Invocation Paths: Is the progress callback being called from multiple code paths simultaneously?
+
   3. Rich Progress Bar Internals: Is Rich itself rendering multiple progress bars for the same task?
+
   4. State Management Failure: Is the ProgressStateManager state being bypassed or corrupted?
+
   5. Concurrency Issues: Are there race conditions between state checking and progress updates?
+
   6. Task ID Reuse: Are task IDs being reused causing state confusion?
 
+
+
   ---
+
   Environment Constraints
+
+
 
   Solo Developer Context
 
+
+
   - Target Users: Individual developers, not enterprise teams
+
   - Performance: Must handle 10-50 channels efficiently without overhead
+
   - Reliability: 75-85% reliability requirement acceptable
+
   - Complexity: Must avoid enterprise over-engineering patterns
+
+
 
   Technical Constraints
 
+
+
   - Dependencies: Can use existing Rich, threading libraries
+
   - No Background Services: Solution must be on-demand, not persistent
+
   - No New Dependencies: Prefer using existing stack over adding new libraries
+
   - Backward Compatibility: Must not break existing channel processing logic
+
+
 
   Platform Requirements
 
+
+
   - Operating System: Windows 10/11 (primary), cross-platform compatible
+
   - Python Environment: Standard Python installation without complex setup
+
   - Terminal Compatibility: Must work in Windows Terminal, Command Prompt, PowerShell
 
+
+
   ---
+
   Definition of Done
+
+
 
   Acceptance Criteria
 
+
+
   ✅ Functional Requirements:
+
   - Single Line Per Channel: Each YouTube channel appears exactly once in progress output
+
   - Clean Progress Display: No duplicate progress bars or lines
+
   - Preserved Functionality: All existing download capabilities maintained
+
   - Performance: No significant performance degradation (>10% slower)
+
   - Thread Safety: Works correctly with concurrent channel processing
 
+
+
   ✅ Technical Requirements:
+
   - Atomic Operations: Progress updates are atomic and race-condition free
+
   - State Consistency: Progress state is consistent across all execution paths
+
   - Error Handling: Graceful handling of progress update failures
+
   - Memory Efficiency: No memory leaks or excessive memory usage
+
   - Code Quality: Clean, maintainable code with clear documentation
 
+
+
   ✅ Testing Requirements:
+
   - Unit Tests: Comprehensive tests for ProgressStateManager functionality
+
   - Integration Tests: End-to-end tests with real YouTube channel processing
+
   - Concurrent Tests: Multi-threaded tests to verify thread safety
+
   - Edge Case Tests: Tests for error conditions, empty channels, network failures
+
   - Regression Tests: Tests to prevent future regressions
+
+
 
   Verification Criteria
 
+
+
   🧪 Test Scenarios:
+
   1. Small Batch (3-5 channels): Verify no duplicates in small-scale processing
+
   2. Large Batch (20+ channels): Verify performance and no duplicates in large-scale
+
   3. Mixed Content: Test channels with new videos, no updates, and errors
+
   4. Concurrent Processing: Verify thread safety with multiple simultaneous downloads
+
   5. Error Recovery: Verify progress display remains correct after errors
+
   6. Terminal Compatibility: Test in different terminal environments
 
+
+
   📊 Success Metrics:
+
   - Zero Duplicate Lines: 0 duplicate progress bar lines in all test scenarios
+
   - Performance: <10% performance impact compared to baseline
+
   - Reliability: 99%+ success rate in progress update operations
+
   - User Experience: Clean, readable progress output with clear status indicators
+
+
 
   Deliverables
 
+
+
   📁 Code Changes:
+
   - Root Cause Fix: Code changes that eliminate the fundamental cause of duplicates
+
   - Enhanced Testing: Comprehensive test suite for progress functionality
+
   - Documentation: Clear documentation of the fix and prevention strategies
 
+
+
   📚 Documentation:
+
   - Technical Report: Detailed analysis of root cause and solution approach
+
   - Implementation Guide: Step-by-step guide to implementing the fix
+
   - Testing Strategy: Documentation of testing approach and results
 
+
+
   ---
+
   Priority and Timeline
+
+
 
   🔥 Priority: CRITICAL - This is a user experience issue that makes the tool appear broken
 
+
+
   ⏰ Expected Timeline:
+
   - Root Cause Discovery: 2-4 hours
+
   - Solution Implementation: 1-2 hours
+
   - Testing and Validation: 1-2 hours
+
   - Documentation: 1 hour
 
+
+
   ---
+
   CONTEXT: This is a persistent bug that has survived multiple fix attempts. The solution requires deep investigation into Rich progress bar internals, threading behavior, and state management patterns. The fix must be robust enough to handle concurrent operations while maintaining the existing user experience.
 
 ## Assistant
@@ -542,7 +714,7 @@ class ProgressCallbackManager:
         self,
         channel_id: str,
         description_template: str = "[cyan]{channel}[/cyan]"
-    ) -> Callable[[Dict[str, Any]], None]:
+    ) -> Callable/Dict[str, Any, None]:
         """Generate a progress callback function for yt-dlp"""
         
         def callback(d: Dict[str, Any]):

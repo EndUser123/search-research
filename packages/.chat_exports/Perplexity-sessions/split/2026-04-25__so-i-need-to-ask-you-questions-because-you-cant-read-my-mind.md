@@ -1,6 +1,8 @@
 ---
 title: "'
+
 ❯ So I need to ask you questions because you can't read my mind. So given that I don't know what I don't know, what
+
 "
 date: "2026-04-25"
 mode: "COPILOT"
@@ -11,142 +13,279 @@ entry_count: 34
 ## Human
 
 "
+
 ❯ So I need to ask you questions because you can't read my mind. So given that I don't know what I don't know, what
+
   questions would I need to ask that would have surfaced all those issues?
+
+
 
 ● Good framing. Here are the diagnostic questions, phrased as if you're asking me cold — no knowledge of the specific bugs:
 
+
+
   ---
+
   "What hooks fire on every response?"
+
   → I'd grep for type:.*Stop across all SKILL.md files and check which ones have no matcher: field. That catches the
+
   unconditional-fire problem.
 
+
+
   "Why am I getting 'Stop hook error' with no explanation on every response?"
+
   → I'd check hook_runner_stderr.jsonl for the actual error output. That surfaces the bash-on-CMD error and the
+
   stdout-vs-stderr issue directly from the logs.
 
+
+
   "Are there any bash-specific syntaxes in hook commands that would fail on Windows?"
+
   → I'd grep for ${, >/dev/null, | grep, case, $(...) in hook commands. That finds the CMD-incompatible bash in go_2.0.
 
+
+
   "Which skill directories have duplicate or near-identical contents?"
+
   → I'd hash every file in both go/scripts/ and go_2.0/scripts/ and compare. That finds the drift-risk duplication.
 
+
+
   "What triggers and aliases are registered across all skills — are there collisions?"
+
   → I'd parse all SKILL.md frontmatter and list any triggers: or aliases: appearing in more than one skill. That finds the
+
   /go_2.0 double-registration.
 
+
+
   "Are there any shell scripts (.sh files) in skill directories?"
+
   → I'd find .claude/skills -name "*.sh". That finds go-safe.sh which won't run on Windows CMD.
 
+
+
   "Do any PreToolUse hooks lack a matcher and would fire on every tool call?"
+
   → I'd grep for type:.*PreToolUse and check for matcher: fields. That finds the unfiltered PreToolUse in go_2.0.
 
+
+
   "When I run /go from a non-worktree directory, what exactly fails and why?"
+
   → I'd have you actually try it and show the error output. That live test would expose the glob guard flaw and the stale
+
   unknown/ directory issue.
 
+
+
   ---
+
   Those 8 questions are symptom-agnostic — you don't need to know the bug to ask them. They're all things you could ask me
+
   in any session, right now, about your current setup.
+
+
 
 ❯ What questions did I ask in the chat history that actually surfaced new information?
 
+
+
 ● Looking at the transcript, only three of your messages were questions that surfaced genuinely new information:
 
+
+
   ---
+
   "Shouldn't those two go Hooks be skill based, meaning that they would not fire unless we were using go?"
 
+
+
   This forced the LLM to explain that skill-registered hooks are globally scoped, not per-invocation. It had been assuming
+
   the hooks would only fire during /go runs without ever verifying that claim. Your question was the first to challenge the
+
    assumption.
 
+
+
   ---
+
   "do we want to use an environmental variable or do we want to use a state file? We do want to be multi-terminal isolated
+
   and immune to stale data and immune to workflow interruption caused by compact events."
 
+
+
   This forced a comparison framework instead of just picking the first option. The LLM had originally suggested GO_RUN_ID
+
   env var. Your multi-terminal + compaction-immunity requirement is what killed that path and locked in the state-file
+
   approach. No probe, just a constraint.
 
+
+
   ---
+
   "are /go and /go_2.0 the same?"
 
+
+
   This surfaced the collision issue and forced the LLM to explain the actual differences. Before this, both skills had been
+
    treated as a known quantity despite having identical triggers, aliases, and overlapping script directories. The question
+
    forced the distinction.
 
+
+
   ---
+
   Everything else was either an instruction ("OK, implement that", "Fix all the problems") or a meta-question about
+
   prompting process. The three above were the ones that changed what the LLM believed was true.
 
+
+
 ※ recap: We've been analyzing what prompting patterns find hook and skill issues proactively. The three questions that
+
   actually surfaced new info were: the skill-scoping challenge, the multi-terminal/env-var constraint question, and the
+
   `/go` vs `/go_2.0` collision question. Next step would be deciding whether to turn these into a diagnostic skill or
+
   script. (disable recaps in /config)
+
+
 
 ❯ those 3 don't look like what you suggested.
 
+
+
 ● You're right — they don't. I presented two lists that don't actually match each other.
 
+
+
   My first list was questions I'd recommend as good probes. The second list was the questions that actually worked. They
+
   share almost no overlap.
+
+
 
   What made the 3 that worked was something different from what makes a good generic diagnostic question:
 
+
+
   - They were premised on a false assumption the LLM was carrying ("skill hooks only fire during skill invocations", "these
+
    are different skills", "env var is fine")
+
   - The LLM had never stated those assumptions explicitly — it just operated on them silently
+
   - Your questions forced them into the open
 
+
+
   What makes a question surface new information is: it challenges an unstated assumption the LLM hasn't examined. Generic
+
   diagnostics ("what hooks fire on every response?") probe the system. Challenging questions probe the LLM's mental model
+
   directly.
+
+
 
   The gap between those two is: most of what I recommended were system probes. Your 3 were model probes.
 
+
+
   A better framing for the second list would have been: "what questions force the LLM to expose assumptions it hasn't
+
   stated?" — which is a different skill than diagnostic probing.
 
+
+
 ❯ please then answer: what questions force the LLM to expose assumptions it hasn't stated?  I'm trying to discover actions
+
    that we should do.  Questions like: what else should we do? what else can you anticipate?  What else did you discover?
+
    any optimizations availble?  etc
 
+
+
 ● The three that worked shared a structure: they presupposed something false. "Skill hooks fire only during skill
+
   invocations" — false. "Env var is fine for our constraints" — false. "/go and /go_2.0 are different enough to not
+
   collide" — false. The LLM had built its whole response around these unstated beliefs.
+
+
 
   Here's what makes questions that force assumption exposure:
 
+
+
   ---
+
   1. Scope questions — "Does this fire globally or only during skill X?"
+
   Asking whether a mechanism is scoped or global immediately reveals whether the LLM understood its registration scope. The
+
    go hooks were assumed to be skill-scoped; they weren't.
 
+
+
   2. Constraint questions — "Does this work across compact events?" / "Does this handle concurrent terminals?"
+
   The LLM suggested GO_RUN_ID env var without volunteering that it dies on session compaction. Your constraint question
+
   forced it to check its own answer against requirements it hadn't listed.
 
+
+
   3. Identity questions — "Are X and Y actually the same thing?"
+
   The LLM treated /go and /go_2.0 as distinct without verifying. Asking if they're the same forced it to compare them and
+
   find the collision.
 
+
+
   4. Negative questions — "What's one way this could silently fail?"
+
   The LLM described success paths but never volunteered failure modes. Asking for one silent failure is harder than
+
   describing success.
 
+
+
   ---
+
   Questions that reliably surface unstated assumptions:
 
+
+
   - "What did you assume about how this works that you didn't say out loud?"
+
   - "Is this global or scoped to the skill?"
+
   - "What happens to this state after a session compaction?"
+
   - "Are there two things here that look different but do the same thing?"
+
   - "What would break if I ran this from a second terminal right now?"
+
   - "When you chose X over Y, what criteria did you use — and did I give you all of them?"
+
   - "What's one edge case where this silently succeeds but does the wrong thing?"
+
   - "Did you verify this assumption, or just carry it forward?"
 
+
+
   The last one is the sharpest: "Did you verify this, or just assume it?" It's direct, scoped, and can't be deflected with
+
   hand-waving."
 
 I'm trying to develop a series of questions, or even adapatable sets, that help identify issues that shoudl be address, either to fix something, protect something, or gain something.  Can you help?
@@ -304,6 +443,7 @@ How do these questions map to yours?
 what else should we do? 
 what else can you anticipate?  
 What else did you discover?
+
 what other or any optimizations are available?
 
 ## Assistant
@@ -918,231 +1058,457 @@ If you want an even shorter variant for quick use, I can condense this into a 3�
 I gave the prompt.  Got a response.  Had this conversation.  Why are there still findings?  What's the optimal way to address this?  Ask the prompt again?  In the initial prompt, as for investigation of additional findings?  Other?
 
 "
+
 ❯ Proceed with fix 1 2 3 4 and verify your assumptions.
+
+
 
 ● Running all four fixes and assumption checks in parallel.
 
+
+
   Searched for 1 pattern (ctrl+o to expand)
 
+
+
 ● Bash(python -c "
+
       import json…)
+
   ⎿  Traceback (most recent call last):
+
        File "<string>", line 7, in <module>
+
          target = d[k].get('target', 'N/A')
+
      … +4 lines (ctrl+o to expand)
 
+
+
   Searched for 1 pattern (ctrl+o to expand)
 
+
+
 ● Bash(python -c "
+
       import yaml, os…)
+
   ⎿  None found
 
+
+
 ● Bash(python -c "
+
       import json…)
+
   ⎿  Type: <class 'dict'>
+
      Keys: ['version', 'skills']
 
+
+
 ● Bash(rm -rf ".claude/.artifacts/test-terminal/go" ".claude/.artifacts/unknown/go" && echo "removed stale dirs")
+
   ⎿  removed stale dirs
 
+
+
 ● Bash(python -c "
+
       import json…)
+
   ⎿  Total entries: 2
+
        mermaid-davila7 -> {'name': 'mermaid-davila7', 'description': 'Comprehensive guide for creating software diagra
+
      ms using Mermaid syntax. Use when users need to create, visualize, or document software through diagrams includin
+
      … +14 lines (ctrl+o to expand)
 
-● Bash(python -c "
-      import yaml, os…)
-  ⎿  (No output)
+
 
 ● Bash(python -c "
+
       import yaml, os…)
+
   ⎿  (No output)
 
+
+
 ● Bash(python -c "
+
       import yaml, os…)
+
+  ⎿  (No output)
+
+
+
+● Bash(python -c "
+
+      import yaml, os…)
+
   ⎿  Local skills with hooks: 0
 
+
+
 ● Bash(ls .claude/skills/*/SKILL.md 2>/dev/null | while read f; do if [ ! -L "$f" ]; then echo "$f"; fi; done)
+
   ⎿  .claude/skills/ai-api/SKILL.md
+
      .claude/skills/ai-apiv2/SKILL.md
+
      .claude/skills/ai-chutes/SKILL.md
+
      … +41 lines (ctrl+o to expand)
 
-● Bash(python -c "
-      import yaml, os…)
-  ⎿  Error: Exit code 1
-     Traceback (most recent call last):
-       File "<string>", line 16, in <module>
-         with open(m) as fh: d = yaml.safe_load(fh)
-                                 ~~~~~~~~~~~~~~^^^^
-       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 125, in safe_load
-         return load(stream, SafeLoader)
-       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 81, in load
-         return loader.get_single_data()
-                ~~~~~~~~~~~~~~~~~~~~~~^^
-     … +12 lines (ctrl+o to expand)
+
 
 ● Bash(python -c "
+
       import yaml, os…)
+
+  ⎿  Error: Exit code 1
+
+     Traceback (most recent call last):
+
+       File "<string>", line 16, in <module>
+
+         with open(m) as fh: d = yaml.safe_load(fh)
+
+                                 ~~~~~~~~~~~~~~^^^^
+
+       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 125, in safe_load
+
+         return load(stream, SafeLoader)
+
+       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 81, in load
+
+         return loader.get_single_data()
+
+                ~~~~~~~~~~~~~~~~~~~~~~^^
+
+     … +12 lines (ctrl+o to expand)
+
+
+
+● Bash(python -c "
+
+      import yaml, os…)
+
   ⎿  Hooks found: 0
+
+
 
 ✻ Brewing… (4m 2s · ↓ 2.6k tokens · almost done thinking with medium effort)
+
   ⎿  Tip: Use /btw to ask a quick side question without interrupting Claude's current work
 
+
+
 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 ❯ 
+
 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
   ⏵⏵ accept edits on (shift+tab to cycle)
+
  ▐▛███▜▌   Claude Code v2.1.119
+
 ▝▜█████▛▘  MiniMax-M2.7 with medium effort · API Usage Billing
+
   ▘▘ ▝▝    P:\\
 
+
+
 ● Bash(python -c "
+
       import json…)
+
   ⎿  Type: <class 'dict'>
+
      Keys: ['version', 'skills']
 
+
+
 ● Bash(rm -rf ".claude/.artifacts/test-terminal/go" ".claude/.artifacts/unknown/go" && echo "removed stale dirs")
+
   ⎿  removed stale dirs
 
+
+
 ● Bash(python -c "
+
       import json…)
+
   ⎿  Total entries: 2
+
        mermaid-davila7 -> {'name': 'mermaid-davila7', 'description': 'Comprehensive guide for creating software diagra
+
      ms using Mermaid syntax. Use when users need to create, visualize, or document software through diagrams includin
+
      … +14 lines (ctrl+o to expand)
 
-● Bash(python -c "
-      import yaml, os…)
-  ⎿  (No output)
+
 
 ● Bash(python -c "
+
       import yaml, os…)
+
   ⎿  (No output)
 
+
+
 ● Bash(python -c "
+
       import yaml, os…)
+
+  ⎿  (No output)
+
+
+
+● Bash(python -c "
+
+      import yaml, os…)
+
   ⎿  Local skills with hooks: 0
 
+
+
 ● Bash(ls .claude/skills/*/SKILL.md 2>/dev/null | while read f; do if [ ! -L "$f" ]; then echo "$f"; fi; done)
+
   ⎿  .claude/skills/ai-api/SKILL.md
+
      .claude/skills/ai-apiv2/SKILL.md
+
      .claude/skills/ai-chutes/SKILL.md
+
      … +41 lines (ctrl+o to expand)
 
-● Bash(python -c "
-      import yaml, os…)
-  ⎿  Error: Exit code 1
-     Traceback (most recent call last):
-       File "<string>", line 16, in <module>
-         with open(m) as fh: d = yaml.safe_load(fh)
-                                 ~~~~~~~~~~~~~~^^^^
-       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 125, in safe_load
-         return load(stream, SafeLoader)
-       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 81, in load
-         return loader.get_single_data()
-                ~~~~~~~~~~~~~~~~~~~~~~^^
-     … +12 lines (ctrl+o to expand)
+
 
 ● Bash(python -c "
+
       import yaml, os…)
+
+  ⎿  Error: Exit code 1
+
+     Traceback (most recent call last):
+
+       File "<string>", line 16, in <module>
+
+         with open(m) as fh: d = yaml.safe_load(fh)
+
+                                 ~~~~~~~~~~~~~~^^^^
+
+       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 125, in safe_load
+
+         return load(stream, SafeLoader)
+
+       File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 81, in load
+
+         return loader.get_single_data()
+
+                ~~~~~~~~~~~~~~~~~~~~~~^^
+
+     … +12 lines (ctrl+o to expand)
+
+
+
+● Bash(python -c "
+
+      import yaml, os…)
+
   ⎿  Hooks found: 0
+
+
 
   Read 1 file (ctrl+o to expand)
 
+
+
 ● Bash(python -c "
+
       import yaml, os…)
+
   ⎿  Error: Exit code 1
+
      Traceback (most recent call last):
+
        File "<string>", line 9, in <module>
+
          with open(m) as fh: docs = list(yaml.safe_load_all(fh))
+
                                     ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+
        File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\__init__.py", line 93, in load_all
+
          yield loader.get_data()
+
                ~~~~~~~~~~~~~~~^^
+
        File "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\yaml\\constructor.py", line 45, in get_data
+
          return self.construct_document(self.get_node())
+
      … +35 lines (ctrl+o to expand)
 
+
+
   Searched for 2 patterns, read 1 file (ctrl+o to expand)
+
   ⎿  Loaded .claude\\CLAUDE.md
+
+
 
 ● Here's what each fix found:
 
+
+
   ---
+
   Fix 1 — Stale go state dirs: DONE
+
   - Found and removed: .claude/.artifacts/test-terminal/go and .claude/.artifacts/unknown/go
+
   - These were leftover from old sessions, causing the glob guard to find a go/ dir with no active-task files
 
+
+
   Fix 2 — skills.lock.json: CLEAN
+
   - Only 2 entries: mermaid-davila7 and pre-mortem-analyst-openclaw — both legitimate third-party installs
+
   - No duplicate registrations, no collision
 
+
+
   Fix 3 — Hook matcher audit: CLEAN
+
   - The YAML multi-document format (--- separators) broke my Python parser — but grep confirmed the actual hooks:
+
     - go_2.0 PreToolUse has matcher: "Bash" — fires on Bash only, not all tools
+
     - go_2.0 Stop has no matcher: but is correctly guarded by glob.glob(f'{sd}/active-task_*.json') — exits 0 when no
+
   active run exists
+
   - No other local skills have active hooks with unconditional-fire risk
 
+
+
   Fix 4 — Bash scripts: CLEAN
+
   - No .sh files in .claude/skills/
+
   - go-safe.sh is in /p/packages/cc-skills-sdlc/skills/go_2.0/scripts/ — inside the packaged skill, not local. That's a
+
   package-level issue to raise separately.
 
+
+
   ---
+
   Assumptions verified:
 
+
+
   ┌────────────────────────────────────┬───────────────────────────────────────────────────────────┐
+
   │             Assumption             │                          Status                           │
+
   ├────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ Stale unknown/go dir existed       │ VERIFIED — removed                                        │
+
   ├────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ skills.lock.json had no duplicates │ VERIFIED — only 2 entries, no collision                   │
+
   ├────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ go_2.0 PreToolUse has matcher      │ VERIFIED — matcher: "Bash" at line 22                     │
+
   ├────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ go_2.0 Stop guard works            │ VERIFIED — glob.glob(active-task_*.json) guard at line 49 │
+
   ├────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ No .sh files locally               │ VERIFIED — none found                                     │
+
   └────────────────────────────────────┴───────────────────────────────────────────────────────────┘
 
+
+
   One open item: go-safe.sh in the packaged skill at /p/packages/cc-skills-sdlc/skills/go_2.0/scripts/go-safe.sh is
+
   bash-only and won't run on Windows CMD. That's owned by the package, not local — you'd need to file that with the package
+
    maintainer or fork the skill if you want it fixed locally.
+
+
 
 ✻ Crunched for 5m 15s
 
+
+
 ※ recap: We cleaned up stale go state dirs, verified skills.lock.json has no duplicates, confirmed go_2.0 hooks are
+
   properly guarded, and found no local .sh files. `go-safe.sh` in the packaged skill is the only remaining Windows CMD risk
+
    — that's a package-level fix, not local.
+
+
 
 ❯ anything else we should consider?
 
+
+
 ● A few things that didn't get addressed but are worth tracking:
 
+
+
   1. Hook edit interference — Every Edit call in the transcript showed PreToolUse:Edit hook error ⎿ Failed with
+
   non-blocking status code: Traceback. The edits succeeded, but the hook errored on the edit itself. This means PostToolUse
+
    hooks that react to Edit calls create noisy feedback. If you have any PostToolUse hooks that inspect or act on Edit
+
   operations, those are generating spurious errors on every skill/SKILL.md edit you make.
 
+
+
   2. The glob guard is asymmetric — The Stop hook guards on active-task_*.json but if that file exists and the run actually
+
    failed, the hook still exits 1 even though the failure might be from a previous incomplete run. The guard assumes
+
   "active-task file = currently running" but that's not verified. A cleaner marker would be created at run start and
+
   deleted at run end, so presence alone means "in progress."
 
+
+
   3. No regression test for the Stop hook — After the compaction, if you want to verify the guard works, there's no
+
   automated way to confirm it. A simple smoke test: simulate the hook with no state dir, confirm exit 0, then simulate with
+
    an active-task file present but no .verified_ file, confirm exit 1 with stderr. That's a 5-line Python test.
 
+
+
   4. go-safe.sh in the package — It's at /p/packages/cc-skills-sdlc/skills/go_2.0/scripts/go-safe.sh and it's bash. It's
+
   referenced in ROUTING.md and GO-CONFORMANCE.md. If /go_2.0 ever calls it on Windows CMD, it will silently fail or error.
+
   Worth filing with the package maintainer or converting to Python locally if you use /go_2.0 frequently.
 
+
+
   5. The RCA transcript itself — The file at C:\\Users\\brsth\\Downloads\\✳ rca(g).txt is a useful artifact of what was found.
+
   Consider preserving it somewhere searchable — the question patterns that surfaced the issues ("Shouldn't those...", "do
+
   we want...", "are X and Y the same?") are worth remembering as a diagnostic playbook for future hook issues."
 
 ## Assistant
@@ -4612,77 +4978,149 @@ If local conventions differ, adapt only the pathing, import roots, and hook regi
 
 Should this file exist?
 "
+
 ● The architecture doc doesn't reference contracts.py in the pipeline — it's not in the flow. Let me check the detectors to see if
+
   there's a gap type that would feed it.
+
+
 
   Searched for 1 pattern, read 1 file (ctrl+o to expand)
 
+
+
 ● No calls to detect_contract_gaps anywhere in the codebase. It's an unwired placeholder — meant to be a detector that scans for
+
   contract gaps (producer/consumer schema mismatches, missing handoff fields, stale artifacts) but never implemented beyond the
+
   empty stub.
 
+
+
   The architecture pipeline has no slot for it between the detectors and the agent phase. It was scaffolding for a future capability
+
    that hasn't been designed yet.
 
+
+
   Verdict: Keep the idea but the file itself is dead weight. If contract gap detection is wanted later, it should be designed with
+
   actual detection logic and wired into the pipeline — not sitting as an empty function in a file that nothing imports. The file can
+
    be removed now and re-created when the feature is actually designed.
+
+
 
 ✻ Sautéed for 1m 31s
 
+
+
 ❯ What about in the instructions I gave you to create GTO?
+
+
 
 ● Let me check the original spec in the session transcript.
 
+
+
   Searched memories (ctrl+o to expand)
+
+
 
 ● The transcript lines are too long to display. Let me find the original spec directly.
 
+
+
   Searched for 2 patterns (ctrl+o to expand)
+
+
 
 ● No MD references to contracts anywhere. Let me search the original spec in the transcript more surgically.
 
+
+
 ● Bash(cd "C:/Users/brsth/.claude/projects/P--/29785124-6f28-4450-ab6b-f79f609130cd.jsonl" && python -c "
+
       import json, sys…)
+
   ⎿  Error: Exit code 1
+
      /usr/bin/bash: line 23: cd: C:/Users/brsth/.claude/projects/P--/29785124-6f28-4450-ab6b-f79f609130cd.jsonl: Not a directory
 
+
+
 ● Bash(python -c "
+
       import json, sys…)
+
   ⎿  {'role': 'user', 'content': [{'tool_use_id': 'call_3db0acbccc4b416cb9600f81', 'type': 'tool_result', 'content': '1\\t---\\n2
+
      \\tname: design\\n3\\tdescription: "Adaptive architecture advisor with template-based variants. Auto-routes to appropriate te
+
      mplate based on domain and complexity. Supports: fast, deep, cli, python, data-pipeline, precedent. Configuration: .archco
+
      … +125 lines (ctrl+o to expand)
+
   ⎿  (timeout 30s)
+
+
 
 ● Found it. The key line is the user's original spec message which starts with "Combined with the other file, are we ready to
+
   implement?" and references a "Diagnose Skill — Complete Implementation Package" (1727 lines). Let me find that spec.
 
+
+
 ● Bash(python -c "
+
       import json…)
+
   ⎿  (No output)
+
   ⎿  (timeout 30s)
 
+
+
 ● The user never mentioned detect_contract_gaps — it was AI-generated scaffolding. Let me check the original implementation package
+
   that drove the spec.
+
+
 
   Searched for 1 pattern, listed 1 directory (ctrl+o to expand)
 
+
+
 ● There it is. The original spec defined contracts.py as:
 
+
+
   1. A detector for contract/producer-consumer gaps — contractgap gap type routed to /design (line 822)
+
   2. Wired into the orchestrator — deterministic.extend(detect_contract_gaps()) (line 1248)
+
   3. Step 8 of rollout — "Add deeper contract/stale-data/consumer-producer detectors" (line 1709)
 
+
+
   So contracts.py was intentionally a stub for future implementation — a placeholder for a real detector that would scan for
+
   producer/consumer schema mismatches, stale handoff fields, and contract boundary violations. The spec explicitly called this out
+
   as a later-phase enhancement.
 
+
+
   The problem is it got created but never wired (the orchestrator doesn't call it) and never implemented (still returns []). It's
+
   not dead by accident — it's an explicitly deferred feature.
 
+
+
   Verdict: Keep the file, but add a docstring noting it's a Phase 2 placeholder per the original spec. The contractgap → /design
+
   routing already exists in route.py. When the detector is implemented, it plugs into the existing pipeline with one line in the
+
   orchestrator."
 
 ## Assistant
@@ -4856,3 +5294,4 @@ I would ship **Phase 1 only**:
 Then add Phase 2 **only after** you collect 3–5 concrete misses that a contract detector or prevention hooks would have caught. That gives you evidence-based expansion instead of speculative architecture.[1]
 
 If you want, I can turn this into a crisp **keep / cut / defer** decision list for the implementation package.
+```

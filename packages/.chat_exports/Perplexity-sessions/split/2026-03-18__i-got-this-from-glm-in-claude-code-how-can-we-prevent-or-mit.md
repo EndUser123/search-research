@@ -1,5 +1,6 @@
 ---
 title: "I got this from glm in claude code.  How can we prevent or mitigate this with hooks?  '
+
 ❯ Now, why did you miss them th"
 date: "2026-03-18"
 mode: "COPILOT"
@@ -10,42 +11,79 @@ entry_count: 13
 ## Human
 
 I got this from glm in claude code.  How can we prevent or mitigate this with hooks?  "
+
 ❯ Now, why did you miss them the first time?
+
+
 
 ● Root Cause Analysis
 
+
+
   1) Symptom:
+
   Failed to identify adversarial-logic (and other agents) from /uci as missing from
+
   plan-workflow
 
+
+
   2) Why - Immediate mechanism:
+
   - STATUS: INFERRING_FROM_CODE
+
   - User asked "do we have adversarial logic/edge cases agents?"
+
   - I searched for those specific names → found adversarial-logic.md exists
+
   - I checked if it was in plan-workflow → it wasn't
+
   - But I never did: Compare /uci's full agent registry vs plan-workflow's agents
+
   systematically
+
   - I treated it as "verify X exists" not "find all gaps between system A and system B"
 
+
+
   3) Why - Upstream condition:
+
   - Reactive mindset instead of comparative analysis mindset
+
   - User's question was framed as a memory check ("did we discuss this?") not a gap
+
   analysis
+
   - I answered the literal question without expanding scope
 
+
+
   4) Why - Process/design gap:
+
   - No systematic comparison protocol for "when user asks about items from system A,
+
   also check what else from system A is missing from system B"
+
   - I stopped at "found the item" instead of "compared full registries"
 
+
+
   5) Why - Detection gap:
+
   - No internal heuristic: "when comparing two skill/system configs, always do full
+
   diff, not point lookups"
+
   - The framing ("I thought we discussed...") triggered memory search mode, not gap
+
   analysis mode
 
+
+
   The mistake: Answering "does X exist?" instead of "what's the complete coverage delta
+
    between /uci and plan-workflow?"
+
 "
 
 ## Assistant
@@ -92,8 +130,8 @@ You want three kinds of hooks:
 user_query="$1"
 
 # Detect if user is asking about an agent / skill from a system and mentions "plan" or "workflow"
-if [[ "$user_query" =~ (plan|workflow|process|stack|system|registry) ]] && \
-   [[ "$user_query" =~ (agent|logic|plugin|hook) ]]; then
+if /"$user_query" =~ (plan && \
+   /"$user_query" =~ (agent; then
   # Inject prompt enrichment to Claude
   echo "SYSTEM: You are about to answer a question comparing agents in /uci vs plan-workflow. \
         Before replying, you must:
@@ -220,8 +258,8 @@ To prevent *future* misses like this, you can spawn an adversarial QA agent when
 ```bash
 # hook: before_plan (adversarial guard)
 
-if [[ "$user_query" =~ (agent|logic|skill|plugin|uci|workflow) ]] &&
-   [[ "$user_query" =~ (missing|exist|have|use|enable) ]]; then
+if /"$user_query" =~ (agent &&
+   /"$user_query" =~ (missing; then
   echo "SYSTEM: This question is coverage‑related. Before answering, spawn an adversarial sub‑agent to:
           - Compare the full registry of agents in /uci vs the agents used in plan-workflow.
           - Report any missing or extra agents.

@@ -598,78 +598,152 @@ That split is usually more reliable than trying to make one style perfectly hand
 
 Here's what we use for Recommended Next Steps:
 
+
   **1. OUTPUT STRUCTURE**
+
   - Dynamic-domain grouping — only domains with findings appear
+
   - Section headers: `{emoji} {DOMAIN_NAME} ({count})` — rendered as text, no fences
+
   - Item numbering: domain-lettered (1a, 1b, 2a, 3a) within each domain group
+
   - Each item format: `{domain-num}{sub-letter} [effort] [R:reversibility] Description @ file:line`
+
   - Footer: `0 — Do ALL Recommended Next Actions (N items)`
 
+
+
   **2. DOMAIN EMOJI MAPPING**
+
   | Domain | Emoji |
+
   |--------|-------|
+
   | quality / code_quality | 🔧 |
+
   | tests / testing | 🧪 |
+
   | docs / documentation | 📄 |
+
   | security | 🔒 |
+
   | performance | ⚡ |
+
   | git | 🐙 |
+
   | deps / dependencies | 📦 |
+
   | other | 📌 |
 
+
+
   **3. EFFORT/REVERSIBILITY LABELS**
+
   - Effort: recover, prevent, realize
+
   - Reversibility: high, med, low
+
   - Format in item: `[effort/reversibility]`
 
+
+
   **4. GAP COVERAGE (for structured inputs like audit gap tables)**
+
   When processing tables, each row needs one disposition:
+
   - MAPPED — gap has a corresponding RNS action
+
   - REJECTED — valid but intentionally not acted on (requires rationale)
+
   - DEFERRED — valid but deferred (requires named owner + trigger condition)
 
+
+
   Render as:
+
   📋 GAP COVERAGE ({count} items)
+
     5 MAPPED → see actions above
+
     1 REJECTED — "reason here"
+
     1 DEFERRED — "owner deferred to /trigger (trigger condition)"
 
+
+
   **5. INPUT SOURCE PRIORITY**
+
   RNS tries three sources in order:
+
   1. Inline text if provided with the command
+
   2. Current session transcript (extract from conversation context)
+
   3. File reference if @path provided
 
+
+
   **6. VERIFICATION GATES (mandatory before emission)**
+
   Every action item must pass:
+
   - Gate A: VERIFIED (you confirmed it exists) or [UNVERIFIED] (plausible but not confirmed)
+
   - Gate B: Not over-extracted — would a weaker model turn this into noise?
+
   - Gate C: All input rows have exactly one disposition (MAPPED/REJECTED/DEFERRED)
+
   - Gate D: No fabrication — no file/line claimed without confirmation
 
+
+
   **7. DOMAIN SORTING**
+
   Within each domain, sort by action (recover → prevent → realize), then by priority (critical → high → medium → low).
 
+
+
   **8. CARRYOVER ITEMS**
+
   Items from prior sessions in the handoff chain render under:
+
   📌 CARRYOVER ({count} sessions in chain)
+
     {letter} [effort] {description} @ {file:line} (from session {id})
 
+
+
   **9. ERROR STATES**
+
   - Empty input: "Nothing to analyze. Pass inline text, a @file path, or ensure the session transcript is available."
+
   - No findings: "No actionable findings found. Try `/rns {pasted text}` with output that contains recommendations or gaps."
 
+
+
   **10. MACHINE-PARSEABLE FORMAT (optional)**
+
   Append `<!-- format: machine -->` to output pipe-delimited records:
+
   RNS|D|{domain-num}|{domain-label}|{emoji}
+
   RNS|A|{action-num}|{domain}|E:{effort}|{priority}|{description}|{file:line}
+
   RNS|Z|0|NONE
 
+
+
   **11. KEY CONSTRAINTS**
+
   - Do NOT fabricate file paths or line numbers
+
   - Gap claims require verification — mark [UNVERIFIED] or drop
+
   - Severity alone is NOT a valid REJECTED exclusion — must have explicit rationale
+
   - Documentation updates for implementation changes are strongly preferred in same session
+
+
 
   Give me the complete implementation with all components working together.
 
@@ -2914,3 +2988,4 @@ Here’s your complete, copy-paste-ready replacement for the output style file. 
 name: adaptive-research-insights-rns
 description: Adaptive Claude Code output style with Insights, RNS, and decision helpers.
 keep-coding-instructions
+```

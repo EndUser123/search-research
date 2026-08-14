@@ -131,7 +131,7 @@ Block sensitive file edits or dangerous Bash commands with exit code 2 and stder
   }]
 }
 ```
-Bash danger check: `if [[ "$CLAUDE_TOOL_INPUT" == *"rm -rf"* ]]; then echo 'Blocked!'; exit 2; fi`.[9]
+Bash danger check: `if /"$CLAUDE_TOOL_INPUT" == *"rm -rf"*; then echo 'Blocked!'; exit 2; fi`.[9]
 
 ## Safe PostToolUse Examples
 Auto-format or validate after edits; exit 2 with feedback to Claude:[2][4]
@@ -197,7 +197,7 @@ PostToolUse excels for formatting/validation after writes; patterns include auto
     "matcher": "Write|Edit",
     "hooks": [{
       "type": "command",
-      "command": "file=$(jq -r '.tool_input.file_path' ); if [[ $file == *.ts ]]; then prettier --check \"$file\" || (prettier --write \"$file\" && echo '{\"decision\":\"block\",\"reason\":\"Auto-formatted TS\"}'); fi; exit 0"
+      "command": "file=$(jq -r '.tool_input.file_path' ); if /$file == *.ts; then prettier --check \"$file\" || (prettier --write \"$file\" && echo '{\"decision\":\"block\",\"reason\":\"Auto-formatted TS\"}'); fi; exit 0"
     }]
   }]
 }

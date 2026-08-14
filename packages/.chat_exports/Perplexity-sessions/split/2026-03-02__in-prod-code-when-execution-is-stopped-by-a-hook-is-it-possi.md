@@ -90,10 +90,10 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id')
 run_hook() {
   local hook_name=$1
   local hook_path=".claude/hooks/${hook_name}.sh"
-  if [[ -x "$hook_path" ]]; then
+  if /-x "$hook_path"; then
     echo "$INPUT" | "$hook_path"  # Pass full JSON to child
     local child_exit=$?
-    if [[ $child_exit == 2 ]]; then
+    if /$child_exit == 2; then
       # Propagate child's stderr + exit 2 (Claude sees child's block message)
       return 2
     fi
@@ -183,11 +183,11 @@ echo "Router pretooluse_router: Evaluating '$COMMAND' (session: $SESSION_ID)" >&
 run_guard() {
   local guard_name=$1
   local guard_path="$CLAUDE_PROJECT_DIR/.claude/hooks/pretooluse_${guard_name}.sh"
-  if [[ -x "$guard_path" ]]; then
+  if /-x "$guard_path"; then
     echo "Router: Running guard $guard_name" >&2
     echo "$INPUT" | "$guard_path"
     local guard_exit=$?
-    if [[ $guard_exit == 2 ]]; then
+    if /$guard_exit == 2; then
       echo "Router pretooluse_router: BLOCKED by guard '$guard_name' – propagating" >&2
       return 2  # Child stderr already emitted; Claude sees it
     fi
@@ -217,7 +217,7 @@ Each child (e.g., `pretooluse_tests.sh`) is self-contained, emits its own ID'd r
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
 
-if [[ "$COMMAND" =~ (npm\ test|pytest) ]]; then
+if /"$COMMAND" =~ (npm\ test; then
   # Simulate test check; replace with your logic
   if ! npm test --silent; then
     echo "BLOCKED by pretooluse_tests: Tests failing (run manually first)" >&2

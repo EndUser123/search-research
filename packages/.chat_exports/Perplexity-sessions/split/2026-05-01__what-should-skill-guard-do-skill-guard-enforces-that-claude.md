@@ -1,6 +1,9 @@
 ---
 title: "'
+
 ❯ what should skill-guard do?
+
+
 
 ● Skill-guard enforces that Claude actually executes skills instead of substituting "
 date: "2026-05-01"
@@ -12,19 +15,33 @@ entry_count: 74
 ## Human
 
 "
+
 ❯ what should skill-guard do?
+
+
 
 ● Skill-guard enforces that Claude actually executes skills instead of substituting prose analysis. Three layers:
 
+
+
   1. PreToolUse (real-time blocking): Prevents tool use before a skill with workflow_steps is loaded via the Skill tool. Blocks
+
   "I'll use Grep to..." when /code was invoked but Skill("code") was never called.
+
   2. UserPromptSubmit (intent tracking): Detects slash commands in user input, records intent state, and injects explicit
+
   "INSTRUCTION: Execute skill X" context to prevent the model from ignoring the command.
+
   3. Stop (safety net): Detects when a slash command was typed but the model responded with prose instead of executing the skill.
+
   Two-strike pattern — advisory first, hard block on repeat.
 
+
+
   Plus supporting infrastructure: skill auto-discovery (reads SKILL.md frontmatter), breadcrumb trails (workflow step tracking),
+
   slash command observability (classifies commands as builtin/lightweight/knowledge/enforcement), and enforcement tiers
+
   (strict/advisory/none)."
 
 Skills are never reliably working.  Suggestions for an optimal solution?  Feel free to propose radical refactoring if that's useful.  Consider what other repos do for this topic.
@@ -1657,42 +1674,79 @@ The stronger design is:
 ## Human
 
 Could this system be adapted to replace sqlite? "
+
   The .artifacts/ system — how it actually works:
+
+
 
   Structure
 
+
+
   P:/.claude/.artifacts/
+
   ├── console_{terminal_id}/        # Per-terminal isolation
+
   │   └── identity.json             # Session identity (written by SessionStart hook)
+
   ├── session_registry.jsonl        # Append-only log of all sessions (172 entries)
+
   ├── default/                      # Non-terminal-scoped artifacts
+
   │   ├── pre-mortem/               # Pre-mortem findings
+
   │   ├── refactor/                 # Refactor plans
+
   │   └── skill-craft-review/       # Skill reviews
+
   └── {loose files}                 # Skills output (gitpack, etc.) — NOT terminal-scoped
+
+
 
   Multi-terminal isolation
 
+
+
   - SessionStart_identity_capture.py creates console_{terminal_id}/identity.json on every session start
+
   - Terminal ID comes from WT_SESSION env var (Windows Terminal tab identity)
+
   - Each terminal gets its own directory — 50+ exist now, keyed by UUID
+
   - The session_registry.jsonl is append-only with entries keyed by terminal_id + session_id
+
+
 
   Stale data / compaction immunity
 
+
+
   - identity.json is overwritten atomically (write .tmp → rename) on each session start — always reflects the current session for
+
   that terminal
+
   - Registry pruning: auto-prunes when it hits 10K lines, keeping the last 5K
+
   - Handoff files (in P:/.claude/state/handoff/) are separate from artifacts — they're written by PreCompact hooks with terminal_id
+
   + timestamp in the filename, providing compaction-safe snapshots
+
+
 
   What's NOT terminal-scoped (gaps)
 
+
+
   - default/ — shared across all terminals, no isolation
+
   - Loose files at root — my skill-guard_sig.md went here, and the gitpack skill doesn't use terminal_id for its output path
+
   - session_registry.jsonl — shared across all terminals (by design — it's a global log)
 
+
+
   The core identity system is solid. The gap is that skill outputs (gitpack, pre-mortem, GTO) don't consistently use terminal_id for
+
    their artifact paths — they drop files in default/ or at the root instead of console_{terminal_id}/."
 
 ## Assistant
@@ -2689,252 +2743,500 @@ When you get the first response back, could you share:
 
 Plan: skill-guard Execution Contract Runtime
 
+
+
  Context
 
+
+
  skill-guard currently uses a fragmented state model: JSON files in .claude/state/, SQLite for breadcrumbs, and no single
+
  authoritative source for execution state. The user wants a unified execution contract runtime that uses
+
  .artifacts/console_{terminal_id}/ as the single source of truth, with one active run per terminal.
+
+
 
  Audit Summary
 
+
+
  Current Modules
 
+
+
  ┌──────────────────────────────┬─────────────────────────────────┬─────────────────────────────────────┬─────────────────────┐
+
  │            Module            │             Purpose             │           State Location            │       Problem       │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │                              │ Phase tracking (pending→loaded→ │ .claude/state/skill_execution_{tid} │ Fragmented JSON,    │
+
  │ skill_execution_state.py     │ executing→complete)             │ .json                               │ parallel to         │
+
  │                              │                                 │                                     │ breadcrumbs         │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ skill_forced_eval.py         │ Slash command detection (UPS    │ .claude/state/eval_state_{tid}.json │ Separate state file │
+
  │                              │ hook)                           │                                     │                     │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ PreToolUse_skill_pattern_gat │ Hard-block disallowed tools     │ Reads skill_execution_state +       │ Multiple state      │
+
  │ e.py                         │                                 │ pending_command_intent              │ readers             │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ StopHook_skill_execution_gat │ Verify skill was executed       │ Reads execution state + governance  │ Multiple state      │
+
  │ e.py                         │                                 │ state                               │ sources             │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ breadcrumb/tracker.py        │ Workflow step tracking          │ SQLite (breadcrumb_trails table)    │ Parallel authority  │
+
  │                              │                                 │                                     │ to execution state  │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ breadcrumb/enforcement.py    │ Enforcement levels              │ Reads SKILL.md frontmatter          │ Tied to breadcrumb  │
+
  │                              │ (MINIMAL/STRICT)                │                                     │ system              │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ breadcrumb/database.py       │ SQLite schema + connections     │ .claude/state/breadcrumbs.db        │ Heavy for v1        │
+
  │                              │                                 │                                     │ single-run model    │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │                              │                                 │                                     │ Duplicate of what   │
+
  │ breadcrumb/sqlite_backend.py │ SQLite CRUD                     │ Same DB                             │ execution state     │
+
  │                              │                                 │                                     │ does                │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ breadcrumb/cache.py          │ In-memory cache for trails      │ Memory                              │ Layered on SQLite   │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ breadcrumb/log.py            │ Append-only event log           │ JSONL files                         │ Could be execution- │
+
  │                              │                                 │                                     │ events.jsonl        │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ breadcrumb/migration.py      │ Schema migrations               │ SQLite                              │ Unnecessary with    │
+
  │                              │                                 │                                     │ file-based store    │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ slash_command_observability. │ Classify/record slash commands  │ In-memory + diagnostics DB          │ Needed, keep        │
+
  │ py                           │                                 │                                     │                     │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ skill_auto_discovery.py      │ Find SKILL.md files, read       │ No state                            │ Needed, keep        │
+
  │                              │ frontmatter                     │                                     │                     │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ skill_metadata_advisory.py   │ Advisory for missing metadata   │ No state                            │ Needed, keep        │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ tdd_contract_auto_gate.py    │ TDD enforcement via SKILL.md    │ No state                            │ Needed, keep        │
+
  │                              │ frontmatter                     │                                     │                     │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ turn_marker.py               │ Turn boundary tracking          │ In-memory                           │ Needed, keep        │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ hook_compat.py               │ @register_hook decorator        │ No state                            │ Needed, keep        │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ utils/terminal_detection.py  │ Detect terminal ID from         │ No state                            │ Core dependency     │
+
  │                              │ WT_SESSION                      │                                     │                     │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ utils/terminal_id.py         │ Terminal ID resolution          │ No state                            │ Core dependency     │
+
  ├──────────────────────────────┼─────────────────────────────────┼─────────────────────────────────────┼─────────────────────┤
+
  │ SessionStart_identity_captur │ Write identity.json to          │ .artifacts/console_{tid}/identity.j │ Already correct     │
+
  │ e.py                         │ artifacts                       │ son                                 │ pattern             │
+
  └──────────────────────────────┴─────────────────────────────────┴─────────────────────────────────────┴─────────────────────┘
+
+
 
  Hook Dispatch Chain
 
+
+
  ┌──────────────────┬────────────────────────────────┬─────────────────────────────────────────────┐
+
  │       Hook       │          Entry Point           │         How skill-guard gets called         │
+
  ├──────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+
  │ PreToolUse       │ PreToolUse.py IN_PROCESS_HOOKS │ _PLUGIN_SRC sys.path + direct import        │
+
  ├──────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+
  │ Stop             │ Plugin hooks/hooks.json        │ python "$CLAUDE_PLUGIN_ROOT/...StopHook..." │
+
  ├──────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+
  │ UserPromptSubmit │ registry.py _try_import_hook   │ skill_guard.skill_forced_eval               │
+
  ├──────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+
  │ SessionStart     │ settings.json                  │ SessionStart_identity_capture.py            │
+
  └──────────────────┴────────────────────────────────┴─────────────────────────────────────────────┘
+
+
 
  Migration Plan
 
+
+
  Files to CREATE
 
+
+
  1. src/skill_guard/execution_store.py — ExecutionStore interface + ArtifactsExecutionStore
+
  2. src/skill_guard/execution_run.py — ExecutionRun dataclass + contract types
+
  3. src/skill_guard/execution_hooks.py — PreToolUse/PostToolUse/Stop hooks using new store
+
+
 
  Files to KEEP (minimal edits)
 
+
+
  1. skill_forced_eval.py — Add create_run() call when slash command detected
+
  2. skill_auto_discovery.py — No changes
+
  3. slash_command_observability.py — No changes
+
  4. skill_metadata_advisory.py — No changes
+
  5. tdd_contract_auto_gate.py — No changes
+
  6. turn_marker.py — No changes
+
  7. hook_compat.py — No changes
+
  8. utils/terminal_detection.py — No changes
+
  9. utils/terminal_id.py — No changes
+
  10. __init__.py — Update exports
+
  11. exceptions.py — No changes
+
  12. posttooluse/skill_execution_tracker.py — Rewrite to use ExecutionStore
+
+
 
  Files to DEPRECATE (keep for backward compat, do not delete)
 
+
+
  1. skill_execution_state.py — Mark deprecated, redirect to ExecutionStore
+
  2. breadcrumb/tracker.py — Mark deprecated, keep for non-contract breadcrumbs
+
  3. breadcrumb/database.py — Keep for existing data migration
+
  4. breadcrumb/sqlite_backend.py — Keep for existing data migration
+
  5. breadcrumb/cache.py — Keep
+
  6. breadcrumb/enforcement.py — Keep, used by tracker
+
  7. breadcrumb/log.py — Keep
+
  8. breadcrumb/migration.py — Keep
+
+
 
  Files to REPLACE
 
+
+
  1. StopHook_skill_execution_gate.py — Simplified to use ExecutionStore
+
  2. PreToolUse_skill_pattern_gate.py — Simplified to use ExecutionStore
+
+
 
  Implementation
 
+
+
  Step 1: Define contract types (execution_run.py)
 
+
+
  from dataclasses import dataclass, field
+
  from enum import Enum
+
  from typing import Any
 
+
+
  class ContractType(Enum):
+
      WORKFLOW_EXECUTION = "workflow-execution"   # Must use tools in order
+
      STRUCTURED_OUTPUT = "structured-output"      # Can pass without tools
+
      HYBRID = "hybrid"                            # Mix of both
 
+
+
  class RunPhase(Enum):
+
      PENDING = "pending"
+
      LOADED = "loaded"
+
      EXECUTING = "executing"
+
      COMPLETE = "complete"
+
      FAILED = "failed"
 
+
+
  class RunStatus(Enum):
+
      COMPLETE = "complete"
+
      CONTINUE = "continue"
+
      FAIL = "fail"
 
- @dataclass
- class ToolPolicy:
-     allowed: set[str] = field(default_factory=set)
-     blocked: set[str] = field(default_factory=set)
-     investigation: set[str] = field(default_factory=lambda: {
-         "Read", "Grep", "Glob", "AskUserQuestion", "Skill",
-         "WebSearch", "WebFetch"
-     })
+
 
  @dataclass
+
+ class ToolPolicy:
+
+     allowed: set[str] = field(default_factory=set)
+
+     blocked: set[str] = field(default_factory=set)
+
+     investigation: set[str] = field(default_factory=lambda: {
+
+         "Read", "Grep", "Glob", "AskUserQuestion", "Skill",
+
+         "WebSearch", "WebFetch"
+
+     })
+
+
+
+ @dataclass
+
  class ExecutionRun:
+
      run_id: str
+
      skill_name: str
+
      contract_type: ContractType
+
      phase: RunPhase = RunPhase.PENDING
+
      terminal_id: str = ""
+
      session_id: str = ""
+
      created_at: float = 0.0
+
      updated_at: float = 0.0
+
      tool_policy: ToolPolicy = field(default_factory=ToolPolicy)
+
      events_count: int = 0
+
      required_tools_used: set[str] = field(default_factory=set)
+
      metadata: dict[str, Any] = field(default_factory=dict)
+
+
 
  Step 2: Define ExecutionStore interface (execution_store.py)
 
+
+
  class ExecutionStore(Protocol):
+
      def get_active_run(self, terminal_id: str) -> ExecutionRun | None: ...
+
      def create_run(self, terminal_id: str, run: ExecutionRun) -> None: ...
+
      def update_run(self, terminal_id: str, run: ExecutionRun) -> None: ...
+
      def end_run(self, terminal_id: str, status: RunStatus) -> None: ...
+
      def append_event(self, terminal_id: str, event: dict) -> None: ...
 
+
+
  class ArtifactsExecutionStore:
+
      """File-based store using .artifacts/console_{terminal_id}/"""
+
+
 
      ARTIFACTS_ROOT = Path("P:/.claude/.artifacts")
 
+
+
      def _run_dir(self, terminal_id: str) -> Path:
+
          return self.ARTIFACTS_ROOT / terminal_id
 
+
+
      def _state_path(self, terminal_id: str) -> Path:
+
          return self._run_dir(terminal_id) / "execution-state.json"
 
+
+
      def _events_path(self, terminal_id: str) -> Path:
+
          return self._run_dir(terminal_id) / "execution-events.jsonl"
 
+
+
      def _atomic_write(self, path: Path, data: str) -> None:
+
          tmp = path.with_suffix(".tmp")
+
          tmp.write_text(data, encoding="utf-8")
+
          if path.exists():
+
              path.unlink()
+
          tmp.rename(path)
+
+
 
      # ... implement all protocol methods
 
+
+
  Step 3: Create execution hooks (execution_hooks.py)
+
+
 
  Three functions matching the hook protocol:
 
+
+
  - handle_pre_tool_use(data, store) — Check active run, block if tool not in policy
+
  - handle_post_tool_use(data, store) — Record event, advance phase
+
  - handle_stop(data, store) — Return complete/continue/fail based on contract
+
+
 
  Step 4: Update PreToolUse_skill_pattern_gate.py
 
+
+
  Replace skill_execution_state calls with ExecutionStore calls. Keep SKILL_EXECUTION_REGISTRY for backward compat during
+
  transition.
+
+
 
  Step 5: Update StopHook_skill_execution_gate.py
 
+
+
  Replace multi-source state reads with single store.get_active_run() call.
+
+
 
  Step 6: Update skill_forced_eval.py
 
+
+
  When slash command detected, call store.create_run() to create an ExecutionRun in PENDING phase.
+
+
 
  Step 7: Deprecation shims in skill_execution_state.py
 
+
+
  Add deprecation warnings, redirect core functions to ArtifactsExecutionStore.
+
+
 
  Verification
 
+
+
  1. Manual /skill-name creates execution-state.json in .artifacts/console_{tid}/
+
  2. PreToolUse blocks disallowed tools based on ToolPolicy in active run
+
  3. PostToolUse appends events to execution-events.jsonl and advances phase
+
  4. Stop produces complete|continue|fail based on contract satisfaction
+
  5. structured-output skills can pass without tool usage
+
  6. Existing tests still pass (deprecation shims)
+
  7. New tests for ArtifactsExecutionStore and ExecutionRun
+
+
 
  Compromises / Deferred
 
+
+
  - SQLite breadcrumb code kept but deprecated — not deleted to avoid breaking external consumers
+
  - SKILL_EXECUTION_REGISTRY preserved — still used by PreToolUse pattern matching during transition
+
  - Migration from old state files — deferred to v2; old files coexist
+
  - Multiple concurrent runs per terminal — deferred; v1 is single active run
+
  - Breadcrumb cleanup daemon — deferred; stale directories handled by existing session cleanup
 
 ## Assistant
@@ -3820,29 +4122,54 @@ If you want, the next thing I can do is draft the precise Claude Code prompt tha
 ## Human
 
 "
+
 ● The signatures are solid and match the plan. A few observations before you commit to them:
 
+
+
   What works well:
+
   - phase tracked implicitly in record_tool_use (pending→loaded→executing on first allowed tool)
+
   - artifact_created clears matching missing_requirements entries correctly
+
   - end_run persists final state before clearing
+
   - replay_events for tooling/debugging without enforcement dependency
+
+
 
   One gap to fix before implementation:
 
+
+
   evaluate_completion never returns FAILED — blocked tools are recorded but evaluate_completion still returns ACTIVE:
+
   # In record_tool_use:
+
   if not allowed:
+
       run.status = RunStatus.FAILED  # ← missing
+
       self.store.save_run(run)
+
+
 
   Without this, a blocked tool on workflow-execution would silently stay ACTIVE and the run would never fail.
 
+
+
   One design question for v1:
 
+
+
   structured-output → evaluate_completion always returns COMPLETE once Stop fires. That means the response requirements (sections,
+
   prohibited_claims) are not checked at runtime — they're advisory. Should response_requirements be enforced in v1, or deferred? The
+
    plan says "checked at Stop" but this implementation sketch doesn't enforce them.
+
+
 
   Want me to patch the FAILED gap and clarify the response_requirements scope before you use these exact signatures in a prompt?"
 
@@ -4584,161 +4911,317 @@ One caution: the plan text itself still contains the older structured-output sho
 ## Human
 
 "
+
 ● After reviewing the live codebase, here's my assessment:
 
+
+
   The spec is largely implemented. Files 1-4 exist, files to replace are superseded by the new runtime, and the data model closely
+
   matches the spec. But there's a critical gap:
 
+
+
   ---
+
   The /design [STANDARD enforcement] question: Is this optimal?
+
+
 
   No. One critical gap: UserPromptSubmit does not create runs.
 
+
+
   The spec is explicit:
+
+
 
   ▎ "UserPromptSubmit — Detect explicit /skill-name invocation... Create the active run in execution-state.json"
 
+
+
   But execution_hooks.py only has pre_tool_use_main and stop_main — no UserPromptSubmit handler. PreToolUse loads an active run,
+
   finds nothing, and allows everything. The enforcement path is dead code until UserPromptSubmit creates the run.
 
+
+
   Before the architecture is implementation-ready, UserPromptSubmit must:
+
   1. Detect /skill-name pattern in the prompt
+
   2. Resolve contract metadata (type, allowed_tools, blocked_tools, required_artifacts, response_requirements) from the target skill
+
   3. Call runtime.create_run(...) to create execution-state.json
+
   4. Append run_created event
 
+
+
   Other observations:
+
   - turn_id in ExecutionRun spec — missing in the actual dataclass
+
   - end_run renames to .json.ended rather than deleting — spec says "complete/failed run may remain persisted" — this is fine but
+
   not exactly as spec
+
   - The investigation-tools allowlist (Read, Grep, WebSearch, etc.) is correct — prevents enforcement from blocking diagnostic tools
+
   - validate_response_requirements with sections + prohibited_claims is properly implemented
+
   - Atomic writes via os.replace are correct for Windows
+
+
 
   The architecture is close to correct but incomplete. Without UserPromptSubmit run creation, the entire enforcement path is unused.
 
+
+
   Should I proceed to design the UserPromptSubmit integration, or is this being handled in a separate phase?
+
   ⎿  Stop says: [RECOMMENDATION GATE] Recommendation follow-through is still pending.
+
+
 
      Keep giving a clear recommendation with reasoning each turn until the user explicitly provides direction.
 
+
+
 ✻ Baked for 3m 41s
+
+
 
 ❯ design it
 
+
+
   Read 2 files (ctrl+o to expand)
+
+
 
 ● /design [STANDARD enforcement]
 
+
+
   ---
+
   Contract-sensitive: YES — hook-mediated stateful enforcement with multi-terminal isolation.
 
+
+
   Data Format Validation (triggered):
+
   - Input: skill SKILL.md frontmatter — verified via skill_auto_discovery.py and skill_metadata_advisory.py
+
   - Schema: contract_type, workflow_steps, allowed_first_tools, required_markers, required_sections, workflow_binding,
+
   workflow_enforcement — all optional except contract_type inferred from signals
+
   - Assumptions verified: skill discovery uses _infer_contract_type which maps workflow_steps → workflow, required_markers/sections
+
   → output, both → hybrid, none → analysis
 
+
+
   ---
+
   Architecture Assessment: Close — UserPromptSubmit is Missing
+
+
 
   The runtime (PreToolUse + Stop) is implemented. The enforcement path is dead code because UserPromptSubmit never creates runs.
 
+
+
   ---
+
   Contract Boundary Inventory
 
+
+
   ┌───────────────────┬──────────────────────┬────────────────────────┬────────────────────────────────────┬───────────────────┐
+
   │     Boundary      │       Producer       │        Consumer        │               Schema               │       Notes       │
+
   ├───────────────────┼──────────────────────┼────────────────────────┼────────────────────────────────────┼───────────────────┤
+
   │ Run creation      │ UserPromptSubmit     │ execution-state.json   │ ExecutionRun dataclass             │ Missing — this is │
+
   │                   │ hook                 │                        │                                    │  the gap          │
+
   ├───────────────────┼──────────────────────┼────────────────────────┼────────────────────────────────────┼───────────────────┤
+
   │ Tool allow/block  │ PreToolUse           │ execution-events.jsonl │ ExecutionEvent                     │ Implemented ✓     │
+
   │                   │                      │                        │ (tool_allowed/tool_blocked)        │                   │
+
   ├───────────────────┼──────────────────────┼────────────────────────┼────────────────────────────────────┼───────────────────┤
+
   │ Artifact tracking │ PostToolUse          │ execution-state.json   │ ExecutionEvent (artifact_created)  │ Implemented ✓     │
+
   ├───────────────────┼──────────────────────┼────────────────────────┼────────────────────────────────────┼───────────────────┤
+
   │ Completion        │ Stop                 │ execution-state.json   │ ExecutionRun.status                │ Implemented ✓     │
+
   │ evaluation        │                      │                        │                                    │                   │
+
   ├───────────────────┼──────────────────────┼────────────────────────┼────────────────────────────────────┼───────────────────┤
+
   │ Skill metadata    │ skill_auto_discovery │ UserPromptSubmit       │ Frontmatter → contract_type        │ Implemented ✓     │
+
   │ resolution        │                      │                        │                                    │                   │
+
   └───────────────────┴──────────────────────┴────────────────────────┴────────────────────────────────────┴───────────────────┘
 
+
+
   ---
+
   Closure Defect: Missing UserPromptSubmit Run Creation
 
+
+
   execution_hooks.py has pre_tool_use_main and stop_main — no user_prompt_submit_main. PreToolUse loads a run, finds none, allows
+
   everything. The enforcement path is unreachable until UserPromptSubmit creates the run.
 
+
+
   ---
+
   Design: UserPromptSubmit Integration
+
+
 
   File: src/skill_guard/user_prompt_submit_hook.py
 
+
+
   Hook trigger: UserPromptSubmit event, matcher = "Skill"
+
   Priority: HIGH (run creation before any tool use)
 
+
+
   Logic:
+
   1. Extract /skill-name from prompt via extract_command_name (already exists in slash_command_observability)
+
   2. Skip non-skill commands (discover, ask, etc.)
+
   3. Call skill_auto_discovery.get_skill_config(skill_name, explicit_registry=None) → returns contract_type, tools
+
   4. Map contract_type (workflow/output/hybrid/analysis) → ExecutionRun.contract_type (workflow-execution/structured-output/hybrid)
+
   5. Infer allowed_tools from skill_auto_discovery.discover_all_skills() — allowed_first_tools field
+
   6. Call runtime.create_run(...) — persists execution-state.json + emits run_created event
 
+
+
   Files to modify:
+
   - src/skill_guard/execution_run.py — add turn_id: str | None = None field (spec says it's required)
+
   - src/skill_guard/hooks/hooks.json — add UserPromptSubmit entry
+
   - Create src/skill_guard/user_prompt_submit_hook.py
 
+
+
   Data model fix — ExecutionRun dataclass:
+
   # MISSING field from spec:
+
   turn_id: str | None = None
+
+
 
   Contract Authority Packet:
 
+
+
   contract_authority_packet:
+
     packet_version: "1"
+
     contract_sensitive: true
+
     authority:
+
       closure_source: "contract_authority_packet"
+
       prose_role: "explanatory_only"
+
     boundaries:
+
       - boundary_id: "execution-run-creation"
+
         producer: "UserPromptSubmit hook"
+
         consumer: "PreToolUse / Stop hooks"
+
         schema:
+
           id: "ExecutionRun"
+
           version: "1"
+
         required_fields: ["run_id", "skill_name", "contract_type", "terminal_id", "phase", "status"]
+
         optional_fields: ["session_id", "turn_id", "required_artifacts", "allowed_tools_now", "blocked_tools",
+
   "response_requirements"]
+
         freshness_authority: "execution-state.json"
+
         invalidation_trigger: "run_ended event or new run created for same terminal"
+
         precedence_rule: "execution-state.json is authoritative; events are append-only log"
+
         failure_behavior: "if UserPromptSubmit fails to create run, PreToolUse allows (fail-open by design — no false blocks)"
+
         validator_owner: "skill-guard"
+
         proof_owner: "/sqa"
+
         downstream_consumers: ["PreToolUse", "PostToolUse", "Stop"]
 
+
+
   The turn_id gap:
+
   Spec requires turn_id: str | None in ExecutionRun. Live code doesn't have it. This is a silent schema drift — not caught by any
+
   validation since there's no schema enforcement. The runtime still works (turn_id is only logged, not used for decisions), but the
+
   spec and implementation disagree.
 
+
+
   ---
+
   Before emitting INSTRUCTION:
 
+
+
   Do you want me to also flag the end_run behavior discrepancy? The spec says complete/failed runs "may remain persisted until next
+
   run" — the current code renames to .json.ended, which is fine functionally but not strictly matching. That's probably acceptable,
+
   but wanted to name it explicitly.
+
+
 
   INSTRUCTION: Execute skill planning
 
+
+
   Step 1: Call Skill("planning") to load the planning workflow
+
   Step 2: Plan implementation of UserPromptSubmit hook + turn_id field addition + hook registration
+
 "
 
 ## Assistant
@@ -4823,139 +5306,274 @@ My recommendation is: implement **UserPromptSubmit run creation + `turn_id` fiel
 
 I did some digging:
 "
+
 ● No — cc-skills-sdlc is not optimally organized. The plugin has three structural problems:
+
+
 
   Problem 1: Duplicate Hooks (Redundancy)
 
+
+
   24 hook files exist in skills/*/hooks/ but many are duplicates of .claude/hooks/ files:
 
+
+
   IDENTICAL: StopHook_rca_contract.py (both locations)
+
   IDENTICAL: StopHook_rca_reflector.py (both locations)
 
+
+
   The plugin also has PostToolUse_rca_*.py files in skills/rca/hooks/ that may overlap with .claude/hooks/ PostToolUse hooks. When
+
   both exist, it creates confusion about which actually fires.
+
+
 
   Problem 2: rca_turn Flag Injection Failure (Functional Gap)
 
+
+
   The critical bug: rca_turn is derived in Stop_router.py (line 424, _is_rca_turn()) and injected into validator_input at line 941.
+
   This flag gates RCA-specific behavior.
 
+
+
   Subprocess hooks from plugin hooks.json cannot access this flag. Claude Code's plugin system spawns Python processes but does not
+
   inject rca_turn into JSON stdin. So plugin RCA hooks run but their critical conditional logic (if not rca_turn: return None) has
+
   no effect — they're dead code in subprocess mode.
+
+
 
   The working RCA hooks are in .claude/hooks/StopHook_rca_*.py as in-process modules.
 
+
+
   Problem 3: Architectural Confusion (What Belongs Where)
 
+
+
   ┌───────────────────────────────────┬────────────────────────────────┬──────────────────────────┐
+
   │             Component             │         Should live in         │      Current state       │
+
   ├───────────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+
   │ Skill definitions (49 skills)     │ cc-skills-sdlc/skills/         │ ✅ Correct               │
+
   ├───────────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+
   │ Agent definitions                 │ cc-skills-sdlc/agents/         │ ✅ Correct               │
+
   ├───────────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+
   │ Command frontends                 │ cc-skills-sdlc/commands/       │ ✅ Correct               │
+
   ├───────────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+
   │ Runtime hooks                     │ .claude/hooks/                 │ ✅ Correct               │
+
   ├───────────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+
   │ Skill-specific hooks (duplicates) │ cc-skills-sdlc/skills/*/hooks/ │ ❌ Dead weight           │
+
   ├───────────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+
   │ Hooks requiring rca_turn          │ .claude/hooks/ (in-process)    │ ✅ Correct               │
+
   ├───────────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+
   │ Hooks in plugin subprocess        │ cc-skills-sdlc/hooks.json      │ ❌ Can't access rca_turn │
+
   └───────────────────────────────────┴────────────────────────────────┴──────────────────────────┘
+
+
 
   What Should Happen
 
+
+
   Option A: Plugin as pure skill delivery mechanism
+
   - Remove all hook files from skills/*/hooks/
+
   - Remove hooks.json from plugin root
+
   - Keep only: skills/, agents/, commands/, docs/, scripts/
+
   - All runtime enforcement stays in .claude/hooks/
 
+
+
   Option B: Plugin as skill delivery + runtime hooks (requires refactor)
+
   - Consolidate skill-specific hooks that DO work as subprocess hooks (e.g., PreToolUse_refactor_gate, SessionStart_breadcrumb_init)
+
   - Remove hooks that need rca_turn (they belong in .claude/hooks/ in-process)
+
   - Keep hooks.json for skill-specific gates only
+
+
 
   The Core Issue
 
+
+
   The plugin wants to deliver skill-specific runtime behaviors, but Claude Code's subprocess plugin model has a fundamental
+
   limitation: no access to in-process state like rca_turn. This is why the real enforcement lives in .claude/hooks/ as imported
+
   modules, not in plugin subprocess hooks.
+
+
 
 ✻ Brewed for 6m 19s
 
+
+
 ※ recap: Investigating why cc-skills-sdlc hooks don't fire when skills are manually invoked. Found the plugin has duplicate hook
+
   files in `skills/*/hooks/` that are either identical to `.claude/hooks/` or can't access the `rca_turn` flag from subprocess mode.
+
    Need to decide whether to keep the plugin as pure skill delivery or refactor for runtime hooks.
 
+
+
 ❯ please explain this more:   Subprocess hooks from plugin hooks.json cannot access this flag. Claude Code's plugin system spawns
+
   Python processes but does not
+
     inject rca_turn into JSON stdin. So plugin RCA hooks run but their critical conditional logic (if not rca_turn: return None)
+
   has
+
     no effect — they're dead code in subprocess mode.
+
+
 
 ● Let me trace the exact execution flow to make this concrete.
 
+
+
   Read 2 files (ctrl+o to expand)
+
+
 
 ● The issue is a data pipeline break between two execution environments. Here's the trace:
 
+
+
   Two Execution Paths
+
+
 
   Path 1: In-Process (Stop_router.py)
 
+
+
   Claude Code → Stop_router.py → rca_turn derived → injected into data → hook runs
 
+
+
   Line 424 in Stop_router.py:
+
   def _is_rca_turn(skill_state: dict | None) -> bool:
+
       """Derive rca_turn from skill_state, injected into validator_input."""
+
       if not skill_state:
+
           return False
+
       skill_name = skill_state.get("name", "")
+
       return skill_name.lower() in RCA_SKILL_NAMES
 
+
+
   Line 941 in Stop_router.py:
+
   validator_input = {..., "rca_turn": _is_rca_turn(skill_state)}
+
   StopHook_rca_contract.check(validator_input)  # sees rca_turn=True ✓
+
+
 
   Path 2: Subprocess (hooks.json)
 
+
+
   Claude Code → subprocess: python StopHook_rca_contract.py → data has NO rca_turn
 
+
+
   The hook at line 944-946:
+
   def check(data: dict) -> dict | None:
+
       rca_turn = data.get("rca_turn", False)  # Defaults to False!
+
       if not rca_turn: return None  # ALWAYS returns None in subprocess mode
+
       # ... validation code never reached ...
+
+
 
   Why This Happens
 
+
+
   Claude Code's plugin subprocess model sends JSON stdin with these fields:
+
   - session_id, terminal_id, assistant_response, tool_events, etc.
+
+
 
   But rca_turn is not one of them. It's derived internally by Stop_router.py and only exists in that module's context.
 
+
+
   The Result
 
+
+
   ┌─────────────────────────────┬─────────────────┬──────────────────────────┐
+
   │       Execution Path        │ rca_turn value  │      Hook behavior       │
+
   ├─────────────────────────────┼─────────────────┼──────────────────────────┤
+
   │ In-process (Stop_router.py) │ True            │ Full validation runs     │
+
   ├─────────────────────────────┼─────────────────┼──────────────────────────┤
+
   │ Subprocess (hooks.json)     │ False (default) │ Returns None immediately │
+
   └─────────────────────────────┴─────────────────┴──────────────────────────┘
 
+
+
   The plugin's StopHook_rca_contract.py appears to work — it runs, it returns None, Claude Code allows the stop. But it's doing
+
   nothing because rca_turn=False by default.
+
+
 
   Why This Is Confusing
 
+
+
   The hook file exists in both locations:
+
   - P:/.claude/hooks/StopHook_rca_contract.py — works (imported by Stop_router.py)
+
   - P:/packages/cc-skills-sdlc/skills/rca/hooks/StopHook_rca_contract.py — dead code (runs via subprocess, rca_turn never injected)
+
+
 
   They are identical files with identical behavior — but only one has access to the data it needs."
 
@@ -5296,296 +5914,584 @@ So: **no, we don’t need that extra question or suggestion**; the main prompt a
 ## Human
 
 "
+
   Hook Wiring Investigation — Findings Report
+
+
 
   Task 1: Hook Wiring Map
 
+
+
   Stop hooks — where they run
+
+
 
   Key discovery: ALL hooks in Stop_router.py run in-process by default, not as subprocess.
 
+
+
   Evidence (Stop_router.py:280):
+
   HOOK_SEQUENCE = [
+
       # Every entry has dispatch_mode="inprocess" — NO subprocess entries here
+
       ("speculation_gate.py", "SPECULATION_GATE_ENABLED", False, "inprocess"),
+
       ("StopHook_behavioral_quality_gate.py", "BEHAVIORAL_QUALITY_GATE_ENABLED", True, "inprocess"),
+
       ...
+
   ]
 
+
+
   Subprocess dispatch only occurs when:
+
   - dispatch_mode != "inprocess" (not the case for any Stop hook here)
+
   - OR INPROCESS_HOOK_DISPATCH_ENABLED = false (defaults to "true")
+
   - OR _supports_inprocess(hook_name) returns False (not applicable for Stop hooks)
 
+
+
   Plugin hooks (cc-skills-utils/hooks.json, cc-skills-sdlc/hooks.json, etc.) ARE subprocess — they register via the plugin's
+
   hooks.json which is read by Claude Code's plugin loader. Those are separate Python processes spawned via subprocess.run().
+
+
 
   Other hook types (from CLAUDE.md patterns)
 
+
+
   ┌──────────────────────────┬──────────────────────┬─────────────────────────────────────────────────┐
+
   │           Hook           │       Dispatch       │                    Mechanism                    │
+
   ├──────────────────────────┼──────────────────────┼─────────────────────────────────────────────────┤
+
   │ SessionStart             │ Subprocess           │ settings.json → command                         │
+
   ├──────────────────────────┼──────────────────────┼─────────────────────────────────────────────────┤
+
   │ UserPromptSubmit         │ In-process           │ Router (UserPromptSubmit_router.py)             │
+
   ├──────────────────────────┼──────────────────────┼─────────────────────────────────────────────────┤
+
   │ PreToolUse (in-process)  │ In-process           │ IN_PROCESS_HOOKS dict in PreToolUse.py          │
+
   ├──────────────────────────┼──────────────────────┼─────────────────────────────────────────────────┤
+
   │ PreToolUse (subprocess)  │ Subprocess           │ settings.json PreToolUse section                │
+
   ├──────────────────────────┼──────────────────────┼─────────────────────────────────────────────────┤
+
   │ PostToolUse              │ Router or subprocess │ PostToolUse_router.py or settings.json          │
+
   ├──────────────────────────┼──────────────────────┼─────────────────────────────────────────────────┤
+
   │ Stop (Stop_router.py)    │ In-process           │ Default — all entries dispatch_mode="inprocess" │
+
   ├──────────────────────────┼──────────────────────┼─────────────────────────────────────────────────┤
+
   │ Stop (plugin hooks.json) │ Subprocess           │ Plugin's hooks.json → command                   │
+
   └──────────────────────────┴──────────────────────┴─────────────────────────────────────────────────┘
 
+
+
   ---
+
   Task 2: Payload Construction — rca_turn inclusion
+
+
 
   Confirmed: rca_turn IS injected before both dispatch paths
 
+
+
   From Stop_router.py lines 938-946:
 
+
+
   # Derive RCA turn info from skill_state for hook policy
+
   skill_state = validator_input.get("skill_state")
+
   rca_turn, rca_skill = _is_rca_turn(skill_state)
+
   validator_input["rca_turn"] = rca_turn      # ← injected here
+
   validator_input["rca_skill"] = rca_skill   # ← injected here
+
   validator_input["session_start_ts"] = time.monotonic()
+
+
 
   This injection happens before the dispatch loop (lines 955–1023). The same validator_input dict flows into both:
 
+
+
   - In-process: passed directly to run_hook_inprocess() → hook_module.run(validator_input)
+
   - Subprocess: passed to run_hook_subprocess() → subprocess.run(input=json.dumps(hook_data), ...) at line 605
+
+
 
   Therefore: rca_turn IS present in subprocess stdin JSON payloads.
 
+
+
   _build_validator_input() top-level keys (lines 822-848)
 
+
+
   merged = dict(input_data)
+
   merged.update(snapshot)
+
   # Injected fields:
+
   merged["response"] = snapshot.get("assistant_response", ...) or input_data.get("response", ...)
+
   merged["assistant_response"] = merged["response"]
+
   merged["last_assistant_message"] = merged["response"]
+
   merged["assistant_message_kind"] = snapshot.get("assistant_message_kind", "")
+
   merged["prompt"] = snapshot.get("user_prompt", ...) or input_data.get("prompt", ...)
+
   merged["user_prompt"] = merged["prompt"]
+
   merged["session_id"] = snapshot.get("session_id", ...) or _resolve_session_id(input_data)
+
   merged["tools_used"] = snapshot.get("tools_used", []) or input_data.get("tools_used", [])
+
   merged["toolUse"] = [{"name": name} for name in merged["tools_used"]]
+
   merged["tool_events"] = snapshot.get("tool_events", []) or input_data.get("tool_events", [])
+
   merged["observations"] = snapshot.get("observations", []) or _extract_observation_entries(merged)
+
   merged["transcript_entries"] = snapshot.get("transcript_entries", [])
+
   # Then Stop_router adds:
+
   merged["rca_turn"] = rca_turn
+
   merged["rca_skill"] = rca_skill
+
   merged["session_start_ts"] = time.monotonic()
 
+
+
   ---
+
   Task 3: Instrumented Probe Hook
 
+
+
   Created P:/packages/skill-guard/tests/probe_hook_payload_logger.py — reads stdin JSON, logs key set to
+
   P:/.claude/tmp/HOOK_PAYLOADS/probe_log.jsonl. It logs the full key list plus specifically logs rca_turn, rca_skill, and
+
   session_start_ts values if present.
 
+
+
   ---
+
   Task 4: Manual Test Instructions
 
+
+
   To instrument a subprocess hook (the primary question — whether rca_turn appears in plugin subprocess stdin), you need to add the
+
   probe to a plugin's hooks.json. The cc-skills-utils plugin has Stop hooks registered as subprocess:
+
+
 
   File: P:/packages/cc-skills-utils/hooks.json
 
+
+
   "Stop": [
+
     {"matcher": ".*", "hooks": [
+
       {"type": "command", "command": "python \\"${CLAUDE_PLUGIN_ROOT}/skills/refactor/hooks/Stop_refactor_verifier.py\\"", "timeout":
+
   10},
+
       {"type": "command", "command": "python \\"${CLAUDE_PLUGIN_ROOT}/skills/pre-mortem/hooks/Stop_hook_premortem_quality_gate.py\\"",
+
    "timeout": 10}
+
     ]}
+
   ]
+
+
 
   Option A: Replace a plugin Stop hook with the probe
 
+
+
   Pick one (e.g., Stop_refactor_verifier.py) and temporarily replace its command:
 
+
+
   "Stop": [
+
     {"matcher": ".*", "hooks": [
+
       {"type": "command", "command": "python \\"P:/packages/skill-guard/tests/probe_hook_payload_logger.py\\"", "timeout": 10}
+
     ]}
+
   ]
+
+
 
   Then run any Claude Code session that triggers a Stop event. Check the log:
 
+
+
   cat "P:/.claude/tmp/HOOK_PAYLOADS/probe_log.jsonl" | python -c "
+
   import sys, json
+
   for line in sys.stdin:
+
       entry = json.loads(line)
+
       print(f\\"ts={entry['ts']} keys={entry['key_count']} rca_turn={entry.get('rca_turn_value','MISSING')}
+
   rca_skill={entry.get('rca_skill_value','MISSING')}\\"
+
   )
+
+
 
   Option B: Test the probe directly (no plugin needed)
 
+
+
   echo '{"assistant_response":"test","rca_turn":true,"rca_skill":"rca","skill_state":{"skill":"rca"}}' | python
+
   "P:/packages/skill-guard/tests/probe_hook_payload_logger.py"
+
+
 
   This tests the probe's stdin parsing directly without needing a full Claude Code session.
 
+
+
   ---
+
   Task 5: Summary — Facts vs Inference
+
+
 
   Facts (from code inspection)
 
+
+
   1. rca_turn is injected into validator_input at Stop_router.py:941, before the dispatch loop
+
   2. run_hook_subprocess() passes json.dumps(hook_data) as stdin (line 605) — the full validator_input dict including rca_turn
+
   3. All 83 entries in Stop_router.py's HOOK_SEQUENCE use "inprocess" dispatch mode — all Stop hooks in Stop_router.py run
+
   in-process
+
   4. Plugin hooks registered in hooks.json files (cc-skills-utils, cc-skills-sdlc, etc.) run as subprocess — separate process per
+
   hook
+
   5. Stop_router's run_hook_inprocess() reads the dict directly (not JSON) — rca_turn access is Python attribute, not JSON parsing
+
   6. ACTIVE_RUNTIME_HOOKS frozenset (line 378) controls which hooks actually execute — some entries in HOOK_SEQUENCE may not run
+
   depending on env vars
+
+
 
   Inferences (not confirmed by code)
 
+
+
   1. The probe will show rca_turn present in plugin subprocess stdin — high confidence based on code path analysis (line 605 passes
+
   full dict)
+
   2. The cc-skills-utils Stop hooks (Stop_refactor_verifier.py, Stop_hook_premortem_quality_gate.py) are actually reachable —
+
   they're in hooks.json but I couldn't find the actual Python files on disk, suggesting they may not exist yet or are installed via
+
   a different mechanism
+
   3. The INPROCESS_HOOK_DISPATCH_ENABLED env var could force ALL Stop hooks to subprocess mode if set to "false" — but this would be
+
    a deliberate configuration change, not the default behavior
+
+
 
   Confirmed answer to "Is rca_turn in subprocess stdin?"
 
+
+
   YES — for any subprocess hook (plugin hooks.json), rca_turn is present in the JSON stdin because:
+
   - Stop_router builds validator_input with rca_turn injected (line 941)
+
   - run_hook_subprocess() passes json.dumps(validator_input) as stdin (line 605)
+
   - Therefore rca_turn is serialized as part of the JSON payload"
 
 Additional info:
 "
+
 ❯ /plugin-installer:plugin-installer
+
+
 
 ● The plugin-dev:plugin-installer skill is loaded. Running the full setup workflow now.
 
+
+
   Step 1: Audit all plugins
 
+
+
 ● Bash(python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --auto-fix --marketplace-root
+
       "P:/packages/.claude-marketplace")
+
   ⎿  Error: Exit code 1
+
      === Claude Code Plugin Audit & Fix ===\\nMarketplace: P:\\packages\\.claude-marketplace
+
      Auditing plugins...
+
      Found 1 error(s), 0 warning(s)
+
        [ERROR] cc-skills-ai-cli: .claude/ inside skills/ai-pcli/ (should be at plugin root)
 
+
+
      Checking for orphan skill junctions...
+
      No orphan skill junctions.
 
+
+
      Checking source vs cache drift...
+
      … +14 lines (ctrl+o to expand)
 
+
+
 ● Bash(python3 -c "
+
       import json…)
+
   ⎿  No stale caches.
+
      All marketplace plugins installed.
+
      Summary: 0 stale, 0 missing
 
+
+
 ● Plugin system is healthy:
+
   - No stale caches
+
   - All marketplace plugins installed
+
   - Audit found 1 error (.claude/ inside skills/) — already auto-fixed
+
+
 
   Run /plugin-installer validate for full validation, or what else would you like to check?
 
+
+
 ✻ Cogitated for 1m 2s
+
+
 
 ❯ did you find out why .claude was there?  are any skills creating that folder in that wrong path?
 
+
+
   Searched for 7 patterns, read 1 file, listed 2 directories (ctrl+o to expand)
+
   ⎿  Loaded ..\\..\\cc-skills-ai-cli\\CLAUDE.md
 
+
+
 ● Bash(cd "P:/packages/cc-skills-ai-cli" && git log --oneline --follow --
+
       "skills/.claude/state/sessions/0557dac2-cc5d-49da-bea1-aebadd58dc54/" | head -5)
+
   ⎿  3e4ea50 chore(hooks): update hooks,tests
+
      02e4413 feat: initial cc-skills-ai-cli monorepo with 29 skills
 
+
+
 ● Bash(cd "P:/packages/cc-skills-ai-cli" && git log --all --full-history -- "skills/.claude/" | head -10)
+
   ⎿  commit 3e4ea5097c4032bd11484c0d9d2243019dd7acb6
+
      Author: Claude Sonnet 4.6 <noreply@anthropic.com>
+
      Date:   Sun Apr 19 10:09:33 2026 -0600
+
      … +6 lines (ctrl+o to expand)
 
+
+
 ● No skill is currently creating that folder. The .claude/ inside skills/ was committed as part of the initial repo structure
+
   (commit 02e4413).
 
+
+
   It's a leftover from how the plugin was initially created — probably an artifact from copying hook state files or test
+
   scaffolding. The audit tool already auto-fixed it during the audit run:
+
+
 
   [cc-skills-ai-cli] Deleted .claude/ inside skills/ai-pcli/
 
+
+
   The current state is clean — that nested .claude/ no longer exists. This was a structural artifact, not a runtime bug.
+
+
 
 ✻ Brewed for 1m 29s
 
+
+
 ❯ "Run /plugin-installer validate for full validation, or what else would you like to check?", why did you say this?
+
   /plugin-installer:plugin-installer is supposed to do that intelligently by default.
+
+
 
 ● You're right — I violated the skill execution protocol. The skill explicitly states:
 
+
+
   ▎ Full Setup (no action specified)
+
   ▎ When invoked without an action, run the complete check-fix-install workflow.
 
+
+
   I should have invoked it and let it execute the full workflow. Instead I asked "what else would you like to check?" which is skill
+
    substitution — I analyzed the output instead of letting the skill continue its own procedure.
+
+
 
   The correct flow was to invoke the skill, which would have run all 7 steps including validation. Let me run the validation now:
 
+
+
 ● Bash(python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --validate --marketplace-root
+
       "P:/packages/.claude-marketplace")
+
   ⎿  === Claude Code Plugin Audit & Fix ===\\nMarketplace: P:\\packages\\.claude-marketplace
+
      Validating plugins...
+
        ✓ cc-skills-ai-api
+
      … +9 lines (ctrl+o to expand)
+
   ⎿  (timeout 2m)
+
+
 
 ● You're right — I should have just run it. The skill's default behavior is the full setup workflow.
 
+
+
 ✻ Crunched for 34s
+
+
 
 ❯ if we used Langgraph in the skill where langgraph would add value, would the skill have been used properly?
 
+
+
 ● Probably not — the problem was enforcement architecture, not implementation pattern.
 
+
+
   LangGraph adds value for:
+
   - Stateful multi-step workflows with checkpointing
+
   - Explicit branching logic visible to LLMs
+
   - Iteration/cycles with clear state transitions
+
+
 
   But the core issue with cc-skills-sdlc hooks wasn't "the workflow wasn't explicit enough" — it was:
 
+
+
   1. Data pipeline break: Subprocess hooks couldn't access rca_turn (derived in Stop_router.py)
+
   2. Skill-first not enforced: LLM loaded the skill docs but provided prose instead of executing the workflow
+
+
 
   LangGraph wouldn't fix either. It would make the implementation cleaner and more testable, but:
 
+
+
   ┌─────────────────────────────────┬────────────────┬─────────────────────────────────────────────────────────────────────────┐
+
   │             Problem             │   LangGraph    │                               What helps                                │
+
   │                                 │     helps?     │                                                                         │
+
   ├─────────────────────────────────┼────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ rca_turn not injected into      │ No             │ Move hooks to .claude/hooks/ (in-process)                               │
+
   │ subprocess                      │                │                                                                         │
+
   ├─────────────────────────────────┼────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ Skill-first not enforced        │ No             │ Constitutional hooks (PreToolUse_skill_pattern_gate,                    │
+
   │                                 │                │ StopHook_skill_execution_gate)                                          │
+
   ├─────────────────────────────────┼────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ Workflow unclear to LLM         │ Somewhat       │ Better SKILL.md with explicit workflow_steps                            │
+
   └─────────────────────────────────┴────────────────┴─────────────────────────────────────────────────────────────────────────┘
 
+
+
   The skills aren't used properly because the enforcement layer (hooks) wasn't firing, not because the implementation wasn't
+
   declarative enough. A LangGraph-based skill would still be bypassed the same way."
 
 ## Assistant
@@ -5994,33 +6900,61 @@ If you’d like, we can next tighten one of those assertions into concrete code 
 ## Human
 
 "
+
 ● All 6 assertions are complete and verified. 100 tests pass across all modified modules.
+
+
 
   Summary of what was implemented:
 
+
+
   ┌───────────┬──────────────────────────────────┬──────────────────────────────────┬─────────────────────────────────────────┐
+
   │ Assertion │           Description            │          Files Modified          │               Tests Added               │
+
   ├───────────┼──────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────┤
+
   │ INVARIANT │ One active run per terminal      │ execution_runtime.py,            │ test_execution_runtime.py,              │
+
   │  1        │                                  │ execution_store.py               │ test_execution_store.py                 │
+
   ├───────────┼──────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────┤
+
   │ INVARIANT │ UPS creates the run              │ user_prompt_submit_hook.py       │ test_user_prompt_submit_hook.py         │
+
   │  2        │                                  │                                  │                                         │
+
   ├───────────┼──────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────┤
+
   │ INVARIANT │ PreToolUse hard gate             │ execution_hooks.py               │ test_execution_hooks.py                 │
+
   │  3        │ (fail-closed)                    │                                  │                                         │
+
   ├───────────┼──────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────┤
+
   │ INVARIANT │ Stop is pure (no                 │ execution_hooks.py               │ test_execution_hooks.py                 │
+
   │  4        │ recursion/LLM/breadcrumbs)       │                                  │                                         │
+
   ├───────────┼──────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────┤
+
   │ INVARIANT │ Breadcrumbs NOT contract         │ breadcrumb/__init__.py           │ test_breadcrumb_deprecated.py           │
+
   │  5        │ authority                        │                                  │                                         │
+
   ├───────────┼──────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────┤
+
   │ INVARIANT │ Contract type from SKILL.md      │ execution_run.py,                │ test_execution_run.py,                  │
+
   │  6        │                                  │ user_prompt_submit_hook.py       │ test_user_prompt_submit_hook.py         │
+
   └───────────┴──────────────────────────────────┴──────────────────────────────────┴─────────────────────────────────────────┘
 
+
+
   Each source file now has INVARIANT N comments in its docstring. Each test file has assertion-specific test classes with
+
   descriptive names documenting the invariant being tested."
 
 ## Assistant
@@ -6194,100 +7128,195 @@ This prompt:
 ## Human
 
 "
+
   Wire Verification Report
+
+
 
   1. Live Hook Entry Points
 
+
+
   ┌───────────┬────────────────────┬───────────────────────────────┬───────────────────────────────────┬──────────────────────┐
+
   │   Hook    │     Dispatcher     │       Wire Registration       │          Entry Function           │   State File Read    │
+
   ├───────────┼────────────────────┼───────────────────────────────┼───────────────────────────────────┼──────────────────────┤
+
   │ UserPromp │ hooks.json (root   │ Subprocess                    │ user_prompt_submit_main() →       │ execution-state.json │
+
   │ tSubmit   │ repo)              │ $CLAUDE_PLUGIN_ROOT/...user_p │ handle_user_prompt_submit()       │  (write)             │
+
   │           │                    │ rompt_submit_hook.py          │                                   │                      │
+
   ├───────────┼────────────────────┼───────────────────────────────┼───────────────────────────────────┼──────────────────────┤
+
   │ PreToolUs │ hooks.json (root   │ Subprocess                    │ pre_tool_use_main() →             │ execution-state.json │
+
   │ e         │ repo)              │ ...execution_hooks.py         │ handle_pre_tool_use()             │  (read)              │
+
   ├───────────┼────────────────────┼───────────────────────────────┼───────────────────────────────────┼──────────────────────┤
+
   │           │                    │                               │                                   │ _skill_execution_{ti │
+
   │ PreToolUs │ P:/.claude/hooks/P │ In-process UNIVERSAL          │ PreToolUse_skill_pattern_gate.py: │ d}.json (legacy) +   │
+
   │ e         │ reToolUse.py       │                               │ :handle_pre_tool_use()            │ pending_command_inte │
+
   │           │                    │                               │                                   │ nt_{tid}.json        │
+
   ├───────────┼────────────────────┼───────────────────────────────┼───────────────────────────────────┼──────────────────────┤
+
   │ Stop      │ hooks.json (root   │ Subprocess                    │ stop_main() → handle_stop()       │ execution-state.json │
+
   │           │ repo)              │ ...execution_hooks.py         │                                   │  (read/write)        │
+
   └───────────┴────────────────────┴───────────────────────────────┴───────────────────────────────────┴──────────────────────┘
+
+
 
   2. New Runtime on Live Path — CONFIRMED
 
+
+
   UserPromptSubmit (hooks.json:12): execution_hooks.py subprocess IS on the live path. user_prompt_submit_hook.py creates
+
   execution-state.json via runtime.create_run() (lines 155–170).
 
+
+
   PreToolUse (hooks.json:5): execution_hooks.py subprocess IS on the live path. handle_pre_tool_use() (line 99–148) calls
+
   runtime.load_active_run() and checks run.blocked_tools / run.allowed_tools_now.
 
+
+
   Stop (hooks.json:9): execution_hooks.py subprocess IS on the live path. handle_stop() (line 199–241) calls
+
   runtime.evaluate_completion() and runtime.finalize_run().
 
+
+
   StopHook_skill_execution_gate.py (Stop_router.py:290): Dead. Commented out. NOT in ACTIVE_RUNTIME_HOOKS frozenset. No live
+
   dispatch path.
+
+
 
   3. Authority Boundary — CRITICAL FINDING
 
+
+
   Parallel enforcement paths exist on PreToolUse:
 
+
+
   Both execution_hooks.py (subprocess) AND PreToolUse_skill_pattern_gate.py (in-process UNIVERSAL) run on every tool invocation.
+
   They are independent gatekeepers reading different state files:
 
+
+
   - execution_hooks.py::handle_pre_tool_use() (lines 99–148): reads execution-state.json, enforces blocked_tools / allowed_tools_now
+
   - PreToolUse_skill_pattern_gate.py::handle_pre_tool_use() (lines 937–1036): reads _skill_execution_{tid}.json +
+
   pending_command_intent.json, enforces workflow steps / first-tool coherence / execution patterns via SKILL_EXECUTION_REGISTRY
 
+
+
   Neither reads the other's state. If a tool is blocked by one but not the other, behavior diverges. The SKILL_EXECUTION_REGISTRY in
+
    PreToolUse_skill_pattern_gate.py is hardcoded per-skill (ask-olymp, rca, test, etc.); execution_hooks.py uses allowed_tools_now
+
   derived from skill frontmatter. For skills not in the hardcoded registry, execution_hooks.py alone gates.
 
+
+
   Breadcrumb system — telemetry only:
+
   - UserPromptSubmit_breadcrumb_init.py initializes breadcrumb trails alongside UPS — no contract role (INVARIANT 5)
+
   - breadcrumb/enforcement.py — exists but not imported by any live hook; breadcrumb imports absent from execution_hooks.py
+
   (verified by docstring + direct import list)
 
+
+
   execution-state.json — single authority for new runtime:
+
   - UserPromptSubmit creates it via runtime.create_run()
+
   - PreToolUse reads it via runtime.load_active_run()
+
   - Stop reads/updates it via runtime.evaluate_completion() + runtime.finalize_run()
+
   - No other module reads execution-state.json. No cross-contamination with legacy _skill_execution_{tid}.json.
+
+
 
   4. Concrete Function Responsibilities for /skill-name
 
+
+
   Run creation: user_prompt_submit_hook.py::handle_user_prompt_submit() (line 118) → ExecutionRuntime.create_run() — the ONLY hook
+
   that creates execution-state.json (INVARIANT 2).
 
+
+
   Tool gating: execution_hooks.py::handle_pre_tool_use() (line 99) — sole PreToolUse owner of tool allow/block events for the new
+
   runtime (INVARIANT 3). PreToolUse_skill_pattern_gate.py gates independently via separate state.
 
+
+
   Completion evaluation: execution_hooks.py::handle_stop() (line 199) → ExecutionRuntime.evaluate_completion() →
+
   ExecutionRuntime.finalize_run() — returns {"allow": True/False} based on contract type rules (INVARIANT 4, INVARIANT 6).
+
+
 
   5. Summary
 
+
+
   FACT:
+
   - New runtime IS on the live path for all three hooks (UPS/PreToolUse/Stop) via hooks.json subprocess calls
+
   - execution-state.json is the sole state file for the new runtime
+
   - PreToolUse_skill_pattern_gate.py runs in parallel on PreToolUse as an in-process UNIVERSAL hook with its own state file and
+
   hardcoded registry
+
   - Breadcrumb system is telemetry-only; no breadcrumb imports in live hook paths
+
   - StopHook_skill_execution_gate.py is dead
 
+
+
   INFERENCE:
+
   - For skills in SKILL_EXECUTION_REGISTRY (ask-olymp, rca, test, etc.), PreToolUse_skill_pattern_gate.py may block tools before
+
   execution_hooks.py runs — potential ordering conflict depending on hook execution order
+
   - For skills NOT in the hardcoded registry, execution_hooks.py is the effective gatekeeper for allowed/blocked tools
+
   - The two gates do not coordinate — a tool allowed by one and blocked by the other produces undefined behavior
+
   - Manual test scenario needed to determine whether both gates fire and which result takes precedence
 
+
+
   Recommendation: To validate authority boundaries at runtime, instrument both hooks to log their individual allow/block decisions
+
   with a shared run_id correlation key, then run a minimal /skill-name scenario with a blocked tool to observe which gate fires
+
   first.
+
 "
 
 ## Assistant
@@ -6436,139 +7465,274 @@ This prompt:
 ## Human
 
 "
+
 ● No local skills have allowed_first_tools or required_first_command_patterns in frontmatter — the disagreement can't be triggered
+
   with existing skills. I'll design the test scenario using a synthetic skill injected via existing test infrastructure, then issue
+
   the report.
 
+
+
   ---
+
   Gate Wiring
 
+
+
   Hook path: P:/.claude/hooks/PreToolUse.py:1226
+
   Module: _check_skill_first_gate() (in-process, router)
+
   Runs order: FIRST (before all hooks)
+
   Combination logic: Returns block → sys.exit(0) with {"decision":"block"}
+
   ────────────────────────────────────────
+
   Hook path: P:/.claude/hooks/hooks.json:5 → subprocess
+
   Module: execution_hooks.py::pre_tool_use_main()
+
   Runs order: UNIVERSAL position 2 (via subprocess)
+
   Combination logic: Returns {"continue":False} → printed to stdout → caught by router's run_hook() → returns as subprocess result
+
   ────────────────────────────────────────
+
   Hook path: P:/.claude/hooks/PreToolUse.py:1268 UNIVERSAL index 2
+
   Module: PreToolUse_skill_pattern_gate.py::handle_pre_tool_use() (in-process)
+
   Runs order: UNIVERSAL position 3
+
   Combination logic: Returns {"block":True} or {"block":False} → checked at line 1322 → sys.exit(0) with {"decision":"block"}
+
   ────────────────────────────────────────
+
   Hook path: P:/.claude/hooks/PreToolUse.py:1272 loop
+
   Module: Subsequent TOOL_HOOKS and COMPAT hooks
+
   Runs order: AFTER both gates
+
   Combination logic: Run in order; first is_block → short-circuits
 
+
+
   Key finding: The router iterates all hooks sequentially (for hook in hooks_to_run at line 1272). First gate to return
+
   is_block=True terminates the loop and prints the block response. Short-circuit on first block — whichever gate fires is_block
+
   first wins. The skill_first_gate is checked first at line 1227 (before any universal hooks). The subprocess execution_hooks.py
+
   runs as a child process of run_hook() at line 922, whose stdout is parsed at line 933. So execution_hooks.py runs as one entry in
+
   the UNIVERSAL loop, between path_validator (pos 0) and skill_pattern_gate (pos 2).
 
+
+
   Execution order for UNIVERSAL hooks in sequence:
+
   1. PreToolUse_path_validator.py (subprocess)
+
   2. PreToolUse/execution_hooks.py (subprocess — new runtime gate)
+
   3. PreToolUse/PreToolUse_skill_pattern_gate.py (in-process — legacy gate)
+
   4. PreToolUse_domain_tool_router.py
+
   5. ...remaining UNIVERSALs...
+
+
 
   Probe Implementation
 
+
+
   File 1: P:/packages/skill-guard/src/skill_guard/execution_hooks.py
+
   - Lines 109–137: Added _probe_log() function + log calls at each decision point
+
   - Writes: {"ts, gate, tool, terminal_id, run_id, skill, decision, reason} to P:/.claude/tmp/PRETOOL_GATE_PROBE.jsonl
 
+
+
   File 2: P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py
+
   - Lines 937–970: Added _probe_log_legacy() function
+
   - Lines 982–988: Entry log at handle_pre_tool_use() entry
+
   - Lines 999–1081: Decision logs at each gate layer return
+
   - Writes same 7-field format to the same PRETOOL_GATE_PROBE.jsonl
+
+
 
   Both log to the same file for easy correlation by ts field.
 
+
+
   Test Scenario Plan
 
+
+
   Because no existing local skills have allowed_first_tools or required_first_command_patterns in frontmatter, I'll use the
+
   SKILL_EXECUTION_REGISTRY entry for the /test skill (a known execution skill with pattern matching) as the disagreement trigger.
+
+
 
   Test scenario — create a synthetic disagreeing run:
 
+
+
   Step 1 — Create a test skill with conflicting metadata (run once in Bash):
+
   # Python: create a minimal test skill
+
   import os
+
   skill_dir = "P:/.claude/skills/test-probe-skill"
+
   os.makedirs(skill_dir, exist_ok=True)
+
   content = """---
+
   name: test-probe-skill
+
   allowed_first_tools:
+
     - Bash
+
   required_first_command_patterns:
+
     - pytest
+
   required_first_command_hint: Run pytest for this skill.
+
   enforcement: strict
+
   ---
+
+
 
   # Test Probe Skill
 
+
+
   Run: Bash with `pytest`
+
   """
+
   with open(f"{skill_dir}/SKILL.md", "w") as f:
+
       f.write(content)
+
   print("Created test-probe-skill")
 
+
+
   Step 2 — Clear any stale state:
+
   # Bash: clear pending_command_intent and legacy state
+
   rm -f "P:/.claude/hooks/state/pending_command_intent_console_"*.json 2>/dev/null
+
   rm -f "P:/.claude/.state/skill_execution_*/skill_execution_pending.json" 2>/dev/null
+
   rm -f "P:/.claude/tmp/PRETOOL_GATE_PROBE.jsonl" 2>/dev/null
+
   echo "State cleared"
 
+
+
   Step 3 — Inside Claude Code, type:
+
   /test-probe-skill
 
+
+
   This creates the execution-state.json via UPS (new runtime) with allowed_first_tools=["Bash"] and
+
   contract_type="workflow-execution".
+
+
 
   Step 4 — In Claude Code, type a non-investigation tool that triggers disagreement:
 
+
+
   Since the new runtime's allowed_tools_now defaults to ["Bash"] from the skill frontmatter, but the legacy gate's
+
   SKILL_EXECUTION_REGISTRY has test with a pattern check:
+
+
 
   Write a test file at P:/tmp/probe_test.py
 
+
+
   Expected probe log for this conflicting call:
 
+
+
   ┌─────────┬──────────┬───────┬──────────────────┬─────────────────────────────────────────────────────────────────────────┐
+
   │  gate   │ decision │ tool  │      skill       │                                 reason                                  │
+
   ├─────────┼──────────┼───────┼──────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ runtime │ block    │ Write │ test-probe-skill │ Write not in allowed_tools_now=["Bash"]                                 │
+
   ├─────────┼──────────┼───────┼──────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ legacy  │ ???      │ Write │ ???              │ Legacy gate checks first-tool coherence only on non-investigation tools │
+
   └─────────┴──────────┴───────┴──────────────────┴─────────────────────────────────────────────────────────────────────────┘
 
+
+
   The disagreement to observe: If Write is blocked by runtime gate (not in allowed_tools_now=["Bash"]) but the legacy gate allows it
+
    (no _skill_execution_{tid}.json state yet because Skill() wasn't called), both gates run but only the runtime gate's block fires.
+
    The probe log will show both entries with timestamp correlation.
+
+
 
   Visible outcome: Claude should show ⛔ TOOL BLOCKED BY CONTRACT error with skill name.
 
+
+
   ---
+
   Alternative simpler scenario (if creating the test skill is too much): Use /test (already in SKILL_EXECUTION_REGISTRY with pattern
+
    pytest) and call Bash with a command that does NOT match pytest:
+
   - New runtime: allows Bash (in allowed_tools_now or not in blocked)
+
   - Legacy gate: blocks because command doesn't match r"pytest|python\\s+-m\\s+pytest"
 
+
+
   The legacy gate fires first (position 3 vs runtime at position 2), so it wins for test skill. This is actually the more likely
+
   real-world case — legacy gate is before runtime in the loop, so it short-circuits first. The probe log will show runtime also
+
   entered but blocked too late.
 
+
+
   ---
+
   What to run: Type /test-probe-skill then Bash echo hello (not pytest) to observe which gate blocks first and whether both log
+
   entries appear.
+
+
 
   After you run and share the probe log contents, I'll analyze the correlation and determine precedence."
 
@@ -6618,158 +7782,311 @@ That’s enough context; the rest is now purely log interpretation and a small w
 ## Human
 
 "
+
 ❯ “Given this probe log and visible outcome, which PreToolUse gate actually has precedence, and how should we modify the wiring so
+
   the execution runtime gate is the single contract authority for /skill-name runs?”
+
+
 
 ● From the dispatch code, the execution order is clear:
 
+
+
   UNIVERSAL hook sequence (from PreToolUse.py:640-653):
+
   0. PreToolUse_path_validator.py          (subprocess)
+
   1. execution_hooks.py                     (subprocess) ← NEW RUNTIME GATE
+
   2. PreToolUse/PreToolUse_skill_pattern_gate.py  (in-process) ← LEGACY GATE
+
   3. PreToolUse_domain_tool_router.py       (subprocess)
+
   4. ...
 
+
+
   The router loop at line 1272 runs them sequentially. First is_block short-circuits. Legacy gate runs after new runtime — so the
+
   legacy gate always has the last word on disagreement.
+
+
 
   Precedence verdict
 
+
+
   - If runtime blocks → block fires at index 1, loop exits → legacy never sees it
+
   - If runtime allows and legacy blocks → legacy fires at index 2 → legacy wins
+
   - If runtime allows and legacy allows → tool passes
 
+
+
   Result: Legacy gate has precedence for /skill-name runs. The new runtime's contract-derived blocked_tools/allowed_tools_now can be
+
    overruled by the legacy gate's pattern/state checks.
+
+
 
   Wiring change
 
+
+
   Remove PreToolUse/PreToolUse_skill_pattern_gate.py from UNIVERSAL in PreToolUse.py and replace it with execution_hooks.py:
 
+
+
 ● Update(P:/.claude/hooks/PreToolUse.py)
+
   ⎿  Added 4 lines
+
       640  UNIVERSAL = [
+
       641      "PreToolUse_path_validator.py",
+
       642      "PreToolUse/PreToolUse_skill_pattern_gate.py",  # v3.2 - Parallel regex + daemon validation
+
       643 +    # LEGACY GATE MOVED — kept for reference only; execution_hooks.py is now the sole
+
       644 +    # PreToolUse contract authority for /skill-name runs per skill-guard INVARIANT 3.
+
       645 +    # The legacy gate is moved to COMPAT_POST_ROUTER_HOOKS (advisory-only, non-blocking)
+
       646 +    # so it continues to emit diagnostics but cannot override the contract gate.
+
       647      "PreToolUse_domain_tool_router.py",  # NEW 2026-03-21: Advisory domain tool suggestions
+
       648      "PreToolUse_discovery_tracker.py",  # ADR-00X: Tracks discovery tool usage for discovery-first enforcement (20
+
            26-04-09)
+
       649      "PreToolUse_risk_tier_gate.py",
 
+
+
   Read 1 file (ctrl+o to expand)
 
+
+
 ● Update(P:/.claude/hooks/PreToolUse.py)
+
   ⎿  Added 7 lines
+
       658
+
       659  # Legacy top-level PreToolUse entries are routed here now so Claude only has to
+
       660  # spawn one Bash hook for PreToolUse instead of one per sub-hook.
+
       661 +#
+
       662 +# NOTE: PreToolUse_skill_pattern_gate.py was REMOVED from UNIVERSAL.
+
       663 +# It has been replaced by execution_hooks.py (skill-guard subprocess in hooks.json)
+
       664 +# which is the SOLE contract authority for /skill-name runs per INVARIANT 3.
+
       665 +# The legacy gate is kept in this list as documentation of its former position
+
       666 +# but is COMMENTED OUT to prevent double-gating. Do NOT uncomment.
+
       667  COMPAT_POST_ROUTER_HOOKS = [
+
       668      "PreToolUse_file_existence_guard.py",
+
       669      "pre/PreToolUse_tool_check.py",
+
       670      "PreToolUse_verification_router.py",
+
       671 +    # "PreToolUse/PreToolUse_skill_pattern_gate.py",  # REMOVED - see note above
+
       672  ]
+
       673
+
       674  # Mutation tools rely on path_validator (UNIVERSAL) for path protection.
 
-● Update(P:/.claude/hooks/PreToolUse.py)
-  ⎿  Added 2 lines, removed 1 line
-      781      from skill_guard.PreToolUse.PreToolUse_skill_dir_gate import run as _skill_dir_gate_run
-      782      from skill_guard.PreToolUse.PreToolUse_skill_question_gate import run as _skill_question_gate_run
-      783      from skill_guard.PreToolUse.PreToolUse_context_sufficiency_gate import run as _context_sufficiency_run
-      784 -    from skill_guard.PreToolUse.PreToolUse_skill_pattern_gate import handle_pre_tool_use as _skill_pattern_gate_ru
-          -n
-      784 +    # NOTE: PreToolUse_skill_pattern_gate.py REMOVED from IN_PROCESS_HOOKS.
-      785 +    # execution_hooks.py (skill-guard subprocess via hooks.json) is the sole contract gate.
-      786      from artifact_grounder import ground_blocked_command, ground_git_safety_block
-      787      from pretooluse_observability import (
-      788          append_jsonl as append_observability_jsonl,
+
 
 ● Update(P:/.claude/hooks/PreToolUse.py)
+
+  ⎿  Added 2 lines, removed 1 line
+
+      781      from skill_guard.PreToolUse.PreToolUse_skill_dir_gate import run as _skill_dir_gate_run
+
+      782      from skill_guard.PreToolUse.PreToolUse_skill_question_gate import run as _skill_question_gate_run
+
+      783      from skill_guard.PreToolUse.PreToolUse_context_sufficiency_gate import run as _context_sufficiency_run
+
+      784 -    from skill_guard.PreToolUse.PreToolUse_skill_pattern_gate import handle_pre_tool_use as _skill_pattern_gate_ru
+
+          -n
+
+      784 +    # NOTE: PreToolUse_skill_pattern_gate.py REMOVED from IN_PROCESS_HOOKS.
+
+      785 +    # execution_hooks.py (skill-guard subprocess via hooks.json) is the sole contract gate.
+
+      786      from artifact_grounder import ground_blocked_command, ground_git_safety_block
+
+      787      from pretooluse_observability import (
+
+      788          append_jsonl as append_observability_jsonl,
+
+
+
+● Update(P:/.claude/hooks/PreToolUse.py)
+
   ⎿  Added 1 line, removed 1 line
+
       808          "PreToolUse_skill_dir_gate.py": _skill_dir_gate_run,
+
       809          "PreToolUse_skill_question_gate.py": _skill_question_gate_run,
+
       810          "PreToolUse_context_sufficiency_gate.py": _context_sufficiency_run,
+
       811 -        "PreToolUse/PreToolUse_skill_pattern_gate.py": _skill_pattern_gate_run,
+
       811 +        # PreToolUse_skill_pattern_gate.py REMOVED - execution_hooks.py is sole contract gate
+
       812          "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
+
       813          "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
+
       814      }
+
+
 
   Read 1 file (ctrl+o to expand)
 
+
+
 ● Update(P:/.claude/hooks/PreToolUse.py)
+
   ⎿  Added 7 lines, removed 5 lines
+
       637
+
       638
+
       639  # Hooks that run for ALL tool types
+
       640 +#
+
       641 +# INVARIANT 3 WIRING (2026-05-05):
+
       642 +#   PreToolUse_skill_pattern_gate.py REMOVED from this list.
+
       643 +#   execution_hooks.py (skill-guard subprocess via hooks.json) is the SOLE
+
       644 +#   PreToolUse contract authority for /skill-name runs.
+
       645 +#   The legacy gate ran before the subprocess, causing double-gating with conflicting state.
+
       646 +#   It is now completely removed from the dispatch chain.
+
       647  UNIVERSAL = [
+
       648      "PreToolUse_path_validator.py",
+
       642 -    "PreToolUse/PreToolUse_skill_pattern_gate.py",  # v3.2 - Parallel regex + daemon validation
+
       643 -    # LEGACY GATE MOVED — kept for reference only; execution_hooks.py is now the sole
+
       644 -    # PreToolUse contract authority for /skill-name runs per skill-guard INVARIANT 3.
+
       645 -    # The legacy gate is moved to COMPAT_POST_ROUTER_HOOKS (advisory-only, non-blocking)
+
       646 -    # so it continues to emit diagnostics but cannot override the contract gate.
+
       649      "PreToolUse_domain_tool_router.py",  # NEW 2026-03-21: Advisory domain tool suggestions
+
       650      "PreToolUse_discovery_tracker.py",  # ADR-00X: Tracks discovery tool usage for discovery-first enforcement (20
+
            26-04-09)
+
       651      "PreToolUse_risk_tier_gate.py",
+
+
 
 ● Now verify the clean state of the import and IN_PROCESS_HOOKS sections:
 
+
+
   Read 1 file (ctrl+o to expand)
+
+
 
 ● The dispatch chain is clean. Here's a summary of what changed:
 
+
+
   Changes made
+
+
 
   P:/.claude/hooks/PreToolUse.py — 3 edits:
 
+
+
   1. UNIVERSAL list (line ~641): Removed "PreToolUse/PreToolUse_skill_pattern_gate.py". Added comment explaining INVARIANT 3 wiring
+
   rationale.
+
   2. IN_PROCESS_HOOKS dict (line ~812): Removed "PreToolUse/PreToolUse_skill_pattern_gate.py": _skill_pattern_gate_run. Removed the
+
   import of _skill_pattern_gate_run.
+
   3. COMPAT_POST_ROUTER_HOOKS (line ~669): Added comment documenting the removal; left the path commented-out as historical record.
 
+
+
   Effect: The new execution runtime gate (execution_hooks.py, invoked via hooks.json subprocess) is now the sole PreToolUse contract
+
    gate. The legacy gate is completely removed from the dispatch chain.
+
+
 
   Final PreToolUse dispatch order
 
+
+
   skill_first_gate()         — in-process, line 1227 (session-scoped slash→Skill enforcement)
+
     ↓
+
   for hook in UNIVERSAL:
+
     0. PreToolUse_path_validator.py              (subprocess)
+
     1. execution_hooks.py                        (subprocess ← SOLE contract gate, reads execution-state.json)
+
     2. PreToolUse_domain_tool_router.py          (subprocess)
+
     3. PreToolUse_discovery_tracker.py           (subprocess)
+
     4. PreToolUse_risk_tier_gate.py             (subprocess)
-    ...
-  for hook in TOOL_HOOKS[tool_name]:
-    ...
-  for hook in COMPAT_POST_ROUTER_HOOKS:
+
     ...
 
+  for hook in TOOL_HOOKS[tool_name]:
+
+    ...
+
+  for hook in COMPAT_POST_ROUTER_HOOKS:
+
+    ...
+
+
+
   The _check_skill_first_gate() at line 1227 still runs first — it enforces that Skill() must be called before any non-investigation
+
    tool. That gate uses pending_command_intent.json (session-scoped), which is a different state file from execution-state.json
+
   (terminal-scoped). The two concerns are orthogonal: skill-first (prompt) vs contract enforcement (tool gating).
+
 "
 
 ## Assistant
@@ -6854,37 +8171,69 @@ So in practical terms, it gets used exactly when you want skills “used properl
 ## Human
 
 "
+
   Changes made
+
+
 
   P:/.claude/hooks/PreToolUse.py — 3 edits:
 
+
+
   1. UNIVERSAL list (line ~641): Removed "PreToolUse/PreToolUse_skill_pattern_gate.py". Added comment explaining INVARIANT 3 wiring
+
   rationale.
+
   2. IN_PROCESS_HOOKS dict (line ~812): Removed "PreToolUse/PreToolUse_skill_pattern_gate.py": _skill_pattern_gate_run. Removed the
+
   import of _skill_pattern_gate_run.
+
   3. COMPAT_POST_ROUTER_HOOKS (line ~669): Added comment documenting the removal; left the path commented-out as historical record.
 
+
+
   Effect: The new execution runtime gate (execution_hooks.py, invoked via hooks.json subprocess) is now the sole PreToolUse contract
+
    gate. The legacy gate is completely removed from the dispatch chain.
+
+
 
   Final PreToolUse dispatch order
 
+
+
   skill_first_gate()         — in-process, line 1227 (session-scoped slash→Skill enforcement)
+
     ↓
+
   for hook in UNIVERSAL:
+
     0. PreToolUse_path_validator.py              (subprocess)
+
     1. execution_hooks.py                        (subprocess ← SOLE contract gate, reads execution-state.json)
+
     2. PreToolUse_domain_tool_router.py          (subprocess)
+
     3. PreToolUse_discovery_tracker.py           (subprocess)
+
     4. PreToolUse_risk_tier_gate.py             (subprocess)
-    ...
-  for hook in TOOL_HOOKS[tool_name]:
-    ...
-  for hook in COMPAT_POST_ROUTER_HOOKS:
+
     ...
 
+  for hook in TOOL_HOOKS[tool_name]:
+
+    ...
+
+  for hook in COMPAT_POST_ROUTER_HOOKS:
+
+    ...
+
+
+
   The _check_skill_first_gate() at line 1227 still runs first — it enforces that Skill() must be called before any non-investigation
+
    tool. That gate uses pending_command_intent.json (session-scoped), which is a different state file from execution-state.json
+
   (terminal-scoped). The two concerns are orthogonal: skill-first (prompt) vs contract enforcement (tool gating)."
 
 ## Assistant
@@ -7133,14 +8482,23 @@ The main problem with the original prompt is that it tries to specify a broader 
 ## Human
 
 "
+
 ● Wiring is verified and tests confirm health. The 6 failures are all pre-existing refactor-tracking tests for
+
   skill_execution_state.py god-object extraction — none related to the PreToolUse dispatch chain.
 
+
+
   PreToolUse wiring is clean:
+
   - execution_hooks.py subprocess is the sole contract gate (UNIVERSAL pos 1, runs before all advisory hooks)
+
   - PreToolUse_skill_pattern_gate.py fully removed from both UNIVERSAL list and IN_PROCESS_HOOKS dict
+
   - Probe logging still active on both gates (runtime gate + legacy gate) for correlation if needed
+
   - 486/492 tests passing, 25 skipped
+
 "
 
 ## Assistant
@@ -8652,496 +10010,988 @@ If you want, I can also give you a **shorter, copy-paste optimized version** of 
 ## Human
 
 "
+
   1. Audit Summary
+
+
 
   What gto v4.2 Is
 
+
+
   GTO is a session-aware gap-to-opportunity analysis runtime subsystem, not a prompt template. It has 49 Python modules across
+
   orchestrator/, __lib/, agents/, hooks/, and schemas/. The execution flow:
 
+
+
   1. Orchestrator entry — python -m skills.gto.orchestrator via Bash
+
   2. Deterministic pipeline — 20 phases of detectors, session analysis, carryover resolution
+
   3. Mandatory gap reviewer subagent — spawned via Agent tool, LLM-enriched review
+
   4. Optional enrichment subagents — domain analyzer, findings reviewer, action normalizer, session reviewer
+
   5. Artifact write — outputs/artifact.json with machine_output containing RNS pipe-delimited format
+
   6. Stop hook verification — checks state/run_state.json phase + artifact JSON validity + RNS markers
+
+
 
   GTO's Own Hook Lifecycle
 
+
+
   ┌──────────────┬─────────────────────────────────────────────────────────────────┬────────────────────────────────────────────┐
+
   │     Hook     │                          What it does                           │         Mechanically enforceable?          │
+
   ├──────────────┼─────────────────────────────────────────────────────────────────┼────────────────────────────────────────────┤
+
   │ PreToolUse   │ Blocks rm -rf, git reset --hard, etc. during active run         │ Yes — tool-name + command-pattern matching │
+
   ├──────────────┼─────────────────────────────────────────────────────────────────┼────────────────────────────────────────────┤
+
   │ PostToolUse  │ Captures failures as findings; validates artifact JSON + RNS    │ Yes — structural checks on file content    │
+
   │              │ markers on Write                                                │                                            │
+
   ├──────────────┼─────────────────────────────────────────────────────────────────┼────────────────────────────────────────────┤
+
   │ SessionStart │ Restores prior run summary on resume                            │ No — prose messaging                       │
+
   ├──────────────┼─────────────────────────────────────────────────────────────────┼────────────────────────────────────────────┤
+
   │ Stop         │ State-driven completion verification                            │ Yes — phase check + artifact fields + RNS  │
+
   │              │                                                                 │ markers                                    │
+
   └──────────────┴─────────────────────────────────────────────────────────────────┴────────────────────────────────────────────┘
+
+
 
   State Files
 
+
+
   GTO writes its own terminal-scoped state at:
+
   .claude/.artifacts/{terminal_id}/gto/state/run_state.json
+
   .claude/.artifacts/{terminal_id}/gto/outputs/artifact.json
+
   .claude/.artifacts/{terminal_id}/gto/carryover.json
+
+
 
   Frontmatter (current)
 
+
+
   name: gto
+
   version: 4.2.0
+
   enforcement: advisory        # ← NOT read by execution runtime
+
   workflow_steps: [...]        # ← prose, not mechanically checked
+
+
 
   No contract_type, allowed_tools_now, blocked_tools, required_artifacts, or response_requirements.
 
+
+
   ---
+
   2. Enforceability Classification
 
+
+
   ┌────────────────┬──────────────────────┬────────────────┬─────────────────────────────────┬─────────────────────────────────┐
+
   │      Item      │    Current source    │ Classification │               Why               │ Proposed gto-v2 contract field  │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Orchestrator   │ SKILL.md prose,      │ Mechanically   │ allowed_first_tools +           │                                 │
+
   │ Bash           │ PreToolUse           │ enforceable    │ required_first_command_patterns │ allowed_first_tools: [Bash] +   │
+
   │ invocation     │ tool-pattern gate    │ (needs         │  can gate Bash-first            │ required_first_command_patterns │
+
   │                │                      │ frontmatter)   │                                 │                                 │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Artifact write │ SKILL.md prose       │ Mechanically   │ required_artifacts tracks path  │ required_artifacts:             │
+
   │  path          │                      │ enforceable    │ existence                       │ [gto-v2/outputs/artifact.json]  │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │                │                      │ Mechanically   │                                 │ response_requirements.sections: │
+
   │ Artifact JSON  │ GTO Stop hook +      │ enforceable    │ Stop hook can call same         │  [RNS|D|, RNS|Z|] or Stop       │
+
   │ validity       │ verify_artifact()    │ (needs Stop    │ verify_artifact() logic         │ integration                     │
+
   │                │                      │ wiring)        │                                 │                                 │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Phase          │ GTO Stop hook checks │ Mechanically   │ Skill-guard Stop checks         │ Execution runtime manages       │
+
   │ completion     │                      │ enforceable    │ execution-state.json phase      │ phase; orchestrator syncs       │
+
   │                │ state.run_state.json │                │                                 │                                 │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Gap reviewer   │ SKILL.md Step 1.5    │                │ Agent tool cannot be gated      │ Remain as SKILL.md prose        │
+
   │ subagent       │ prose                │ Advisory only  │ mechanically in v1              │ guidance                        │
+
   │ spawned        │                      │                │                                 │                                 │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Optional       │ SKILL.md Step 1.6    │                │ Same — cannot mechanically gate │                                 │
+
   │ enrichment     │ prose                │ Advisory only  │  Agent tool                     │ Remain as advisory prose        │
+
   │ subagents      │                      │                │                                 │                                 │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Destructive    │                      │ Mechanically   │ skill-guard doesn't support     │                                 │
+
   │ command        │ GTO PreToolUse hook  │ enforceable,   │ command-pattern blocking; this  │ Keep GTO PreToolUse as advisory │
+
   │ blocking       │                      │ but            │ is orthogonal to contract       │  gate                           │
+
   │                │                      │                │ gating                          │                                 │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ RNS            │ GTO Stop hook checks │ Mechanically   │ Stop hook can call same logic   │                                 │
+
   │ machine_output │  RNS|D| and RNS|Z|   │ enforceable    │ after skill-guard Stop          │ Hook integration                │
+
   │  format        │ markers              │                │ evaluates contract              │                                 │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Carryover      │ __lib/state.py +     │ Mechanically   │ File path is deterministic;     │ Advisory — not a contract       │
+
   │ persistence    │ carryover.json       │ enforceable    │ Stop could validate existence   │ requirement                     │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Session state  │ GTO SessionStart     │ Advisory only  │ Prose messaging to user; not    │ Keep GTO SessionStart as        │
+
   │ restoration    │ hook                 │                │ contract-relevant               │ advisory                        │
+
   ├────────────────┼──────────────────────┼────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+
   │ Tool           │ None (skill-guard    │ Mechanically   │                                 │                                 │
+
   │ restrictions   │ enforcement is       │ enforceable    │ allowed_tools_now after         │ allowed_tools_now: [Bash, Read, │
+
   │ during run     │ target state)        │ with           │ orchestrator runs               │  Grep, Glob, ...]               │
+
   │                │                      │ frontmatter    │                                 │                                 │
+
   └────────────────┴──────────────────────┴────────────────┴─────────────────────────────────┴─────────────────────────────────┘
+
+
 
   Contract Type Assessment
 
+
+
   - workflow-execution — Primary candidate. Orchestrator Bash → artifact write → RNS markers. Well-defined completion criterion.
+
   - structured-output — Partial fit. RNS markers in machine_output are mechanically checkable, but output is a file artifact, not
+
   response text.
+
   - hybrid — Overkill. response_requirements would duplicate the artifact validation already done by Stop.
+
+
 
   Inferred contract type: workflow-execution
 
+
+
   The "output" is a file artifact. required_artifacts tracks it. Stop hook validates RNS markers and field completeness as
+
   mechanical completion checks. Gap reviewer is mandatory prose guidance, not a hard gate.
 
+
+
   ---
+
   3. Proposed gto-v2 Contract
 
+
+
   ---
+
   name: gto-v2
+
   description: "GTO v5 — Session-aware gap-to-opportunity analysis with execution-contract runtime"
+
   version: "5.0.0"
+
   triggers:
+
     - "/gto-v2"
+
     - "/gto"
+
   category: analysis
+
   contract_type: workflow-execution
 
+
+
   # Hard gates: Bash first to invoke orchestrator
+
   allowed_first_tools:
+
     - Bash
+
   required_first_command_patterns:
+
     - '^python\\s+.*skills\\.gto_v2\\.orchestrator'
 
+
+
   # Track artifact completion
+
   required_artifacts:
+
     - ".claude/.artifacts/{terminal_id}/gto-v2/outputs/artifact.json"
 
+
+
   # Tool permissions after orchestrator starts
+
   # Bash: orchestrator itself + any sub-shells
+
   # Write/Edit: restricted to gto-v2 artifacts directory
+
   # Everything else: allow for investigation
+
   allowed_tools_now:
+
     - Bash
+
     - Read
+
     - Grep
+
     - Glob
+
     - AskUserQuestion
+
     - Skill
+
     - Agent
+
     - WebSearch
+
     - WebFetch
 
+
+
   # Mechanical response checks at Stop (RNS format markers in artifact)
+
   # Prose guidance and subagent enrichment remain advisory
+
   ---
+
+
 
   Key departures from gto:
+
   - enforcement: advisory replaced with explicit contract_type: workflow-execution
+
   - workflow_steps prose retained in body (advisory, not mechanically checked)
+
   - Gap reviewer and enrichment subagents remain mandatory/advisory prose, not hard gates
+
   - Destructive command blocking stays in GTO PreToolUse as an advisory gate (skill-guard doesn't support command-pattern blocking
+
   in contract frontmatter)
 
+
+
   ---
+
   4. Implementation Plan
+
+
 
   Files to Create
 
+
+
   ┌─────────────────────────────────────┬───────────────────────────────────────┬───────────────────────────────────────────────┐
+
   │                File                 │                Purpose                │                Reuse from gto                 │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/SKILL.md              │ New contract-compatible skill         │ Substantially rewritten from gto SKILL.md     │
+
   │                                     │ definition                            │                                               │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/__init__.py           │ Package init                          │ __all__ = ["models", "settings",              │
+
   │                                     │                                       │ "orchestrator"]                               │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/models.py             │ Pydantic/dataclass models             │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/settings.py           │ Path configuration                    │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/orchestrator.py       │ Entry point, updated paths to gto-v2  │ Adapted from gto orchestrator                 │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/stop.py         │ Mechanical artifact verification      │ Rewritten — delegates to skill-guard's Stop   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/posttooluse.py  │ Simplified: failure capture only      │ Adapted from gto                              │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/pretooluse.py   │ Keep as advisory destructive-blocker  │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/sessionstart.py │ Keep as advisory prior-summary        │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/common.py       │ Shared utilities, updated paths       │ Adapted                                       │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/state.py        │ Local run state (phase, carryover)    │ Adapted; add execution-state.json sync        │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/util.py         │ Atomic write, helpers                 │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/verify.py       │ Artifact verification                 │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/verify_test.py  │ Tests for verify                      │ To create                                     │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/schemas/              │ JSON schemas                          │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/agents/               │ All 5 subagent modules                │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ skills/gto-v2/references/           │ Architecture docs                     │ Direct copy                                   │
+
   ├─────────────────────────────────────┼───────────────────────────────────────┼───────────────────────────────────────────────┤
+
   │ All __lib/*.py                      │ Detectors, merge, render, etc.        │ Direct copy                                   │
+
   └─────────────────────────────────────┴───────────────────────────────────────┴───────────────────────────────────────────────┘
+
+
 
   Files to Edit (vs gto)
 
+
+
   ┌────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────┐
+
   │                File                │                                         Change                                          │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/state.py       │ Add sync_to_execution_state() — writes execution-state.json on each save                │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/stop.py        │ Remove complex _verify_completion(); instead read artifact and check RNS markers        │
+
   │                                    │ mechanically, then return None (skill-guard's Stop evaluates contract)                  │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/posttooluse.py │ Remove artifact validation (now Stop's job); keep failure capture                       │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/common.py      │ Update gto_state_dir() to use gto-v2 path                                               │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/orchestrator.py      │ Replace gto path references with gto-v2; call state sync on save                        │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/SKILL.md             │ Rewrite frontmatter + Step 1 orchestrator command reference                             │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ settings.py                        │ Update artifacts_dir path to gto-v2                                                     │
+
   ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ __lib/util.py                      │ Direct copy (no changes)                                                                │
+
   └────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────┘
+
+
 
   NOT Required
 
+
+
   - No changes to gto itself
+
   - No changes to skill-guard execution runtime
+
   - Gap reviewer and enrichment agents are directly copied (prose guidance unchanged)
 
+
+
   ---
+
   5. Patch — Creating gto-v2
+
+
 
   Approach: Copy gto as gto-v2, then apply targeted patches to contract-compatible files.
 
+
+
   Step 1: Copy gto to gto-v2
+
+
 
   cp -r P:/packages/cc-skills-meta/skills/gto P:/packages/cc-skills-meta/skills/gto-v2
 
+
+
   Step 2: Patch settings.py — update path to gto-v2
 
+
+
   # Line 33: artifacts_dir = base / "gto" → base / "gto-v2"
+
   artifacts_dir = base / "gto-v2"
+
+
 
   Step 3: Patch hooks/common.py — update gto_state_dir() to gto-v2
 
+
+
   # Line 86: return get_artifacts_root() / get_terminal_id() / "gto" / "state"
+
   return get_artifacts_root() / get_terminal_id() / "gto-v2" / "state"
+
+
 
   Step 4: Patch orchestrator.py — update bash command reference and state sync
 
+
+
   The orchestrator references python -m skills.gto.orchestrator. For gto-v2:
+
   - Change module reference to skills.gto_v2.orchestrator
+
   - Change artifact path references from gto/ to gto-v2/
+
   - Add call to sync_to_execution_state() after save_state()
 
+
+
   # In orchestrator.py, run() function, after save_state(state_file, state):
+
   from .__lib.state import sync_to_execution_state
+
   sync_to_execution_state(state, settings.paths.artifacts_dir)
+
+
 
   Step 5: Patch __lib/state.py — add execution-state.json sync
 
+
+
   # Add to __lib/state.py after save_state():
 
+
+
   def sync_to_execution_state(state: RunState, artifacts_dir: Path) -> None:
+
       """Write minimal sync to skill-guard execution-state.json for contract runtime."""
+
       import json
+
       exec_state = {
+
           "run_id": state.run_id,
+
           "skill_name": "gto-v2",
+
           "contract_type": "workflow-execution",
+
           "phase": state.phase,
+
           "status": "active" if state.phase == "running" else "complete",
+
           "terminal_id": artifacts_dir.name.split("/")[-2] if "/" in str(artifacts_dir) else "",
+
           "created_at": state.created_at,
+
           "updated_at": state.updated_at,
+
           "required_artifacts": [
+
               str(artifacts_dir / "outputs" / "artifact.json")
+
           ],
+
           "completed_artifacts": [state.last_artifact] if state.last_artifact else [],
+
           "missing_requirements": [],
+
           "allowed_tools_now": [
+
               "Bash", "Read", "Grep", "Glob", "AskUserQuestion",
+
               "Skill", "Agent", "WebSearch", "WebFetch"
+
           ],
+
           "blocked_tools": [],
+
       }
+
       exec_path = artifacts_dir.parent / "execution-state.json"
+
       tmp = exec_path.with_suffix(".json.tmp")
+
       tmp.write_text(json.dumps(exec_state, indent=2), encoding="utf-8")
+
       if exec_path.exists():
+
           exec_path.unlink()
+
       tmp.rename(exec_path)
+
+
 
   Step 6: Rewrite hooks/stop.py — mechanical verification only
 
+
+
   Replace _verify_completion() with a mechanical check that the skill-guard Stop hook can use:
+
+
 
   """GTO-v2 Stop hook — mechanical artifact verification.
 
+
+
   This hook performs ONLY mechanical checks:
+
   1. Artifact file exists at expected path
+
   2. Artifact is valid JSON
+
   3. Machine output has RNS|D| and RNS|Z| markers
 
+
+
   The skill-guard execution runtime Stop handler evaluates the contract
+
   (phase, required_artifacts completion) separately.
+
   """
+
   from __future__ import annotations
 
+
+
   import json
+
   import sys
+
   from pathlib import Path
+
+
 
   from .common import is_gto_active, gto_state_dir, write_hook_output
 
 
+
+
+
   def run(data: dict) -> dict | None:
+
       if not is_gto_active():
+
           return None
 
+
+
       state_dir = gto_state_dir()
+
       artifact_path = state_dir.parent / "outputs" / "artifact.json"
 
+
+
       if not artifact_path.exists():
+
           return {
+
               "decision": "warn",
+
               "reason": f"gto-v2: artifact not found at {artifact_path}",
+
           }
+
+
 
       try:
+
           artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+
       except (json.JSONDecodeError, OSError) as exc:
+
           return {
+
               "decision": "warn",
+
               "reason": f"gto-v2: artifact not valid JSON: {exc}",
+
           }
 
+
+
       machine = artifact.get("machine_output", [])
+
       if isinstance(machine, list):
+
           has_d = any(isinstance(l, str) and l.startswith("RNS|D|") for l in machine)
+
           has_z = any(isinstance(l, str) and l.startswith("RNS|Z|") for l in machine)
+
           if not has_d or not has_z:
+
               return {
+
                   "decision": "warn",
+
                   "reason": "gto-v2: artifact machine_output missing RNS|D| or RNS|Z| markers",
+
               }
+
+
 
       return None
 
 
+
+
+
   def main():
+
       raw = sys.stdin.read()
+
       data = json.loads(raw) if raw.strip() else {}
+
       result = run(data)
+
       if result is not None:
+
           write_hook_output(result)
+
       else:
+
           write_hook_output({"decision": "allow"})
+
       sys.exit(0)
 
 
+
+
+
   if __name__ == "__main__":
+
       main()
+
+
 
   Step 7: Rewrite hooks/posttooluse.py — remove artifact validation
 
+
+
   Keep only failure capture and file change recording. Remove _validate_artifact_write().
+
+
 
   Step 8: Rewrite SKILL.md — contract-compatible frontmatter
 
+
+
   Full rewrite of frontmatter block (lines 1-17) and orchestrator command reference (line 30). Body prose (Steps 1.5 onward) largely
+
    unchanged.
+
+
 
   Step 9: Create __lib/verify_test.py — mechanical tests
 
+
+
   """Tests for artifact mechanical verification."""
+
   import pytest, json
+
   from pathlib import Path
+
   from skills.gto_v2.__lib.verify import verify_artifact
 
+
+
   def test_verify_valid_artifact_with_rns_markers():
+
       # ...
+
+
 
   def test_verify_missing_rns_d_marker():
+
       # ...
+
+
 
   def test_verify_missing_rns_z_marker():
+
       # ...
 
+
+
   ---
+
   6. Verification Plan
 
+
+
   ┌──────────────────────────────────────────┬──────────────────────────────────────────────┬───────────────────────────────────┐
+
   │                  Check                   │                    Method                    │             Expected              │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ /gto-v2 creates execution-state.json     │ UserPromptSubmit hook fires, reads gto-v2    │ execution-state.json appears in   │
+
   │                                          │ SKILL.md frontmatter                         │ .artifacts/console_{tid}/         │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ PreToolUse allows Bash-first             │ allowed_first_tools: [Bash] in frontmatter   │ Bash tool passes; other tools     │
+
   │                                          │                                              │ blocked before orchestrator       │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ Orchestrator creates                     │ Run /gto-v2, check artifacts dir             │ File exists with valid JSON       │
+
   │ gto-v2/outputs/artifact.json             │                                              │                                   │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ execution-state.json phase transitions:  │ Probe log entries                            │ Phase matches orchestrator        │
+
   │ pending → loaded → executing → complete  │                                              │ save_state calls                  │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ Stop allows after artifact + RNS markers │ Mechanical Stop check                        │ Stop returns allow: true          │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ gto unchanged                            │ git diff                                     │ No changes to gto                 │
+
   │                                          │ P:/packages/cc-skills-meta/skills/gto/       │                                   │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ Gap reviewer still runs                  │ Run /gto-v2, check for                       │ File exists (advisory             │
+
   │                                          │ gap_reviewer_result.json                     │ enforcement)                      │
+
   ├──────────────────────────────────────────┼──────────────────────────────────────────────┼───────────────────────────────────┤
+
   │ required_artifacts tracked               │ skill-guard execution-events.jsonl           │ artifact_created event logged for │
+
   │                                          │                                              │  artifact.json                    │
+
   └──────────────────────────────────────────┴──────────────────────────────────────────────┴───────────────────────────────────┘
 
+
+
   ---
+
   7. Risks
 
+
+
   1. State dual-write complexity. GTO-v2 writes both gto-v2/state/run_state.json (its own phase/carryover tracking) AND
+
   execution-state.json (skill-guard's contract state). If these diverge, skill-guard may evaluate completion incorrectly. The sync
+
   function in __lib/state.py must be kept in sync with the orchestrator's phase assignments.
+
   2. Gap reviewer remains advisory. The mandatory gap reviewer subagent is prose guidance only. If the user interrupts before it
+
   runs, skill-guard's Stop will still allow completion. This is the correct behavior per the constraints, but it means gto-v2 may
+
   complete without full LLM enrichment. Mitigation: document this clearly in SKILL.md.
+
   3. required_first_command_patterns matching. The pattern ^python\\s+.*skills\\.gto_v2\\.orchestrator must match Claude Code's actual
+
   Bash command invocation. Variations (e.g., python -m skills.gto_v2.orchestrator vs python skills/gto_v2/orchestrator.py) may or
+
   may not match depending on the orchestrator's invocation style. Mitigation: use required_first_tools: [Bash] alone, without
+
   patterns, since orchestrator invocation format may vary.
+
   4. Skill-guard Stop integration. The gto-v2 Stop hook performs mechanical RNS checks but skill-guard's Stop evaluates
+
   execution-state.json phase. These two checks must be coordinated. The gto-v2 Stop hook should return None (allow) for mechanical
+
   checks, letting skill-guard's Stop be the authority.
+
   5. Assumption: gto-v2 SKILL.md is registered for discovery. If the skill-guard UserPromptSubmit hook reads skill metadata by
+
   scanning .claude/skills/ junctions, gto-v2 needs a junction pointing to skills/gto-v2/. This must be verified.
+
   6. contract_type: workflow-execution with no response_requirements. The completion check is purely artifact-based. If the artifact
+
    exists but is empty, Stop will allow. The verify_artifact() RNS marker check in gto-v2's Stop hook is the mechanical guard, but
+
   it runs as a warn not a block. This could be upgraded to block if needed.
+
   7. Rollback simplicity. Deleting gto-v2/ AND its junction should restore the repo to prior behavior. No shared state is modified.
+
   This must be verified explicitly.
+
+
 
   Ready to implement on your confirmation.
 
+
+
 ● Ran 9 stop hooks (ctrl+o to expand)
+
   ⎿  Stop hook error: MULTIPLE VERIFICATION VIOLATIONS DETECTED
 
+
+
   ## Phase 2 (Lazy Closure)
+
   ⚠️ Lazy closure pattern detected: **self_referential_evasion**
+
+
 
   Matched: `This could be`
 
+
+
   You are hedging about your own reasoning or decisions as if they were external phenomena. Either: (1) State what you
+
   actually verified or decided — 'I did not verify X' or 'I decided Y based on Z' — or (2) If you genuinely have not
+
   verified something, say so plainly without framing it as competing hypotheses or unverified candidates.
+
+
 
 ● Correct. Let me restate with precision.
 
+
+
   What I verified from direct file reads:
 
+
+
   - gto SKILL.md, orchestrator.py, models.py, settings.py, hooks (stop/pretooluse/posttooluse/sessionstart), __lib/state.py, schemas
+
    (artifact + finding), common.py — all read directly
+
   - gto has 49 Python modules, 282 tests, 5 subagents, 20-phase orchestrator pipeline
+
   - gto-frontmatter has enforcement: advisory, workflow_steps prose, no contract fields
+
   - gto-old exists with different structure (v3.6, enforcement: strict, required_first_command_patterns)
+
+
 
   What I assumed without verification:
 
+
+
   1. Skill discovery mechanism. The CLAUDE.md mentions junctions in .claude/skills/ (genius, reason, s). I assumed gto-v2 would use
+
   the same pattern. I did not verify how gto is currently registered (plugin.json does not exist at cc-skills-meta root, so the
+
   junction pattern is the only visible mechanism, but I did not confirm gto itself uses a junction or something else).
+
   2. UserPromptSubmit skill-scanning path. The execution-runtime UserPromptSubmit hook reads skill metadata from wherever skills are
+
    discovered. I assumed this aligns with the junction-based discovery. I did not verify the actual scanning logic.
+
   3. execution-state.json path convention. The plan assumes gto-v2 artifacts live at .claude/.artifacts/{terminal_id}/gto-v2/
+
   matching the plan's layout. GTO currently writes to exactly this path. But I assumed skill-guard's runtime expects this same path
+
   — not verified.
+
+
 
   What I did not verify at all:
 
+
+
   - The execution-runtime UserPromptSubmit hook's actual skill metadata reading behavior
+
   - Whether contract_type: workflow-execution in frontmatter is the correct field name vs something else
+
   - How skill-guard's Stop handler coordinates with a skill's own Stop hook when both fire
+
   - Whether required_first_command_patterns in frontmatter actually gates tool use or is ignored
+
+
 
   The verification plan in section 6 is real work, not guaranteed outcomes."
 
@@ -9374,435 +11224,866 @@ Is your preference to have the model also generate the **actual diff/patch** in 
 ## Human
 
 "
+
   ---
+
   1. Audit Summary
+
+
 
   What GTO v4.2 Is
 
+
+
   GTO is a session-aware gap-to-opportunity analysis subsystem. It reads chat transcripts and session state to produce structured
+
   findings in RNS (Recommended Next Steps) format. It is not a prompt template — it is a multi-phase runtime with 49 Python modules.
+
+
 
   High-level Architecture
 
+
+
   skills/gto/
+
   ├── orchestrator.py          # Entry point, 20-phase pipeline, Bash invocation
+
   ├── models.py                # Finding, GTOArtifact dataclasses
+
   ├── settings.py              # GTOPaths / GTOSettings, path construction
+
   ├── hooks/
+
   │   ├── common.py           # is_gto_active(), read_state(), gto_state_dir()
+
   │   ├── stop.py             # _verify_completion() over run_state.json + artifact.json
+
   │   ├── pretooluse.py       # Blocks destructive Bash patterns (rm -rf, git reset --hard)
+
   │   ├── posttooluse.py      # Captures tool failures as findings; validates artifact JSON
+
   │   └── sessionstart.py     # Restores prior run summary on resume
+
   ├── __lib/
+
   │   ├── state.py            # RunState dataclass, load_state(), save_state()
+
   │   ├── verify.py           # verify_artifact(): checks JSON fields + RNS|D|/RNS|Z| markers
+
   │   ├── util.py             # atomic_write_json(), helpers
+
   │   └── [41 detector/analysis modules]  # detectors, merge, render, carryover, etc.
+
   ├── agents/                 # 5 subagent modules (gap_reviewer, domain_analyzer, etc.)
+
   ├── schemas/               # artifact.schema.json, finding.schema.json
+
   └── references/            # architecture.md, verification.md, etc.
+
+
 
   Concrete Execution Flow
 
+
+
   1. Entry: User types /gto. SKILL.md instructs Claude Code to run python -m skills.gto.orchestrator via Bash.
+
   2. Orchestrator phases:
+
     - run() at line 184 of orchestrator.py creates gto/state/run_state.json with phase=running
+
     - Runs 20 deterministic phases: detectors, session chain, outcome detection, carryover, merge/dedupe/route
+
     - Writes gto/outputs/artifact.json (artifact JSON + machine_output with RNS|D|/RNS|Z| lines)
+
     - Sets state.phase = "completed", state.last_artifact = artifact_path
+
     - Calls verify_artifact() to validate; sets state.verification_status = "pass" or "fail"
+
   3. Mandatory gap reviewer subagent: Orchestrator writes gap_reviewer_handoff.json, spawns Agent tool, re-runs orchestrator to
+
   merge results.
+
   4. Optional enrichment agents: domain_analyzer, findings_reviewer, action_normalizer, session_reviewer — spawned conditionally
+
   from SKILL.md prose.
+
   5. Stop hook verification: _verify_completion() at stop.py:56 — checks phase == "completed", artifact exists, artifact valid JSON,
+
    RNS|D| present, RNS|Z| present, expected artifacts exist.
+
+
 
   GTO Hook Lifecycle Table
 
+
+
   ┌──────────────┬───────────────────────────────────────────────────────┬──────────────────────────────────────────────────────┐
+
   │     Hook     │                     What it does                      │              Mechanically enforceable?               │
+
   ├──────────────┼───────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+
   │              │ Blocks rm -rf, git reset --hard, git checkout --, git │ Yes — tool name (Bash) + ordered token subsequence   │
+
   │ PreToolUse   │  clean -f during active run via tokenized command     │ match. But skill-guard contract does not support     │
+
   │              │ matching                                              │ command-pattern blocking; this remains GTO-local.    │
+
   ├──────────────┼───────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+
   │              │ Captures tool failures as findings to failures.jsonl; │ Partially — failure capture and file-change logging  │
+
   │ PostToolUse  │  records file changes to session_changes.jsonl;       │ are mechanical; artifact validation (warn on bad     │
+
   │              │ validates artifact JSON + RNS markers on Write        │ JSON/markers) is mechanical but advisory output.     │
+
   ├──────────────┼───────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+
   │ SessionStart │ Writes prose message about prior run phase/findings   │ No — pure prose output to user.                      │
+
   │              │ count on resume                                       │                                                      │
+
   ├──────────────┼───────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+
   │              │ Reads run_state.json, checks phase == "completed",    │ Yes — _verify_completion() at stop.py:53 is purely   │
+
   │ Stop         │ artifact exists, valid JSON, RNS|D| and RNS|Z|        │ mechanical. Returns {"decision": "block"} with       │
+
   │              │ markers present, expected artifacts exist             │ reason on any failure.                               │
+
   └──────────────┴───────────────────────────────────────────────────────┴──────────────────────────────────────────────────────┘
 
+
+
   ---
+
   2. Enforceability Classification
 
+
+
   Item: Orchestrator Bash invocation
+
   Current source: SKILL.md prose, GTO PreToolUse advisory gate
+
   Classification: Mechanically enforceable with frontmatter
+
   Why: allowed_first_tools: [Bash] in frontmatter enables tool-guard to allow Bash as first tool. required_first_command_patterns is
 
+
+
     uncertain — see note below.
+
   Proposed gto-v2 contract field: allowed_first_tools: [Bash]
+
   ────────────────────────────────────────
+
   Item: Artifact write path
+
   Current source: settings.py line 33: artifacts_dir = base / "gto"
+
   Classification: Mechanically enforceable
+
   Why: required_artifacts in frontmatter tracks the expected path. Orchestrator writes to outputs/artifact.json which is
+
     deterministic.
+
   Proposed gto-v2 contract field: required_artifacts: [".claude/.artifacts/{terminal_id}/gto-v2/outputs/artifact.json"]
+
   ────────────────────────────────────────
+
   Item: Artifact JSON validity
+
   Current source: GTO Stop hook _verify_completion() at stop.py:73
+
   Classification: Mechanically enforceable
+
   Why: Stop hook reads artifact, checks JSON decode succeeds, checks required fields present.
+
   Proposed gto-v2 contract field: Stop hook integration (gto-v2 hooks/stop.py)
+
   ────────────────────────────────────────
+
   Item: Phase completion tracking
+
   Current source: __lib/state.py phase field, save_state() called at orchestrator.py:208 and :489
+
   Classification: Mechanically enforceable
+
   Why: State file phase transitions deterministically: initialized → running → completed.
+
   Proposed gto-v2 contract field: execution-state.json phase synced from save_state()
+
   ────────────────────────────────────────
+
   Item: Gap reviewer subagent spawned
+
   Current source: SKILL.md Step 1.5 prose: "this is NOT optional"
+
   Classification: Advisory only
+
   Why: Agent tool cannot be gated mechanically in v1. SKILL.md prose marks it mandatory but no enforcement mechanism exists.
+
   Proposed gto-v2 contract field: None — prose advisory
+
   ────────────────────────────────────────
+
   Item: Optional enrichment subagents
+
   Current source: SKILL.md Step 1.6 prose
+
   Classification: Advisory only
+
   Why: Same as above — conditional spawning from prose, no enforcement.
+
   Proposed gto-v2 contract field: None — prose advisory
+
   ────────────────────────────────────────
+
   Item: Destructive command blocking
+
   Current source: GTO PreToolUse hook tokenized matching
+
   Classification: Mechanically enforceable locally
+
   Why: Tool name + command token pattern matching. But skill-guard contract does not support command-pattern matching — only
+
     tool-name allow/block.
+
   Proposed gto-v2 contract field: Keep in gto-v2 PreToolUse as advisory layer; NOT a contract field
+
   ────────────────────────────────────────
+
   Item: RNS machine_output markers
+
   Current source: GTO Stop hook checks RNS|D| and RNS|Z| at stop.py:86-90
+
   Classification: Mechanically enforceable
+
   Why: String startswith check on machine_output list.
+
   Proposed gto-v2 contract field: Stop hook + response_requirements.sections
+
   ────────────────────────────────────────
+
   Item: Carryover persistence
+
   Current source: __lib/carryover.py, carryover.json at gto/carryover.json
+
   Classification: Advisory only
+
   Why: Persistence across runs is useful but not a contract requirement. Skill completes when artifact is written regardless of
+
     carryover state.
+
   Proposed gto-v2 contract field: None — skip
+
   ────────────────────────────────────────
+
   Item: SessionStart prose messaging
+
   Current source: GTO SessionStart hook run() at sessionstart.py:40
+
   Classification: Advisory only
+
   Why: Writes user-facing prose. No enforcement role.
+
   Proposed gto-v2 contract field: None — skip
+
   ────────────────────────────────────────
+
   Item: Tool restrictions during run
+
   Current source: None currently enforced
+
   Classification: Mechanically enforceable with frontmatter
+
   Why: After orchestrator starts, GTO only needs Bash (orchestrator), Read/Grep/Glob (analysis), Agent (subagents). Write is
+
     restricted to artifact directory.
+
   Proposed gto-v2 contract field: allowed_tools_now: [Bash, Read, Grep, Glob, AskUserQuestion, Skill, Agent, WebSearch, WebFetch]
+
   ────────────────────────────────────────
+
   Item: JSON schema validation
+
   Current source: schemas/artifact.schema.json defines required fields
+
   Classification: Advisory only
+
   Why: Schemas exist but are not validated against at Stop. _verify_completion() checks 4 fields manually.
+
   Proposed gto-v2 contract field: None — stop hook covers same ground mechanically
+
+
 
   Contract Type Conclusion
 
+
+
   workflow-execution is correct. structured-output and hybrid are not appropriate.
 
+
+
   Reason: GTO's output is a file artifact (outputs/artifact.json), not a response text. The completion criterion is: artifact exists
+
    + valid JSON + RNS|D|/RNS|Z| markers. This maps directly to workflow-execution with required_artifacts. structured-output would
+
   require response text parsing, which is not GTO's design. hybrid would add complexity without benefit since response requirements
+
   would duplicate the artifact checks.
 
+
+
   required_first_command_patterns is not included in the proposed contract. The real orchestrator invocation command is python -m
+
   skills.gto.orchestrator (module syntax), but I cannot verify whether Claude Code actually invokes it this way from the SKILL.md
+
   Bash block, or whether the module path would be skills.gto_v2.orchestrator or skills.gto.orchestrator under gto-v2's Python
+
   package name. Omitting this field avoids a false gate that could block legitimate invocations.
 
+
+
   ---
+
   3. Proposed gto-v2 Contract (frontmatter only)
 
+
+
   ---
+
   name: gto-v2
+
   description: "GTO v5 — Session-aware gap-to-opportunity analysis with execution-contract runtime. Reads session transcripts to
+
   produce RNS-formatted findings. Replaces gto v4.2 with contract-aware state management."
+
   version: "5.0.0"
+
   triggers:
+
     - "/gto-v2"
+
   category: analysis
+
   contract_type: workflow-execution
 
+
+
   # Hard gate: Bash is the first tool to invoke the orchestrator.
+
   # All other tools are blocked until the orchestrator runs.
+
   allowed_first_tools:
+
     - Bash
+
+
 
   # Track the artifact as the single completion criterion.
+
   # Skill-guard PreToolUse/Stop evaluate this path's existence and validity.
+
   required_artifacts:
+
     - ".claude/.artifacts/{terminal_id}/gto-v2/outputs/artifact.json"
 
+
+
   # Tools available after orchestrator starts (Bash: orchestrator itself;
+
   # Read/Grep/Glob: analysis; Agent: subagents; Skill/WebSearch/WebFetch: investigation).
+
   # Write and Edit are allowed but restricted to the gto-v2 artifact directory by path logic,
+
   # not by contract frontmatter (skill-guard v1 doesn't support path-based tool restrictions).
+
   allowed_tools_now:
+
     - Bash
+
     - Read
+
     - Grep
+
     - Glob
+
     - AskUserQuestion
+
     - Skill
+
     - Agent
+
     - WebSearch
+
     - WebFetch
+
     - Write
+
     - Edit
+
     - Task
+
   ---
+
+
 
   Fields intentionally omitted:
+
   - blocked_tools: not needed — allowed_tools_now covers all tools GTO actually uses; Write/Edit allowed because orchestrator
+
   restricts writes to artifact directory internally.
+
   - response_requirements: not applicable — GTO output is a file artifact, not response text.
+
   - required_first_command_patterns: uncertain command shape, omitted to avoid false gating.
 
+
+
   ---
+
   4. Implementation Plan
+
+
 
   Files to Create
 
+
+
   ┌──────────────────────────────────────┬────────────────────────┬─────────────────────────────────────────────────────────────┐
+
   │                 File                 │        Purpose         │                       Reuse from gto                        │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/__init__.py            │ Package init           │ Copy — __all__ = ["models", "settings", "orchestrator"]     │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/models.py              │ Finding, GTOArtifact   │ Copy — unchanged                                            │
+
   │                                      │ dataclasses            │                                                             │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/settings.py            │ GTOPaths / GTOSettings │ Adapt — change base / "gto" to base / "gto-v2" at line 33   │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/orchestrator.py        │ Entry point, 20-phase  │ Adapt — change all gto path references to gto-v2; add       │
+
   │                                      │ pipeline               │ sync_to_execution_state() call after save_state()           │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/common.py        │ Shared utilities       │ Adapt — change gto to gto-v2 in gto_state_dir() at line 86  │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │                                      │                        │ Rewrite — remove complex _verify_completion(); emit only    │
+
   │ skills/gto-v2/hooks/stop.py          │ Mechanical artifact    │ mechanical checks (file exists, JSON decodes, RNS markers   │
+
   │                                      │ verification           │ present); return None or {"decision": "warn"} — defer       │
+
   │                                      │                        │ contract evaluation to skill-guard Stop                     │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │                                      │ Advisory               │                                                             │
+
   │ skills/gto-v2/hooks/pretooluse.py    │ destructive-command    │ Copy — unchanged                                            │
+
   │                                      │ blocker                │                                                             │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/posttooluse.py   │ Failure capture +      │ Adapt — remove _validate_artifact_write(); keep             │
+
   │                                      │ file-change logging    │ _capture_failure() and _record_file_change()                │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/hooks/sessionstart.py  │ Advisory prior-summary │ Copy — unchanged                                            │
+
   │                                      │  messaging             │                                                             │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/state.py         │ RunState dataclass     │ Adapt — add sync_to_execution_state() function              │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/util.py          │ Atomic write, helpers  │ Copy — unchanged                                            │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/verify.py        │ Artifact verification  │ Copy — unchanged                                            │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/[41 remaining    │ Detectors, analysis,   │ Copy — unchanged                                            │
+
   │ modules]                             │ render                 │                                                             │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/agents/[5 modules]     │ Subagent modules       │ Copy — unchanged                                            │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/schemas/               │ JSON schemas           │ Copy — unchanged                                            │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/references/            │ Architecture docs      │ Copy — unchanged                                            │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/SKILL.md               │ Contract-compatible    │ Rewrite — frontmatter replaced with proposed contract; body │
+
   │                                      │ skill definition       │  prose unchanged except orchestrator command path           │
+
   ├──────────────────────────────────────┼────────────────────────┼─────────────────────────────────────────────────────────────┤
+
   │ skills/gto-v2/__lib/verify_test.py   │ Mechanical RNS marker  │ New — unit tests for verify.py RNS checks                   │
+
   │                                      │ tests                  │                                                             │
+
   └──────────────────────────────────────┴────────────────────────┴─────────────────────────────────────────────────────────────┘
+
+
 
   Files to Edit (only inside gto-v2)
 
+
+
   ┌──────────────────────┬───────────────────────────────────────────────────────────────────┬──────────────────────────────────┐
+
   │         File         │                              Change                               │               Why                │
+
   ├──────────────────────┼───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+
   │ settings.py          │ Line 33: artifacts_dir = base / "gto" → base / "gto-v2"           │ Path isolation from gto          │
+
   ├──────────────────────┼───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+
   │ hooks/common.py      │ Line 86: return get_artifacts_root() / get_terminal_id() / "gto"  │ State dir isolation              │
+
   │                      │ / "state" → / "gto-v2" / "state"                                  │                                  │
+
   ├──────────────────────┼───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+
   │                      │ Change python -m skills.gto.orchestrator references to python -m  │                                  │
+
   │ orchestrator.py      │ skills.gto_v2.orchestrator; add sync_to_execution_state() call    │ Orchestrator path update +       │
+
   │                      │ after save_state(); change gto/ artifact path references to       │ execution-state.json sync        │
+
   │                      │ gto-v2/                                                           │                                  │
+
   ├──────────────────────┼───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+
   │ __lib/state.py       │ Add sync_to_execution_state() function that writes                │ Required for skill-guard         │
+
   │                      │ execution-state.json atomically                                   │ contract runtime                 │
+
   ├──────────────────────┼───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+
   │                      │ Remove _verify_completion() complexity; keep only mechanical      │ Skill-guard Stop evaluates       │
+
   │ hooks/stop.py        │ checks (file exists, JSON valid, RNS markers); return None for    │ contract; gto-v2 Stop emits      │
+
   │                      │ allow or {"decision": "warn"} for issues                          │ mechanical checks only           │
+
   ├──────────────────────┼───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+
   │                      │ Remove _validate_artifact_write() entirely; keep                  │ Artifact validation moved to     │
+
   │ hooks/posttooluse.py │ _capture_failure() and _record_file_change()                      │ Stop; posttooluse not needed for │
+
   │                      │                                                                   │  contract                        │
+
   ├──────────────────────┼───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+
   │ SKILL.md             │ Replace frontmatter with proposed contract YAML; update           │ Contract frontmatter + path      │
+
   │                      │ orchestrator Bash command path in Step 1                          │ correctness                      │
+
   └──────────────────────┴───────────────────────────────────────────────────────────────────┴──────────────────────────────────┘
 
+
+
   ---
+
   5. Patch Outline
+
+
 
   In order:
 
+
+
   1. cp -r P:/packages/cc-skills-meta/skills/gto P:/packages/cc-skills-meta/skills/gto-v2
+
+
 
   2. P:/packages/cc-skills-meta/skills/gto-v2/settings.py — line 33: base / "gto" → base / "gto-v2"
 
+
+
   3. P:/packages/cc-skills-meta/skills/gto-v2/hooks/common.py — gto_state_dir() at line 86: / "gto" / "state" → / "gto-v2" / "state"
 
+
+
   4. P:/packages/cc-skills-meta/skills/gto-v2/__lib/state.py — add sync_to_execution_state(state: RunState, artifacts_dir: Path)
+
   after save_state(). Writes execution-state.json atomically to artifacts_dir.parent / "execution-state.json" with: run_id,
+
   skill_name = "gto-v2", contract_type = "workflow-execution", phase from state, status = "active" or "complete", required_artifacts
+
    (artifact.json path), completed_artifacts (state.last_artifact if set), missing_requirements (empty list), allowed_tools_now (the
+
    10 tools from proposed frontmatter), blocked_tools (empty list).
 
+
+
   5. P:/packages/cc-skills-meta/skills/gto-v2/orchestrator.py — three changes:
+
   - All gto/ path strings → gto-v2/ (lines referencing artifact paths)
+
   - After each save_state(state_file, state) call (lines 210, 493, 498), add sync_to_execution_state(state,
+
   settings.paths.artifacts_dir)
+
   - The Bash command in SKILL.md body that references orchestrator: python -m skills.gto.orchestrator → python -m
+
   skills.gto_v2.orchestrator (but this is in SKILL.md, not orchestrator.py)
 
+
+
   6. P:/packages/cc-skills-meta/skills/gto-v2/hooks/stop.py — replace entirely. Keep run(data) → returns None (allow) if artifact
+
   passes checks, {"decision": "warn", "reason": "..."} otherwise. Checks: artifact path outputs/artifact.json exists, JSON decodes,
+
   machine_output list has at least one RNS|D| line and one RNS|Z| line. Does NOT check phase or verification_status — those are
+
   skill-guard Stop's job.
 
+
+
   7. P:/packages/cc-skills-meta/skills/gto-v2/hooks/posttooluse.py — remove _validate_artifact_write() function and its call in
+
   run(). Keep _capture_failure() and _record_file_change().
 
+
+
   8. P:/packages/cc-skills-meta/skills/gto-v2/SKILL.md — replace lines 1-17 frontmatter block with proposed YAML. Update
+
   orchestrator Bash command path in Step 1 (line 30) from python -m skills.gto.orchestrator to python -m skills.gto_v2.orchestrator.
 
+
+
   9. Create P:/packages/cc-skills-meta/skills/gto-v2/__lib/verify_test.py — pytest tests for verify_artifact(): test with valid RNS
+
   markers passes, test missing RNS|D| fails, test missing RNS|Z| fails, test invalid JSON fails.
+
+
 
   10. Create P:/packages/cc-skills-meta/skills/gto-v2/__init__.py — __all__ = ["models", "settings", "orchestrator"]
 
+
+
   ---
+
   6. Verification Plan
 
+
+
   ┌───────────────────┬───────────────────────────────────────────────────────────────────┬────────────────────────────────────┐
+
   │       Check       │                              Method                               │           Pass criteria            │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ gto unchanged     │ git -C P:/packages/cc-skills-meta diff skills/gto/                │ Zero changes                       │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ gto-v2 directory  │ ls P:/packages/cc-skills-meta/skills/gto-v2/                      │ All 49 modules present             │
+
   │ created           │                                                                   │                                    │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ SKILL.md          │                                                                   │ name: gto-v2, contract_type:       │
+
   │ frontmatter       │ Read first 20 lines of skills/gto-v2/SKILL.md                     │ workflow-execution,                │
+
   │ correct           │                                                                   │ required_artifacts present,        │
+
   │                   │                                                                   │ allowed_first_tools: [Bash]        │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ settings.py path  │ grep "gto-v2"                                                     │ At least 1 match (the              │
+
   │ updated           │ P:/packages/cc-skills-meta/skills/gto-v2/settings.py              │ artifacts_dir line)                │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ hooks/common.py   │ grep "gto-v2"                                                     │ At least 1 match                   │
+
   │ path updated      │ P:/packages/cc-skills-meta/skills/gto-v2/hooks/common.py          │                                    │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ state.py has sync │ grep "sync_to_execution_state"                                    │ Function definition present        │
+
   │  function         │ P:/packages/cc-skills-meta/skills/gto-v2/__lib/state.py           │                                    │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ orchestrator.py   │ grep "sync_to_execution_state"                                    │ At least 2 calls (after            │
+
   │ calls sync        │ P:/packages/cc-skills-meta/skills/gto-v2/orchestrator.py          │ phase=running and phase=completed  │
+
   │                   │                                                                   │ saves)                             │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ stop.py is        │ grep "phase|verification_status"                                  │ Zero matches (phase/status checks  │
+
   │ mechanical        │ P:/packages/cc-skills-meta/skills/gto-v2/hooks/stop.py            │ removed)                           │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ verify_test.py    │ ls P:/packages/cc-skills-meta/skills/gto-v2/__lib/verify_test.py  │ File exists                        │
+
   │ exists            │                                                                   │                                    │
+
   ├───────────────────┼───────────────────────────────────────────────────────────────────┼────────────────────────────────────┤
+
   │ pytest passes for │ cd P:/packages/cc-skills-meta && python -m pytest                 │ All tests pass                     │
+
   │  verify_test      │ skills/gto-v2/__lib/verify_test.py -v                             │                                    │
+
   └───────────────────┴───────────────────────────────────────────────────────────────────┴────────────────────────────────────┘
 
+
+
   ---
+
   7. Risks and Assumptions
+
+
 
   Assumptions (not verified by file reads):
 
+
+
   1. Skill discovery. I assume gto-v2 will be discoverable by the same mechanism gto uses. The CLAUDE.md for cc-skills-meta shows
+
   junctions for genius/reason/s, but does not show one for gto. I did not verify how gto is actually registered. If gto uses a
+
   junction at .claude/skills/gto, gto-v2 needs an equivalent. This must be verified before testing.
+
   2. Python module name. The orchestrator is invoked as python -m skills.gto.orchestrator in the current SKILL.md. For gto-v2, I
+
   assume the module path would be python -m skills.gto_v2.orchestrator. This requires a corresponding skills/gto_v2/__init__.py
+
   package marker. This assumption is used in the patch outline but not verified.
+
   3. execution-state.json path convention. The plan assumes skill-guard's UserPromptSubmit creates execution-state.json in
+
   .claude/.artifacts/{terminal_id}/, which is the same base path GTO already uses. This is consistent but I did not verify the
+
   runtime's actual path construction.
+
   4. contract_type field name. The proposed frontmatter uses contract_type: workflow-execution. This matches the plan description
+
   but I did not verify whether skill-guard's UserPromptSubmit hook actually reads and validates this field name from SKILL.md
+
   frontmatter. If the field is named differently or not yet implemented, the contract will not activate.
+
+
 
   Risks:
 
+
+
   1. State dual-write divergence. GTO-v2 writes both gto-v2/state/run_state.json (its own phase/carryover tracking) and
+
   execution-state.json (skill-guard's contract state). If save_state() is called without a corresponding sync_to_execution_state(),
+
   the two diverge. The orchestrator calls save_state() three times (lines 210, 493, 498). The patch calls sync_to_execution_state()
+
   after each. If any call is missed, the divergence risk materializes.
+
   2. gap_reviewer remains advisory. SKILL.md marks the gap reviewer as mandatory prose. Skill-guard's Stop will allow completion
+
   when required_artifacts is satisfied, regardless of whether the gap reviewer ran. This means gto-v2 can complete without
+
   LLM-enriched findings. This is the correct behavior per the constraints, but it differs from gto v4.2's intended workflow.
+
   3. gto-v2 Stop + skill-guard Stop interaction. The gto-v2 Stop hook returns None (allow) or {"decision": "warn"}. It does not
+
   return {"decision": "block"}. Skill-guard's Stop evaluates execution-state.json phase and required_artifacts completion. If both
+
   hooks fire on the same Stop event, their results must be compatible. This was not verified against the actual hook dispatch code.
+
   4. Rollback completeness. Deleting gto-v2/ restores the filesystem. But if gto-v2's existence causes any auto-discovery mechanism
+
   to behave differently (e.g., gto-v2 appears as an extra skill in skill listings), the rollback is not complete. This must be
+
   verified after implementation.
+
   5. The required_first_command_patterns omission. Omitting this field means GTO-v2 cannot enforce that Claude Code invokes the
+
   orchestrator specifically. Any Bash command could be the "first tool." The orchestrator itself checks for correct invocation
+
   internally, but skill-guard's PreToolUse gate cannot enforce it. If a user runs /gto-v2 but Claude Code uses a non-Bash tool
+
   first, the contract may not activate as intended.
 
+
+
 ● Ran 9 stop hooks (ctrl+o to expand)
+
   ⎿  Stop hook error: CITED CODE FROM UNREAD FILES
 
+
+
   The response quotes code from files that were never Read this turn:
+
     - `common.py` at line 86: cited identifiers [strings, lines, referencing] but file was never Read this turn
+
+
 
   Before citing specific code from a file, Read the file first and verify the code exists there.
 
+
+
 ● Correct — I cited line 86 from hooks/common.py but should have verified it in this turn. Let me re-read to confirm.
+
+
 
   Read 2 files (ctrl+o to expand)
 
+
+
 ● Confirmed. Both citations are accurate:
 
+
+
   - hooks/common.py:86 — return get_artifacts_root() / get_terminal_id() / "gto" / "state"
+
   - settings.py:33 — base = artifacts_base / self.terminal_id / "gto"
+
+
 
   The Phase 1 audit stands as written. Waiting for approval before implementing Phase 2."
 
@@ -9973,79 +12254,153 @@ My confidence is **high** on the migration shape, and **medium** on the exact im
 ## Human
 
 "
+
   Phase 2: Implementation
+
+
 
   1. Files read
 
+
+
   - skills/gto_v2/__lib/execution_contract_test.py — new test suite (8 tests)
+
   - skills/gto_v2/SKILL.md — frontmatter and orchestrator commands updated
+
   - skills/gto_v2/hooks/posttooluse.py — artifact validation removed
+
   - skills/gto_v2/hooks/stop.py — full mechanical rewrite (123 → ~80 lines)
+
   - skills/gto_v2/orchestrator.py — three sync_to_execution_state calls injected
+
   - skills/gto_v2/__lib/state.py — sync_to_execution_state function added; defaults patched
+
+
 
   2. Assumptions verified
 
+
+
   - python -m skills.gto_v2.orchestrator import succeeds (underscore, not hyphen)
+
   - gto/ is the artifact directory in gto; isolated to gto_v2/ in gto_v2
+
   - RNS marker verification is owned by stop hook; PostToolUse has no artifact validation role
+
+
 
   3. Patch summary
 
+
+
   ┌────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────┐
+
   │                      File                      │                                   Change                                    │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto_v2/settings.py                      │ base / "gto" → base / "gto_v2"                                              │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto_v2/__lib/state.py                   │ Added sync_to_execution_state(); patched RunState.skill default and         │
+
   │                                                │ load_state fallback                                                         │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto_v2/orchestrator.py                  │ Three sync_to_execution_state(state, paths.artifacts_dir) calls after each  │
+
   │                                                │ save_state()                                                                │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto_v2/hooks/common.py                  │ gto_state_dir() path: "gto" → "gto_v2"                                      │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto_v2/hooks/posttooluse.py             │ Removed _validate_artifact_write(); run() returns None unconditionally      │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto_v2/hooks/stop.py                    │ Complete rewrite — artifact exists + JSON parse + RNS                       │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │                                                │ Frontmatter: name=gto_v2, version=5.0.0, contract_type=workflow-execution,  │
+
   │ skills/gto_v2/SKILL.md                         │ allowed_first_tools=[Bash], required_artifacts, allowed_tools_now;          │
+
   │                                                │ orchestrator Bash commands updated                                          │
+
   ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+
   │ skills/gto_v2/__lib/execution_contract_test.py │ New file: 8 tests covering verify_artifact and sync_to_execution_state      │
+
   └────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────┘
+
+
 
   4. Validation run
 
+
+
   pytest skills/gto_v2/__lib/execution_contract_test.py -v
+
   8 passed in 0.17s
+
   git diff skills/gto/ → zero output (unchanged)
+
+
 
   5. Remaining risks
 
+
+
   ┌───────────────────────────────────────────────────────────┬────────────┬────────────────────────────────────────────────────┐
+
   │                           Risk                            │ Likelihood │                     Mitigation                     │
+
   ├───────────────────────────────────────────────────────────┼────────────┼────────────────────────────────────────────────────┤
+
   │ skill-guard Stop hook needs gto_v2 registration           │ Low        │ Add gto_v2 to hooks/hooks.json stop list (separate │
+
   │                                                           │            │  from gto)                                         │
+
   ├───────────────────────────────────────────────────────────┼────────────┼────────────────────────────────────────────────────┤
+
   │ Artifact path                                             │            │ gto_v2 writes its execution-state.json at          │
+
   │ P:/.claude/.artifacts/{tid}/gto_v2/outputs/artifact.json  │ Low        │ artifacts_dir.parent / "execution-state.json" =    │
+
   │ may conflict with execution-runtime's own                 │            │ P:/.claude/.artifacts/{tid}/execution-state.json;  │
+
   │ execution-state.json path                                 │            │ unique per terminal                                │
+
   ├───────────────────────────────────────────────────────────┼────────────┼────────────────────────────────────────────────────┤
+
   │ required_artifacts in SKILL.md uses                       │ Confirmed  │ paths.outputs_dir = artifacts_dir / "outputs";     │
+
   │ .claude/.artifacts/{terminal_id}/gto_v2/ but orchestrator │ matching   │ artifacts_dir = root / terminal_id / "gto_v2"      │
+
   │  writes to paths.outputs_dir / "artifact.json"            │            │                                                    │
+
   ├───────────────────────────────────────────────────────────┼────────────┼────────────────────────────────────────────────────┤
+
   │ sync_to_execution_state allowed_tools_now hardcoded from  │ Low        │ Frontmatter and sync function must be updated      │
+
   │ SKILL.md — drift if SKILL.md updated                      │            │ together                                           │
+
   └───────────────────────────────────────────────────────────┴────────────┴────────────────────────────────────────────────────┘
+
+
 
 ✻ Brewed for 17m 53s
 
+
+
 ※ recap: Migrating gto skill to gto_v2 with execution-contract runtime. Phase 2 implementation is complete — 8/8 tests pass, gto
+
   unchanged. The Phase 2 output was just delivered above."
 
 ## Assistant
@@ -10373,206 +12728,407 @@ Do you want a second version tuned specifically for a **CLI helper** (e.g., `pyt
 ## Human
 
 "
+
   ---
+
   Decision Tree Rules (plain language + bullets)
 
+
+
   Function signature:
+
   def classify_migration_status(frontmatter: dict, category: str) -> Literal["UNMIGRATED", "PARTIALLY_MIGRATED", "MIGRATED"]
+
   Lives in src/skill_guard/skill_metadata_advisory.py (uses same module as the advisory pass).
 
+
+
   Rule 1 — UNMIGRATED (skill is legacy/advisory-only):
+
   - contract_type is absent OR not in the contract-era values (workflow-execution, structured-output, hybrid),
+
   - AND enforcement is "advisory" OR "none",
+
   - AND required_artifacts is absent AND allowed_tools_now is absent AND response_requirements is absent.
 
+
+
   Rule 2 — PARTIALLY_MIGRATED (some contract metadata, gaps remain):
+
   - contract_type is one of workflow-execution, structured-output, hybrid,
+
   - AND at least one of these is true:
+
     - (contract_type == "workflow-execution" or workflow-execution string variant) AND required_artifacts is absent,
+
     - (contract_type == "structured-output" or string variant) AND response_requirements is absent,
+
     - _validate_skill_frontmatter() returns warnings about missing contract fields,
+
     - allowed_tools_now is absent for a non-advisory skill.
 
+
+
   Rule 3 — MIGRATED (structurally compatible):
+
   - contract_type is present and in the contract-era set,
+
   - AND (required_artifacts is present OR response_requirements is present OR allowed_tools_now is present),
+
   - AND _validate_skill_frontmatter() returns no warnings about missing contract fields.
 
+
+
   Contract-era contract_type values (distinct from legacy workflow/output/hybrid/analysis):
+
   _CONTRACT_TYPES = {"workflow-execution", "structured-output", "hybrid"}
+
   Legacy _VALID_CONTRACT_TYPES = {"workflow", "output", "hybrid", "analysis"} from _skill_frontmatter_loader.py is different — this
+
   is intentional. A skill using "workflow" (legacy) is still UNMIGRATED; one using "workflow-execution" (contract-era) can be
+
   MIGRATED.
 
+
+
   ---
+
   Hook/Advisory Integration Plan
 
+
+
   skill_metadata_advisory.py already calls skill_metadata_advisory(context) and skill_metadata_advisory_hook(context) on skill
+
   invocation. Extend skill_metadata_advisory() to add migration status after the enhancement-reasons check:
 
+
+
   def skill_metadata_advisory(context: Any) -> str | None:
+
       # ... existing code ...
+
       candidate = extract_command_name(prompt)
+
       if not candidate:
+
           return None
 
+
+
       metadata = _load_skill_frontmatter(candidate)
+
       reasons = _enhancement_reasons(metadata)
 
+
+
       # NEW: migration status check
+
       status = classify_migration_status(metadata, metadata.get("category", ""))
+
       if status == "UNMIGRATED":
+
           add_notification(
+
               notification_type="warning",
+
               message=f"Skill '/{candidate}' appears to be legacy (no contract_type and no contract fields). Consider migrating to
+
   the execution-contract model.",
+
               source=f"skill_metadata_advisory:{candidate}",
+
               priority=1,
+
               session_id=_get_session_id(context),
+
           )
+
       elif status == "PARTIALLY_MIGRATED":
+
           add_notification(
+
               notification_type="info",
+
               message=f"Skill '/{candidate}' has contract metadata but is missing some contract fields (e.g. required_artifacts or
+
   allowed_tools_now). Consider completing the migration.",
+
               source=f"skill_metadata_advisory:{candidate}",
+
               priority=1,
+
               session_id=_get_session_id(context),
+
           )
+
       # MIGRATED: silent, no notification
+
+
 
       # ... existing reasons/warning logic ...
 
+
+
   When called: During the UserPromptSubmit hook pass, triggered whenever a skill is invoked (/skill-name). The hook is already
+
   registered at priority=5.0 — no new hook registration needed.
 
+
+
   Message templates:
+
   - UNMIGRATED: "Skill '/{name}' appears to be legacy (no contract_type and no contract fields). Consider migrating to the
+
   execution-contract model."
+
   - PARTIALLY_MIGRATED: "Skill '/{name}' has contract metadata but is missing some contract fields (e.g. required_artifacts or
+
   allowed_tools_now). Consider completing the migration."
+
   - MIGRATED: no notification emitted.
 
+
+
   ---
+
   Migration Helper "No-Op" Semantics
 
+
+
   {
+
     "skill": "<name>",
+
     "status": "UNMIGRATED | PARTIALLY_MIGRATED | MIGRATED",
+
     "action": "none | plan | patch",
+
     "reason": "<explanation>",
+
     "missing_fields": ["<field>", ...],
+
     "validation_warnings": ["<warning>", ...]
+
   }
+
+
 
   Action mapping:
 
+
+
   ┌─────────────────────────────────┬────────┬──────────────────────────────────────────────────────────────────────────────────┐
+
   │   classify_migration_status     │ action │                                      reason                                      │
+
   │             result              │        │                                                                                  │
+
   ├─────────────────────────────────┼────────┼──────────────────────────────────────────────────────────────────────────────────┤
+
   │ MIGRATED                        │ "none" │ "Skill already has contract_type and required contract fields; no migration      │
+
   │                                 │        │ needed."                                                                         │
+
   ├─────────────────────────────────┼────────┼──────────────────────────────────────────────────────────────────────────────────┤
+
   │ PARTIALLY_MIGRATED              │ "plan" │ "Skill has contract_type but is missing {N} contract fields. Propose a patch     │
+
   │                                 │        │ plan."                                                                           │
+
   ├─────────────────────────────────┼────────┼──────────────────────────────────────────────────────────────────────────────────┤
+
   │ UNMIGRATED                      │ "plan" │ "Skill is legacy with no contract metadata. Propose full migration plan."        │
+
   └─────────────────────────────────┴────────┴──────────────────────────────────────────────────────────────────────────────────┘
 
+
+
   The migration helper (when implemented) calls classify_migration_status first. If it returns MIGRATED, it returns {"status":
+
   "MIGRATED", "action": "none", "reason": "..."} immediately — no file reads, no audit, no plan generated. This makes the no-op path
+
    cheap.
 
+
+
   ---
+
   Test Plan (file + test names, high-level assertions)
+
+
 
   File: tests/test_skill_metadata_advisory.py — extend existing fixtures:
 
+
+
   Test name: test_migration_status_unmigrated_legacy_advisory
+
   Frontmatter: enforcement: advisory, no contract_type, no contract fields
+
   Expected result: UNMIGRATED
+
   Assertion: classify_migration_status(...) == "UNMIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_migration_status_unmigrated_prose_only
+
   Frontmatter: no contract_type, no contract fields, no enforcement
+
   Expected result: UNMIGRATED
+
   Assertion: classify_migration_status(...) == "UNMIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_migration_status_unmigrated_legacy_workflow
+
   Frontmatter: contract_type: workflow (legacy), no required_artifacts, no allowed_tools_now
+
   Expected result: UNMIGRATED
+
   Assertion: classify_migration_status(...) == "UNMIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_migration_status_partially_migrated_missing_artifacts
+
   Frontmatter: contract_type: workflow-execution, no required_artifacts
+
   Expected result: PARTIALLY_MIGRATED
+
   Assertion: classify_migration_status(...) == "PARTIALLY_MIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_migration_status_partially_migrated_missing_tools
+
   Frontmatter: contract_type: structured-output, no allowed_tools_now
+
   Expected result: PARTIALLY_MIGRATED
+
   Assertion: classify_migration_status(...) == "PARTIALLY_MIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_migration_status_partially_migrated_missing_response_req
+
   Frontmatter: contract_type: structured-output, no response_requirements
+
   Expected result: PARTIALLY_MIGRATED
+
   Assertion: classify_migration_status(...) == "PARTIALLY_MIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_migration_status_migrated_workflow_execution
+
   Frontmatter: contract_type: workflow-execution, required_artifacts, allowed_tools_now
+
   Expected result: MIGRATED
+
   Assertion: classify_migration_status(...) == "MIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_migration_status_migrated_structured_output
+
   Frontmatter: contract_type: structured-output, response_requirements, allowed_tools_now
+
   Expected result: MIGRATED
+
   Assertion: classify_migration_status(...) == "MIGRATED"
+
   ────────────────────────────────────────
+
   Test name: test_advisory_emits_notification_for_unmigrated
+
   Frontmatter: legacy skill
+
   Expected result: notification emitted
+
   Assertion: add_notification called with migration message
+
   ────────────────────────────────────────
+
   Test name: test_advisory_emits_soft_notification_for_partially_migrated
+
   Frontmatter: partially migrated
+
   Expected result: info notification
+
   Assertion: add_notification called with info-type message
+
   ────────────────────────────────────────
+
   Test name: test_advisory_silent_for_migrated
+
   Frontmatter: fully migrated
+
   Expected result: no notification
+
   Assertion: add_notification NOT called for migration status
+
+
 
   File: tests/test_migration_status.py (new file for the pure function):
 
+
+
   ┌──────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────┐
+
   │                            Test name                             │                          Purpose                          │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_unmigrated_when_no_contract_type_and_advisory_enforcement   │ Rule 1 base case                                          │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_unmigrated_when_legacy_workflow_type_and_no_contract_fields │ Rule 1 legacy contract_type variant                       │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_unmigrated_when_missing_all_contract_fields                 │ Rule 1 — none of the three contract-era fields present    │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_partially_migrated_workflow_execution_missing_artifacts     │ Rule 2 — has contract_type, missing required_artifacts    │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_partially_migrated_structured_output_missing_response_req   │ Rule 2 — has contract_type, missing response_requirements │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_partially_migrated_missing_allowed_tools_now                │ Rule 2 — has contract_type but no allowed_tools_now       │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_migrated_workflow_execution_complete                        │ Rule 3 — all contract fields present                      │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
-  │ test_migrated_structured_output_complete                         │ Rule 3 — response_requirements present                    │
+
+  │ [REDACTED]                         │ Rule 3 — response_requirements present                    │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_migrated_hybrid_complete                                    │ Rule 3 — hybrid with both artifact and response fields    │
+
   ├──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+
   │ test_migration_status_result_is_one_of_three_values              │ Sanity — never returns an unknown value                   │
+
   └──────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────┘
+
+
 
   No changes to test_frontmatter_validation.py — that file tests _validate_skill_frontmatter which is unchanged.
 
+
+
   ---
+
   Ready for concrete patches on this design?"
 
 ## Assistant
@@ -10764,129 +13320,253 @@ My confidence is **high** that this is the right direction, and **medium-high** 
 ## Human
 
 "
+
 ● ---
+
   Files read
 
+
+
   - src/skill_guard/_skill_frontmatter_loader.py — _load_skill_frontmatter, _validate_skill_frontmatter, _normalize_string_list,
+
   _VALID_CONTRACT_TYPES
+
   - src/skill_guard/skill_metadata_advisory.py — skill_metadata_advisory(), add_notification, clear_by_type, _get_session_id
+
   - src/skill_guard/__init__.py — existing exports
+
   - tests/test_skill_metadata_advisory.py — existing fixtures and monkeypatch patterns
+
   - tests/test_frontmatter_validation.py — existing validation test structure
+
+
 
   Existing helpers reused
 
+
+
   - _load_skill_frontmatter(skill_name) → frontmatter dict for classifier input
+
   - _validate_skill_frontmatter(skill_name) → list of warnings for classifier
+
   - add_notification(notification_type, message, source, priority, session_id) → notification emission
+
   - clear_by_type(notification_type, source, session_id) → notification clearing for MIGRATED
+
   - is_contract_era(frontmatter) → pure check (added) whether contract_type is contract-era
+
+
 
   Patch summary
 
+
+
   ┌──────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────┐
+
   │                     File                     │                                    Change                                     │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ src/skill_guard/_skill_frontmatter_loader.py │ Added _CONTRACT_ERA_TYPES set, Literal import, _has_contract_field(),         │
+
   │                                              │ is_contract_era(), classify_migration_status(), build_migration_result()      │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ src/skill_guard/skill_metadata_advisory.py   │ Import classify_migration_status from _skill_frontmatter_loader; add          │
+
   │                                              │ migration-status notification block before _enhancement_reasons check         │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ tests/test_migration_status.py               │ New file — 38 test cases covering all three statuses, all gap combinations,   │
+
   │                                              │ build_migration_result output shape                                           │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ tests/test_skill_metadata_advisory.py        │ Added 6 migration-advisory tests (UNMIGRATED warning, PARTIALLY_MIGRATED      │
+
   │                                              │ info, MIGRATED silent, edge cases)                                            │
+
   └──────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────┘
+
+
 
   Validation run
 
+
+
   38 passed in 2.81s (migration_status + metadata_advisory)
+
   522 passed overall (6 pre-existing failures unrelated to this patch)
 
+
+
   Pre-existing failures: test_create_run_calls_save_run (async mock mismatch), test_skill_execution_state_god_object.py × 5
+
   (refactor-progress tracking that skill_execution_state.py is still a "god object" — not touched by this patch).
+
+
 
   Remaining risks
 
+
+
   ┌────────────────────────────────────────────────┬────────────┬───────────────────────────────────────────────────────────────┐
+
   │                      Risk                      │ Likelihood │                          Mitigation                           │
+
   ├────────────────────────────────────────────────┼────────────┼───────────────────────────────────────────────────────────────┤
+
   │ _load_skill_frontmatter returns None for       │            │ _has_contract_field handles None frontmatter via dict.get()   │
+
   │ unparseable skills —                           │ Low        │ returning None; edge case: is_contract_era(None) → False →    │
+
   │ classify_migration_status(None) will           │            │ UNMIGRATED. Correct by accident — could guard explicitly.     │
+
   │ AttributeError                                 │            │                                                               │
+
   ├────────────────────────────────────────────────┼────────────┼───────────────────────────────────────────────────────────────┤
+
   │ Migration notifications may fire for knowledge │            │ _load_skill_frontmatter parses knowledge skill frontmatter    │
+
   │  skills (category: knowledge) — these are      │ Low        │ and gets full fields; notifications will fire as designed.    │
+
   │ typically UNMIGRATED by design                 │            │ This is intentional — "consider migrating" applies equally to │
+
   │                                                │            │  knowledge skills if they use contract metadata.              │
+
   ├────────────────────────────────────────────────┼────────────┼───────────────────────────────────────────────────────────────┤
+
   │ _skill_frontmatter_loader docstring in module  │            │ Module header currently lists 4 exports; should add           │
+
   │ header needs updating to reflect new exports   │ Low        │ classify_migration_status, build_migration_result,            │
+
   │                                                │            │ is_contract_era — cosmetic.                                   │
+
   └────────────────────────────────────────────────┴────────────┴───────────────────────────────────────────────────────────────┘
+
   ⎿  Stop says:
 
+
+
      💡 **ADVISORY**: Cosmetic dismissal detected. Fix the root cause or provide evidence it's unfixable.
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: ---
 
+
+
      ## Files read
+
      - `src/skill_guard/_skill_frontmatter_loader.py` — `_load_skill_frontmatter`, `_validate_skill_frontmatter`,
+
      `_normalize_string_list`, `_VALID_CONTRACT_TYPES`
+
      - `src/skill_guard/skill_metadata_advisory.py` — `skill_metadata_advisory()`, `add_notification`, `clear_by_type`,
+
      `_get_session_id`
+
      - `src/skill_guard/__init__.py` — existing exports
+
      - `tests/test_skill_metadata_advisory.py` — existing fixtures and monkeypatch patterns
+
      - `tests/test_frontmatter_validation.py` — existing validation test structure
 
+
+
      ## Existing helpers reused
+
      - `_load_skill_frontmatter(skill_name)` → frontmatter dict for classifier input
+
      - `_validate_skill_frontmatter(skill_name)` → list of warnings for classifier
+
      - `add_notification(notification_type, message, source, priority, session_id)` → notification emission
+
      - `clear_by_type(notification_type, source, session_id)` → notification clearing for MIGRATED
+
      - `is_contract_era(frontmatter)` → pure check (added) whether contract_type is contract-era
+
+
 
      ## Patch summary
 
+
+
      | File | Change |
+
      |------|--------|
+
      | `src/skill_guard/_skill_frontmatter_loader.py` | Added `_CONTRACT_ERA_TYPES` set, `Literal` import, `_has_contract_field()`,
+
      `is_contract_era()`, `classify_migration_status()`, `build_migration_result()` |
+
      | `src/skill_guard/skill_metadata_advisory.py` | Import `classify_migration_status` from `_skill_frontmatter_loader`; add
+
      migration-status notification block before `_enhancement_reasons` check |
+
      | `tests/test_migration_status.py` | **New file** — 38 test cases covering all three statuses, all gap combinations,
+
      `build_migration_result` output shape |
+
      | `tests/test_skill_metadata_advisory.py` | Added 6 migration-advisory tests (UNMIGRATED warning, PARTIALLY_MIGRATED info,
+
      MIGRATED silent, edge cases) |
+
+
 
      ## Validation run
 
-     ```
-     38 passed in 2.81s (migration_status + metadata_advisory)
-     522 passed overall (6 pre-existing failures unrelated to this patch)
+
+
      ```
 
+     38 passed in 2.81s (migration_status + metadata_advisory)
+
+     522 passed overall (6 pre-existing failures unrelated to this patch)
+
+     ```
+
+
+
      Pre-existing failures: `test_create_run_calls_save_run` (async mock mismatch), `test_skill_execution_state_god_object.py` × 5
+
      (refactor-progress tracking that skill_execution_state.py is still a "god object" — not touched by this patch).
+
+
 
      ## Remaining risks
 
+
+
      | Risk | Likelihood | Mitigation |
+
      |------|-----------|------------|
+
      | `_load_skill_frontmatter` returns `None` for unparseable skills — `classify_migration_status(None)` will AttributeError | Low
+
       | `_has_contract_field` handles `None` frontmatter via `dict.get()` returning `None`; edge case: `is_contract_era(None)` →
+
      False → `UNMIGRATED`. Correct by accident — could guard explicitly. |
+
      | Migration notifications may fire for knowledge skills (`category: knowledge`) — these are typically UNMIGRATED by design |
+
      Low | `_load_skill_frontmatter` parses knowledge skill frontmatter and gets full fields; notifications will fire as designed.
+
      This is intentional — "consider migrating" applies equally to knowledge skills if they use contract metadata. |
+
      | `_skill_frontmatter_loader` docstring in module header needs updating to reflect new exports | Low | Module header currently
+
      lists 4 exports; should add `classify_migration_status`, `build_migration_result`, `is_contract_era` — cosmetic. |
+
 "
 
 ## Assistant
@@ -10928,37 +13608,69 @@ My confidence is **high** that this is the right correction. The patch is close,
 ## Human
 
 "
+
   Net-new behavior from this patch:
 
+
+
   ┌─────────────────────────────┬──────────────────────────────┬─────────────────────────────────────────────────────────────────┐
+
   │           Feature           │             File             │                             Details                             │
+
   ├─────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────┤
+
   │                             │                              │ Returns UNMIGRATED/PARTIALLY_MIGRATED/MIGRATED based on         │
+
   │ classify_migration_status() │ _skill_frontmatter_loader.py │ contract-era contract_type and completion fields; explicit None │
+
   │                             │                              │  guard                                                          │
+
   ├─────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────┤
+
   │ is_contract_era()           │ _skill_frontmatter_loader.py │ Returns True for workflow-execution, structured-output, hybrid; │
+
   │                             │                              │  False for None                                                 │
+
   ├─────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────┤
+
   │ _has_contract_field()       │ _skill_frontmatter_loader.py │ Returns False for None inputs                                   │
+
   ├─────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────┤
+
   │ build_migration_result()    │ _skill_frontmatter_loader.py │ Returns action: "none" for MIGRATED, action: "plan" otherwise;  │
+
   │                             │                              │ robust to None                                                  │
+
   ├─────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────┤
+
   │ Migration notifications     │ skill_metadata_advisory.py   │ warning for UNMIGRATED, info for PARTIALLY_MIGRATED; silent for │
+
   │                             │                              │  MIGRATED and knowledge skills                                  │
+
   ├─────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────┤
+
   │ Enhancement source tagging  │ skill_metadata_advisory.py   │ Uses skill_metadata_advisory:enhancement:{name} to distinguish  │
+
   │                             │                              │ from migration source                                           │
+
   └─────────────────────────────┴──────────────────────────────┴─────────────────────────────────────────────────────────────────┘
 
+
+
   Edge cases covered:
+
   - None frontmatter → UNMIGRATED
+
   - Empty dict → UNMIGRATED
+
   - Legacy contract_type: workflow (not contract-era) → UNMIGRATED
+
   - contract_type: workflow-execution without required_artifacts → PARTIALLY_MIGRATED
+
   - contract_type: workflow-execution with required_artifacts → MIGRATED
+
   - Knowledge skills (category: knowledge/meta or in KNOWLEDGE_SKILLS) → silent (no migration notification)
+
   - Skill not found (metadata is None) → silent"
 
 ## Assistant
@@ -11189,50 +13901,95 @@ My confidence is **high** that this will make the advisory flow much more usable
 ## Human
 
 "
+
 ● All 63 tests pass. Here's a summary of everything delivered:
 
+
+
   ---
+
   Files created:
 
+
+
   ┌─────────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────┐
+
   │                            File                             │                            Purpose                             │
+
   ├─────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+
   │ skills/migrate_skill_contract/SKILL.md                      │ Skill definition — triggers, contract type, workflow steps,    │
+
   │                                                             │ invocation examples                                            │
+
   ├─────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+
   │ skills/migrate_skill_contract/__init__.py                   │ Package re-export                                              │
+
   ├─────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+
   │ skills/migrate_skill_contract/src/migrate_skill_contract.py │ Orchestrator — _do_migration, _apply_patch, _verify_patch,     │
+
   │                                                             │ _generate_patch, _parse_prompt, run_migration, CLI entrypoint  │
+
   ├─────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+
   │ skills/__init__.py                                          │ Skills package marker                                          │
+
   ├─────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+
   │ tests/test_migrate_skill_contract.py                        │ 14 test cases for skill module                                 │
+
   ├─────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+
   │ pyproject.toml                                              │ Updated hatch.build to include skills/                         │
+
   └─────────────────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────┘
+
+
 
   Files modified:
 
+
+
   ┌────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐
+
   │                    File                    │                                     Change                                      │
+
   ├────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+
   │ src/skill_guard/skill_metadata_advisory.py │ UNMIGRATED and PARTIALLY_MIGRATED notifications now include Hint: run           │
+
   │                                            │ '/migrate-skill-contract {name}' ...                                            │
+
   ├────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+
   │ tests/test_skill_metadata_advisory.py      │ Updated two assertions to verify hint text is present in notifications          │
+
   ├────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+
   │ tests/conftest.py                          │ Added skill_guard_root to sys.path so from skills.* imports resolve             │
+
   └────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘
 
+
+
   Skill invocation examples:
+
   /migrate-skill-contract decision-tree           # audit (default)
+
   /migrate-skill-contract gto --mode patch        # propose patch only
+
   /migrate-skill-contract trace --mode patch --write true  # apply patch
 
+
+
   Advisory notification hints:
+
   - UNMIGRATED: "Hint: run '/migrate-skill-contract {name}' to audit or generate a migration plan."
+
   - PARTIALLY_MIGRATED: "Hint: run '/migrate-skill-contract {name}' to inspect missing fields and generate a patch plan."
+
   - MIGRATED / knowledge skills: silent"
 
 ## Assistant
@@ -11465,96 +14222,187 @@ If you’d like, I can also trim this into a shorter “single-shot” prompt op
 ## Human
 
 "
+
 ● Yes — all of those requirements are covered by what was implemented. Here's the direct trace:
 
+
+
   ┌───────────────────────────────────┬────────┬────────────────────────────────────────────────────────────────────────────────┐
+
   │            Requirement            │ Status │                                      File                                      │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Skill name                        │ ✓      │ skills/migrate_skill_contract/SKILL.md                                         │
+
   │ /migrate-skill-contract           │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ skill_name required, mode/write   │ ✓      │ _parse_prompt(), _do_migration()                                               │
+
   │ optional                          │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Audit: load → classify →          │        │                                                                                │
+
   │ build_migration_result →          │ ✓      │ _do_migration() + run_migration()                                              │
+
   │ structured result                 │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ MIGRATED → no-op, action: "none"  │ ✓      │ _do_migration() early return                                                   │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Patch write=false: propose only,  │ ✓      │ _generate_patch() returns diff, _do_migration() returns plan                   │
+
   │ no file writes                    │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Patch write=true: atomic write,   │ ✓      │ _apply_patch() + _verify_patch()                                               │
+
   │ re-verify                         │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Error on missing skill            │ ✓      │ _do_migration() returns structured error                                       │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Hint text in UNMIGRATED           │ ✓      │ skill_metadata_advisory.py lines 230-237                                       │
+
   │ notification                      │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Hint text in PARTIALLY_MIGRATED   │ ✓      │ skill_metadata_advisory.py lines 240-248                                       │
+
   │ notification                      │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ MIGRATED / knowledge skills       │ ✓      │ Already existing behavior preserved                                            │
+
   │ silent                            │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ SKILL.md with triggers,           │ ✓      │ Full frontmatter + workflow steps                                              │
+
   │ contract_type, workflow steps     │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Orchestrator with all named       │ ✓      │ _parse_prompt, _generate_patch, _apply_patch, _verify_patch, _do_migration,    │
+
   │ helpers                           │        │ run_migration, main()                                                          │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ CLI via python -m                 │ ✓      │ main() with argparse                                                           │
+
   │ skills.migrate_skill_contract ... │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Tests: MIGRATED → action:none, no │ ✓      │ test_migrated_returns_no_changes                                               │
+
   │  patch                            │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Tests: UNMIGRATED → patch plan,   │ ✓      │ test_unmigrated_generates_contract_type_and_required_artifacts                 │
+
   │ no writes                         │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Tests: PARTIALLY_MIGRATED →       │ ✓      │ test_partially_migrated_generates_missing_field                                │
+
   │ minimal patch                     │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Tests: advisory notifications     │ ✓      │ Updated test_migration_advisory_emits_notification_for_unmigrated +            │
+
   │ include hint text                 │        │ test_migration_advisory_emits_info_notification_for_partially_migrated         │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Skills package in pyproject.toml  │ ✓      │ packages = ["src/skill_guard", "skills"]                                       │
+
   │ build                             │        │                                                                                │
+
   ├───────────────────────────────────┼────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ conftest sys.path for skills      │ ✓      │ Added skill_guard_root to sys.path                                             │
+
   │ imports                           │        │                                                                                │
+
   └───────────────────────────────────┴────────┴────────────────────────────────────────────────────────────────────────────────┘
 
+
+
   63 tests pass, covering the full migration skill plus the advisory hint integration.
+
   ⎿  Stop says: <persisted-output>
+
      Output too large (13.3KB). Full output saved to: C:\\Users\\brsth\\.claude\\projects\\P--\\f3d16033-de5b-4fa0-a388-1601f9593729\\tool-
+
      results\\hook-f791e11b-d766-4b75-868f-e637d796718b-9-systemMessage.txt
 
+
+
      Preview (first 2KB):
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Self-reflection: Issues found: {'logical_gaps': [], 'overconfidence': [], 'contradictions': ['Contradiction: \\'md` |\\n|
+
      `skill_name` required, `mode`/`write` optional | ✓ | `_parse_prompt()`, `_do_migration()` |\\n| Audit: load → classify →
+
      build_migration_result → structured result | ✓ | `_do_migration()` + `run_migration()` |\\n| MIGRATED → no-op, `action: "none"`
+
      | ✓ | `_do_migration()` early return |\\n| Patch `write=false`: propose only, no file writes | ✓ | `_generate_patch()` returns
+
      diff, `_do_migration()` returns plan |\\n| Patch `write=true`: atomic write, re-verify | ✓ | `_apply_patch()` +
+
      `_verify_patch()` |\\n| Error on missing skill | ✓ | `_do_migration()` returns structured error |\\n| Hint text in UNMIGRATED
+
      notification | ✓ | `skill_metadata_advisory\\' vs \\'md` |\\n| `skill_name` required, `mode`/`write` optional | ✓ |
+
      `_parse_prompt()`, `_do_migration()` |\\n| Audit: load → classify → build_migration_result → structured result | ✓ |
+
      `_do_migration()` + `run_migration()` |\\n| MIGRATED → no-op, `action: "none"` | ✓ | `_do_migration()` early return |\\n| Patch
+
      `write=false`: propose only, no file writes | ✓ | `_generate_patch()` returns diff, `_do_migration()` returns plan |\\n| Patch
+
      `write=true`: atomic write, re-verify | ✓ | `_apply_patch()` + `_verify_patch()` |\\n| Error on missing skill | ✓ |
+
      `_do_migration()` returns structured error |\\n| Hint text in UNMIGRATED notification | ✓ | `skill_metadata_advisory\\'',
+
      'Contradiction: \\'md` |\\n| `skill_name` required, `mode`/`write` optional | ✓ | `_parse_prompt()`, `_do_migration()` |\\n|
+
      Audit: load → classify → build_migration_result → structured result | ✓ | `_do_migration()` + `run_migration()` |\\n| MIGRATED →
+
       no-op, `action: "none"` | ✓ | `_do_migration()` early return |\\n| Patch `write=false`: propose only, no file writes | ✓ |
+
      `_generate_patch()` returns diff, `_do_migration()` returns plan |\\n| Patch `write=true`: atomic write, re-verify | ✓ |
+
      `_apply_patch()` + `_veri
+
      ...
+
      </persisted-output>"
 
 ## Assistant
@@ -11630,330 +14478,653 @@ Is there any part of the new flow you’re still uncertain about (classification
 ## Human
 
 "
+
 ● Session Report: /migrate-skill-contract skill implementation + _has_contract_field fix
 
+
+
   ---
+
   What was done
+
+
 
   1. Fixed Windows replace vs rename conflict in _apply_patch
 
+
+
   File: skills/migrate_skill_contract/src/migrate_skill_contract.py (line 141)
 
+
+
   # Before
+
   tmp.rename(skill_file)  # raises FileExistsError when .md.tmp already exists
 
+
+
   # After
+
   tmp.replace(skill_file)  # atomic, overwrites destination on both platforms
 
+
+
   On Windows, Path.rename() raises FileExistsError if the destination already exists. Path.replace() does an atomic overwrite —
+
   correct for the atomic write pattern.
 
+
+
   ---
+
   2. Fixed _has_contract_field empty-list semantics
+
+
 
   File: src/skill_guard/_skill_frontmatter_loader.py (lines 307–317)
 
+
+
   Problem: Previously bool([]) → False in _has_contract_field, so a frontmatter with required_artifacts: [] (explicitly declaring
+
   zero requirements) was treated as absent, triggering PARTIALLY_MIGRATED even after migration was applied.
+
+
 
   Fix: Empty lists are now treated as explicitly set (migrated), not absent:
 
+
+
   if val is None:
+
       return False
+
   if isinstance(val, list):
+
       return True  # empty list is an explicit declaration, not absent
 
+
+
   Consequence: Two test assertions in test_migration_status.py were updated to expect MIGRATED instead of PARTIALLY_MIGRATED for
+
   empty-list cases.
 
+
+
   ---
+
   3. Fixed default SKILL_DIR to the actual marketplace path
+
+
 
   File: skills/migrate_skill_contract/src/migrate_skill_contract.py (line 41)
 
+
+
   # Before
+
   SKILL_DIR = Path(os.environ.get("SKILL_DIR", "P:/.claude/skills"))  # wrong
 
+
+
   # After
+
   SKILL_DIR = Path(os.environ.get("SKILL_DIR", r"P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills"))
 
+
+
   On Windows, P:\\.claude\\ fails to resolve (the trailing backslash is treated as an escape). The real skills live under
+
   P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/. Override still works via --skills-dir or SKILL_DIR env var.
 
+
+
   ---
+
   4. Updated SKILL.md with correct path and invocation syntax
 
+
+
   File: skills/migrate_skill_contract/SKILL.md
+
   - Updated default path in prose (line 52)
+
   - Updated CLI example to use direct script invocation instead of -m (which requires __main__.py we never created)
 
+
+
   ---
+
   5. Updated two failing test assertions in test_migration_status.py
+
+
 
   Files: tests/test_migration_status.py (lines 54, 62)
 
+
+
   # Before (expected PARTIALLY_MIGRATED for empty-list cases)
+
   assert classify_migration_status(fm) == "PARTIALLY_MIGRATED"
 
+
+
   # After (expected MIGRATED — empty list = explicit declaration, not absent)
+
   assert classify_migration_status(fm) == "MIGRATED"
 
+
+
   ---
+
   Test results
 
+
+
   - 63 tests pass across test_migrate_skill_contract.py, test_skill_metadata_advisory.py, and test_migration_status.py
+
   - 6 pre-existing failures in test_skill_execution_state_god_object.py and test_create_run_blocking_io.py are unrelated
+
   characterization tests — documented but not touched
 
+
+
   ---
+
   End-to-end validation results
 
+
+
   ┌───────────────┬────────────┬───────────────────────────┬──────────────────────────────────────┐
+
   │     Skill     │   Before   │        After patch        │            Classification            │
+
   ├───────────────┼────────────┼───────────────────────────┼──────────────────────────────────────┤
+
   │ decision-tree │ UNMIGRATED │ MIGRATED (3 fields added) │ "none" — no further migration needed │
+
   ├───────────────┼────────────┼───────────────────────────┼──────────────────────────────────────┤
+
   │ gto           │ UNMIGRATED │ —                         │ "plan" — full migration required     │
+
   └───────────────┴────────────┴───────────────────────────┴──────────────────────────────────────┘
+
+
 
   decision-tree is now fully migrated with contract_type: workflow-execution, required_artifacts: [], response_requirements: {}."
 
 "
+
 ❯ please do a gap-to-opportunity assessment.
 
+
+
 ● Bash(cd "P:/packages/skill-guard" && python -m pytest tests/test_skill_command_hook_integration.py -q --tb=short 2>&1 | tail -15)
+
   ⎿  src\\skill_guard\\skill_auto_discovery.py                                166     50     80     21    64%   38-40, 46, 66, 68
+
      , 70, 125, 131, 139->129, 168->185, 174-182, 216-217, 225-226, 256-291, 329, 335, 366, 371, 375, 382, 386, 392, 396, 403,
+
      436-447
+
      … +18 lines (ctrl+o to expand)
+
+
 
   Searched for 1 pattern (ctrl+o to expand)
 
+
+
 ● Bash(python -c "
+
       import yaml, sys…)
+
   ⎿  MIGRATED (2):
+
        decision-tree: workflow-execution
+
        gto_v2: workflow-execution
+
      … +53 lines (ctrl+o to expand)
 
+
+
 ● ---
+
   Gap-to-Opportunity Assessment: migrate-skill-contract
+
+
 
   State of the ecosystem
 
+
+
   ┌────────────────────┬───────┬───────────────────────┐
+
   │       Status       │ Count │        Skills         │
+
   ├────────────────────┼───────┼───────────────────────┤
+
   │ MIGRATED           │ 2     │ decision-tree, gto_v2 │
+
   ├────────────────────┼───────┼───────────────────────┤
+
   │ PARTIALLY_MIGRATED │ 0     │ —                     │
+
   ├────────────────────┼───────┼───────────────────────┤
+
   │ UNMIGRATED         │ 51    │ everything else       │
+
   └────────────────────┴───────┴───────────────────────┘
+
+
 
   Migration rate: 3.8%. The skill exists; it's not being used at scale.
 
-  ---
-  Gaps (where we're falling short) and their opportunities (where the gap becomes leverage)
+
 
   ---
+
+  Gaps (where we're falling short) and their opportunities (where the gap becomes leverage)
+
+
+
+  ---
+
   GAP 1 — Batch migration is manual and slow.
+
+
 
   The CLI takes one skill at a time. Running /migrate-skill-contract on 51 skills individually is not viable.
 
+
+
   Opportunity: Add a --batch / --all flag to audit all skills in the skills directory and output a prioritized migration report:
 
+
+
   --batch   # audit all skills, print summary table (name, status, missing_fields, contract_type)
+
   --all     # audit + apply minimal patch to all UNMIGRATED skills with no required_artifacts/response_requirements
 
+
+
   The --all is the leverage — it makes the tool self-propagating. The --batch output serves as the audit trail so the operator can
+
   review before running --all.
 
+
+
   Falsification test: If the batch report shows only 1–2 skills per run, it's too slow. If it handles all 51 in one invocation, it's
+
    sufficient.
 
+
+
   ---
+
   GAP 2 — /migrate-skill-contract is not registered in the hooks that would invoke it.
 
+
+
   The skill_metadata_advisory hook fires notifications with hints like "run /migrate-skill-contract <name>" — but no automated
+
   system acts on those hints. The migration remains user-initiated only.
 
+
+
   Opportunity: A cron or session-start hook that periodically scans cc-skills-meta/skills for UNMIGRATED skills and posts a digest
+
   notification. This converts the advisory from noise into a scheduled action.
 
+
+
   Falsification test: If the digest fires on session start and produces a list, the hook is live. If it never fires, the hook
+
   registration is absent.
 
+
+
   ---
+
   GAP 3 — The migrate-skill-contract skill itself is UNMIGRATED.
 
+
+
   The skill has contract_type: workflow-execution in its own SKILL.md — so classify_migration_status on itself returns MIGRATED. But
+
    skill_metadata_advisory was the primary trigger for manual invocation. If the advisory is noisy or absent for this skill, there's
+
    no automatic path to migration.
 
+
+
   ---
+
   GAP 5 — No PATH override exposed at the skill level.
 
+
+
   The CLI supports --skills-dir, but the /migrate-skill-contract skill definition in SKILL.md doesn't document this. Users who want
+
   to migrate skills in other plugin directories (e.g., cc-skills-sdlc) have no documented path.
 
+
+
   Opportunity: Add SKILL_DIR env var override to the skill's invocation docs, so migrating across plugin namespaces requires only a
+
   variable change rather than CLI argument passing.
 
+
+
   ---
+
   GAP 6 — PARTIALLY_MIGRATED class has zero real-world instances.
 
+
+
   This means the classification logic for partial migration has never been validated in production. retro (workflow, no completion
+
   fields) is UNMIGRATED not PARTIALLY_MIGRATED — that's correct. But if a skill gets contract_type: workflow-execution without
+
   required_artifacts, it should be PARTIALLY_MIGRATED. That path hasn't been exercised.
 
+
+
   Opportunity: Construct a test case: migrate gto (currently UNMIGRATED) with --mode patch --write true but only set contract_type:
+
   workflow-execution, leaving required_artifacts and response_requirements absent. Verify it lands in PARTIALLY_MIGRATED and
+
   produces a follow-up patch plan.
 
+
+
   ---
+
   Prioritization
 
+
+
   ┌────────────┬────────────────────────────────┬───────────────────────────────────┬───────────────────────────────────┐
+
   │  Priority  │              Gap               │              Effort               │              Impact               │
+
   ├────────────┼────────────────────────────────┼───────────────────────────────────┼───────────────────────────────────┤
+
   │ 1 — HIGH   │ Gap 1: Batch flag              │ Medium (add argparse, scan loop)  │ Unblocks 51 skills                │
+
   ├────────────┼────────────────────────────────┼───────────────────────────────────┼───────────────────────────────────┤
+
   │ 2 — HIGH   │ Gap 2: Automated scan hook     │ Medium (add UPS hook)             │ Converts advisory to action       │
+
   ├────────────┼────────────────────────────────┼───────────────────────────────────┼───────────────────────────────────┤
+
   │ 3 — MEDIUM │ Gap 3: Self-migration          │ Low (run existing CLI on self)    │ Validates tool credibility        │
+
   ├────────────┼────────────────────────────────┼───────────────────────────────────┼───────────────────────────────────┤
+
   │ 4 — LOW    │ Gap 4: Legacy-type visibility  │ Low (add output category)         │ Better audit reporting            │
+
   ├────────────┼────────────────────────────────┼───────────────────────────────────┼───────────────────────────────────┤
+
   │ 5 — LOW    │ Gap 5: PATH docs               │ Trivial (SKILL.md update)         │ Enables cross-namespace migration │
+
   ├────────────┼────────────────────────────────┼───────────────────────────────────┼───────────────────────────────────┤
+
   │ 6 — LOW    │ Gap 6: PARTIALLY_MIGRATED test │ Low (manual patch to create case) │ Confidence in classification      │
+
   └────────────┴────────────────────────────────┴───────────────────────────────────┴───────────────────────────────────┘
 
+
+
   Primary opportunity: The batch flag is the only change that unblocks all other gaps in a single session. Without it, each of the
+
   51 unmigrated skills requires a separate invocation — too much friction to reach escape velocity.
+
   ⎿  Stop says: **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: ---
+
+
 
      ## Gap-to-Opportunity Assessment: migrate-skill-contract
 
+
+
      ### State of the ecosystem
 
+
+
      | Status | Count | Skills |
+
      |--------|-------|--------|
+
      | MIGRATED | 2 | `decision-tree`, `gto_v2` |
+
      | PARTIALLY_MIGRATED | 0 | — |
+
      | UNMIGRATED | 51 | everything else |
+
+
 
      Migration rate: **3.8%**. The skill exists; it's not being used at scale.
 
+
+
      ---
+
+
 
      ### Gaps (where we're falling short) and their opportunities (where the gap becomes leverage)
 
+
+
      ---
+
+
 
      **GAP 1 — Batch migration is manual and slow.**
 
+
+
      The CLI takes one skill at a time. Running `/migrate-skill-contract` on 51 skills individually is not viable.
 
+
+
      **Opportunity:** Add a `--batch` / `--all` flag to audit all skills in the skills directory and output a prioritized migration
+
      report:
 
+
+
      ```python
+
      --batch   # audit all skills, print summary table (name, status, missing_fields, contract_type)
+
      --all     # audit + apply minimal patch to all UNMIGRATED skills with no required_artifacts/response_requirements
+
      ```
 
+
+
      The `--all` is the leverage — it makes the tool self-propagating. The `--batch` output serves as the audit trail so the
+
      operator can review before running `--all`.
 
+
+
      **Falsification test:** If the batch report shows only 1–2 skills per run, it's too slow. If it handles all 51 in one
+
      invocation, it's sufficient.
 
+
+
      ---
+
+
 
      **GAP 2 — `/migrate-skill-contract` is not registered in the hooks that would invoke it.**
 
+
+
      The `skill_metadata_advisory` hook fires notifications with hints like "run `/migrate-skill-contract <name>`" — but no
+
      automated system acts on those hints. The migration remains user-initiated only.
 
+
+
      **Opportunity:** A cron or session-start hook that periodically scans `cc-skills-meta/skills` for UNMIGRATED skills and posts a
+
       digest notification. This converts the advisory from noise into a scheduled action.
 
+
+
      **Falsification test:** If the digest fires on session start and produces a list, the hook is live. If it never fires, the hook
+
       registration is absent.
 
+
+
      ---
+
+
 
      **GAP 3 — The migrate-skill-contract skill itself is UNMIGRATED.**
 
+
+
      The skill has `contract_type: workflow-execution` in its own SKILL.md — so `classify_migration_status` on itself returns
+
      MIGRATED. But `skill_metadata_advisory` was the primary trigger for manual invocation. If the advisory is noisy or absent for
+
      this skill, there's no automatic path to migration.
 
+
+
      **Opportunity:** Self-migration: run `/migrate-skill-contract migrate_skill_contract` on itself as a proof-of-work. This
+
      validates the tool against itself.
 
+
+
      ---
+
+
 
      **GAP 4 — `retro` has `contract_type: workflow` (legacy classification, not contract-era).**
 
+
+
      It's UNMIGRATED despite having a `contract_type` value — because `workflow` (legacy) is distinct from `workflow-execution`
+
      (contract-era). This is a false-negative in the migration scanner: skills with legacy types look like they have metadata when
+
      they actually don't.
 
+
+
      **Opportunity:** Add `--legacy-types` flag to show skills with legacy `contract_type` values as a separate category from truly
+
      blank skills. Helps prioritize which skills need conceptual redesign vs. which just need field name updates.
 
+
+
      ---
+
+
 
      **GAP 5 — No PATH override exposed at the skill level.**
 
+
+
      The CLI supports `--skills-dir`, but the `/migrate-skill-contract` skill definition in SKILL.md doesn't document this. Users
+
      who want to migrate skills in other plugin directories (e.g., `cc-skills-sdlc`) have no documented path.
 
+
+
      **Opportunity:** Add `SKILL_DIR` env var override to the skill's invocation docs, so migrating across plugin namespaces
+
      requires only a variable change rather than CLI argument passing.
 
+
+
      ---
+
+
 
      **GAP 6 — PARTIALLY_MIGRATED class has zero real-world instances.**
 
+
+
      This means the classification logic for partial migration has never been validated in production. `retro` (workflow, no
+
      completion fields) is UNMIGRATED not PARTIALLY_MIGRATED — that's correct. But if a skill gets `contract_type:
+
      workflow-execution` without `required_artifacts`, it should be PARTIALLY_MIGRATED. That path hasn't been exercised.
 
+
+
      **Opportunity:** Construct a test case: migrate `gto` (currently UNMIGRATED) with `--mode patch --write true` but only set
+
      `contract_type: workflow-execution`, leaving `required_artifacts` and `response_requirements` absent. Verify it lands in
+
      PARTIALLY_MIGRATED and produces a follow-up patch plan.
+
+
 
      ---
 
+
+
      ### Prioritization
 
+
+
      | Priority | Gap | Effort | Impact |
+
      |----------|-----|--------|--------|
+
      | **1 — HIGH** | Gap 1: Batch flag | Medium (add argparse, scan loop) | Unblocks 51 skills |
+
      | **2 — HIGH** | Gap 2: Automated scan hook | Medium (add UPS hook) | Converts advisory to action |
+
      | **3 — MEDIUM** | Gap 3: Self-migration | Low (run existing CLI on self) | Validates tool credibility |
+
      | **4 — LOW** | Gap 4: Legacy-type visibility | Low (add output category) | Better audit reporting |
+
      | **5 — LOW** | Gap 5: PATH docs | Trivial (SKILL.md update) | Enables cross-namespace migration |
+
      | **6 — LOW** | Gap 6: PARTIALLY_MIGRATED test | Low (manual patch to create case) | Confidence in classification |
 
+
+
      **Primary opportunity:** The batch flag is the only change that unblocks all other gaps in a single session. Without it, each
+
      of the 51 unmigrated skills requires a separate invocation — too much friction to reach escape velocity.
+
+
 
 ✻ Brewed for 2m 14s
 
+
+
 ※ recap: Completed implementing `/migrate-skill-contract` skill with CLI, advisory integration, and tests. Fixed three bugs
+
   including the `_has_contract_field` empty-list regression and a Windows `replace` vs `rename` atomic write error. Ran end-to-end
+
   validation — `decision-tree` now MIGRATED, `gto` correctly UNMIGRATED, 535 tests pass.
 
+
+
   Next: add `--batch` / `--all` flag to scan and migrate all 51 unmigrated skills in one invocation — that's the path to escape
+
   velocity. (disable recaps in /config)"
 
 ## Assistant
@@ -12178,120 +15349,235 @@ If you want, I can also condense each into a “single paragraph” version tune
 ## Human
 
 "
+
 ● All 76 tests pass. Here's what was delivered:
 
+
+
   ---
+
   Batch audit (--batch)
+
+
 
   python .../migrate_skill_contract.py --batch
 
+
+
   Scans all skill directories under SKILL_DIR (default: cc-skills-meta/skills), loads frontmatter via the same YAML parsing used by
+
   single-skill mode, and prints a summary table:
 
+
+
   STATUS               NAME                           CONTRACT_TYPE        MISSING_FIELDS
+
   -------------------- ------------------------------ -------------------- --------------------
+
   UNMIGRATED           ask                            unset                required_artifacts, response_requirements
+
   UNMIGRATED           behave                         unset                required_artifacts, response_requirements
+
   MIGRATED             decision-tree                  workflow-execution   —
+
   ...
+
   Total: 53 skills
+
     MIGRATED: 2 (3%)
+
     PARTIALLY_MIGRATED: 0
+
     UNMIGRATED: 51
+
+
 
   Purely read-only — verified by MD5 hash comparison before/after in tests.
 
+
+
   ---
+
   Bulk apply (--all)
 
+
+
   python .../migrate_skill_contract.py --all --dry-run          # plan only
+
   python .../migrate_skill_contract.py --all --write true        # apply
+
   python .../migrate_skill_contract.py --all --status-filter UNMIGRATED PARTIALLY_MIGRATED --write true
 
+
+
   Key design decisions:
+
   - Default filter is UNMIGRATED only — never patches MIGRATED skills automatically
+
   - --dry-run forces plan-only even if --write true is passed
+
   - Per-skill errors are recorded in results, not raised — continues to next skill on failure
+
   - Re-verifies classification after patch and reports old_status → new_status
 
+
+
   ---
+
   Implementation summary
 
+
+
   ┌────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────┐
+
   │              File              │                                           Change                                            │
+
   ├────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │                                │ Added run_batch_audit(), run_bulk_apply(), _load_all_skill_frontmatter(),                   │
+
   │ src/migrate_skill_contract.py  │ _infer_contract_type(), _print_batch_summary(), _print_bulk_summary(), skills_dir param on  │
+
   │                                │ _load_target_frontmatter, _apply_patch, _verify_patch. Extended main() with --batch, --all, │
+
   │                                │  --status-filter, --dry-run args.                                                           │
+
   ├────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ __init__.py                    │ Exported new functions.                                                                     │
+
   ├────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ test_migrate_skill_contract.py │ 12 new tests across TestBatchAudit and TestBulkApply classes. Added _write_skill helper and │
+
   │                                │  sys.path setup.                                                                            │
+
   ├────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Tests                          │ 76 pass (27 migrate + 10 advisory + 39 migration_status). 0 regressions.                    │
+
   └────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────┘
+
   ⎿  Stop says: **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: All 76 tests pass. Here's what was delivered:
 
+
+
      ---
+
+
 
      ## Batch audit (`--batch`)
 
+
+
      ```bash
+
      python .../migrate_skill_contract.py --batch
+
      ```
+
+
 
      Scans all skill directories under `SKILL_DIR` (default: `cc-skills-meta/skills`), loads frontmatter via the same YAML parsing
+
      used by single-skill mode, and prints a summary table:
 
+
+
      ```
+
      STATUS               NAME                           CONTRACT_TYPE        MISSING_FIELDS
+
      -------------------- ------------------------------ -------------------- --------------------
+
      UNMIGRATED           ask                            unset                required_artifacts, response_requirements
+
      UNMIGRATED           behave                         unset                required_artifacts, response_requirements
+
      MIGRATED             decision-tree                  workflow-execution   —
+
      ...
+
      Total: 53 skills
+
        MIGRATED: 2 (3%)
+
        PARTIALLY_MIGRATED: 0
+
        UNMIGRATED: 51
+
      ```
+
+
 
      Purely read-only — verified by MD5 hash comparison before/after in tests.
 
+
+
      ---
+
+
 
      ## Bulk apply (`--all`)
 
+
+
      ```bash
+
      python .../migrate_skill_contract.py --all --dry-run          # plan only
+
      python .../migrate_skill_contract.py --all --write true        # apply
+
      python .../migrate_skill_contract.py --all --status-filter UNMIGRATED PARTIALLY_MIGRATED --write true
+
      ```
 
+
+
      Key design decisions:
+
      - Default filter is `UNMIGRATED` only — never patches MIGRATED skills automatically
+
      - `--dry-run` forces plan-only even if `--write true` is passed
+
      - Per-skill errors are recorded in results, not raised — continues to next skill on failure
+
      - Re-verifies classification after patch and reports `old_status → new_status`
+
+
 
      ---
 
+
+
      ## Implementation summary
 
+
+
      | File | Change |
+
      |------|--------|
+
      | `src/migrate_skill_contract.py` | Added `run_batch_audit()`, `run_bulk_apply()`, `_load_all_skill_frontmatter()`,
+
      `_infer_contract_type()`, `_print_batch_summary()`, `_print_bulk_summary()`, `skills_dir` param on `_load_target_frontmatter`,
+
      `_apply_patch`, `_verify_patch`. Extended `main()` with `--batch`, `--all`, `--status-filter`, `--dry-run` args. |
+
      | `__init__.py` | Exported new functions. |
+
      | `test_migrate_skill_contract.py` | 12 new tests across `TestBatchAudit` and `TestBulkApply` classes. Added `_write_skill`
+
      helper and sys.path setup. |
+
      | **Tests** | 76 pass (27 migrate + 10 advisory + 39 migration_status). 0 regressions. |"
 
 ## Assistant
@@ -12588,24 +15874,44 @@ If you want, I can also give you a **safer narrower version** of this prompt tha
 ## Human
 
 "
+
   Directory/import rename:
+
   - skills/migrate_skill_contract/ → skills/migrate_skill_ct/
+
   - skills/__init__.py and skills/migrate_skill_ct/__init__.py updated
+
   - src/skill_guard/skill_metadata_advisory.py — both advisory hint references updated
 
+
+
   Tests updated:
+
   - test_migrate_skill_contract.py — all 8 prompt strings + import path
+
   - test_skill_metadata_advisory.py — both assertion strings
+
   - conftest.py — comment
+
   - test_create_run_blocking_io.py — updated to match new create_or_replace_run API
 
+
+
   SKILL.md updated:
+
   - name: field, slash command examples, CLI script path, heading
 
+
+
   Part 2 (naming standard) implemented:
+
   - _generate_patch() now emits a naming recommendation block when a skill is contract-era but lacks the -ct suffix, with reference
+
   to the naming convention docs
+
   - Advisory hints now mention the -ct suffix standard explicitly
+
+
 
   The skill is available as /migrate-skill-ct and will recommend <name>-ct for contract-era skills going forward."
 

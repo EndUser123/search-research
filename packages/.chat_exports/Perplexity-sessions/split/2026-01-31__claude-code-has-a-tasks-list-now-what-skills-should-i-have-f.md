@@ -11,7 +11,9 @@ entry_count: 21
 
 Claude Code has a tasks list now.  What skills should I have for working with the tasks list?  I thought of:
 skill to go thru tasks list and:
+
 add dependencies and blockers
+
 
 But what else?
 
@@ -4221,3 +4223,4 @@ pwsh "P:\.claude\scripts\Generate-FrameworkDocsIndex.ps1"
 ```
 
 That will keep `docs/frameworks/INDEX.md` in sync with whatever per-framework `.md` files you create, and your CLAUDE.md snippet can just refer to those stable paths.
+```

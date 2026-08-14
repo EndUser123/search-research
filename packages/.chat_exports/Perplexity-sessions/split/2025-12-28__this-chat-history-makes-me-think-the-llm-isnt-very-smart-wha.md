@@ -2531,224 +2531,445 @@ Want me to create the actual files, or should we refine the patterns first?
 Different summary:
 You're absolutely right — simply pasting the three artifacts (JSON file + markdown addition + Python hook) into a prompt and saying "implement this" will almost certainly fail with most LLMs. They will:
 
+
+
 - Misunderstand the project structure and file paths  
+
 - Hallucinate how the hook gets wired into the execution flow  
+
 - Forget to create directories if they don't exist  
+
 - Skip testing or validation steps  
+
 - Break existing behavior because they don't fully understand the broader system constraints
+
+
 
 To make this actually implementable by an LLM (like Claude, Grok, GPT-4, etc.) in a real session, you need to give it **clear, sequential, atomic operational instructions** that are idiot-proof, self-contained, and include verification at every step.
 
+
+
 Here is the **final, LLM-safe operational instruction set** you can copy-paste directly into a new chat with any capable LLM to get reliable implementation:
 
+
+
 ---
+
+
 
 ### Instructions for the LLM: Implement Minimal Debug Workflow Improvements
 
+
+
 You are going to implement three small, high-impact improvements to the debug/RCA workflow. Follow these steps **exactly in order**. Do not skip any step. Do not add extra features.
 
+
+
 #### Step 1: Create the patterns file
+
 1. Create the directory if it doesn't exist:  
+
    `P:/.speckit/data/cks/`
 
+
+
 2. Create a new file:  
+
    `P:/.speckit/data/cks/manual_patterns.json`
+
+
 
 3. Paste **exactly** this content into it (no modifications, no extra comments):
 
+
+
 ```json
+
 [
+
   {
+
     "id": "pattern_tdd_deadlock_001",
+
     "domain": "tdd",
+
     "symptoms": ["Cannot write file", "TDD VIOLATION", "AWAITING_RED", "state file locked"],
+
     "root_cause": "TDD state file scoped to Task ID, shared across concurrent sessions",
+
     "solution": "1. Check .tdd-state.json for stale phase. 2. Use reset-tdd command. 3. If modifying guard itself, invoke deadlock override.",
+
     "confidence": 0.90,
+
     "evidence_tier": 1,
+
     "source": "tm_cwo12.txt:incident_1",
+
     "keywords": ["tdd", "deadlock", "state", "session", "blocking", "guard", "phase"],
+
     "how_to_verify": "cat .tdd-state.json | grep phase",
+
     "false_positive_risk": "Low - symptoms are specific"
+
   },
+
   {
+
     "id": "pattern_windows_tool_001",
+
     "domain": "environment",
+
     "symptoms": ["Exit code 127", "command not found", "sqlite3", "sed", "grep", "awk"],
+
     "root_cause": "Unix CLI tools not available on Windows; LLM assumes Unix environment",
+
     "solution": "Use Python equivalents: sqlite3→python -c 'import sqlite3', sed→python re module, grep→Select-String or python",
+
     "confidence": 0.95,
+
     "evidence_tier": 1,
+
     "source": "tm_cwo12.txt:incident_2 (repeated 3x)",
+
     "keywords": ["sqlite3", "windows", "cli", "127", "not found", "sed", "grep"],
+
     "how_to_verify": "where sqlite3 returns empty",
+
     "false_positive_risk": "Very low - exit code 127 is definitive"
+
   },
+
   {
+
     "id": "pattern_schema_assumption_001",
+
     "domain": "database",
+
     "symptoms": ["no such column", "OperationalError", "SELECT fails", "column not found"],
+
     "root_cause": "Query written from assumed schema without verification",
+
     "solution": "Run PRAGMA table_info(table_name) BEFORE writing query. Verify column names match exactly.",
+
     "confidence": 0.85,
+
     "evidence_tier": 2,
+
     "source": "tm_cwo12.txt:incident_3",
+
     "keywords": ["database", "schema", "column", "sqlite", "pragma", "operational"],
+
     "how_to_verify": "python -c \"import sqlite3; c=sqlite3.connect('db.sqlite'); print(c.execute('PRAGMA table_info(tablename)').fetchall())\"",
+
     "false_positive_risk": "Medium - could be typo vs. schema mismatch"
+
   },
+
   {
+
     "id": "pattern_import_missing_001",
+
     "domain": "imports",
+
     "symptoms": ["ModuleNotFoundError", "ImportError", "No module named", "cannot import"],
+
     "root_cause": "Code references module that doesn't exist or isn't installed",
+
     "solution": "1. Verify module exists: ls -la path/to/module.py. 2. Check __init__.py exports. 3. Verify pip install for external deps.",
+
     "confidence": 0.80,
+
     "evidence_tier": 2,
+
     "source": "tm_cwo12.txt:cwo12_integration_gap",
+
     "keywords": ["import", "module", "not found", "missing", "dependency"],
+
     "how_to_verify": "python -c \"import module_name\" to reproduce",
+
     "false_positive_risk": "Low - error is specific"
+
   },
+
   {
+
     "id": "pattern_tool_retry_001",
+
     "domain": "meta",
+
     "symptoms": ["same error repeated", "tried before", "already failed", "retry without change"],
+
     "root_cause": "LLM retrying failed operation without updating mental model (belief persistence)",
+
     "solution": "STOP. State what was tried. State why it failed. State what DIFFERENT approach will be tried. Do not repeat same command.",
+
     "confidence": 0.90,
+
     "evidence_tier": 1,
+
     "source": "tm_cwo12.txt:meta_analysis",
+
     "keywords": ["retry", "same", "again", "repeated", "still", "loop"],
+
     "how_to_verify": "Check if current command matches any in last 5 turns",
+
     "false_positive_risk": "Medium - legitimate retries after fix exist"
+
   }
+
 ]
+
 ```
+
+
 
 4. Confirm: Run `cat P:/.speckit/data/cks/manual_patterns.json` and verify it matches exactly.
 
+
+
 #### Step 2: Update the RCA workflow document
+
 1. Open the file: `rca-v2-revised.md`
+
+
 
 2. Insert the following block **at the very beginning of the phases** (right before the current Phase 1 starts). Rename the existing Phase 1 → Phase 2, Phase 2 → Phase 3, etc., if needed, or just insert as new Phase 0.
 
+
+
 ```markdown
+
 ### Phase 0: Environment Acknowledgment (MANDATORY)
+
+
 
 **Before ANY tool selection or hypothesis, you MUST output this block exactly:**
 
+
+
 ```
+
 ## Environment Constraints (Windows 11)
 
+
+
 **Unavailable Tools (Exit 127 if attempted):**
+
 | Tool     | Alternative                          |
+
 |----------|--------------------------------------|
+
 | sqlite3 CLI | `python -c "import sqlite3; ..."`   |
+
 | sed      | `python -c "import re; ..."` or PowerShell `-replace` |
+
 | grep     | `Select-String` or `python -c "..."` |
+
 | awk      | Python or PowerShell                |
 
+
+
 **Available Tools:**
+
 - ✅ python 3.x, git, powershell, bash (limited)
 
+
+
 **State File Check:**
+
 - TDD: [output of `cat .tdd-state.json 2>/dev/null || echo "none"`]
+
 - Age: [if exists, show hours since modified]
+
 ```
+
+
 
 **Enforcement Rule:** If this block is missing at the start of an RCA, STOP everything and output it first.
 
+
+
 **Purpose:** Forces acknowledgment of Windows environment before any planning or tool use.
+
 ```
+
+
 
 3. Save the file.
 
+
+
 #### Step 3: Create the enforcement hook
+
 1. Create the directory if needed: `P:/.claude/hooks/`
+
+
 
 2. Create new file: `P:/.claude/hooks/pre_tool_check.py`
 
+
+
 3. Paste **exactly** this content:
 
+
+
 ```python
+
 import json
+
 from pathlib import Path
 
+
+
 BLOCKED_TOOLS = ['sqlite3', 'sed', 'grep', 'awk']
+
 PATTERNS_FILE = Path("P:/.speckit/data/cks/manual_patterns.json")
 
+
+
 def check_blocked_tool(command: str) -> dict:
+
     """Block known-unavailable tools before execution."""
+
     if not command.strip():
+
         return {'blocked': False}
+
     cmd = command.strip().split()[0]
+
     
+
     if cmd in BLOCKED_TOOLS:
+
         alternatives = {
+
             'sqlite3': 'python -c "import sqlite3; c=sqlite3.connect(\'db\'); ..."',
+
             'sed': 'python -c "import re; ..." or PowerShell -replace',
+
             'grep': 'Select-String or python find',
+
             'awk': 'python or powershell',
+
         }
+
         return {
+
             'blocked': True,
+
             'reason': f'{cmd} not available on Windows',
+
             'alternative': alternatives.get(cmd, 'Use Python equivalent'),
+
         }
+
     return {'blocked': False}
 
+
+
 def check_pattern_match(error_msg: str) -> dict:
+
     """Quick pattern lookup before full RCA."""
+
     if not PATTERNS_FILE.exists():
+
         return {'matched': False}
+
     
+
     try:
+
         patterns = json.loads(PATTERNS_FILE.read_text(encoding='utf-8'))
+
     except:
+
         return {'matched': False}
+
     
+
     error_lower = error_msg.lower()
+
     
+
     for p in patterns:
+
         matches = sum(1 for kw in p.get('keywords', []) if kw in error_lower)
+
         score = matches / len(p.get('keywords', [1])) if p.get('keywords') else 0
+
         
+
         if score >= 0.6:
+
             return {
+
                 'matched': True,
+
                 'pattern_id': p['id'],
+
                 'solution': p['solution'],
+
                 'confidence': p['confidence'],
+
                 'how_to_verify': p.get('how_to_verify', ''),
+
             }
+
     
+
     return {'matched': False}
 
+
+
 def get_alternative(tool: str) -> str:
+
     alternatives = {
+
         'sqlite3': 'python -c "import sqlite3; ..."',
+
         'sed': 'python -c "import re; ..."',
+
         'grep': 'Select-String or python',
+
         'awk': 'python or powershell',
+
     }
+
     return alternatives.get(tool, 'Use Python equivalent')
+
 ```
+
+
 
 4. Confirm file was created correctly.
 
+
+
 #### Step 4: Final verification
+
 Tell me:
+
 - Did all three files get created/updated successfully?
+
 - Can you read back the first pattern from manual_patterns.json?
+
 - If you simulate running `sqlite3 db.sqlite` through the hook, does it block and suggest alternative?
 
+
+
 Once you confirm all steps succeeded, reply only with:  
+
 **IMPLEMENTATION COMPLETE**
+
+
 
 Do not proceed to any other improvements until this is done.
 
+
+
 ---
+
+
 
 This version is deliberately verbose, repetitive, and step-by-step because LLMs perform dramatically better when given this level of scaffolding. You can now safely hand this to almost any frontier LLM and get reliable, correct implementation with minimal hallucination risk.
 
@@ -2965,36 +3186,67 @@ And most importantly: **Does your system already have a pre-tool-use hook mechan
 
 Implementing LLM response:
 
+
 ● Based on the context from the previous conversation, let me answer the question "Does it make sense?" regarding the LLM-safe instructions approach:
+
+
 
   Assessment: Yes, with Two Caveats
 
+
+
   The approach makes sense because:
 
+
+
   1. JSON patterns are sound - The 5 patterns (tdd_deadlock, windows_tool, schema_assumption, import_missing, tool_retry) represent real, recurring LLM failure modes that keyword matching can catch effectively.
+
   2. Hook is well-designed - PreToolUse is the right place to block unavailable tools and provide pattern-based guidance.
+
   3. Two-phase approach is smart - Phase 0 acknowledgment prevents the "I already tried that" time-waste loop.
+
+
 
   The Two Caveats
 
+
+
   Caveat 1: Path Resolution
+
   The hook uses a relative path ./manual_patterns.json. This will fail depending on CWD. Should use:
+
   PATTERN_FILE = Path(__file__).parent.parent / "manual_patterns.json"
 
+
+
   Caveat 2: Hook Wiring
+
   Creating pre_tool_check.py doesn't automatically wire it into the execution. The Claude Code hooks system needs manual configuration to call it.
 
+
+
   ---
+
   Current State
 
+
+
   The simpler Option A (PostToolUse_system2.py) is already implemented and working:
+
   - Hook suggests /debug triage on any tool error
+
   - Tested successfully with sqlite3 errors
+
   - No complex pattern matching = no brittleness
+
+
 
   Your Choice
 
+
+
   1. Proceed with enhanced version - Implement the 3 artifacts for pattern-specific guidance
+
   2. Stay with current simple hook - It's already working and covers the core need
 
 ## Assistant
@@ -3146,42 +3398,80 @@ Which do you prefer: **Option 1 (hybrid, 15 min) or Option 2 (wait and measure)?
 
 ● Problem Statement
 
+
+
   We were implementing a "System 2 thinking for debug" research assessment - specifically Option A: a simple PostToolUse hook that suggests /debug triage when errors occur, instead of reactive trial-and-error.
+
+
 
   Goal: When a tool (Bash) returns an error, suggest systematic debugging approaches.
 
+
+
   What We Implemented
 
+
+
   P:/.claude/hooks/PostToolUse_system2.py:
+
   - Detects error patterns in tool output (command not found, tracebacks, exit codes, etc.)
+
   - Detects Windows-specific missing tools (sqlite3, sed, grep, awk, find, xargs) and suggests Python alternatives
+
   - Writes suggestions to stderr
+
+
 
   What We Discovered
 
+
+
   PostToolUse hooks don't display stderr output in the Claude Code conversation.
 
+
+
   - Hook executes ✅
+
   - Error detection works ✅
+
   - stderr is written ✅
+
   - Visible in conversation? ❌ (by design - PostToolUse is for background tracking, not user interaction)
+
+
 
   Tried Solutions
 
+
+
   1. Verified hook data format - changed from expecting exit_code field to regex pattern detection on output text
+
   2. Checked other hooks - CKS storage, post-fix validator - all use stderr the same way
+
   3. Investigated injection mechanism - searched for "action": "inject" patterns - none found for PostToolUse
+
   4. Compared hook types:
+
     - UserPromptSubmit: modifies input_data["prompt"] → visible ✅
+
     - PreToolUse: runs before tool, can block/warn → potentially visible ✅
+
     - PostToolUse: runs after tool, stderr to logs → not visible ❌
+
+
 
   Current Status
 
+
+
   Hook works but messages don't appear in conversation. Options:
 
+
+
   1. Accept - PostToolUse messages are for logs only (not visible in chat)
+
   2. Pivot - Use UserPromptSubmit hook to inject suggestions into next prompt
+
   3. Keep investigating - Find another injection mechanism
 
 ## Assistant
@@ -3510,34 +3800,65 @@ User: [sees guidance in prompt] Ah, I should use Python instead...
 feedback:
  Mostly correct, but one important correction:
 
+
+
   "PreLLMResponse" doesn't exist
+
+
 
   The other LLM lists "PreLLMResponse" as a hook type that can modify output. I didn't find this hook type in my investigation of the codebase. The hooks that exist are:
 
+
+
   - UserPromptSubmit - before user message processed
+
   - PreToolUse - before tool execution
+
   - PostToolUse - after tool completion
+
   - Stop - on session end
+
   - SessionInit - on session start
+
+
 
   No "PreLLMResponse" hook found.
 
+
+
   The Rest is Valid
 
+
+
   The two-phase approach is sound:
+
   1. PostToolUse → writes error to session state file
+
   2. UserPromptSubmit → reads state, injects guidance into input_data["prompt"]
 
+
+
   This matches the pattern used by inherited_choice_validator.py:
+
   - PostToolUse detects patterns → stores in state
+
   - PreToolUse reads state → injects warning
+
+
 
   The Proposed Solution
 
+
+
   The UserPromptSubmit injection approach would work because:
+
   - It modifies the prompt directly (not stderr)
+
   - The injected content becomes part of what the LLM sees
+
   - User sees it in the conversation context
+
+
 
   Do you want me to implement this two-phase solution?
 
@@ -3811,117 +4132,230 @@ Proceeding with next tool...
 
 Does this change anything?
 
+
 > we detect so we can fix.
+
+
 
 ● You're right - that changes the equation.
 
+
+
   If detect → fix is the workflow, then the 4 generic checkers I proposed are incomplete.
+
+
 
   Updated Comparison
 
+
+
   | Aspect          | 4 Generic Checkers | Semgrep/ESLint Hybrid       |
+
   |-----------------|--------------------|-----------------------------|
+
   | Detection       | ✅ From CKS        | ✅ From YAML/JSON config    |
+
   | Auto-fix        | ❌ Not built-in    | ✅ Built-in (--autofix)     |
+
   | CKS Integration | ✅ Native          | ⚠️ External, needs sync     |
+
   | Startup         | ✅ ~50ms           | ⚠️ ~500ms (tool invocation) |
+
   | Dependencies    | ✅ stdlib only     | ⚠️ npm, semgrep, Node.js    |
+
+
 
   The Real Trade-off
 
+
+
   Question: Where do your patterns live?
 
+
+
   - CKS as source of truth → Need CKS → Semgrep/ESLint sync layer
+
   - YAML/JSON as source of truth → Abandon CKS for pattern storage
+
+
 
   Pragmatic Path Forward
 
+
+
   Since you want auto-fix but already have CKS:
 
+
+
   ┌─────────────────────────────────────────┐
+
   │              CKS Database               │
+
   │    (patterns + severity + message)      │
+
   └────────────────┬────────────────────────┘
+
                    │
+
           ┌────────┴─────────┐
+
           │                  │
+
      ┌────▼────┐        ┌────▼────┐
+
      │ Detect  │        │  Fix    │
+
      │ (CKS)   │        │ (LibCST │
+
      │         │        │  or     │
+
      │ 4 gen.  │        │Semgrep) │
+
      │checkers │        │         │
+
      └────┬────┘        └─────────┘
+
           │
+
           ▼
+
      Violations
+
           │
+
           ├─► Auto-fixable ──► LibCST rewrites
+
           │
+
           └─► Semantic ──────► Claude Code
 
+
+
   LibCST (not Semgrep) might be the right answer because:
+
   - Pure Python (no external tool invocation)
+
   - Perfect format preservation
+
   - Programmatic rewrite rules (can generate from CKS)
+
   - Same maintainers as Black (Facebook/Instagram)
+
+
 
   Want me to design a CKS → LibCST auto-fix system instead?
 
+
+
 > take a breath and think.  we can put yaml in cks.
+
+
 
 ● You're absolutely right. I was making a false dichotomy.
 
+
+
   The Simple Solution
 
+
+
   CKS Schema:
+
   ┌─────────────────────────────────────────────────────┐
+
   │ patterns table                                      │
+
   ├─────────────────────────────────────────────────────┤
+
   │ id          │ title        │ category   │ severity   │
+
   │ semgrep_yaml│ TEXT (YAML config for Semgrep)         │
+
   │ eslint_json │ TEXT (JSON config for ESLint)          │
+
   │ language    │ python | typescript | javascript      │
+
   └─────────────────────────────────────────────────────┘
 
+
+
   Workflow:
+
   ┌───────────┐     ┌──────────┐     ┌─────────────┐
+
   │   CKS     │────▶│ Extract  │────▶│ Semgrep/    │
+
   │ (YAML)    │     │ to temp  │     │ ESLint      │
+
   └───────────┘     └──────────┘     └──────┬───────┘
+
                                             │
+
                                       ┌─────▼─────────┐
+
                                       │ unified_      │
+
                                       │ analyzer.py   │
+
                                       │ (run & parse) │
+
                                       └───────────────┘
+
+
 
   No sync needed. YAML/JSON lives in CKS, extracted to temp files at runtime.
 
+
+
   Implementation
 
+
+
   # unified_analyzer.py
+
   import tempfile
+
   import subprocess
+
   from pathlib import Path
 
+
+
   def _run_semgrep_from_cks(self, content: str, semgrep_yaml: str) -> dict:
+
       """Run Semgrep using YAML config stored in CKS"""
 
+
+
       with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+
           f.write(semgrep_yaml)
+
           config_path = f.name
 
+
+
       try:
+
           result = subprocess.run(
+
               ['semgrep', '--config', config_path, '--json', '--autofix', '-'],
+
               input=content,
+
               capture_output=True,
+
               text=True
+
           )
+
           return json.loads(result.stdout)
+
       finally:
+
           Path(config_path).unlink()
+
+
 
   This keeps CKS as source of truth, gets you Semgrep/ESLint auto-fix, zero sync complexity.
 
@@ -4262,92 +4696,180 @@ print(f"Fixes applied to: {violations['fixes_applied']}")
 
 CC feedback:
 
+
 ● Looking at the Perplexity chat transcript you shared, I can identify several actionable ideas that align with our CSF NIP architecture. Let me analyze the most valuable ones:
+
+
 
   Key Ideas Worth Implementing
 
+
+
   1. Two-Phase Debug Warning System (High Value)
+
+
 
   The chat identified a problem: PostToolUse hooks fire AFTER tool execution, so warnings come too late. The solution:
 
+
+
   PostToolUse_system2.py: Detect errors → Store in .state/debug_session_state.json
+
   PreToolUse_debug_warning.py: Read state → Warn BEFORE next tool use
+
+
 
   This is a low-risk, high-impact pattern we could implement immediately using our existing .state/ isolation.
 
+
+
   2. CKS + Semgrep Integration (Medium Value)
+
+
 
   Store Semgrep YAML patterns in CKS, extract to temp files at runtime:
 
+
+
   # unified_analyzer.py
+
   def run_semgrep_from_cks(pattern_name: str, target_dir: str):
+
       # Fetch YAML from CKS
+
       yaml_content = cks_client.get_pattern(pattern_name)
+
       # Write to temp file
+
       with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as f:
+
           f.write(yaml_content)
+
           # Run semgrep
+
           subprocess.run(['semgrep', '--config', f.name, target_dir])
+
+
 
   This centralizes pattern management and allows versioning through CKS.
 
+
+
   3. System 2 Thinking Pre-Flight Check (High Value)
+
+
 
   Before attempting fixes, require explicit hypothesis statement:
 
+
+
   PreToolUse: If user says "fix bug", require:
+
   1. What do you think is broken? (hypothesis)
+
   2. What evidence supports this? (observations)
+
   3. What change will fix it? (planned action)
+
   4. How will you verify it worked? (test)
+
+
 
   This directly addresses "shotgun debugging" and aligns with our TDD guard philosophy.
 
+
+
   ---
+
   Recommendation: Start with Two-Phase Debug Warning
 
+
+
   This has the clearest implementation path using components we already have:
+
   - PostToolUse_system2.py already writes to .state/debug_session_state.json
+
   - We just need a PreToolUse_debug_warning.py to read and warn
+
+
 
   Would you like me to implement the two-phase debug warning system first, or would you prefer to start with one of the other ideas?
 
+
+
 > What's our problem, and how does the chat session info help fix/mitigate/overcome the
+
 problem?
+
+
 
 ● The Problem: Agentic Deadlock
 
+
+
   Our hooks (TDD guard, deny violations, debug gate) are reactive safety nets that catch problems after they occur. But the Perplexity chat identified a paradox:
 
+
+
   Safety protocols exist to prevent bad behavior
+
       ↓
+
   But they can't prevent the agent from making the same mistakes repeatedly
+
       ↓
+
   The agent can't fix the protocols because the protocols block the fixes
+
       ↓
+
   AGENTIC DEADLOCK
 
+
+
   Specific symptoms we're seeing:
+
   1. PostToolUse hooks fire AFTER tool execution → Warnings come too late to prevent the action
+
   2. No "System 2 thinking" required → Agents jump to fixes without hypothesis/evidence/verification
+
   3. TDD guard detects violations but doesn't teach how to avoid them
+
   4. Debug investigation gate activates but doesn't structure the investigation
+
+
 
   How the Chat Session Helps
 
+
+
   The chat proposes a shift from reactive to proactive:
 
+
+
   | Current (Reactive)            | Proposed (Proactive)                              |
+
   |-------------------------------|---------------------------------------------------|
+
   | PostToolUse: Warn after error | PostToolUse + PreToolUse: Warn before next action |
+
   | TDD Guard: "You violated TDD" | System 2 Check: "What's your hypothesis?"         |
+
   | Scattered patterns            | CKS: Centralized, versioned patterns              |
+
   | Shotgun debugging             | Structured RCA framework                          |
 
+
+
   The two-phase debug warning is the lowest-risk starting point because:
+
   - It uses infrastructure we already have (.state/debug_session_state.json)
+
   - It doesn't add new restrictions, just shifts warnings earlier
+
   - It preserves all existing hook behavior
+
+
 
   Should I implement the PreToolUse_debug_warning.py hook to complete the two-phase system?
 
@@ -4435,3 +4957,4 @@ Then test it by:
 3. Verify warning appears in conversation before the next tool runs
 
 If warnings appear, you've successfully shifted from reactive to proactive. That's the win.
+```

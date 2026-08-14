@@ -1382,40 +1382,75 @@ Done. No more confusion.
 ## Human
 
 "
+
 ● I'll start collecting the 5 architectural decisions for the hook system refactoring.
 
+
+
   ---
+
   DECISION 1: TURN CLASSIFICATION SYSTEM
+
+
 
   We need to classify each user turn into categories before determining which gates can fire.
 
+
+
   Recommended turn kinds:
+
   - CONTROL: Direct commands (stop, no, do X, reread Y)
+
   - EXPLORATION: Investigative (what if, debug, let me try)
+
   - ANALYSIS: Formal reasoning (compare, analyze, tradeoffs)
+
   - PLAN: Decision-making (strategy, approach, solution)
+
   - FINAL_ANSWER: Normal Q&A (default for unclassified)
+
+
 
   Questions:
 
+
+
   1a) Do you want these 5 turn kinds, or do you want to add/remove any?
 
+
+
   1b) What are your EXACT markers for CONTROL turns?
+
   Recommended markers: stop, no, don't, do  (with space), reread, actually, focus on, switch to, answer directly
+
   — You can add/remove based on your actual usage
 
+
+
   1c) Confidence threshold: When should we trust the classification?
+
   Recommended: >0.75 = high, 0.6-0.75 = medium (treat as FINAL_ANSWER), <0.6 = fallback
+
   — Or propose your own thresholds
 
+
+
   1d) Word count limit: What text length = 'definitely control'?
+
   Recommended: <200 characters AND <3 lines
+
   — Or propose different limits
 
+
+
   1e) Fallback: If no markers detected, should we default to FINAL_ANSWER or EXPLORATION?
+
   Recommended: FINAL_ANSWER (safer — won't miss analysis without explicit markers)
 
+
+
   ---
+
   Please answer these and I'll summarize back for confirmation before moving to Decision 2."
 
 ## Assistant
@@ -1479,48 +1514,92 @@ Can you paste your 31-gate list here?
 
 31 gates are defined in Stop.py as IN_PROCESS_GATES:
 
+
+
   1.  safety_gate
+
   2.  frameguard_stop
+
   3.  skill_first_stop_gate
+
   4.  post_skill_prose_gate
+
   5.  verification_enforcement
+
   6.  epistemic_contract
+
   7.  behavior_audit
+
   8.  cited_content_guard
+
   9.  cross_validator
+
   10. unverified_stance
+
   11. correction_acknowledgment
+
   12. dependency_chain_guard
+
   13. comparative_claim_guard
+
   14. behavior_gates_agreement
+
   15. behavior_gates_guidance
+
   16. behavior_gates_blacklist
+
   17. narrative_intent
+
   18. anti_sycophancy_quality
+
   19. command_execution_validator
+
   20. advisory
+
   21. reflect_integration
+
   22. reasoning_quality_gate
+
   23. reasoning_enhanced
+
   24. existence_gate
+
   25. lazy_workaround_gate
+
   26. recommendation_gate
+
   27. deletion_verification_guard
+
   28. git_diff_reground
+
   29. skill_dir_correlation
+
   30. cks_correction_anchor
+
   31. referent_coverage
+
+
 
   Plus 2 side-effect hooks (auto_commit_hook.py, Stop_cks_decision_capture.py) that run in subprocess.
 
+
+
   GATE_CLASSES (lines 1744-1778) already split these into POLICY (17) vs QUALITY (14):
 
+
+
   - POLICY: safety_gate, frameguard_stop, skill_first_stop_gate, post_skill_prose_gate, verification_enforcement,
+
   cited_content_guard, cross_validator, unverified_stance, correction_acknowledgment, dependency_chain_guard,
+
   comparative_claim_guard, behavior_gates_agreement, behavior_gates_guidance, behavior_gates_blacklist, command_execution_validator,
+
    recommendation_gate, deletion_verification_guard, git_diff_reground, skill_dir_correlation, cks_correction_anchor,
+
   referent_coverage
+
   - QUALITY: epistemic_contract, behavior_audit, narrative_intent, anti_sycophancy_quality, advisory, reflect_integration,
+
   reasoning_quality_gate, reasoning_enhanced, existence_gate, lazy_workaround_gate
 
 ## Assistant
@@ -1588,132 +1667,259 @@ Paste the relevant parts of `Stop.py` next: the `IN_PROCESS_GATES` block, the `G
 ## Human
 
 "
+
   GATE_CLASSES (lines 1744-1778) — already classified
 
+
+
   GATE_CLASSES: dict[str, str] = {
+
       # Policy gates — always fire
+
       "safety_gate": "policy",
+
       "frameguard_stop": "policy",
+
       "skill_first_stop_gate": "policy",
+
       "post_skill_prose_gate": "policy",
+
       "verification_enforcement": "policy",
+
       "cited_content_guard": "policy",
+
       "cross_validator": "policy",
+
       "unverified_stance": "policy",
+
       "correction_acknowledgment": "policy",
+
       "dependency_chain_guard": "policy",
+
       "comparative_claim_guard": "policy",
+
       "behavior_gates_agreement": "policy",
+
       "behavior_gates_guidance": "policy",
+
       "behavior_gates_blacklist": "policy",
+
       "command_execution_validator": "policy",
+
       "recommendation_gate": "policy",
+
       "deletion_verification_guard": "policy",
+
       "git_diff_reground": "policy",
+
       "skill_dir_correlation": "policy",
+
       "cks_correction_anchor": "policy",
+
       "referent_coverage": "policy",
+
       # Quality gates — suppressed on control turns in normal mode
+
       "epistemic_contract": "quality",
+
       "behavior_audit": "quality",
+
       "narrative_intent": "quality",
+
       "anti_sycophancy_quality": "quality",
+
       "advisory": "quality",
+
       "reflect_integration": "quality",
+
       "reasoning_quality_gate": "quality",
+
       "reasoning_enhanced": "quality",
+
       "existence_gate": "quality",
+
       "lazy_workaround_gate": "quality",
+
   }
+
+
 
   Current split: 21 POLICY, 10 QUALITY (your prompt said 17/14 — the code has grown since then)
 
+
+
   ---
+
   IN_PROCESS_GATES (lines 1780-1818) — the 31 gates
 
+
+
   IN_PROCESS_GATES = [
+
       ("safety_gate", _run_safety_gate),
+
       ("frameguard_stop", _run_frameguard_stop),
+
       ("skill_first_stop_gate", _run_skill_first_stop_gate),
+
       ("post_skill_prose_gate", _run_post_skill_prose_gate),
+
       ("verification_enforcement", _run_verification_enforcement),
+
       ("epistemic_contract", _run_epistemic_contract),
+
       ("behavior_audit", _run_behavior_audit),
+
       ("cited_content_guard", _run_cited_content_guard),
+
       ("cross_validator", _run_cross_validator),
+
       ("unverified_stance", _run_unverified_stance),
+
       ("correction_acknowledgment", _run_correction_acknowledgment),
+
       ("dependency_chain_guard", _run_dependency_chain_guard),
+
       ("comparative_claim_guard", _run_comparative_claim_guard),
+
       ("behavior_gates_agreement", _run_behavior_gates_agreement),
+
       ("behavior_gates_guidance", _run_behavior_gates_guidance),
+
       ("behavior_gates_blacklist", _run_behavior_gates_blacklist),
+
       ("narrative_intent", _run_narrative_intent),
+
       ("anti_sycophancy_quality", _run_anti_sycophancy_quality),
+
       ("command_execution_validator", _run_command_execution_validator),
+
       ("advisory", _run_advisory),
+
       ("reflect_integration", _run_reflect_integration),
+
       ("reasoning_quality_gate", _run_reasoning_quality_gate),
+
       ("reasoning_enhanced", _run_reasoning_enhanced),
+
       ("existence_gate", _run_existence_gate),
+
       ("lazy_workaround_gate", _run_lazy_workaround_gate),
+
       ("recommendation_gate", _run_recommendation_gate),
+
       ("deletion_verification_guard", _run_deletion_verification_guard),
+
       ("git_diff_reground", _run_git_diff_reground),
+
       ("skill_dir_correlation", _run_skill_dir_correlation_gate),
+
       ("cks_correction_anchor", _run_cks_correction_anchor),
+
       ("referent_coverage", _run_referent_coverage),
+
   ]
 
+
+
   ---
+
   Main gate loop (lines 2036-2066)
 
+
+
       turn_kind = _detect_turn_kind(data)
+
       quality_mode = os.environ.get("STOP_QUALITY_MODE", "normal")
 
+
+
       system_messages: list[str] = []
+
       quality_messages: list[str] = []
 
+
+
       # Process Blocking Gates (in-process, fast)
+
       for name, gate_fn in IN_PROCESS_GATES:
+
           try:
+
               res = gate_fn(data)
+
           except Exception as e:
+
               print(f"[Stop] gate {name} crashed: {e}", file=sys.stderr)
+
               continue
+
+
 
           if not res:
+
               continue
 
+
+
           if res.get("decision") == "block":
+
               _log_stop_block_event(data, name, res)
+
               if "blocking_hook" not in res:
+
                   res["blocking_hook"] = f"Stop.py:{name}"
+
               print(json.dumps(res))
+
               sys.exit(0)
 
+
+
           if "systemMessage" in res:
+
               gate_class = GATE_CLASSES.get(name, "policy")
+
               if gate_class == "policy":
+
                   system_messages.append(res["systemMessage"])
+
               else:
+
                   quality_messages.append(res["systemMessage"])
 
+
+
       # Quality gate filtering: suppress quality messages on control/exploration turns
+
       # in normal mode (allow corrections and direct instructions through).
+
       # Strict mode or other turns: include quality messages.
+
       turn_mode = _classify_turn_mode(data)
+
       if not is_quality_mode_suppressed(turn_mode, quality_mode):
+
           system_messages.extend(quality_messages)
 
+
+
   ---
+
   Key observation
 
+
+
   The turn_kind variable on line 2030 is never used — it comes from the old _detect_turn_kind() function (lines 261-329) which the
+
   new turn_mode.py module replaces entirely. The actual current behavior uses turn_mode = _classify_turn_mode(data) (line 2064) and
+
   is_quality_mode_suppressed() from turn_mode.py.
 
+
+
   Decision 1's 5 categories are also already implemented in turn_mode.py:
+
   - control, exploration, analysis, plan, execution-report, final-answer"
 
 ## Assistant
@@ -1779,135 +1985,265 @@ The text prompt has been packaged for you as a downloadable file.
 ## Human
 
 "
+
   Findings Summary
 
+
+
   1. Dead code in main loop (line 2030)
+
   turn_kind = _detect_turn_kind(data)   # ← assigned, never read
+
   turn_mode is computed on line 2064 via _classify_turn_mode(data) — the turn_kind variable is orphaned.
 
+
+
   2. _detect_turn_kind still used in 2 gate functions (NOT safe to delete yet)
+
   - _run_epistemic_contract (line 367): skips format enforcement for "exploration" turns only
+
   - _run_anti_sycophancy_quality (line 821-823): combined check turn_mode in ("plan","report") or turn_kind == "exploration"
 
+
+
   These have subtly different suppression logic than turn_mode.py's is_quality_mode_suppressed. They need separate analysis before
+
   we can retire _detect_turn_kind.
 
+
+
   3. _detect_turn_mode (lines 332-354) still used in 3 gate functions
+
   - _run_anti_sycophancy_quality (line 821)
+
   - _run_lazy_workaround_gate (line 1414)
+
   - Main loop (removed, replaced by _classify_turn_mode)
+
+
 
   4. Refactoring scope for main gate loop only
 
+
+
   The 3 helper functions to extract:
+
   - _run_gate_safe(name, gate_fn, data) — wraps gate call, logs crashes
+
   - _process_gate_result(res, name, system_messages, quality_messages) — handles block/allow/systemMessage routing
+
   - _merge_quality_messages(quality_messages, turn_mode, quality_mode) — appends quality messages only when not suppressed
 
+
+
   ---
+
   Exact Patch for Stop.py
+
+
 
   # === NEW HELPER FUNCTIONS (insert after run_side_effect, before get_hook_health_summary) ===
 
+
+
   def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
+
       """Run a single gate, catching exceptions to prevent cascade failure."""
+
       try:
+
           return gate_fn(data)
+
       except Exception as e:
+
           print(f"[Stop] gate {name} crashed: {e}", file=sys.stderr)
+
           return None
 
 
+
+
+
   def _process_gate_result(
+
       res: dict,
+
       name: str,
+
       system_messages: list[str],
+
       quality_messages: list[str],
+
       data: dict,
+
   ) -> bool:
+
       """Route a gate result: block exits immediately, otherwise route systemMessage.
 
+
+
       Returns True if the turn was blocked (caller should exit), False to continue.
+
       """
+
       if not res:
+
           return False
 
+
+
       if res.get("decision") == "block":
+
           _log_stop_block_event(data, name, res)
+
           if "blocking_hook" not in res:
+
               res["blocking_hook"] = f"Stop.py:{name}"
+
           print(json.dumps(res))
+
           return True  # blocked — caller must sys.exit(0)
 
+
+
       if "systemMessage" in res:
+
           gate_class = GATE_CLASSES.get(name, "policy")
+
           if gate_class == "policy":
+
               system_messages.append(res["systemMessage"])
+
           else:
+
               quality_messages.append(res["systemMessage"])
+
+
 
       return False
 
 
+
+
+
   def _merge_quality_messages(
+
       system_messages: list[str],
+
       quality_messages: list[str],
+
       turn_mode: str,
+
       quality_mode: str,
+
   ) -> None:
+
       """Append quality messages to system_messages only when not suppressed.
 
+
+
       In 'normal' mode: suppress on control and exploration turns.
+
       In 'strict' mode: suppress on control turns only.
+
       All other turn modes receive quality messages.
+
       """
+
       if not is_quality_mode_suppressed(turn_mode, quality_mode):
+
           system_messages.extend(quality_messages)
+
+
+
 
 
   # === MAIN GATE LOOP REPLACEMENT (lines ~2036-2066) ===
 
+
+
       # Classify turn mode once — used for quality gate suppression
+
       turn_mode = _classify_turn_mode(data)
+
       quality_mode = os.environ.get("STOP_QUALITY_MODE", "normal")
 
+
+
       system_messages: list[str] = []
+
       quality_messages: list[str] = []
 
+
+
       # Run all in-process gates
+
       for name, gate_fn in IN_PROCESS_GATES:
+
           res = _run_gate_safe(name, gate_fn, data)
+
           blocked = _process_gate_result(res, name, system_messages, quality_messages, data)
+
           if blocked:
+
               sys.exit(0)
 
+
+
       # Merge quality messages based on turn mode and enforcement mode
+
       _merge_quality_messages(system_messages, quality_messages, turn_mode, quality_mode)
 
+
+
   # === DELETE dead `turn_kind` line ===
+
   # OLD (line 2030): turn_kind = _detect_turn_kind(data)   ← remove this line
 
+
+
   ---
+
   Follow-up Cleanup Suggestions
 
+
+
   Phase 1 (this patch — do now):
+
   - Remove turn_kind = _detect_turn_kind(data) from main loop (line 2030) — dead, no behavioral effect
 
+
+
   Phase 2 (safe to do after this patch):
+
   - Inline the three new helpers as nested functions (not module-level) if you prefer less module-level pollution
+
   - The helpers are stateless so module-level is fine
 
+
+
   Phase 3 (requires gate-by-gate analysis):
+
   - _detect_turn_kind and _detect_turn_mode still have 3 active callers in gate functions
+
     - Gate _run_anti_sycophancy_quality uses both: _detect_turn_mode for plan/report and _detect_turn_kind for exploration
+
     - Gate _run_lazy_workaround_gate uses _detect_turn_mode for plan/report suppression
+
     - Gate _run_epistemic_contract uses _detect_turn_kind for exploration-only skip
+
   - Before deleting these functions, each gate needs a one-by-one audit to confirm turn_mode.py covers the same cases
+
   - _detect_turn_mode in particular returns 3 values (plan/report/analysis) while turn_mode.py returns 6 — some gates may rely on
+
   the coarser 3-way split
 
+
+
   Phase 4 (after Phase 3 complete):
+
   - Remove _detect_turn_kind and _detect_turn_mode functions entirely, update imports
+
 "
 
 ## Assistant
@@ -1954,18 +2290,31 @@ Only after those are reconciled against `turn_mode.py` should `_detect_turn_kind
 ## Human
 
 "
+
 ● Both edits verified. The dead turn_kind = _detect_turn_kind(data) line is removed, the 3 helpers are in place, and the main loop
+
   now delegates to them. Side effects and output assembly remain untouched below line 2087.
 
+
+
   Summary of changes:
+
   - Inserted _run_gate_safe, _process_gate_result, _merge_quality_messages after run_side_effect (lines 1852-1890)
+
   - Replaced the main gate loop (was ~35 lines, now ~15 lines) with calls to the 3 helpers
+
   - Removed dead turn_kind = _detect_turn_kind(data) line
+
   - _detect_turn_kind and _detect_turn_mode functions kept (still used by individual gates)
+
   ⎿  Stop says: ADVISORY: Response does not mention any of the 14 items from the user's structured list. Consider whether the
+
      investigation covered the intended entities.
+
      EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the required
+
      schema only. Do not add or remove substantive content. Do not include text outside the required section headers. Missing:
+
      [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN]."
 
 ## Assistant
@@ -2145,20 +2494,35 @@ Is there another file or prompt you want me to generate next (e.g., for auditing
 ## Human
 
 "
+
 ● All four phases complete. Here's the summary:
+
+
 
   Phase 1 (previous turn): Inserted 3 helpers, refactored main loop, removed dead turn_kind line.
 
+
+
   Phase 2-3 (this turn): Migrated 3 gate callers from old classifiers to _classify_turn_mode:
+
   - _run_epistemic_contract: _detect_turn_kind(data) == "exploration" → _classify_turn_mode(data) == "exploration"
+
   - _run_anti_sycophancy_quality: two old calls → single _classify_turn_mode(data) checking ("plan", "execution-report",
+
   "exploration")
+
   - _run_lazy_workaround_gate: _detect_turn_mode(data) → _classify_turn_mode(data) checking ("plan", "execution-report")
+
+
 
   Phase 4: Deleted _detect_turn_kind (69 lines) and _detect_turn_mode (23 lines) — 92 lines removed.
 
+
+
   Bonus fix: Line 304 had a pre-existing bug where "report" was checked against _classify_turn_mode which returns "execution-report"
+
    — that branch was dead code. Fixed to "execution-report".
+
   ⎿  Stop says:"
 
 ## Assistant
@@ -2246,206 +2610,407 @@ Would you like the next prompt to be the **policy-vs-quality audit** prompt, or 
 ## Human
 
 "
+
   Findings Summary
 
+
+
   Of the 21 gates currently classified as policy, most are correctly classified. I identified 5 gates that should be changed to
+
   quality, plus 1 borderline. The key discriminator: would suppressing this gate on a control/exploration turn risk safety,
+
   destructive action, or fabrication? If the gate only improves reasoning quality, completeness, or format, it should be quality.
+
+
 
   Policy Gate Audit Table
 
+
+
   ┌─────────────────────────────┬─────────┬───────────────────┬──────────────────────────────────────────────────────────────────┐
+
   │            Gate             │ Current │  Recommendation   │                          Justification                           │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ safety_gate                 │ policy  │ KEEP_POLICY       │ Blocks secrets, forbidden patterns, protocol violations.         │
+
   │                             │         │                   │ Safety-critical — must fire on every turn.                       │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ frameguard_stop             │ policy  │ KEEP_POLICY       │ Validates systemic reasoning frames. Prevents frame-dropping     │
+
   │                             │         │                   │ which is a structural contract violation, not just quality.      │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ skill_first_stop_gate       │ policy  │ KEEP_POLICY       │ Blocks pure-prose responses when user typed /command. Prevents   │
+
   │                             │         │                   │ skill bypass — safety net for the PreToolUse layer.              │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ post_skill_prose_gate       │ policy  │ KEEP_POLICY       │ Prevents prose-after-Skill() calls. Same bypass-prevention class │
+
   │                             │         │                   │  as skill_first.                                                 │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks stops when declared verification steps are incomplete.    │
+
   │ verification_enforcement    │ policy  │ KEEP_POLICY       │ Workflow contract enforcement — prevents incomplete work being   │
+
   │                             │         │                   │ declared done. Disabled by default                               │
+
   │                             │         │                   │ (VERIFICATION_ENFORCEMENT_ENABLED=false).                        │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks fabricated file citations not supported by Read output.   │
+
   │ cited_content_guard         │ policy  │ KEEP_POLICY       │ Prevents hallucination of file content — a truthfulness/safety   │
+
   │                             │         │                   │ concern.                                                         │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ cross_validator             │ policy  │ KEEP_POLICY       │ Blocks fabrication claims (fake tool usage, fake test results).  │
+
   │                             │         │                   │ Prevents lying about what was executed — safety-critical.        │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks skeptical language without evidence. This is reasoning    │
+
   │ unverified_stance           │ policy  │ CHANGE_TO_QUALITY │ quality discipline, not safety. A control turn saying "no,       │
+
   │                             │         │                   │ re-read the file" doesn't need sycophancy checking.              │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks denial of user corrections ("I didn't say that"). This is │
+
   │ correction_acknowledgment   │ policy  │ KEEP_POLICY       │  a behavioral contract — ignoring corrections is a trust         │
+
   │                             │         │                   │ violation.                                                       │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks comparative conclusions that ignore prerequisites. This   │
+
   │ dependency_chain_guard      │ policy  │ CHANGE_TO_QUALITY │ is reasoning quality — a control turn doesn't need prerequisite  │
+
   │                             │         │                   │ chain validation.                                                │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks comparative claims without verification. Reasoning        │
+
   │ comparative_claim_guard     │ policy  │ CHANGE_TO_QUALITY │ quality — "use X instead" on a control turn shouldn't trigger    │
+
   │                             │         │                   │ comparative verification.                                        │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks empty agreements without tool actions. Prevents lazy      │
+
   │ behavior_gates_agreement    │ policy  │ KEEP_POLICY       │ "I'll do that" without actually doing anything — behavioral      │
+
   │                             │         │                   │ contract.                                                        │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Blocks guidance without Read verification. This is epistemic     │
+
   │ behavior_gates_guidance     │ policy  │ CHANGE_TO_QUALITY │ discipline — a control turn ("fix the bug") shouldn't be blocked │
+
   │                             │         │                   │  for not having Read the file first (the fix itself IS the       │
+
   │                             │         │                   │ action).                                                         │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ behavior_gates_blacklist    │ policy  │ KEEP_POLICY       │ Blocks blacklisted tool use. Security enforcement — must always  │
+
   │                             │         │                   │ fire.                                                            │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ command_execution_validator │ policy  │ KEEP_POLICY       │ Validates command execution safety via subprocess. Security —    │
+
   │                             │         │                   │ must always fire.                                                │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Detects options presented without a recommendation. This is      │
+
   │ recommendation_gate         │ policy  │ CHANGE_TO_QUALITY │ reasoning completeness, not safety. A control turn like "stop"   │
+
   │                             │         │                   │ or "fix the bug" shouldn't be checked for recommendation         │
+
   │                             │         │                   │ quality.                                                         │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ deletion_verification_guard │ policy  │ KEEP_POLICY       │ Verifies deletion claims against actual filesystem state.        │
+
   │                             │         │                   │ Prevents false "deleted" claims — safety/data-integrity concern. │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ git_diff_reground           │ policy  │ KEEP_POLICY       │ Warns about investigation file changes from git HEAD. Keeps      │
+
   │                             │         │                   │ responses grounded in actual file state — truthfulness concern.  │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Warns when tool events accessed a different skill dir than       │
+
   │ skill_dir_correlation       │ policy  │ UNSURE            │ intended. It's advisory-only (warns, never blocks), so it could  │
+
   │                             │         │                   │ be quality. But wrong-skill-dir access on a control turn could   │
+
   │                             │         │                   │ indicate a real misrouting. Low risk either way.                 │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │ cks_correction_anchor       │ policy  │ KEEP_POLICY       │ Persists correction events to CKS. Side-effect that should       │
+
   │                             │         │                   │ always run — data integrity.                                     │
+
   ├─────────────────────────────┼─────────┼───────────────────┼──────────────────────────────────────────────────────────────────┤
+
   │                             │         │                   │ Warns if response mentions zero anchor terms from user's         │
+
   │ referent_coverage           │ policy  │ CHANGE_TO_QUALITY │ message. This is coverage completeness — a control turn ("stop") │
+
   │                             │         │                   │  naturally won't mention anchor terms.                           │
+
   └─────────────────────────────┴─────────┴───────────────────┴──────────────────────────────────────────────────────────────────┘
+
+
 
   Shortlist: Gates to Change First
 
+
+
   ┌─────────────────────────┬──────────┬────────────────────────────────────────────────────────────────────────────────────────┐
+
   │          Gate           │ Risk of  │                                   Why Safe to Change                                   │
+
   │                         │  Change  │                                                                                        │
+
   ├─────────────────────────┼──────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ recommendation_gate     │ Lowest   │ Only returns warn/systemMessage, never blocks. Pure advisory on reasoning              │
+
   │                         │          │ completeness.                                                                          │
+
   ├─────────────────────────┼──────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ referent_coverage       │ Lowest   │ Advisory-only. Control turns naturally have no anchor terms.                           │
+
   ├─────────────────────────┼──────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ dependency_chain_guard  │ Low      │ Reasoning quality about prerequisite chains. Control turns don't make comparative      │
+
   │                         │          │ conclusions.                                                                           │
+
   ├─────────────────────────┼──────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ comparative_claim_guard │ Low      │ Reasoning quality about comparative claims. Control turns don't make comparisons.      │
+
   ├─────────────────────────┼──────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ behavior_gates_guidance │ Low      │ Checks guidance-without-Read. Control turns execute directly, not guide.               │
+
   ├─────────────────────────┼──────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+
   │                         │          │ Currently blocks on unverified stances. A control turn correcting behavior shouldn't   │
+
   │ unverified_stance       │ Medium   │ be checked for sycophancy — but the gate also catches genuine problems. Most           │
+
   │                         │          │ conservative to change but worth testing.                                              │
+
   └─────────────────────────┴──────────┴────────────────────────────────────────────────────────────────────────────────────────┘
 
+
+
   Recommendation: Change the 5 CHANGE_TO_QUALITY gates in GATE_CLASSES. Keep skill_dir_correlation as policy since it's borderline
+
   and advisory-only either way. No code logic changes needed — only the GATE_CLASSES dict values.
+
   ⎿  Stop says: ADVISORY: Response does not mention any of the 14 items from the user's structured list. Consider whether the
+
      investigation covered the intended entities.
+
      EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the required
+
      schema only. Do not add or remove substantive content. Do not include text outside the required section headers. Missing:
+
      [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: I now have all 21 policy gate implementations. Here's the audit:
+
+
 
      ## Findings Summary
 
+
+
      Of the 21 gates currently classified as `policy`, most are correctly classified. I identified **5 gates that should be changed
+
      to `quality`**, plus **1 borderline**. The key discriminator: would suppressing this gate on a control/exploration turn risk
+
      *safety, destructive action, or fabrication*? If the gate only improves *reasoning quality, completeness, or format*, it should
+
       be `quality`.
+
+
 
      ## Policy Gate Audit Table
 
+
+
      | Gate | Current | Recommendation | Justification |
+
      |------|---------|----------------|---------------|
+
      | `safety_gate` | policy | **KEEP_POLICY** | Blocks secrets, forbidden patterns, protocol violations. Safety-critical — must
+
      fire on every turn. |
+
      | `frameguard_stop` | policy | **KEEP_POLICY** | Validates systemic reasoning frames. Prevents frame-dropping which is a
+
      structural contract violation, not just quality. |
+
      | `skill_first_stop_gate` | policy | **KEEP_POLICY** | Blocks pure-prose responses when user typed `/command`. Prevents skill
+
      bypass — safety net for the PreToolUse layer. |
+
      | `post_skill_prose_gate` | policy | **KEEP_POLICY** | Prevents prose-after-Skill() calls. Same bypass-prevention class as
+
      skill_first. |
+
      | `verification_enforcement` | policy | **KEEP_POLICY** | Blocks stops when declared verification steps are incomplete.
+
      Workflow contract enforcement — prevents incomplete work being declared done. Disabled by default
+
      (`VERIFICATION_ENFORCEMENT_ENABLED=false`). |
+
      | `cited_content_guard` | policy | **KEEP_POLICY** | Blocks fabricated file citations not supported by Read output. Prevents
+
      hallucination of file content — a truthfulness/safety concern. |
+
      | `cross_validator` | policy | **KEEP_POLICY** | Blocks fabrication claims (fake tool usage, fake test results). Prevents lying
+
       about what was executed — safety-critical. |
+
      | `unverified_stance` | policy | **CHANGE_TO_QUALITY** | Blocks skeptical language without evidence. This is reasoning quality
+
      discipline, not safety. A control turn saying "no, re-read the file" doesn't need sycophancy checking. |
+
      | `correction_acknowledgment` | policy | **KEEP_POLICY** | Blocks denial of user corrections ("I didn't say that"). This is a
+
      behavioral contract — ignoring corrections is a trust violation. |
+
      | `dependency_chain_guard` | policy | **CHANGE_TO_QUALITY** | Blocks comparative conclusions that ignore prerequisites. This is
+
       reasoning quality — a control turn doesn't need prerequisite chain validation. |
+
      | `comparative_claim_guard` | policy | **CHANGE_TO_QUALITY** | Blocks comparative claims without verification. Reasoning
+
      quality — "use X instead" on a control turn shouldn't trigger comparative verification. |
+
      | `behavior_gates_agreement` | policy | **KEEP_POLICY** | Blocks empty agreements without tool actions. Prevents lazy "I'll do
+
      that" without actually doing anything — behavioral contract. |
+
      | `behavior_gates_guidance` | policy | **CHANGE_TO_QUALITY** | Blocks guidance without Read verification. This is epistemic
+
      discipline — a control turn ("fix the bug") shouldn't be blocked for not having Read the file first (the fix itself IS the
+
      action). |
+
      | `behavior_gates_blacklist` | policy | **KEEP_POLICY** | Blocks blacklisted tool use. Security enforcement — must always fire.
+
       |
+
      | `command_execution_validator` | policy | **KEEP_POLICY** | Validates command execution safety via subprocess. Security — must
+
       always fire. |
+
      | `recommendation_gate` | policy | **CHANGE_TO_QUALITY** | Detects options presented without a recommendation. This is
+
      reasoning completeness, not safety. A control turn like "stop" or "fix the bug" shouldn't be checked for recommendation
+
      quality. |
+
      | `deletion_verification_guard` | policy | **KEEP_POLICY** | Verifies deletion claims against actual filesystem state. Prevents
+
       false "deleted" claims — safety/data-integrity concern. |
+
      | `git_diff_reground` | policy | **KEEP_POLICY** | Warns about investigation file changes from git HEAD. Keeps responses
+
      grounded in actual file state — truthfulness concern. |
+
      | `skill_dir_correlation` | policy | **UNSURE** | Warns when tool events accessed a different skill dir than intended. It's
+
      advisory-only (warns, never blocks), so it could be quality. But wrong-skill-dir access on a control turn could indicate a real
+
       misrouting. Low risk either way. |
+
      | `cks_correction_anchor` | policy | **KEEP_POLICY** | Persists correction events to CKS. Side-effect that should always run —
+
      data integrity. |
+
      | `referent_coverage` | policy | **CHANGE_TO_QUALITY** | Warns if response mentions zero anchor terms from user's message. This
+
       is coverage completeness — a control turn ("stop") naturally won't mention anchor terms. |
+
+
 
      ## Shortlist: Gates to Change First
 
+
+
      | Gate | Risk of Change | Why Safe to Change |
+
      |------|---------------|-------------------|
+
      | `recommendation_gate` | **Lowest** | Only returns warn/systemMessage, never blocks. Pure advisory on reasoning completeness.
+
      |
+
      | `referent_coverage` | **Lowest** | Advisory-only. Control turns naturally have no anchor terms. |
+
      | `dependency_chain_guard` | **Low** | Reasoning quality about prerequisite chains. Control turns don't make comparative
+
      conclusions. |
+
      | `comparative_claim_guard` | **Low** | Reasoning quality about comparative claims. Control turns don't make comparisons. |
+
      | `behavior_gates_guidance` | **Low** | Checks guidance-without-Read. Control turns execute directly, not guide. |
+
      | `unverified_stance` | **Medium** | Currently blocks on unverified stances. A control turn correcting behavior shouldn't be
+
      checked for sycophancy — but the gate also catches genuine problems. Most conservative to change but worth testing. |
 
+
+
      **Recommendation**: Change the 5 `CHANGE_TO_QUALITY` gates in GATE_CLASSES. Keep `skill_dir_correlation` as policy since it's
+
      borderline and advisory-only either way. No code logic changes needed — only the GATE_CLASSES dict values.
+
 "
 
 ## Assistant
@@ -2545,20 +3110,35 @@ I would apply the five-gate change now, keep `unverified_stance` as `policy`, an
 ## Human
 
 "
+
 ● Done. 5 gates reclassified, 16 remain policy.
 
+
+
   Findings: Reclassified 5 gates from policy to quality because they enforce reasoning quality/completeness rather than hard safety
+
   or destructive-action constraints. On control/exploration turns, these gates' messages will now be suppressed in normal mode,
+
   reducing advisory noise on short imperative commands while still firing on analytical and final-answer turns.
 
+
+
   Changes: dependency_chain_guard, comparative_claim_guard, behavior_gates_guidance, recommendation_gate, referent_coverage —
+
   "policy" → "quality".
 
+
+
   Intentionally unchanged: unverified_stance and skill_dir_correlation remain policy per the task spec. All 16 remaining policy
+
   gates, all 10 existing quality gates, IN_PROCESS_GATES ordering, and all gate implementations are untouched.
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**"
 
 ## Assistant
@@ -3400,173 +3980,341 @@ Replace that line with a model‑agnostic instruction that matches the docs:
 ## Human
 
 "
+
 ● No — the fundamental architecture is wrong for Claude Code hooks. Three showstopper issues:
 
+
+
   1. Hook types don't exist. Claude Code has one hook type: "command" (shell commands). There's no "prompt" or "agent" hook type.
+
   UserPromptSubmit and Stop hooks are both command hooks that receive JSON on stdin and emit to stdout.
 
+
+
   2. suppressOutput and match: "always" aren't real fields. UserPromptSubmit hooks don't use matchers. Their stdout becomes injected
+
    context text — period. There's no way to emit structured JSON that the client programmatically routes on. The model just sees
+
   whatever you print to stdout.
 
+
+
   3. The client can't consume hook JSON for routing. The prompt assumes a feedback loop: UserPromptSubmit returns {inject: true,
+
   mode: "light"}, then the client reads this and prepends a system message. That loop doesn't exist. UserPromptSubmit stdout is
+
   opaque text injection into the model's context — Claude Code doesn't parse it as structured data.
+
+
 
   What would actually work (and what you already have):
 
+
+
   - A UserPromptSubmit Python script that classifies the turn and, when analytical, prints the epistemic protocol as plain text to
+
   stdout (this gets injected as context). No JSON, no routing — just conditional text injection.
+
   - A Stop Python script that checks epistemic quality, runs tests if cheap, and either exits 0 (allow) or exits 2 with a block JSON
+
    (or exits 0 with advisory text in a systemMessage field).
 
+
+
   You already built both of these. Your turn_mode.py classifier does the CONTROL/ANALYTICAL split (6-way, more granular). Your
+
   Stop.py runs 31 gates with GATE_CLASSES filtering policy vs quality by turn mode. The epistemic protocol injection happens in
+
   _run_epistemic_contract.
 
+
+
   The prompt is trying to reinvent a simpler version of your existing system, but with incorrect assumptions about the Claude Code
+
   hook API. If you want to reduce Stop friction, the lever is tuning your existing gates — not building a parallel system with a
+
   broken hook model.
 
+
+
 ● Ran 9 stop hooks (ctrl+o to expand)
+
   ⎿  Stop hook error: MULTIPLE VERIFICATION VIOLATIONS DETECTED
 
+
+
   ## Phase 2 (System Claims)
+
   ❌ Unverified System Behavior Claim Blocked
+
+
 
   **Violation Detected:** Unfounded assertion about system behavior
 
+
+
   **Claim:** `as one hook type`
+
+
 
   Read 1 file (ctrl+o to expand)
 
+
+
 ● Now I have the actual evidence. Let me also check the UserPromptSubmit output schema to understand what suppressOutput actually
+
   is.
+
+
 
   Searched for 1 pattern (ctrl+o to expand)
 
+
+
 ● Good — my original critique was partially wrong. Here's the corrected assessment based on the actual docs (claude-hooks-v3.1.md):
 
+
+
   What I got wrong:
+
   - Claude Code has four hook types, not one: command, prompt, http, agent (source: line 12)
+
   - suppressOutput IS a real field — it hides hook output from the user (source: line 1004)
+
   - prompt and agent hook types DO exist (source: lines 1190–1258, 1300–1322)
+
+
 
   Genuine remaining issues with the prompt:
 
+
+
   1. Custom JSON response shapes don't match the schema. Prompt and agent hooks return {ok: bool, reason: "..."} — not arbitrary
+
   fields like inject, mode, epistemic_issues, test_status (source: lines 1226–1233). The user's custom shapes would be silently
+
   ignored by Claude Code.
+
   2. UserPromptSubmit output goes to Claude Code, not user code. The user says "I will handle any block vs advisory decision in my
+
   own Python code later" — but Claude Code consumes the hook output. There's no API for external Python code to read hook results
+
   mid-turn. The correct mechanism is additionalContext (source: line 993) to inject protocol text directly into the conversation.
+
   3. The two-hook design is still partially redundant with what exists. The user's turn_mode.py classifier already does
+
   CONTROL/ANALYTICAL classification (6-way, more granular), and _run_epistemic_contract already injects epistemic protocol. A prompt
+
    hook reinjecting the same protocol would double-inject.
+
   4. match: "always" is wrong syntax. For UserPromptSubmit/Stop, hooks always run by default — no matcher field is needed. The
+
   matcher field is for PreToolUse/PostToolUse tool-name regex matching (source: lines 486–494).
 
+
+
 ● Ran 9 stop hooks (ctrl+o to expand)
+
   ⎿  Stop hook error: LAZY WORKAROUND DETECTED: ignoring duplication
+
+
 
   ⚠️  This suggests accepting a problem instead of fixing the root cause.
 
+
+
   Required approach:
+
   1. TRACE: Find where the problem originates
+
   2. IDENTIFY: What's causing it
+
   3. FIX: Address the actual root cause
+
   4. VERIFY: Confirm the fix works
+
+
 
   Pattern matched: (duplicates?|redundant|extra|double).*(is\\s+)?(fine|acceptable|expected|normal|ok)
 
+
+
   Remember: 'Accepting bugs as features' creates technical debt.
+
   Fix the problem, don't document the workaround.
 
+
+
 ● The hook's right that I soft-pedaled the duplication as a side note instead of tracing the actual failure path. Here's the root
+
   cause:
+
+
 
   The prompt would cause double-injection because:
 
+
+
   1. User types an analytical question
+
   2. New UserPromptSubmit prompt hook fires → injects epistemic protocol via additionalContext
+
   3. UserPromptSubmit_router.py fires → _run_plan_mode_schema() or think_trigger.py may also inject epistemic-related context
+
   4. Response generates
+
   5. Stop.py fires → _run_epistemic_contract checks turn mode (line ~271) and injects epistemic systemMessage again
+
   6. The model gets the same protocol injected twice — once at prompt time, once at stop time
 
+
+
   The fix isn't "add these two hooks" — it's to use the existing injection points. The user's turn_mode.py classifier already
+
   returns "analysis" for analytical turns. The existing _run_epistemic_contract gate already conditionally injects based on that
+
   classification. The correct leverage point is tuning the existing gate's threshold or format, not layering a parallel prompt hook
+
   on top.
 
+
+
   If the user wants proactive injection at prompt time (before generation, not after), the correct approach is adding a module to
+
   UserPromptSubmit_router.py that reads the same turn_mode.py classifier and injects the protocol there — a single injection point,
+
   not two competing ones.
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Self-reflection: Issues found: {'logical_gaps': [], 'overconfidence': [], 'contradictions': ['Contradiction: \\'The correct
+
      leverage point is tuning the existing gate\\'s threshold or format, not layering a parallel prompt hook on top\\' vs \\'The model
+
      gets the same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" —
+
      it\\'s to use the existing injection points\\'', 'Contradiction: \\'The correct leverage point is tuning the existing gate\\'s
+
      threshold or format, not layering a parallel prompt hook on top\\' vs \\'The model gets the same protocol injected twice — once
+
      at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'',
+
      'Contradiction: \\'The correct leverage point is tuning the existing gate\\'s threshold or format, not layering a parallel prompt
+
       hook on top\\' vs \\'The model gets the same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix
+
      isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'The correct leverage point is
+
      tuning the existing gate\\'s threshold or format, not layering a parallel prompt hook on top\\' vs \\'The model gets the same
+
      protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the
+
      existing injection points\\'', 'Contradiction: \\'If the user wants proactive injection at prompt time (before generation, not
+
      after), the correct approach is adding a module to `UserPromptSubmit_router\\' vs \\'The model gets the same protocol injected
+
      twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection
+
      points\\'', 'Contradiction: \\'If the user wants proactive injection at prompt time (before generation, not after), the correct
+
      approach is adding a module to `UserPromptSubmit_router\\' vs \\'The model gets the same protocol injected twice — once at prompt
+
       time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'',
+
      'Contradiction: \\'If the user wants proactive injection at prompt time (before generation, not after), the correct approach is
+
      adding a module to `UserPromptSubmit_router\\' vs \\'The model gets the same protocol injected twice — once at prompt time, once
+
      at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'If
+
      the user wants proactive injection at prompt time (before generation, not after), the correct approach is adding a module to
+
      `UserPromptSubmit_router\\' vs \\'The model gets the same protocol injected twice — once at prompt time, once at stop
+
      time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'The correct
+
      leverage point is tuning the existing gate\\'s threshold or format, not layering a parallel prompt hook on top\\' vs \\'The model
+
      gets the same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" —
+
      it\\'s to use the existing injection points\\'', 'Contradiction: \\'The correct leverage point is tuning the existing gate\\'s
+
      threshold or format, not layering a parallel prompt hook on top\\' vs \\'The model gets the same protocol injected twice — once
+
      at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'',
+
      'Contradiction: \\'The correct leverage point is tuning the existing gate\\'s threshold or format, not layering a parallel prompt
+
       hook on top\\' vs \\'The model gets the same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix
+
      isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'If the user wants proactive
+
      injection at prompt time (before generation, not after), the correct approach is adding a module to `UserPromptSubmit_router\\'
+
      vs \\'The model gets the same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these
+
      two hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'If the user wants proactive injection at prompt
+
      time (before generation, not after), the correct approach is adding a module to `UserPromptSubmit_router\\' vs \\'The model gets
+
      the same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to
+
      use the existing injection points\\'', 'Contradiction: \\'If the user wants proactive injection at prompt time (before
+
      generation, not after), the correct approach is adding a module to `UserPromptSubmit_router\\' vs \\'The model gets the same
+
      protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the
+
      existing injection points\\'', 'Contradiction: \\'The correct leverage point is tuning the existing gate\\'s threshold or format,
+
      not layering a parallel prompt hook on top\\' vs \\'The model gets the same protocol injected twice — once at prompt time, once
+
      at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'The
+
      correct leverage point is tuning the existing gate\\'s threshold or format, not layering a parallel prompt hook on top\\' vs
+
      \\'The model gets the same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two
+
      hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'If the user wants proactive injection at prompt time
+
      (before generation, not after), the correct approach is adding a module to `UserPromptSubmit_router\\' vs \\'The model gets the
+
      same protocol injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use
+
      the existing injection points\\'', 'Contradiction: \\'If the user wants proactive injection at prompt time (before generation,
+
      not after), the correct approach is adding a module to `UserPromptSubmit_router\\' vs \\'The model gets the same protocol
+
      injected twice — once at prompt time, once at stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing
+
      injection points\\'', 'Contradiction: \\'The correct leverage point is tuning the existing gate\\'s threshold or format, not
+
      layering a parallel prompt hook on top\\' vs \\'The model gets the same protocol injected twice — once at prompt time, once at
+
      stop time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\'', 'Contradiction: \\'If the
+
      user wants proactive injection at prompt time (before generation, not after), the correct approach is adding a module to
+
      `UserPromptSubmit_router\\' vs \\'The model gets the same protocol injected twice — once at prompt time, once at stop
+
      time\\n\\n**The fix isn\\'t "add these two hooks" — it\\'s to use the existing injection points\\''], 'missing_alternatives': []}
+
      ADVISORY: Response does not mention any of the 13 items from the user's structured list. Consider whether the investigation
+
      covered the intended entities.
+
 "
 
 ## Assistant
@@ -3859,48 +4607,91 @@ This prompt keeps everything inside your existing code, uses `additionalContext`
 ## Human
 
 "
+
   Summary of what was done:
+
   - Stop.py: Added _challenge_marker_active() function and early return in _run_epistemic_contract to skip format-only repair when
+
   ADVOCATE_PROTOCOL was injected upstream (from prior session)
+
   - test_stop_plan_report_mode.py: Fixed 6 categories of test rot from the Phase 2-4 refactor:
+
     - _detect_turn_kind → _classify_turn_mode (7 occurrences)
+
     - "report" → "execution-report" (2 occurrences)
+
     - Removed imperative command "Fix the bug" from analysis expectation list
+
     - Empty prompt expectation: "analysis" → "query"
+
     - Report-over-plan test: removed [PLAN] from response, changed prompt to non-planning
+
     - Multiple tests: response text extended past 100-char threshold for correct classification
+
   - Moved 3 pre-existing broken test files to _legacy/
+
   ⎿  Stop says: **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: All 28 tests pass. The broader test suite has pre-existing collection errors (`PostToolUseHook` NameError cascading
+
      from `skill_execution_tracker.py`) that are unrelated to my changes.
 
+
+
      Summary of what was done:
+
      - **Stop.py**: Added `_challenge_marker_active()` function and early return in `_run_epistemic_contract` to skip format-only
+
      repair when ADVOCATE_PROTOCOL was injected upstream (from prior session)
+
      - **test_stop_plan_report_mode.py**: Fixed 6 categories of test rot from the Phase 2-4 refactor:
+
        - `_detect_turn_kind` → `_classify_turn_mode` (7 occurrences)
+
        - `"report"` → `"execution-report"` (2 occurrences)
+
        - Removed imperative command "Fix the bug" from analysis expectation list
+
        - Empty prompt expectation: `"analysis"` → `"query"`
+
        - Report-over-plan test: removed `[PLAN]` from response, changed prompt to non-planning
+
        - Multiple tests: response text extended past 100-char threshold for correct classification
+
      - Moved 3 pre-existing broken test files to `_legacy/`
+
      ADVISORY: Response does not mention any of the 64 items from the user's structured list. Consider whether the investigation
+
      covered the intended entities.
 
+
+
      ============================================================
+
      ⚠️  HOOK HEALTH ALERT
+
      ============================================================
+
      Failing hooks: 0
+
      Errors in last hour: 16
 
+
+
      Next steps:
+
        Run: python P:/.claude/hooks/hook_audit_dashboard.py health
+
        Or:  python P:/.claude/hooks/hook_diagnostics.py
+
      ============================================================
+
 "
 
 ## Assistant
@@ -4035,266 +4826,527 @@ This prompt keeps the LLM in **read-only audit mode**: it inspects `_challenge_m
 ## Human
 
 "
+
   ---
+
   [FACT]
 
+
+
   Files Inspected:
+
   - Stop.py lines 261-344: _challenge_marker_active() and _run_epistemic_contract()
+
   - __lib/turn_mode.py: 6-way classifier (already in context)
+
   - tests/test_stop_plan_report_mode.py: already in context
+
   - conftest.py (hooks root): pytest_ignore_collect() with ignored_dirs set at line 92-103
+
   - tests/conftest.py: test fixtures, no collection filtering
+
   - pytest.ini: norecursedirs at line 4 — _archive __pycache__ .mypy_cache deprecated logs state .state sessions
+
   - tests/_legacy/test_cleanup_feedback.py: imports cleanup from skills/cleanup/scripts/cleanup.py
+
   - tests/_legacy/test_first_tool_coherence.py: imports PreToolUse_skill_pattern_gate
+
   - tests/_legacy/test_slash_command_observability.py: imports slash_command_observability from UserPromptSubmit_modules
+
   - UserPromptSubmit_modules/anti_sycophancy_injector.py lines 255-327: marker write/clear lifecycle
 
+
+
   _challenge_marker_active() behavior (Stop.py:261-284):
+
   - Reads env vars CLAUDE_SESSION_ID and CLAUDE_TERMINAL_ID
+
   - Sanitizes them to filesystem-safe strings
+
   - Checks for file at P:/.claude/hooks/state/anti_sycophancy_injector/challenge__{session}__{terminal}.json
+
   - If file exists: parses JSON, returns True if time.time() - timestamp < 120 (2-min TTL)
+
   - If file exists but is unreadable: returns True (conservative)
+
   - If file doesn't exist or state dir doesn't exist: returns False
 
+
+
   _run_epistemic_contract early return chain (Stop.py:287-336):
+
   1. Empty response → None
+
   2. Turn mode == "exploration" → None (line 297-298)
+
   3. verdict.decision == "block" → block dict (line 317-327)
+
   4. verdict.decision == "warn" and turn mode in ("plan", "execution-report", "exploration") → None (line 329-331)
+
   5. ALL issues are type=="format" AND _challenge_marker_active() → None (line 334-336)
+
   6. Otherwise → auto-repair injection
 
+
+
   Marker lifecycle (anti_sycophancy_injector.py):
+
   - Written at line 322 when _classify_prompt returns a non-"none" trigger level AND the prompt signature hasn't been seen recently
+
   - Cleared at line 308 when trigger level is "none"
+
   - Scoped per (session_id, terminal_id)
+
   - Contains timestamp, trigger_level, session_id, terminal_id
 
+
+
   pytest collection config:
+
   - conftest.py:pytest_ignore_collect (line 85-189): checks ignored_dirs = {".temp", "_archive", "_archived", "__pycache__",
+
   ".mypy_cache", "deprecated", "logs", "state", ".state", "sessions"} — does NOT include _legacy
+
   - pytest.ini:norecursedirs: _archive __pycache__ .mypy_cache deprecated logs state .state sessions — does NOT include _legacy
+
   - tests/conftest.py: collect_ignore = ["deprecated"] — does NOT include _legacy
 
+
+
   Test collection confirmation: When the full suite was run after the move, all 4 _legacy/ files still produced collection errors —
+
   proving pytest still collects from _legacy/.
 
+
+
   ---
+
   [INFERENCE]
+
+
 
   Q1: Under what exact circumstances will epistemic format repair be skipped?
 
+
+
   Format repair is skipped when ALL of these conditions hold simultaneously:
+
   1. The validator returns decision == "warn" (not "block")
+
   2. Every issue in the verdict has type == "format" (no citation/causal/comparative issues)
+
   3. _challenge_marker_active() returns True — meaning a file challenge__{session}__{terminal}.json exists in the
+
   anti_sycophancy_injector state directory with a timestamp less than 2 minutes old
 
+
+
   Additionally, format repair is skipped unconditionally for exploration turns (line 297) and for plan/execution-report/exploration
+
   turns when the decision is "warn" (line 329-331).
+
+
 
   Q2: Is the ADVOCATE_PROTOCOL / challenge marker scoped per session/turn in a way that avoids false positives?
 
+
+
   Mostly yes, with one narrow gap:
+
   - The marker is scoped to (session_id, terminal_id) — two different terminals or sessions won't see each other's markers.
+
   (Verified: Stop.py:267-270 reads same env vars that anti_sycophancy_injector writes.)
+
   - The 2-minute TTL limits temporal scope — stale markers expire.
+
   - The marker is cleared when trigger_level == "none" (line 308) — so non-challenge turns actively clear it.
 
+
+
   The narrow gap: If a challenge marker is written at the end of turn N (UserPromptSubmit), and turn N+1 is an analytical response
+
   in the same terminal within 2 minutes, the marker is still active. Turn N+1 was NOT a challenge turn — but the marker from turn N
+
   persists. This means format-only repair could be suppressed on turn N+1 even though N+1 had no ADVOCATE_PROTOCOL injection. The
+
   2-minute TTL bounds this window, but it exists.
+
+
 
   Q3: Are there any turn modes where this early return might cause us to miss a necessary epistemic correction?
 
+
+
   Yes — for analysis and final-answer turns:
+
   - These are the two modes where epistemic format enforcement is intended to run (line 329-331 only skips plan, execution-report,
+
   exploration)
+
   - The challenge-marker early return at line 334-336 fires for analysis and final-answer modes when ALL issues are format-only and
+
   the marker is active
+
   - If the ADVOCATE_PROTOCOL STATUS labels (TESTED_IN_ENV, INFERRING_FROM_CODE, etc.) genuinely satisfy the evidence-discipline
+
   requirement, this is correct behavior — no duplication
+
   - If the response has format issues beyond what STATUS labels address (e.g., missing citation sources, causal claims without
+
   evidence), those would be type != "format" issues and would NOT be suppressed by the all_format guard
 
+
+
   So the guard is narrowly scoped: it only suppresses when every issue is a formatting issue AND the upstream protocol already
+
   provides evidence labeling. Non-format issues (citation, causal, comparative) still get caught.
+
+
 
   Q4: Are the tests in _legacy/ still being collected by pytest?
 
+
+
   Yes. This is confirmed by the test run output where all 4 _legacy/ files produced collection errors. Neither
+
   conftest.py:pytest_ignore_collect nor pytest.ini:norecursedirs includes _legacy in their exclusion lists.
+
+
 
   Q5: If not, where exactly is that configured?
 
+
+
   N/A — they ARE still collected. To actually exclude them, _legacy would need to be added to either:
+
   - conftest.py:ignored_dirs set (line 92-103), or
+
   - pytest.ini:norecursedirs (line 4), or
+
   - tests/conftest.py:collect_ignore list (line 14)
+
+
 
   Q6: Will _run_epistemic_contract inject protocol / format repair or skip it?
 
+
+
   Case A: Analytical turn, no upstream ADVOCATE_PROTOCOL / challenge marker.
+
   - Turn mode: "analysis" (from _classify_turn_mode)
+
   - Not "exploration" → doesn't skip at line 297
+
   - If validator returns "warn" with issues:
+
     - Turn mode not in ("plan", "execution-report", "exploration") → doesn't skip at line 330
+
     - _challenge_marker_active() returns False → doesn't skip at line 335
+
     - Proceeds to auto-repair injection at line 340
+
   - Result: Format repair RUNS. Correct.
 
+
+
   Case B: Analytical turn, upstream ADVOCATE_PROTOCOL / challenge marker present.
+
   - Turn mode: "analysis"
+
   - Not "exploration" → doesn't skip at line 297
+
   - If validator returns "warn" with format-only issues:
+
     - Turn mode not in skip set → doesn't skip at line 330
+
     - _challenge_marker_active() returns True → all_format guard triggers at line 335
+
     - Result: Format repair SKIPPED. Intended — ADVOCATE_PROTOCOL already provides evidence labeling.
+
   - If validator returns "warn" with mixed issues (format + citation/causal):
+
     - all_format is False → doesn't trigger line 335
+
     - Proceeds to auto-repair
+
     - Result: Repair RUNS for non-format issues. Correct.
+
   - If validator returns "block":
+
     - Blocks regardless at line 317
+
     - Result: BLOCK. Correct.
 
+
+
   Case C: Control turn ("stop", "do X instead").
+
   - Turn mode: "control" — but _run_epistemic_contract does NOT check for "control" mode at any early-return point
+
   - However, control turns are typically short responses that may not trigger the epistemic validator at all
+
   - If the response happens to be long enough to trigger validation:
+
     - Not "exploration" → doesn't skip at line 297
+
     - Turn mode "control" not in skip set → doesn't skip at line 330
+
     - No challenge marker → doesn't skip at line 335
+
     - Proceeds to auto-repair
+
   - Result: Format repair could RUN on control turns. This is a minor gap — control turns are meant to bypass quality gates. The
+
   is_quality_mode_suppressed() function in turn_mode.py returns True for "control", but that's checked elsewhere in Stop.py, not in
+
   _run_epistemic_contract.
 
+
+
   Case D: execution-report / plan / exploration turns.
+
   - "exploration": skips at line 297 unconditionally
+
   - "plan" / "execution-report": skips at line 330-331 on "warn" decisions
+
   - "block" decisions still block for all modes
+
   - Result: Format repair SKIPPED for all three (warn only). Correct.
+
+
 
   Q7: Do these behaviors match the intended design?
 
+
+
   Mostly yes, with one gap:
+
   - Analysis + no marker: Repair runs ✓
+
   - Analysis + marker + format-only: Skipped (intended, avoids duplication) ✓
+
   - Analysis + marker + mixed issues: Repair runs for non-format ✓
+
   - Block decisions: Always enforced ✓
+
   - Plan/report/exploration: Skipped on warn ✓
+
   - Control turns: Not explicitly handled in _run_epistemic_contract — could trigger repair on long control responses. Minor
+
   inconsistency with the broader quality-gate suppression design.
+
+
 
   Q8: Is moving those tests into _legacy/ functionally equivalent to deleting them?
 
+
+
   No — it's worse than deleting. The files were moved to a directory that pytest still collects from, so they still cause collection
+
    errors. If they had been deleted, pytest wouldn't encounter them at all. Instead, they now produce
+
   ImportError/ModuleNotFoundError during collection, which blocks the entire test suite from running (pytest interrupts on
+
   collection errors).
+
+
 
   Q9: If so, does the code or commit message acknowledge this as a temporary measure?
 
+
+
   No. The move was not committed yet (it was done in the current session). There is no TODO comment, no commit message, and no
+
   acknowledgment in the test files themselves that they are temporarily disabled. They were silently moved to a directory name that
+
   sounds like it should be excluded but isn't.
+
+
 
   Q10: Is _challenge_marker_active() being used in a way that could hide real epistemic issues, or is it narrowly scoped?
 
+
+
   It is narrowly scoped. Three guards prevent it from hiding real issues:
+
   1. all_format guard: Only suppresses when every issue is type == "format". Citation, causal, and comparative issues bypass this
+
   check entirely.
+
   2. verdict.decision == "block" guard: Block-level violations are never suppressed regardless of marker state.
+
   3. 2-minute TTL: The marker expires quickly, limiting the window for false suppression.
+
   4. Turn-mode guard: Plan/report/exploration already skip independently; the marker check only affects analysis and final-answer
+
   modes.
 
+
+
   The one risk identified (Q2): a stale marker from a previous turn within the same terminal could suppress format repair for a
+
   subsequent non-challenge analytical turn within the 2-minute window. This is a low-severity timing issue, not a design flaw.
 
+
+
   ---
+
   [RECOMMENDATION]
 
+
+
   - Highest priority: The _legacy directory is NOT excluded from pytest collection. Either add _legacy to conftest.py:ignored_dirs
+
   or to pytest.ini:norecursedirs, or delete the files outright. In their current state, they block the entire test suite from
+
   running.
+
   - Second priority: test_first_tool_coherence.py tests a genuinely useful contract (first-tool coherence for skill frontmatter).
+
   Consider restoring it with an updated import path (PreToolUse.PreToolUse_skill_pattern_gate or wherever the module now lives).
+
   - Minor: _run_epistemic_contract doesn't check for "control" turn mode. If control turns should bypass epistemic enforcement
+
   (consistent with the broader quality-gate suppression design), add "control" to the early-return check.
 
+
+
   ---
+
   [UNKNOWN]
 
+
+
   - I did not verify whether PreToolUse_skill_pattern_gate now lives at PreToolUse/PreToolUse_skill_pattern_gate.py (a subdirectory)
+
    — I confirmed the old top-level import fails but did not trace the new location.
+
   - I did not verify whether cleanup.py (from the cleanup skill) was intentionally deleted or whether test_cleanup_feedback.py tests
+
    a feature that was removed by design decision.
+
   - I did not verify whether slash_command_observability was merged into another module or simply deleted.
 
+
+
 ● Ran 9 stop hooks (ctrl+o to expand)
+
   ⎿  Stop hook error: **Unverified Deletion Claim Detected**
 
+
+
   Claim: "deleted or"
+
+
+
+
 
 
 
   Too many paths to verify (31 > 20). Verify deletion in batches.
 
 
+
+
+
   Before claiming files are deleted, verify they actually don't exist on the file system. Use Read, Glob, or Bash to confirm
+
    the deletion succeeded.
+
+
 
 ● I need to verify my claims about the missing modules before asserting they're deleted.
 
+
+
   Searched for 3 patterns (ctrl+o to expand)
+
+
 
 ● Key findings from verification:
 
+
+
   1. PreToolUse_skill_pattern_gate: Has a __pycache__ entry and a PreToolUse_skill_pattern_gate_testlink file in PreToolUse/, but no
+
    .py source file at the expected location. The module was likely moved or renamed during the prior refactor.
+
   2. slash_command_observability: Only exists as a .pyc cache file in __pycache__. No .py source file exists.
+
   3. cleanup skill: No .py files found under skills/cleanup/. The cleanup skill directory doesn't exist at the expected path.
 
+
+
   All three modules lack source files — the imports in those test files genuinely fail because the source code no longer exists at
+
   the paths the tests expect. The __pycache__ remnants confirm the modules existed at some point but have since been removed.
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: Key findings from verification:
 
+
+
      1. **`PreToolUse_skill_pattern_gate`**: Has a `__pycache__` entry and a `PreToolUse_skill_pattern_gate_testlink` file in
+
      `PreToolUse/`, but no `.py` source file at the expected location. The module was likely moved or renamed during the prior
+
      refactor.
+
+
 
      2. **`slash_command_observability`**: Only exists as a `.pyc` cache file in `__pycache__`. No `.py` source file exists.
 
+
+
      3. **`cleanup` skill**: No `.py` files found under `skills/cleanup/`. The cleanup skill directory doesn't exist at the expected
+
       path.
 
+
+
      All three modules lack source files — the imports in those test files genuinely fail because the source code no longer exists
+
      at the paths the tests expect. The `__pycache__` remnants confirm the modules existed at some point but have since been
+
      removed.
+
      ADVISORY: Response does not mention any of the 51 items from the user's structured list. Consider whether the investigation
+
      covered the intended entities.
 
+
+
      ============================================================
+
      ⚠️  HOOK HEALTH ALERT
+
      ============================================================
+
      Failing hooks: 0
+
      Errors in last hour: 48
 
+
+
      Next steps:
+
        Run: python P:/.claude/hooks/hook_audit_dashboard.py health
+
        Or:  python P:/.claude/hooks/hook_diagnostics.py
+
      ============================================================"
 
 ## Assistant
@@ -4436,11 +5488,17 @@ Once you have the patches from this, you can review them and then tackle the con
 ## Human
 
 "
+
   - 28/28 plan/report mode tests pass (0.51s)
+
   - _legacy/ collects 0 items — the 3 broken tests are properly excluded
 
+
+
   The fix uses Option A with defense-in-depth: 4 exclusion points (pytest.ini norecursedirs, root conftest ignored_dirs, root
+
   conftest stale_files set by filename, tests/conftest collect_ignore), all with explicit comments explaining the _legacy directory
+
   contains tests for permanently removed features whose source modules no longer exist."
 
 ## Assistant
@@ -4610,34 +5668,63 @@ Be explicit, precise, and opinionated: aim for the best design, not the smallest
 ## Human
 
 "
+
   ---
+
   [FACT]
+
   - _run_epistemic_contract now checks is_quality_mode_suppressed(turn_mode, quality_mode) at entry and returns None early for
+
   control and exploration turns in normal mode (source: Stop.py _run_epistemic_contract).
+
   - _process_gate_result suppresses quality gate BLOCKS on control/exploration turns — previously only systemMessages were
+
   suppressed, but blocks escaped (source: Stop.py _process_gate_result).
+
   - Policy gate blocks always fire regardless of turn mode — safety gates, secret detection, etc. are never suppressed (source: test
+
    test_policy_block_not_suppressed_on_control passes).
+
   - --epistemic-strict flag overrides suppression, forcing full validation even on control/exploration turns (source: Stop.py
+
   _run_epistemic_contract).
+
   - STOP_QUALITY_MODE=strict re-enables quality gates for exploration but still suppresses control — you never nag on "stop"
+
   (source: turn_mode.is_quality_mode_suppressed).
+
   - turn_mode.py public API was NOT changed — constraint satisfied (source: no edits to __lib/turn_mode.py).
+
   - 20 new tests pass, 28 existing tests still pass (source: pytest output above).
 
+
+
   [INFERENCE]
+
   - The design gap (quality gate BLOCKS escaping suppression) may have caused occasional quality-gate blocks on control turns in
+
   production, though the user did not report specific incidents.
+
   - The --epistemic-strict flag is per-turn and unlikely to be used casually, making it a safe override mechanism.
 
+
+
   [UNKNOWN]
+
   - Whether any production turn was actually blocked by the quality gate on a control turn before this fix.
 
+
+
   [RECOMMENDATION]
+
   - Commit the changes: Stop.py (3 edits) + tests/test_stop_control_mode.py (new file). The design is now consistent: control turns
+
   skip quality gates entirely at both the validator level and the block-routing level, while policy gates always fire.
+
   ⎿  Stop says: OVERCONFIDENCE CHECK:
+
      - blocked by -> Trace which component caused outcome. Context ≠ causation
+
      **Enhanced Reasoning Applied**"
 
 ## Assistant
@@ -4764,165 +5851,325 @@ This keeps the model focused on summarizing and documenting what you already imp
 ## Human
 
 "
+
 ● 1. Behavior Before and After
+
+
 
   Before the fix
 
+
+
   Stop.py had two QUALITY suppression mechanisms for control/exploration turns, but they were incomplete:
 
+
+
   1. _run_epistemic_contract checked for exploration turns and returned None early, but did NOT check for control turns. A control
+
   turn with a long analytical response (e.g., "fix the bug in Stop.py" followed by a detailed response with "root cause" /
+
   "evidence" language) would run the full epistemic validator, potentially injecting format-repair systemMessages.
+
   2. _process_gate_result routed systemMessages through the quality vs policy bucketing system, where _merge_quality_messages
+
   suppressed quality systemMessages on control/exploration turns. However, when a gate returned decision: "block",
+
   _process_gate_result exited immediately — before the quality/policy routing logic. This meant a quality gate block on a control
+
   turn would fire (print the block JSON and set blocked = True), even though the same gate's systemMessages would have been
+
   suppressed.
 
+
+
   In short: systemMessages from quality gates were suppressed on control turns, but block outcomes from those same gates were not.
+
   The suppression was inconsistent between the two output paths.
+
+
 
   POLICY gates (safety, destructive actions, deletion verification, blacklist) were always unaffected and remain so.
 
+
+
   After the fix
 
+
+
   1. _run_epistemic_contract calls is_quality_mode_suppressed(turn_mode, quality_mode) at entry. For control and exploration turns
+
   in normal mode, it returns None immediately — the validator never runs at all. This eliminates both block and systemMessage paths
+
   at the source.
+
   2. _process_gate_result now receives turn_mode and quality_mode parameters. When a gate returns decision: "block", it checks
+
   GATE_CLASSES[name]. If the gate is classified as "quality" AND is_quality_mode_suppressed returns True, the block is suppressed
+
   (returns False). Policy gate blocks always fire regardless.
+
   3. --epistemic-strict in the user prompt overrides suppression at the _run_epistemic_contract level, forcing the validator to run
+
   even on control/exploration turns.
+
   4. STOP_QUALITY_MODE=strict re-enables quality gates for exploration turns (since the user opted into strict mode globally) but
+
   still suppresses control turns — "stop" is never nagged.
 
+
+
   ---
+
   2. Problem Statement
 
+
+
   The Stop gate's _process_gate_result function had a code path where QUALITY gate block outcomes could escape suppression on
+
   control and exploration turns. The function's early-exit on decision: "block" occurred before the quality/policy routing logic, so
+
    blocks from quality gates fired even though their systemMessages were correctly suppressed by the same turn-mode check
+
   downstream. Whether this path was ever exercised in production is unknown — no specific incident has been identified. The fix
+
   makes quality gate suppression consistent across both output paths (blocks and systemMessages).
 
+
+
   ---
+
   3. Commit Message
+
+
 
   fix(Stop): suppress quality gate blocks on control/exploration turns
 
+
+
   Before: _process_gate_result exited early on any block before checking
+
   gate class, so quality gate blocks could fire on control/exploration
+
   turns even though their systemMessages were suppressed downstream.
+
   _run_epistemic_contract also lacked an explicit control-mode skip,
+
   meaning control turns with long analytical responses could trigger
+
   format-repair injection.
 
+
+
   After: _run_epistemic_contract returns None early for control/exploration
+
   turns via is_quality_mode_suppressed(). _process_gate_result now checks
+
   GATE_CLASSES before exiting on a block — quality blocks are suppressed
+
   when the turn mode calls for it; policy blocks always fire.
 
+
+
   Per-turn --epistemic-strict overrides suppression at the validator level.
+
   STOP_QUALITY_MODE=strict re-enables quality gates for exploration but
+
   still suppresses control — "stop" is never nagged. turn_mode.py public
+
   API unchanged.
 
+
+
   Prior quality-block leak was a potential issue; actual production
+
   impact is unknown.
 
+
+
   Invariants after this change:
+
     control:          quality gates suppressed (normal + strict mode)
+
     exploration:      quality gates suppressed in normal, active in strict
+
     analysis/final-answer: full quality + policy enforcement
+
     plan/exec-report: format repair skipped; block-level still fires
+
     policy gates:     never suppressed regardless of turn mode
 
+
+
   ---
+
   4. Design Note Comment
 
+
+
   def _run_epistemic_contract(data: dict) -> dict | None:
+
       """Unified epistemic validator — format, citations, causal, comparative.
+
+
 
       Turn-mode behavior (see turn_mode.py for classification rules):
 
+
+
         control / exploration
+
             SKIP entirely — direct commands and open-ended reasoning are not
+
             subject to format nagging.  Suppressed via is_quality_mode_suppressed().
+
             Override: ``--epistemic-strict`` in the user prompt forces full validation.
 
+
+
         plan / execution-report
+
             Warn-level format repair is skipped (structural responses don't need it).
+
             Block-level violations still fire.
 
+
+
         analysis / final-answer
+
             FULL enforcement — format repair, citation checks, causal structure.
+
             ``_challenge_marker_active()`` deduplicates format-only repair when
+
             ADVOCATE_PROTOCOL already injected a challenge (2-min TTL).
 
+
+
       Quality vs policy invariant:
+
         QUALITY gates (epistemic_contract, anti_sycophancy_quality, etc.) are
+
         suppressed for control turns in both normal and strict quality modes.
+
         POLICY gates (safety_gate, deletion_verification, etc.) are NEVER
+
         suppressed regardless of turn mode.
 
+
+
       Environment:
+
         STOP_QUALITY_MODE=normal  — default; control + exploration suppressed.
+
         STOP_QUALITY_MODE=strict  — exploration re-enabled; control still suppressed.
+
         ``--epistemic-strict``    — per-turn override; forces full validation.
+
       """
 
+
+
   ---
+
   [FACT]
 
+
+
   - Before: _run_epistemic_contract skipped exploration turns but not control turns, allowing the validator to run on control turns
+
   with long analytical responses (source: Stop.py pre-edit behavior described in task context).
+
   - Before: _process_gate_result exited on any decision: "block" before the quality/policy routing logic, so quality gate blocks
+
   fired on control/exploration turns even when systemMessages from those same gates were suppressed (source: Stop.py
+
   _process_gate_result pre-edit behavior).
+
   - After: _run_epistemic_contract calls is_quality_mode_suppressed() at entry and returns None for control and exploration turns in
+
    normal mode — the validator never runs (source: Stop.py _run_epistemic_contract post-edit).
+
   - After: _process_gate_result checks GATE_CLASSES[name] before exiting on a block; quality blocks are suppressed when
+
   is_quality_mode_suppressed() returns True (source: Stop.py _process_gate_result post-edit).
+
   - Policy gate blocks always fire regardless of turn mode — no change before or after (source: test
+
   test_policy_block_not_suppressed_on_control passes).
+
   - --epistemic-strict per-turn override forces full validation on control/exploration turns (source: tests
+
   test_control_with_epistemic_strict_does_not_skip and test_exploration_with_epistemic_strict_does_not_skip pass).
+
   - STOP_QUALITY_MODE=strict re-enables quality gates for exploration but still suppresses control (source:
+
   turn_mode.is_quality_mode_suppressed semantics, tests test_quality_block_fires_on_exploration_in_strict_mode and
+
   test_quality_block_fires_on_control_in_strict_mode pass).
+
   - turn_mode.py public API was not changed (source: constraint from task spec, confirmed by no edits to that file).
+
+
 
   [INFERENCE]
 
+
+
   The new behavior is architecturally better because it makes quality gate suppression consistent across both output paths (block
+
   and systemMessage) and moves the suppression decision to the earliest possible point (_run_epistemic_contract entry). This
+
   eliminates the redundant execution of the epistemic validator on control turns — the validator simply doesn't run — while
+
   preserving the defense-in-depth of a second suppression check in _process_gate_result for any quality gate that isn't the
+
   epistemic contract. The policy/quality split ensures safety gates remain unconditional.
+
+
 
   [RECOMMENDATION]
 
+
+
   Commit message and design note provided above in sections 3 and 4. Use the commit message as-is for the git commit.
+
+
 
   [UNKNOWN]
 
+
+
   Whether the prior quality-block leak ever caused a production quality-gate block on a control or exploration turn — no specific
+
   incident has been reported or identified.
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
 
+
+
      ============================================================
+
      ⚠️  HOOK HEALTH ALERT
+
      ============================================================
+
      Failing hooks: 0
+
      Errors in last hour: 49
 
+
+
      Next steps:
+
        Run: python P:/.claude/hooks/hook_audit_dashboard.py health
+
        Or:  python P:/.claude/hooks/hook_diagnostics.py
+
      ============================================================
+
 "
 
 ## Assistant
@@ -5002,43 +6249,81 @@ If you tell me which behavior is actually implemented (strict still suppresses c
 ## Human
 
 "
+
 ● Both results confirm the actual behavior. Here's the precise answer:
+
+
 
   Strict mode still suppresses control turns. It only re-enables quality gates for exploration.
 
+
+
   The implementation at turn_mode.py:199-212:
 
+
+
   - normal mode: suppresses quality gates for both control AND exploration
+
   - strict mode: suppresses quality gates for control only; exploration is re-enabled
 
+
+
   The test at line 288 (test_quality_block_fires_on_control_in_strict_mode) actually asserts not blocked — confirming control is
+
   STILL suppressed even in strict mode.
 
+
+
   Correction to my earlier output: In the commit message and design note I wrote "control: quality gates suppressed (normal + strict
+
    mode)" — that is correct and matches the code. But I also wrote "STOP_QUALITY_MODE=strict re-enables quality gates for
+
   exploration but still suppresses control" which is also correct. The [FACT] section in my previous response accurately stated
+
   this. So the commit message is already aligned with the actual implementation.
+
+
 
   To be explicit about the full matrix:
 
+
+
   ┌──────────────────┬───────────────────────┬───────────────────────┐
+
   │    Turn Mode     │        Normal         │        Strict         │
+
   ├──────────────────┼───────────────────────┼───────────────────────┤
+
   │ control          │ suppressed            │ suppressed            │
+
   ├──────────────────┼───────────────────────┼───────────────────────┤
+
   │ exploration      │ suppressed            │ active                │
+
   ├──────────────────┼───────────────────────┼───────────────────────┤
+
   │ analysis         │ active                │ active                │
+
   ├──────────────────┼───────────────────────┼───────────────────────┤
+
   │ plan             │ format-repair skipped │ format-repair skipped │
+
   ├──────────────────┼───────────────────────┼───────────────────────┤
+
   │ execution-report │ format-repair skipped │ format-repair skipped │
+
   └──────────────────┴───────────────────────┴───────────────────────┘
 
+
+
   The invariant is: control is never nagged, regardless of quality mode.
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**"
 
 ## Assistant
@@ -5347,298 +6632,591 @@ If you want, I can now draft a very tight prompt whose only purpose is to add a 
 
 Why did we have this problem, and how do we fix it?
 "
+
 ❯ Don't assume this is correct.  Can we create an argument for /bf and cc-bf that tests the routes?  "**Yes, you can test routing
+
   rules with curl by sending requests with specific headers/models that trigger CEL expressions, then checking response
+
   headers/logs to see which provider was used.** [docs.getbifrost](https://docs.getbifrost.ai/providers/routing-rules)
+
+
 
   ## Testing Routing Rules with Curl
 
+
+
   ### 1. Basic Test (Trigger CEL Expression)
+
   Send request with headers/model matching your CEL condition:
+
   ```bash
+
   curl -X POST http://localhost:8080/v1/chat/completions \\
+
     -H "Content-Type: application/json" \\
+
     -H "x-tier: premium" \\
+
     -H "Authorization: Bearer dummy" \\
+
     -d '{
+
       "model": "gpt-4",
+
       "messages": [{"role": "user", "content": "test"}]
+
     }'
+
   ```
+
   If CEL = `headers["x-tier"] == "premium"`, this triggers the rule.
+
   [docs.getbifrost](https://docs.getbifrost.ai/providers/routing-rules)
 
+
+
   ### 2. Check Which Provider Was Used
+
   **Response headers** show routing details:
+
   ```bash
+
   curl -i http://localhost:8080/v1/chat/completions \\
+
     -H "x-tier: premium" \\
+
     -d '{"model":"gpt-4","messages":[{"role":"user","content":"hi"}]}'
+
   ```
+
   Look for headers like:
+
   - `x-bf-provider: openai` (or target provider from rule)
+
   - `x-bf-model: gpt-4o` (resolved model)
+
   - `x-bf-key-id: key-123` (which key was used)
+
    [docs.getbifrost](https://docs.getbifrost.ai/features/governance/routing)
 
+
+
   ### 3. Validate Rule via API (Before Testing)
+
   Create/test rule via Bifrost API:
+
   ```bash
+
   # Create rule
+
   curl -X POST http://localhost:8080/api/governance/routing-rules \\
+
     -H "Content-Type: application/json" \\
+
     -d '{
+
       "name": "Test Premium Route",
+
       "enabled": true,
+
       "cel_expression": "headers[\\"x-tier\\"] == \\"premium\\"",
+
       "targets": [
+
         {"provider": "anthropic", "model": "claude-3-5-sonnet-20241022", "weight": 1.0}
+
       ],
+
       "scope": "global",
+
       "priority": 0
+
     }'
 
+
+
   # List rules to verify
+
   curl http://localhost:8080/api/governance/routing-rules
+
   ```
+
+
+
 
 
   ### 4. Debug with Logs
+
   Run Bifrost with debug logging to see CEL evaluation:
+
   ```bash
+
   # Terminal running Bifrost shows:
+
   # [DEBUG] Evaluating CEL: headers["x-tier"] == "premium" -> true
+
   # [INFO] Routing to provider: anthropic, model: claude-3-5-sonnet-20241022
+
   ```
+
   Check stdout for rule matches. [docs.getbifrost](https://docs.getbifrost.ai/providers/routing-rules)
 
+
+
   ### 5. Test Fallbacks
+
   Remove/break primary target to trigger fallback:
+
   ```bash
+
   curl -X POST http://localhost:8080/v1/chat/completions \\
+
     -H "x-tier: premium" \\
+
     -d '{"model":"nonexistent-model","messages":[{"role":"user","content":"hi"}]}'
+
   ```
+
   Should fallback to `fallbacks: ["openai"]` configured in rule.
+
   [docs.getbifrost](https://docs.getbifrost.ai/providers/routing-rules)
 
+
+
   ### 6. Virtual Key Testing
+
   Use Virtual Keys for isolated testing:
+
   ```bash
+
   curl -X POST http://localhost:8080/v1/chat/completions \\
+
     -H "x-bf-vk: vk-test-routing" \\
+
     -d '{"model":"gpt-4","messages":[{"role":"user","content":"test"}]}'
+
   ```
+
   VK can have scoped rules (team/customer level). [docs.getbifrost](https://docs.getbifrost.ai/features/governance/routing)
 
+
+
   ## Validation Checklist (Before Testing)
+
   From docs: [docs.getbifrost](https://docs.getbifrost.ai/providers/routing-rules)
+
   - ✅ CEL syntax valid (test in UI playground if available)
+
   - ✅ Target provider/model exists in config
+
   - ✅ Fallbacks point to valid providers
+
   - ✅ Rule `enabled: true`
+
   - ✅ Priority doesn't conflict with other rules
+
   - ✅ Use `from_memory=true` query param to verify in-memory state
 
+
+
   ## Example Test Sequence
+
   ```bash
+
   # 1. No special header -> uses default routing
+
   curl http://localhost:8080/v1/chat/completions \\
+
     -d '{"model":"gpt-4","messages":[{"role":"user","content":"test"}]}'
+
+
 
   # 2. Premium header -> triggers CEL rule
+
   curl http://localhost:8080/v1/chat/completions \\
+
     -H "x-tier: premium" \\
+
     -d '{"model":"gpt-4","messages":[{"role":"user","content":"test"}]}'
 
+
+
   # 3. Compare response times/providers via headers
+
   ```
 
+
+
   Confidence: High (API docs + examples confirm curl testing workflow).
+
   [docs.getbifrost](https://docs.getbifrost.ai/api-reference/governance/create-routing-rule)
+
+
 
   Need help crafting a specific CEL test for your Z.ai setup?"
 
+
+
 ● Skill(cc-skills-utils:bf)
+
   ⎿  Initializing…
+
   ⎿  Error: Skill cc-skills-utils:bf cannot be used with Skill tool due to disable-model-invocation
+
+
 
 ● Let me write it directly. First I'll check the package structure.
 
+
+
   Searched for 1 pattern, read 3 files, listed 4 directories (ctrl+o to expand)
+
   ⎿  Loaded CLAUDE.md
+
+
 
 ● I'll build the routing verification module directly. Let me write it to the cc-skills-sdlc scripts directory.
 
+
+
 ● Write(scripts\\verify_glm_routing.py)
+
   ⎿  Wrote 131 lines to scripts\\verify_glm_routing.py
+
        1 #!/usr/bin/env python3
+
        2 """Verify GLM-5.1 routing through Z.AI (not OpenRouter).
+
        3
+
        4 Two-layer verification:
+
        5   1. DB check  — confirm routing_rules + routing_targets point to z.ai/glm-5.1
+
        6   2. Runtime check — POST /v1/chat/completions with model=GLM-5.1,
+
        7      then assert x-bf-provider == "z.ai"
+
        8
+
        9 Usage:
+
       10     python verify_glm_routing.py          # both layers
+
      … +123 lines (ctrl+o to expand)
 
+
+
 ● Bash(python P:/packages/cc-skills-sdlc/scripts/verify_glm_routing.py)
+
   ⎿  Error: Exit code 1
+
      [DB]   route_id=route_glm_5_1  provider=z.ai  model=glm-5.1  ok=True
+
      [RT]   provider=  model_requested=glm-5.1  ok=False
+
             HTTP 200
+
      Traceback (most recent call last):
+
        File "P:\\packages\\cc-skills-sdlc\\scripts\\verify_glm_routing.py", line 131, in <module>
+
          sys.exit(main())
+
                   ~~~~^^
+
        File "P:\\packages\\cc-skills-sdlc\\scripts\\verify_glm_routing.py", line 120, in main
+
          rt_ok = check_runtime()["ok"] if run_runtime else True
+
      … +32 lines (ctrl+o to expand)
 
+
+
 ● Bash(curl -s -i http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d
+
       "{\\"model\\":\\"GLM-5.1\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\"…)
+
   ⎿  HTTP/1.1 200 OK
+
      Server: fasthttp
+
      Date: Mon, 04 May 2026 01:25:26 GMT
+
      … +28 lines (ctrl+o to expand)
+
   ⎿  (timeout 25s)
 
+
+
 ● Update(scripts\\verify_glm_routing.py)
+
   ⎿  Added 8 lines, removed 13 lines
+
       69      # Wait for Bifrost to bind port (up to 15s)
+
       70      for _ in range(30):
+
       71          try:
+
       72 -            with urllib.request.urlopen(req, timeout=10) as resp:
+
       73 -                result["status"] = resp.status
+
       74 -                result["provider"] = resp.headers.get("x-bf-provider", "")
+
       75 -                result["ok"] = result["provider"] == "z.ai"
+
       76 -                # Also grab extra_fields if present
+
       77 -                try:
+
       78 -                    body = json.loads(resp.read().decode("utf-8"))
+
       79 -                    extra = body.get("extra_fields", {})
+
       80 -                    result["model_requested"] = extra.get("model_requested", "")
+
       81 -                    result["cel_match"] = extra.get("cel_match", None)
+
       82 -                except Exception:
+
       83 -                    pass
+
       84 -                return result
+
       72 +            with urllib.request.urlopen(req, timeout=15) as resp:
+
       73 +            result["status"] = resp.status
+
       74 +            body = json.loads(resp.read().decode("utf-8"))
+
       75 +            extra = body.get("extra_fields", {})
+
       76 +            result["provider"] = extra.get("provider", "")
+
       77 +            result["model_requested"] = extra.get("model_requested", "")
+
       78 +            result["cel_match"] = extra.get("cel_match", None)
+
       79 +            result["ok"] = result["provider"] == "z.ai"
+
       80          except urllib.error.URLError as e:
+
       81              if "Connection refused" in str(e):
+
       82                  time.sleep(0.5)
+
+
 
   Read 1 file (ctrl+o to expand)
 
+
+
 ● Update(scripts\\verify_glm_routing.py)
+
   ⎿  Added 8 lines, removed 7 lines
+
       70      for _ in range(30):
+
       71          try:
+
       72              with urllib.request.urlopen(req, timeout=15) as resp:
+
       73 -            result["status"] = resp.status
+
       74 -            body = json.loads(resp.read().decode("utf-8"))
+
       75 -            extra = body.get("extra_fields", {})
+
       76 -            result["provider"] = extra.get("provider", "")
+
       77 -            result["model_requested"] = extra.get("model_requested", "")
+
       78 -            result["cel_match"] = extra.get("cel_match", None)
+
       79 -            result["ok"] = result["provider"] == "z.ai"
+
       73 +                result["status"] = resp.status
+
       74 +                body = json.loads(resp.read().decode("utf-8"))
+
       75 +                extra = body.get("extra_fields", {})
+
       76 +                result["provider"] = extra.get("provider", "")
+
       77 +                result["model_requested"] = extra.get("model_requested", "")
+
       78 +                result["cel_match"] = extra.get("cel_match", None)
+
       79 +                result["ok"] = result["provider"] == "z.ai"
+
       80 +            return result
+
       81          except urllib.error.URLError as e:
+
       82              if "Connection refused" in str(e):
+
       83                  time.sleep(0.5)
 
+
+
 ● Bash(python P:/packages/cc-skills-sdlc/scripts/verify_glm_routing.py)
+
   ⎿  [DB]   route_id=route_glm_5_1  provider=z.ai  model=glm-5.1  ok=True
+
      [RT]   provider=z.ai  model_requested=glm-5.1  ok=True
+
             HTTP 200
+
      … +2 lines (ctrl+o to expand)
+
   ⎿  (timeout 30s)
+
+
 
 ● Both layers pass. The script confirms with evidence:
 
+
+
   - DB layer: provider=z.ai, model=glm-5.1 in routing_targets
+
   - Runtime layer: "provider":"z.ai" in response extra_fields
+
+
 
   So — no, OpenRouter is not in the picture for GLM-5.1. It's Z.AI all the way through.
 
+
+
   Want me to add this as a /bf cc-bf subcommand, or leave it as a standalone script you can call directly?
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**
 
+
+
      [SEQ]
+
+
 
      Conclude: Both layers pass. The script confirms with evidence:
 
+
+
      - **DB layer**: `provider=z.ai`, `model=glm-5.1` in `routing_targets`
+
      - **Runtime layer**: `"provider":"z.ai"` in response `extra_fields`
+
+
 
      So — no, OpenRouter is not in the picture for GLM-5.1. It's Z.AI all the way through.
 
+
+
      Want me to add this as a `/bf cc-bf` subcommand, or leave it as a standalone script you can call directly?
+
+
 
 ✻ Brewed for 5m 54s
 
+
+
 ※ recap: You asked to verify GLM-5.1 is routing through Z.AI (not OpenRouter). The verification script passes both layers: DB
+
   confirms `z.ai/glm-5.1` target, and the live curl test returns `"provider":"z.ai"` in the response — confirmed, no OpenRouter
+
   involved.
+
+
 
 ❯ huh?  What are you doing?
 
+
+
 ● You're right — I went off-track. You asked for an argument for /bf and cc-bf that tests the routes. I built a standalone script
+
   instead of actually integrating it into the skill and command.
 
+
+
   Want me to add verify-routes (or similar) as a subcommand to both /bf and cc-bf — so you can run /bf verify-routes or cc-bf
+
   verify-routes directly? That's what you actually asked for.
+
   ⎿  Stop says: EPISTEMIC ADVISORY (5 issue(s)):
+
        [__GLOBAL__] format: Found 2 line(s) outside any [FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] section.
-       [[FACT]] format: Missing required section [FACT].
-       [[INFERENCE]] format: Missing required section [INFERENCE].
+
+       /FACT format: Missing required section [FACT].
+
+       /INFERENCE format: Missing required section [INFERENCE].
+
      ⚠️ SYCOPHANCY CHECK
+
+
 
      Your response began with: "you're right"
 
+
+
      Answer honestly:
+
      1. Did you verify this is correct, or are you agreeing to be agreeable?
+
      2. If the user made an error, would you still have said "you're right"?
+
      3. What specific evidence supports your agreement?
 
+
+
      If agreeing without verification, reframe: State what you verified and how.
+
      Agreement should follow evidence, not precede it.
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: You're right — I went off-track. You asked for an argument for `/bf` and `cc-bf` that tests the routes. I built a
+
      standalone script instead of actually integrating it into the skill and command.
 
+
+
      Want me to add `verify-routes` (or similar) as a subcommand to both `/bf` and `cc-bf` — so you can run `/bf verify-routes` or
+
      `cc-bf verify-routes` directly? That's what you actually asked for.
 
+
+
      ============================================================
+
      ⚠️  HOOK HEALTH ALERT
+
      ============================================================
+
      Failing hooks: 0
+
      Errors in last hour: 13
 
+
+
      Next steps:
+
        Run: python P:/.claude/hooks/hook_audit_dashboard.py health
+
        Or:  python P:/.claude/hooks/hook_diagnostics.py
+
      ============================================================"
 
 
@@ -6059,90 +7637,175 @@ That tells it unambiguously that hooks are *not* the tool for this particular pr
 ## Human
 
 "
+
 ● Update(CLAUDE.md)
+
       502 +### Intent-Artifact Alignment Gate
+
       503 +
+
       504 +**Purpose**: Quality gate that detects when the assistant did adjacent work instead of modifying the requested tar
+
           +gets. Warns when user names specific file/command/skill targets but the assistant's tool operations miss them.
+
       505 +
+
       506 +**Problem Solved**: User gives explicit instructions ("modify Stop.py and add tests in test_gate.py") but the assi
+
           +stant creates a helper module instead, then claims completion. This gate catches the misalignment between intent a
+
           +nd artifacts.
+
       507 +
+
       508 +**Classification**: Quality gate (`"intent_artifact_alignment": "quality"` in `GATE_CLASSES`). Respects turn-mode
+
           +suppression — skipped on control, exploration, plan, report, and meta turns.
+
       509 +
+
       510 +**Architecture**:
+
       511 +- **Module**: `intent_artifact_alignment.py` — standalone, importable by Stop.py
+
       512 +- **Runner**: `_run_intent_artifact_alignment()` in Stop.py
+
       513 +- **Registration**: `IN_PROCESS_GATES` + `GATE_CLASSES`
+
       514 +- **Target types**: file paths, command names, skill invocations
+
       515 +
+
       516 +**Target Extraction** (from user prompt):
+
       517 +- File targets: "modify Stop.py", "create test_gate.py", "add tests in test_foo.py", "add the gate to Stop.py"
+
       518 +- Command targets: "run pytest", "execute the build"
+
       519 +- Skill targets: "use /rca", "invoke /bf"
+
       520 +
+
       521 +**Artifact Extraction** (from tool_events):
+
       522 +- Edit/Write events → file paths (flat `file_path` or nested `input.file_path`)
+
       523 +- Bash events → command strings
+
       524 +- Skill events → skill names
+
       525 +
+
       526 +**Comparison**: If any prompt targets are NOT in the modified set, warn. If response also claims completion, escal
+
           +ate to block.
+
       527 +
+
       528 +**Path normalization**: Loose matching via suffix and basename comparison. "Stop.py" matches "P:/.claude/hooks/Sto
+
           +p.py".
+
       529 +
+
       530 +**Test coverage**: `tests/test_intent_artifact_alignment.py` (47 tests) covering target extraction, artifact extra
+
           +ction, alignment detection, edge cases, Windows paths, and adjacent-work detection.
+
       531 +
+
       532  ### Legacy Test Exclusion
+
       533
+
       534  Tests for permanently removed features live in `tests/_legacy/`. Excluded from collection at four points:
+
+
 
 ● Now let me verify the edit persisted and run the full test suite across all three test files:
 
+
+
 ● Bash(cd P:/.claude/hooks && python -m pytest tests/test_intent_artifact_alignment.py tests/test_stop_control_mode.py
+
       tests/test_stop_plan_report_mode.py -v --tb=shor…)
+
   ⎿  tests/test_stop_plan_report_mode.py::TestDetectTurnKindExploration::test_alternatives PASSED [ 92%]
+
      tests/test_stop_plan_report_mode.py::TestDetectTurnKindExploration::test_versus PASSED [ 93%]
+
      tests/test_stop_plan_report_mode.py::TestDetectTurnKindExploration::test_compare PASSED [ 94%]
+
      … +8 lines (ctrl+o to expand)
+
   ⎿  (timeout 1m)
+
+
 
 ● 95/95 passing — all three test files clean, no regressions.
 
+
+
   Here's the summary:
 
+
+
   Created:
+
   - intent_artifact_alignment.py — core gate module with extract_targets_from_prompt(), extract_modified_paths(), check_alignment()
+
   - tests/test_intent_artifact_alignment.py — 47 tests
 
+
+
   Modified:
+
   - Stop.py — added _run_intent_artifact_alignment() runner, registered in GATE_CLASSES as "quality" and IN_PROCESS_GATES
+
   - CLAUDE.md — documented the Intent-Artifact Alignment Gate
 
+
+
   Key design decisions:
+
   - Three target types: file (Edit/Write), command (Bash), skill (Skill)
+
   - Loose path matching via suffix + basename for cross-platform compatibility
+
   - Completion claims escalate warn → block
+
   - Quality classification means control/exploration/plan/report/meta turns are automatically suppressed
+
   - The "add X to Stop.py" pattern uses both _TARGET_EXTRACT_RE (verb+path) and _TO_PATH_RE ("to ") to catch phrasing variants
+
   ⎿  Stop says: EPISTEMIC ADVISORY (5 issue(s)):
+
        [__GLOBAL__] format: Found 14 line(s) outside any [FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] section.
-       [[FACT]] format: Missing required section [FACT].
-       [[INFERENCE]] format: Missing required section [INFERENCE].
+
+       /FACT format: Missing required section [FACT].
+
+       /INFERENCE format: Missing required section [INFERENCE].
+
+
 
      ============================================================
+
      ⚠️  HOOK HEALTH ALERT
+
      ============================================================
+
      Failing hooks: 0
+
      Errors in last hour: 12
 
+
+
      Next steps:
+
        Run: python P:/.claude/hooks/hook_audit_dashboard.py health
+
        Or:  python P:/.claude/hooks/hook_diagnostics.py
+
      ============================================================"
 
 ## Assistant
@@ -6189,21 +7852,37 @@ UNKNOWN: I can’t tell from the summary alone how aggressive the “completion 
 ## Human
 
 "
+
   Here's the summary:
 
+
+
   Created:
+
   - intent_artifact_alignment.py — core gate module with extract_targets_from_prompt(), extract_modified_paths(), check_alignment()
+
   - tests/test_intent_artifact_alignment.py — 47 tests
 
+
+
   Modified:
+
   - Stop.py — added _run_intent_artifact_alignment() runner, registered in GATE_CLASSES as "quality" and IN_PROCESS_GATES
+
   - CLAUDE.md — documented the Intent-Artifact Alignment Gate
 
+
+
   Key design decisions:
+
   - Three target types: file (Edit/Write), command (Bash), skill (Skill)
+
   - Loose path matching via suffix + basename for cross-platform compatibility
+
   - Completion claims escalate warn → block
+
   - Quality classification means control/exploration/plan/report/meta turns are automatically suppressed
+
   - The "add X to Stop.py" pattern uses both _TARGET_EXTRACT_RE (verb+path) and _TO_PATH_RE ("to ") to catch phrasing variants"
 
 ## Assistant
@@ -6351,42 +8030,79 @@ This will give me exactly what I’m missing now: the concrete extraction/matchi
 ## Human
 
 "
+
 ● Now I have the full picture. Here's the completed schema investigation:
 
+
+
   Runtime tool_events schema (from existing tests and overconfidence_detector consumption at line 204-207):
+
   {"name": "Bash", "command": "pytest tests/", "output_excerpt": "...", "id": 1}
+
+
 
   Flat events with name, command, id, output_excerpt — no file_path, no skill, no nested input dict.
 
+
+
   Gate's extraction assumptions vs runtime reality:
 
+
+
   ┌─────────────────────────────┬─────────────────────────────────────────────────┬──────────────────┬────────┐
+
   │        Gate function        │                    Looks for                    │   Runtime has    │ Works? │
+
   ├─────────────────────────────┼─────────────────────────────────────────────────┼──────────────────┼────────┤
+
   │ extract_modified_paths()    │ event["file_path"], event["input"]["file_path"] │ event["command"] │ No     │
+
   ├─────────────────────────────┼─────────────────────────────────────────────────┼──────────────────┼────────┤
+
   │ extract_invoked_skills()    │ event["skill"], event["input"]["skill"]         │ event["command"] │ No     │
+
   ├─────────────────────────────┼─────────────────────────────────────────────────┼──────────────────┼────────┤
+
   │ extract_executed_commands() │ event["command"]                                │ event["command"] │ Yes    │
+
   └─────────────────────────────┴─────────────────────────────────────────────────┴──────────────────┴────────┘
 
+
+
   Impact: File and skill target detection silently fails at runtime — extract_modified_paths returns empty for Edit/Write events, so
+
    every file target appears "missed," causing false positives on any prompt with file targets. Skill targets similarly always
+
   appear missed.
 
+
+
   The tests pass because they construct events with file_path/skill fields, but actual runtime tool_events uses command for path
+
   data (consistent with evidence_scope.py:_extract_artifact_path() which parses command for paths).
 
+
+
   Fix needed: Update _run_intent_artifact_alignment() in Stop.py to normalize the runtime tool_events before passing to
+
   check_alignment, or update the extraction functions to also check command for Edit/Write/Skill events. The gate tests should also
+
   include a test case using the actual runtime format ({name, command}) to catch this class of bug.
 
+
+
   The audit is now complete. The three findings from the prior session plus this new schema gap give four actionable items,
+
   prioritized:
 
+
+
   1. Schema mismatch (highest — causes false positives at runtime on every file-target prompt)
+
   2. Over-broad completion-claim regex (updated/added/fixed match in most responses)
+
   3. Missing clause-level scoping for _TO_PATH_RE/_IN_PATH_RE
+
   4. No early turn-mode suppression (runs regex extraction on every turn)"
 
 ## Assistant
@@ -6547,41 +8263,77 @@ If you feed that prompt to the target LLM, it should gather the implementation d
 ## Human
 
 "
+
   [FACT]
 
+
+
   - File path inference: extract_modified_paths() now tries two schemas per Edit/Write event: first the rich schema (file_path or
+
   input.file_path), then the runtime schema (command field parsed via _extract_path_from_command()). The helper handles drive-letter
+
    paths (P:/hooks/Stop.py), relative paths (tests/test_gate.py), and bare filenames (Stop.py).
+
   - Skill name inference: extract_invoked_skills() tries rich schema first (skill or input.skill), then falls back to command field
+
   (stripped of leading /).
+
   - Normalization location: All changes are in intent_artifact_alignment.py — Stop.py is untouched. No upstream normalization
+
   needed.
+
   - Completion claims narrowed: _COMPLETION_CLAIM_RE now requires ✅, "all done/complete", "is done/complete", sentence-final
+
   "Done!", "implementation complete", or "all tests pass". Bare past-tense verbs like "updated", "added", "fixed" in mid-sentence no
+
    longer escalate warn→block.
+
   - Clause scoping: _IN_PATH_RE/_TO_PATH_RE now only extract paths when a modification verb appears within 60 chars before the
+
   match. Previously, any verb anywhere in the prompt activated all in <path> / to <path> matches globally.
+
   - Tests: 69 total (47 original + 22 new) across 7 new test classes: TestRuntimeSchemaFiles (5), TestRuntimeSchemaSkills (3),
+
   TestRuntimeSchemaAlignment (5), TestNarrowedCompletionClaims (6), TestClauseScoping (3). All pass in 0.62s.
+
+
 
   [INFERENCE]
 
+
+
   - Runtime schema support eliminates the false-positive class where every file-target prompt appeared "missed" because
+
   extract_modified_paths returned empty for flat events.
+
   - Narrowed completion claims reduce the warn→block escalation on ordinary progress statements ("I updated the file") while
+
   preserving escalation on genuine completion claims ("✅ All done!", "Implementation is complete").
+
   - Clause scoping reduces false targets from documentation references ("described in README.md") while preserving real targets
+
   ("fix the bug in Stop.py").
+
+
 
   [UNKNOWN]
 
+
+
   - Ambiguous command strings: If a Bash command contains a path that happens to match a target file, _extract_path_from_command
+
   would extract it — but extract_modified_paths only processes Edit/Write events, so Bash events are already excluded.
+
   - "change" as noun vs verb: The modification verb regex matches "change" in both contexts ("fix the change" vs "document the
+
   change"). The 60-char window prevents most false positives but very short gaps (<60 chars) with "change" as a noun could still
+
   trigger. This is an acceptable precision/recall tradeoff.
+
   - Early turn-mode suppression: Not implemented (performance optimization only). The gate still relies on _process_gate_result in
+
   Stop.py for turn-mode suppression, which is architecturally correct but means regex extraction runs on every turn regardless of
+
   mode."
 
 ## Assistant
@@ -6761,95 +8513,185 @@ That is exactly how you should clear up an uncertainty in a QUALITY gate: by rep
 ## Human
 
 "
+
 ● All 77 tests pass (69 from Phase 1 + 8 new parametrized format inventory tests). Phase 2 audit complete.
 
+
+
   Summary: Audited extract_invoked_skills() against real runtime Skill event formats. Found one concrete runtime example
+
   (command="/verify" in tier3 test) plus test-assumed formats. The format inventory covers 7 variants: slash-prefixed names, bare
+
   names, namespaced plugin skills, rich-schema flat/nested, rich-over-command priority, and empty command. The current
+
   strip().lstrip("/") rule handles all observed formats correctly — no extraction logic changes needed. Added 8 parametrized
+
   regression tests to lock in the format inventory.
 
+
+
   2. IDENTIFY: What's causing it
+
   3. FIX: Address the actual root cause
+
   4. VERIFY: Confirm the fix works
+
+
 
   Pattern matched: (duplicates?|redundant|extra|double).*(is\\s+)?(fine|acceptable|expected|normal|ok)
 
+
+
   Remember: 'Accepting bugs as features' creates technical debt.
+
   Fix the problem, don't document the workaround.
 
+
+
 ● The hook is right — TestRuntimeSchemaSkills is now fully subsumed by TestSkillCommandFormatInventory. Removing the duplicate
+
   class.
 
+
+
 ● Update(tests\\test_intent_artifact_alignment.py)
+
   ⎿  Removed 19 lines
+
       436          assert "Stop.py" in paths
+
       437
+
       438
+
       439 -class TestRuntimeSchemaSkills:
+
       440 -    """Verify skill extraction from flat runtime tool_events ({name, command})."""
+
       441 -
+
       442 -    def test_skill_from_command(self):
+
       443 -        events = [{"name": "Skill", "command": "rca"}]
+
       444 -        skills = extract_invoked_skills(events)
+
       445 -        assert "rca" in skills
+
       446 -
+
       447 -    def test_skill_command_with_slash(self):
+
       448 -        events = [{"name": "Skill", "command": "/bf"}]
+
       449 -        skills = extract_invoked_skills(events)
+
       450 -        assert "bf" in skills
+
       451 -
+
       452 -    def test_rich_schema_skill_still_works(self):
+
       453 -        events = [{"name": "Skill", "skill": "rca", "command": "other"}]
+
       454 -        skills = extract_invoked_skills(events)
+
       455 -        assert "rca" in skills
+
       456 -
+
       457 -
+
       439  class TestSkillCommandFormatInventory:
+
       440      """Parametrized regression tests covering all observed runtime Skill event formats.
+
       441
 
+
+
 ● Bash(cd P:/.claude/hooks && python -m pytest tests/test_intent_artifact_alignment.py -v 2>&1 | tail -15)
+
   ⎿  tests/test_intent_artifact_alignment.py::TestRuntimeSchemaAlignment::test_file_miss_runtime_schema PASSED [ 83%]
+
      tests/test_intent_artifact_alignment.py::TestRuntimeSchemaAlignment::test_skill_hit_runtime_schema PASSED [ 85%]
+
      tests/test_intent_artifact_alignment.py::TestRuntimeSchemaAlignment::test_skill_miss_runtime_schema PASSED [ 86%]
+
      … +10 lines (ctrl+o to expand)
+
+
 
 ● 74 passed (77 - 3 removed duplicates). All format inventory coverage preserved by the parametrized class.
 
+
+
 ● Ran 9 stop hooks (ctrl+o to expand)
+
   ⎿  Stop hook error: **Unverified Deletion Claim Detected**
+
+
 
   Claim: "removed duplicates)."
 
+
+
   No specific files mentioned to verify.
+
   Before claiming deletion, specify which files were deleted so verification can occur.
 
+
+
 ● No files were deleted — 3 test methods in TestRuntimeSchemaSkills were removed from tests/test_intent_artifact_alignment.py
+
   because the parametrized TestSkillCommandFormatInventory class covers identical cases plus 5 additional formats. Evidence:
 
+
+
   - test_skill_from_command (command="rca") → covered by parametrized case events1-rca
+
   - test_skill_command_with_slash (command="/bf") → covered by parametrized case events2-bf
+
   - test_rich_schema_skill_still_works (skill="rca", command="other") → covered by parametrized case events6-arch
 
+
+
   Test count went from 77 → 74 (3 methods removed, 0 coverage lost). The parametrized class at line 458 now provides the single
+
   source of truth for skill format extraction coverage.
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: No files were deleted — 3 test methods in `TestRuntimeSchemaSkills` were removed from
+
      `tests/test_intent_artifact_alignment.py` because the parametrized `TestSkillCommandFormatInventory` class covers identical
+
      cases plus 5 additional formats. Evidence:
 
+
+
      - `test_skill_from_command` (command="rca") → covered by parametrized case `events1-rca`
+
      - `test_skill_command_with_slash` (command="/bf") → covered by parametrized case `events2-bf`
+
      - `test_rich_schema_skill_still_works` (skill="rca", command="other") → covered by parametrized case `events6-arch`
 
+
+
      Test count went from 77 → 74 (3 methods removed, 0 coverage lost). The parametrized class at line 458 now provides the single
+
      source of truth for skill format extraction coverage."
 
 ## Assistant
@@ -6998,39 +8840,74 @@ This ensures the regression tests are truly automatic: they block broken changes
 ## Human
 
 "
+
   [FACT]
 
+
+
   ┌────────────────────────────────────────────────┬───────────────────────────────────────────────┬────────────────────────────┐
+
   │          Claim from my first response          │                 Actual state                  │           STATUS           │
+
   ├────────────────────────────────────────────────┼───────────────────────────────────────────────┼────────────────────────────┤
+
   │ "Pre-commit hooks already exist"               │ No .git/hooks/pre-commit — only               │ TESTED_IN_ENV (ls output)  │
+
   │                                                │ pre-commit.sample                             │                            │
+
   ├────────────────────────────────────────────────┼───────────────────────────────────────────────┼────────────────────────────┤
+
   │ "PreToolUse_hook_edit_gate.py requires testing │ File does not exist                           │ TESTED_IN_ENV (Glob        │
+
   │  before editing hooks"                         │                                               │ returned empty)            │
+
   ├────────────────────────────────────────────────┼───────────────────────────────────────────────┼────────────────────────────┤
+
   │ "No CI/CD workflows"                           │ Confirmed — no .github/workflows/ directory   │ TESTED_IN_ENV (Glob        │
+
   │                                                │                                               │ returned empty)            │
+
   ├────────────────────────────────────────────────┼───────────────────────────────────────────────┼────────────────────────────┤
+
   │ "Project avoids CI/CD"                         │ CLAUDE.md: "Coordination overhead (avoid):    │ INFERRING_FROM_DOCS        │
+
   │                                                │ CI/CD pipelines for one person"               │                            │
+
   ├────────────────────────────────────────────────┼───────────────────────────────────────────────┼────────────────────────────┤
+
   │ "Only active git hook is pre-push"             │ Runs Trufflehog secret scanning only, no      │ TESTED_IN_ENV (Read        │
+
   │                                                │ pytest                                        │ output)                    │
+
   ├────────────────────────────────────────────────┼───────────────────────────────────────────────┼────────────────────────────┤
+
   │ "Tests run in 0.57s"                           │ 74 passed in 0.57s from this session          │ TESTED_IN_ENV              │
+
   └────────────────────────────────────────────────┴───────────────────────────────────────────────┴────────────────────────────┘
+
+
 
   [RECOMMENDATION]
 
+
+
   There is no existing test regression gating. The gap is real. But before implementing, here's what matters:
 
+
+
   1. CI/CD is explicitly rejected per CLAUDE.md solo-dev constraints — so GitHub Actions is out.
+
   2. Pre-commit hook is the right lever — a .git/hooks/pre-commit that runs the gate tests when intent_artifact_alignment.py or its
+
   tests change. This is the minimal approach.
+
   3. Scope it to relevant files only — running 74 tests on every commit adds friction. The hook should only trigger when the gate
+
   module or its tests are modified.
+
   4. The pre-commit.sample exists — rename/replace it with the real hook.
+
+
 
   Want me to implement a scoped pre-commit hook that only runs the gate tests when relevant files change?"
 

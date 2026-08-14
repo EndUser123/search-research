@@ -3,6 +3,8 @@ title: "This is an rca about a frustrating experience with a LLM in claude code.
 
 'Symptom
 
+
+
   User's claim: The LLM was not 's"
 date: "2026-05-12"
 mode: "CONCISE"
@@ -16,132 +18,260 @@ This is an rca about a frustrating experience with a LLM in claude code.
 
 "Symptom
 
+
+
   User's claim: The LLM was not "smart" — it should have thought bigger/deeper about the problem, but instead just gave a
+
   shallow answer.
+
   Observed behavior: During a 11-minute session (lines 295-298 of transcript), the LLM spent 11+ minutes fixing minor
+
   padding alignment in cc-bifrost.ps1 without recognizing the broader problem: checking cross-section absolute positioning.
+
    The user asked 5 times why alignment was wrong, and the LLM never identified the root cause (3-space indent difference
+
   between sections). Only after the user explicitly asked "why could you not see that?" did the LLM self-diagnose: "I was
+
   optimizing for within-section alignment without checking cross-section absolute position."
+
+
 
   Evidence
 
+
+
   Source: C:\\Users\\brsth\\Downloads\\✳ cc-bf.txt:1-458
+
   Finding: Full session transcript showing LLM miss: 5 failed attempts to identify cross-section offset
+
   ────────────────────────────────────────
+
   Source: Stop.py:2705
+
   Finding: Task contract gate early-return at len(response) < 80 — response labeled silent: response_too_short (136
+
     occurrences in telemetry)
+
   ────────────────────────────────────────
+
   Source: Stop.py:2695
+
   Finding: Orthogonality check at line 2695 — orthogonal responses clear contract and return None before any quality gates
+
     run
+
   ────────────────────────────────────────
+
   Source: Stop.py:4629-4756
+
   Finding: All in-process gates run AFTER the main() trivial-short-circuit and len(response) < 80 early-return paths
+
   ────────────────────────────────────────
+
   Source: Stop.py:4666-4674
+
   Finding: Trivial exchange bypass: quality gates suppressed when _trivial_detected == True
+
   ────────────────────────────────────────
+
   Source: Stop.py:2060
+
   Finding: _run_reasoning_quality_gate returns None when len(response) < 200
+
   ────────────────────────────────────────
+
   Source: Stop.py:2046-2106
+
   Finding: _run_reasoning_quality_gate is subprocess-based (2s timeout), not in-process
+
   ────────────────────────────────────────
+
   Source: Stop.py:2049-2051
+
   Finding: _run_reasoning_quality_gate returns None if Stop_reasoning_quality_gate.py file does not exist
+
   ────────────────────────────────────────
+
   Source: Stop.py:2054-2057
+
   Finding: is_quality_gate_disabled() can suppress reasoning quality gate entirely
+
   ────────────────────────────────────────
+
   Source: Stop.py:3932-3988
+
   Finding: IN_PROCESS_GATES list — no reasoning-quality enforcement gate present
+
   ────────────────────────────────────────
+
   Source: settings.json:366
+
   Finding: Stop_reasoning_quality_gate is registered as subprocess hook (not in-process)
+
+
 
   Executed Path
 
+
+
   1. main() at Stop.py:4554 receives raw JSON input
+
   2. len(raw_input) check at 4559 — if empty, sys.exit(0) allow
+
   3. JSON parse at 4565 — if invalid, sys.exit(0) allow
+
   4. last_assistant_message → response aliasing at 4573
+
   5. Trivial exchange check — if trivial, _trivial_detected = True
+
   6. Orthogonality check at 2695 — if response orthogonal to contract, clear_contract() + return None (allow) at 2701
+
   7. Task contract early-return at 2705 — len(response) < 80 → detect outputs, log silent: response_too_short, return None
+
   (allow) at 2716
+
   8. All IN_PROCESS_GATES loop at 4629 — for each gate in order:
+
     - Gate applicability check (Phase 2 routing)
+
     - _run_gate_safe() — runs gate function
+
     - Trivial bypass at 4666-4674 — if _trivial_detected, quality gates skip silently
+
     - _process_gate_result() — if blocked → sys.exit(0) block
+
     - ADVISORY downgrade at 4688-4693
+
   9. Telemetry logging at 4726
+
   10. If not blocked, loop continues — no deep reasoning quality gate exists to catch shallow analysis
+
+
 
   Alternative Hypothesis
 
+
+
   H1: The model (M27 Sonnet) lacks reasoning depth by default.
+
   The LLM was operating at "medium effort" and just wasn't capable of deep analysis without explicit prompting to think
+
   harder.
 
+
+
   H2: Memory/MEMORY.md suppressed deep thinking.
+
   The 107KB MEMORY.md may have caused the model to spend tokens on context management rather than problem analysis.
 
+
+
   H3: The quality gate infrastructure was bypassed.
+
   The 35 in-process gates in Stop.py include no substantive reasoning-depth gate — reasoning_quality_gate is
+
   subprocess-based with a 2s timeout, not enforced in-process.
+
+
 
   Falsifier
 
+
+
   H1 (model capability) is weakened but not disproved: M27 Sonnet is a capable model. The transcript shows the LLM
+
   correctly self-diagnosed the failure mode after being asked — meaning it had the reasoning capacity. The issue was not
+
   inability, but failure to apply the reasoning.
 
+
+
   H2 (MEMORY.md bloat) is disproved: MEMORY.md is loaded as reference context, not a behavior shaper. The bloat would cause
+
    context window pressure, not shallow thinking specifically.
 
+
+
   H3 (quality gate bypassed) is strongly supported: No in-process gate enforces reasoning depth. The subprocess-based
+
   reasoning_quality_gate (timeout 2s) is not in IN_PROCESS_GATES. Quality gates are skipped on trivial exchanges. The
+
   epistemic_contract gate focuses on claim verification, not reasoning depth.
+
+
 
   Ruled Out
 
+
+
   - H1 (model capability): The LLM demonstrated the reasoning ability post-hoc when asked. This rules out pure capability
+
   failure.
+
   - H2 (MEMORY.md bloat): Context bloat would manifest as truncated responses or slow generation, not specifically shallow
+
   problem framing.
+
+
 
   Root Cause
 
+
+
   Missing reasoning-depth enforcement gate in Stop.py IN_PROCESS_GATES. There is no in-process Stop hook that detects and
+
   blocks shallow problem analysis. The quality gates that exist are: epistemic_contract (claim verification),
+
   reasoning_quality_gate (subprocess, not in-process), and lazy_workaround_gate (workaround detection). None catch "problem
+
    framing without cross-section perspective." The user asked 5 times over 11 minutes without triggering any enforcement.
+
   The response_too_short early-return at line 2705 actually rewards short responses — allowing micro-turns that make
+
   repeated shallow answers invisible to enforcement. The 136 response_too_short silence events (telemetry) confirm the
+
   system is tuned to allow short responses rather than enforce depth.
+
+
 
   Fix
 
+
+
   1. Add a reasoning-depth gate to IN_PROCESS_GATES in Stop.py that detects repeated same-scope analysis failures (e.g.,
+
   checking within-section alignment 5× without checking cross-section).
+
   2. Alternatively, lower the reasoning_quality_gate minimum response threshold from 200 chars and register it in
+
   IN_PROCESS_GATES.
+
   3. Consider adding a counter for repeated same-class answers to IN_PROCESS_GATES that escalates short responses from
+
   "silent allow" to "warn" after N repetitions.
+
+
 
   Verification
 
+
+
   1. Re-run the session with a problem requiring cross-section comparison — verify the gate now catches the miss earlier.
+
   2. Check telemetry for response_too_short count decrease after fix.
+
   3. Run pytest P:/.claude/hooks/tests/test_stop_reasoning_quality_gate.py to confirm gate is wired.
 
+
+
   Tags:
+
   ⎿  Stop says: ────────────────────────────────────────
+
      Contract Writer: 211 contracts, 424 skips (298 not-task) | Last: 0.0h [architecture_recommendation=1,
+
      bug_diagnosis=86, bug_fix=22, implementation=98, refactor=4]
+
      Contract Stop: 0 allow, 0 block, 171 silent [response_too_short=136, non_implementation_task_class=21]"
 
 What prompt can we pass to the target LLM, so that you can get the info you need, in order to identify the root causes, and optimal solution?
@@ -305,3 +435,4 @@ Document all calculations/assumptions. Stop at zero.
 </thinking>
 
 <answer>final solution with verification
+```

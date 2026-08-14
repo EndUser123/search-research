@@ -134,7 +134,7 @@ PLAN_PATHS_ALLOWLIST=(
 PLAN_MODE_ACTIVE="$1"  # true / false passed from outer wrapper
 
 # If we are not in plan mode, allow everything.
-if [[ "$PLAN_MODE_ACTIVE" != "true" ]]; then
+if /"$PLAN_MODE_ACTIVE" != "true"; then
   echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
   exit 0
 fi
@@ -165,7 +165,7 @@ done
 PATTERN+=").*"
 
 # === CHECK IF ALLOWED ======================================================
-if [[ "$file_path" =~ $PATTERN ]]; then
+if /"$file_path" =~ $PATTERN; then
   echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
   exit 0
 else
@@ -1433,15 +1433,25 @@ Token savings: 80%+. Plan Mode safe. Task‑parallel.
 ## Human
 
 "
+
   Confirmed working:
+
   - Agent tool with subagent_type dispatches in parallel
+
   - Agents can write files to P:/.claude/plans/adversarial/
+
   - Plan-mode orchestrator reads the files after
+
   - Token pattern: path-only return (~100 bytes) instead of full JSON (~2-4KB)
 
+
+
   Note: I used Agent tool calls (not Task tool) — Agent with subagent_type and prompt
+
   was already working in the skill. The Task syntax in the updated SKILL.md is
+
   illustrative; you may want to verify Task tool actually dispatches in parallel vs
+
   Agent tool."
 
 This LLM is frustrating.  Is this true?
@@ -1608,31 +1618,57 @@ If you want, the next step can be:
 
 does this sound right?
 "
+
 ● All 5 fixes from the optimization plan have now been completed:
+
+
 
   Summary of changes in this session:
 
+
+
   Fix #3 (MEDIUM) - Consolidate duplicate state managers:
+
   - plan_state_manager.py is now the single source of truth with all functions consolidated
+
   - __init__.py imports from plan_state_manager (not state_manager)
+
   - Added deprecation warning to state_manager.py
 
+
+
   Fix #4 (MEDIUM) - Eliminate TERM as terminal identifier:
+
   - Renamed _get_terminal_id() to get_terminal_id() (made it public)
+
   - The implementation uses WT_SESSION or PID+timestamp hash (not TERM)
 
+
+
   Fix #5 (LOW) - Wire validate_adversarial_agents():
+
   - Added call to validate_adversarial_agents() in verify_plan()
+
   - If agents are missing, adds AGENT-001 finding with HIGH priority
+
   - agent_validation result is now included in the output JSON
+
+
 
   Previously completed (from prior session):
 
+
+
   Fix #1 (HIGH) - Fix adversarial output path mismatch:
+
   - All 14 adversarial agents now write to P:/.claude/plans/adversarial/{name}-findings.json
 
+
+
   Fix #2 (MEDIUM) - Remove redundant adversarial directory split:
+
   - Standardized on ~/.claude/plans/adversarial/ as the single output directory
+
 "
 
 ## Assistant

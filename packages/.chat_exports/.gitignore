@@ -2,31 +2,5 @@
 Perplexity-sessions/*.json
 Perplexity-sessions/*.xlsx
 
-# Files containing real API keys/tokens embedded in conversation exports
-# (gitleaks correctly blocks these — keys are in config-discussion context)
-Perplexity-sessions/split/2025-12-12__i-was-using-devstral-2-with-claude-code-with-litellm-but-ran.md
-Perplexity-sessions/split/2025-12-17__droid-openrouter-405-error-fix-workaround.md
-Perplexity-sessions/split/2025-12-20__i-just-maxed-out-my-zai-code-pro-plan-what-other-models-and.md
-Perplexity-sessions/split/2025-12-23__glm-47.md
-Perplexity-sessions/split/2025-12-30__can-you-help-with-these-questions-how-do-i-use-gh-cli-manual.md
-Perplexity-sessions/split/2025-12-30__provider-type-auth-chutes-http-api-api-key-groq-http-api-api.md
-Perplexity-sessions/split/2026-01-04__i-have-the-zai-coding-plan-and-id-like-to-use-the-glm-4x-fla.md
-Perplexity-sessions/split/2026-01-05__i-had-the-idea-that-claude-code-could-invoke-other-agentic-c.md
-Perplexity-sessions/split/2026-01-24__local-mcps-cusersbrsthclaudejson-project-p-brave-search-conn.md
-Perplexity-sessions/split/2026-01-24__this-is-my-home-directory-on-windows-11-claude-settingsjson.md
-Perplexity-sessions/split/2026-02-02__in-claude-code-this-is-what-i-have-for-functional-domains-fo.md
-Perplexity-sessions/split/2026-03-08__should-i-stop-trying-to-use-perplexity-that-doesnt-make-sens.md
-Perplexity-sessions/split/2026-03-09__i-have-an-exa-api-key-how-do-i-add-its-mcp-server-to-claude.md
-Perplexity-sessions/split/2026-03-14__are-there-claude-code-cli-arguments-that-allow-me-to-start-w.md
-Perplexity-sessions/split/2026-03-14__i-think-i-messed-this-up-i-want-to-use-cc-glm-to-use-the-glm.md
-Perplexity-sessions/split/2026-04-16__what-are-non-regex-solutions-i-can-tell-the-other-llm-why-is.md
-Perplexity-sessions/split/2026-04-18__which-of-these-should-i-use-for-coding-nvidia-nemotron-3-sup.md
-Perplexity-sessions/split/2026-04-27__how-do-i-install-bifrost-to-work-with-claude-code.md
-Perplexity-sessions/split/2026-05-01__you-can-see-towards-the-end-of-this-conversation-that-i-had.md
-Perplexity-sessions/split/2026-05-04__this-is-a-conversation-with-a-not-very-good-llm-in-claude-co.md
-
 # Redundant zips — content is already extracted in sibling directories
 *.zip
-
-Perplexity-sessions/split/2026-06-21__httpsgithubcomjacob-bdrelay-ai-why-do-you-think-that-repo-ex.md
-Perplexity-sessions/split/2026-07-03__can-you-validate-this-information-opencode-zen-free-models-t.md

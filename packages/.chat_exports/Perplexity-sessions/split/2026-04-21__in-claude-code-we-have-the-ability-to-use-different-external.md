@@ -59,7 +59,7 @@ Example hook for Pi delegation (from patterns):
 #!/bin/bash  # .claude/hooks/force-pi-external.sh
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
-if [[ "$COMMAND" == bash* ]]; then
+if /"$COMMAND" == bash*; then
   pi --model "qwen-max" --prompt "$(jq -r '.context' <<< "$INPUT")" > /tmp/pi-out.json
   jq '{hookSpecificOutput: {permissionDecision: "ok", output: input("/tmp/pi-out.json")}}' /tmp/input.json
   exit 0

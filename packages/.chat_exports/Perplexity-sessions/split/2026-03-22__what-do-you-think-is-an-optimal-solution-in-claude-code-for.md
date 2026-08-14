@@ -200,7 +200,7 @@ print("Verified: Isolated swarm passed.")
 [hooks]
 WorktreeCreate = "python packages/hooks/verify-swarm.py"
 PreCompact = "python packages/hooks/verify-swarm.py"
-UserPromptSubmit = "[[ -f .claudehooks/state/verify-*.json ]] || python packages/hooks/verify-swarm.py"
+UserPromptSubmit = "/-f .claudehooks/state/verify-*.json || python packages/hooks/verify-swarm.py"
 ```
 
 ### 3. `.pre-commit-config.yaml` Patch

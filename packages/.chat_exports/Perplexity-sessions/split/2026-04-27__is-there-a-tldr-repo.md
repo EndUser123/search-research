@@ -86,37 +86,69 @@ Confidence: High (official wiki/docs). No conflicting sources.[1]
 ## Human
 
 Does this seem true?  It's the LLM telling me it can't do things: "
+
 ● The tldr Python package is not installed — pip list finds nothing, and from tldr.api fails. The pip install tldr package is the
+
   man-page-simplified tool (v3.4.4), which has different commands (tldr <command> for shell commands), not the code analysis tool
+
   described in these skills.
+
+
 
   TLDR features useful for recap (as documented in SKILL.md):
 
+
+
   ┌──────────────────────────────────────┬────────────────────────────────────────────────────────────────┬────────────────────┐
+
   │             TLDR Feature             │                       How it helps recap                       │       Status       │
+
   ├──────────────────────────────────────┼────────────────────────────────────────────────────────────────┼────────────────────┤
+
   │ tldr structure — file-level          │ Replace regex-extracted "actions" with actual function         │ Not available      │
+
   │ function/class extraction            │ signatures from modified files                                 │                    │
+
   ├──────────────────────────────────────┼────────────────────────────────────────────────────────────────┼────────────────────┤
+
   │ tldr calls — cross-file call graph   │ Show which functions were called across sessions               │ Not available      │
+
   ├──────────────────────────────────────┼────────────────────────────────────────────────────────────────┼────────────────────┤
+
   │ tldr cfg — control flow complexity   │ Flag complex functions in modified files                       │ Not available      │
+
   ├──────────────────────────────────────┼────────────────────────────────────────────────────────────────┼────────────────────┤
+
   │ tldr search — semantic code search   │ Find patterns in session-modified code                         │ Not available      │
+
   ├──────────────────────────────────────┼────────────────────────────────────────────────────────────────┼────────────────────┤
+
   │ tldr imports — dependency analysis   │ Track what modified files depend on                            │ Not available      │
+
   ├──────────────────────────────────────┼────────────────────────────────────────────────────────────────┼────────────────────┤
+
   │ session_tldr state files             │ Lightweight per-session summaries (accomplishments, open       │ Available, not     │
+
   │                                      │ items) without parsing full transcript                         │ integrated         │
+
   └──────────────────────────────────────┴────────────────────────────────────────────────────────────────┴────────────────────┘
 
+
+
   What recap can actually use today:
+
   - mcp__aid__distill_file (AID) — already referenced in SKILL.md for Code Structure Enrichment, but not wired into the CLI path
+
   - session_tldr hook output — already written on session end, but recap doesn't read it
 
+
+
   What's blocked: The tldr code analysis tool described in the skills isn't installed. Do you want me to:
+
   1. Install the tldr code analysis tool and wire it into recap?
+
   2. Integrate the existing session_tldr state files as a lightweight summary layer?
+
   3. Wire up mcp__aid__distill_file for the Code Structure Enrichment step that's already in SKILL.md?"
 
 ## Assistant
@@ -4716,309 +4748,613 @@ If you want, I can help you draft a **very hard acceptance checklist / code-revi
 ## Human
 
 "
+
 ● Here's the proof packet you asked for:
 
+
+
   ---
+
   1. Final Module Tree
 
+
+
   recap/
+
   ├── __init__.py         # SKILL.md interface; re-exports public API; wires --json flag to v2
+
   ├── models.py          # All dataclass definitions (ClaimType, Claim, Event, SessionSpan, etc.)
+
   ├── acquire.py         # Evidence discovery: registry, handoff, chain, transcript scan
+
   ├── parse.py           # Transcript → structured entries → session spans (sessionId boundary)
+
   ├── events.py          # Typed events from parsed entries (tool_use, modified_file, etc.)
+
   ├── claims.py          # Claim engine: FACT/INFERENCE/GAP typing, contradiction, staleness
+
   ├── workstreams.py     # File-overlap clustering → cross-session threads
+
   ├── resume.py          # ResumePacket builder from active workstreams + latest claims
+
   ├── render_json.py    # Canonical JSON renderer from RecapGraph
+
   ├── render_markdown.py # Brief / Full / Audit markdown from RecapGraph
+
   ├── cli.py             # argparse surface: --json, --brief, positional command
+
   ├── recap_v2.py        # Pipeline orchestrator + standalone CLI entry point
+
   ├── compat.py          # Adapter wrappers for v1.5 API (backward-compat test surface)
+
   └── tests/
+
       ├── test_recap.py      # v1.5 invariants: subagent filtering, dedup, modified files
+
       ├── test_recap_v2.py    # Smoke: module imports, pipeline components
+
       └── test_acquire.py     # Smoke: discover_evidence, subagent filter
+
+
 
   Each module has a single responsibility. render_json.py consumes RecapGraph; it does not know about formatrecap().
 
+
+
   ---
+
   2. Canonical Schema Example
+
+
 
   One real session, one workstream, mixed claim types, verification queue:
 
+
+
   {
+
     "schema_version": "2.0.0",
+
     "meta": {
+
       "generated_at": "2026-04-27T22:00:00Z",
+
       "generator": {"name": "recap", "version": "2.0.0"},
+
       "evidence_mode": "registry",
+
       "degraded": false,
+
       "degradation_reasons": [],
+
       "source_counts": {"transcripts": 2, "handoffs": 0, "registry_entries": 4, "modified_files": 3}
+
     },
+
     "project": {
+
       "project_root": "P:\\\\packages\\\\cc-skills-meta",
+
       "project_hash": "P----packages-cc-skills-meta",
+
       "terminal_id": "console_f0458233-d0f4-4423-a4ff-0479fda883b7",
+
       "current_session_id": "3e87b51f-c79c-45fe-ab19-2e6449a3f24a",
+
       "transcript_discovery": {"mode": "registry", "paths_scanned": ["registry://console_f045..."], "current_transcript": ""}
+
     },
+
     "resume_packet": {
+
       "current_goal": "Implement --json CLI flag for recap v2",
+
       "current_subgoal": null,
+
       "current_status": "active",
+
       "last_confirmed_good_state": "enrich_file_structure stub returns None (Phase 1)",
+
       "exact_next_action": "Wire format_recap_json into argparse in main()",
+
       "active_files": ["P:/packages/cc-skills-meta/skills/recap/__init__.py"],
+
       "blocking_issues": [],
+
       "pending_decision_ids": [],
+
       "verification_status": "partially_verified",
+
       "resume_risks": ["risk-gap-1"],
+
       "recommended_entry_points": [
+
         {"path": "P:/packages/cc-skills-meta/skills/recap/__init__.py", "symbol": "main", "reason": "CLI entry point"}
+
       ]
+
     },
+
     "sessions": [
+
       {
+
         "session_id": "3e87b51f-c79c-45fe-ab19-2e6449a3f24a",
+
         "ordinal": 1,
+
         "created_at": "2026-04-27T20:00:00Z",
+
         "ended_at": "2026-04-27T21:30:00Z",
+
         "duration": "1h 30m",
+
         "priority_score": 71.4,
+
         "stats": {"entry_count": 84, "user_message_count": 17, "assistant_message_count": 22, "token_usage": {"input_tokens":
+
   120000, "output_tokens": 34000, "total_tokens": 154000}},
+
         "goal": "Implement --json CLI flag for recap v2",
+
         "modified_files": ["P:/packages/cc-skills-meta/skills/recap/__init__.py"],
+
         "transcript_path": "C:\\\\Users\\\\brsth\\\\.claude\\\\projects\\\\P----packages-cc-skills-meta\\\\3e87b51f....jsonl",
+
         "summary": "Implemented --json CLI flag and fixed brief mode edge case in format_recap_json",
+
         "event_ids": ["evt-1", "evt-2", "evt-3"],
+
         "claim_ids": ["clm-1", "clm-2", "clm-gap-1"],
+
         "workstream_ids": ["ws-1"]
+
       }
+
     ],
+
     "workstreams": [
+
       {
+
         "workstream_id": "ws-1",
+
         "title": "__init__",
+
         "status": "active",
+
         "summary": "Clustered from 1 session(s), 1 file(s)",
+
         "session_ids": ["3e87b51f-c79c-45fe-ab19-2e6449a3f24a"],
+
         "event_ids": ["evt-1", "evt-2", "evt-3"],
+
         "decision_ids": [],
+
         "claim_ids": ["clm-1", "clm-2", "clm-gap-1"],
+
         "file_paths": ["P:/packages/cc-skills-meta/skills/recap/__init__.py"],
+
         "next_action": "Implement --json CLI flag for recap v2",
+
         "blocker_risk_ids": []
+
       }
+
     ],
+
     "claims": [
+
       {
+
         "claim_id": "clm-1",
+
         "statement": "File modified: P:/packages/cc-skills-meta/skills/recap/__init__.py",
+
         "type": "FACT",
+
         "confidence": 0.95,
+
         "status": "current",
+
         "scope": "session",
+
         "session_ids": ["3e87b51f-c79c-45fe-ab19-2e6449a3f24a"],
+
         "workstream_ids": ["ws-1"],
+
         "evidence": [{"kind": "tool_use", "detail": "Edit/Write tool_use found in session", "anchors": ["transcript:..."]}],
+
         "verification_hint": "Run /tldr-deep on __init__.py to verify behavior"
+
       },
+
       {
+
         "claim_id": "clm-2",
+
         "statement": "Session goal: Implement --json CLI flag for recap v2",
+
         "type": "FACT",
+
         "confidence": 0.85,
+
         "status": "current",
+
         "scope": "session",
+
         "session_ids": ["3e87b51f-c79c-45fe-ab19-2e6449a3f24a"],
+
         "workstream_ids": ["ws-1"],
+
         "evidence": [{"kind": "transcript_entry", "detail": "last_goal extracted from session content", "anchors":
+
   ["session_id:3e87..."]}],
+
         "verification_hint": "Verify --json flag is wired in main() and produces valid JSON"
+
       },
+
       {
+
         "claim_id": "clm-gap-1",
+
         "statement": "enrich_file_structure returns None — no code structure enrichment available",
+
         "type": "GAP",
+
         "confidence": 0.99,
+
         "status": "unverified",
+
         "scope": "session",
+
         "session_ids": ["3e87b51f-c79c-45fe-ab19-2e6449a3f24a"],
+
         "workstream_ids": [],
+
         "evidence": [{"kind": "code_behavior", "detail": "Phase 1 stub always returns None", "anchors":
+
   ["function:enrich_file_structure"]}],
+
         "verification_hint": "Plug in StructureProvider to populate code_structures"
+
       }
+
     ],
+
     "decisions": [],
+
     "risks": [],
+
     "verification_queue": [
+
       {
+
         "verification_id": "ver-1",
+
         "priority": "MEDIUM",
+
         "target_type": "function",
+
         "target": "format_recap_json",
+
         "claim_id": "clm-gap-1",
+
         "why": "brief=False path must include 'brief': False in output",
+
         "suggested_action": "Run smoke test with empty sessions list",
+
         "success_signal": "Output has 'brief': False and 'sessions': []",
+
         "failure_signal": "KeyError on 'brief' or 'sessions'",
+
         "anchors": ["function:format_recap_json"]
+
       }
+
     ],
+
     "render_hints": {
+
       "preferred_human_order": ["resume_packet", "workstreams", "decisions", "risks", "verification_queue", "sessions"],
+
       "brief_mode_fields": ["resume_packet.current_goal", "resume_packet.exact_next_action", "resume_packet.active_files",
+
   "risks[0:3]", "verification_queue[0:3]"]
+
     }
+
   }
 
+
+
   ---
+
   3. End-to-End Trace
 
+
+
   Transcript entry (raw):
+
   {"type": "assistant", "sessionId": "3e87b51f-...", "content": [
+
     {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/packages/.../__init__.py", ...}}
+
   ]}
 
+
+
           ↓ parse.py: load_transcript_entries() + session boundary detection
+
           (sessionId "3e87b51f-..." → new SessionSpan)
 
+
+
           ↓ events.py: extract_events() — FILE_MODIFIED event
+
           Event(
+
             event_id="evt-1",
+
             session_id="3e87b51f-...",
+
             type=EventKind.FILE_MODIFIED,
+
             title="Edit: __init__.py",
+
             anchors=[EvidenceAnchor(source_type="transcript", source_path="...", locator="entry #42")]
+
           )
+
+
 
           ↓ claims.py: build_claims() — FACT from tool_use anchor
+
           Claim(
+
             claim_id="clm-1",
+
             statement="File modified: __init__.py",
+
             type=ClaimType.FACT,
+
             confidence=0.95,
+
             anchors=[EvidenceAnchor(kind="tool_use", ...)]
+
           )
+
+
 
           ↓ workstreams.py: build_workstreams() — file-overlap clustering
+
           Workstream(ws-1, title="__init__", session_ids=["3e87b51f-..."], file_paths=["__init__.py"])
 
+
+
           ↓ resume.py: build_resume_packet()
+
           ResumePacket(
+
             current_goal="Implement --json CLI flag for recap v2",
+
             exact_next_action="Wire format_recap_json into argparse",
+
             active_files=["__init__.py"],
+
             verification_status="partially_verified",
+
             resume_risks=["clm-gap-1"]
+
           )
 
+
+
           ↓ render_json.py: render_json(state) → canonical JSON document
+
           (No markdown in the pipeline; markdown is derived from this JSON)
 
+
+
   ---
+
   4. Test List — Old Invariants Preserved
 
+
+
   ┌─────────────────────────┬─────────────────┬────────────────────────────────────────────────────────────────────────────────┐
+
   │      Old Invariant      │    Test File    │                                   Test Name                                    │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Subagent transcript     │                 │                                                                                │
+
   │ filtering (_is_subagent │ test_recap.py   │ TestSubagentFiltering::test_subagents_directory_component_is_filtered          │
+
   │ _transcript)            │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Subagent path           │                 │                                                                                │
+
   │ subagents-analysis NOT  │ test_recap.py   │ TestSubagentFiltering::test_subagents_analysis_directory_not_filtered          │
+
   │ filtered                │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Filename agent-* prefix │ test_recap.py   │ TestSubagentFiltering::test_agent_prefix_filename_is_filtered                  │
+
   │  filtered               │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Normal transcript NOT   │ test_recap.py   │ TestSubagentFiltering::test_normal_transcript_not_filtered                     │
+
   │ filtered                │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ (sessionId,             │                 │                                                                                │
+
   │ transcriptPath)         │ test_recap.py   │ TestSessionIdDeduplication::test_duplicate_session_transcript_pairs_deduped    │
+
   │ deduplication           │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Unique tuples all       │ test_recap.py   │ TestSessionIdDeduplication::test_unique_session_transcript_pairs_all_included  │
+
   │ included                │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Edit/Write modified     │ test_recap.py   │ TestExtractModifiedFiles::test_extracts_edit_and_write_paths                   │
+
   │ file extraction         │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Noise file skipping     │                 │                                                                                │
+
   │ (.json, .lock,          │ test_recap.py   │ TestExtractModifiedFiles::test_skips_noise_files                               │
+
   │ __pycache__)            │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Deduplication of        │ test_recap.py   │ TestExtractModifiedFiles::test_deduplicates_paths                              │
+
   │ repeated paths          │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ ## Last Session Summary │ test_recap.py   │ TestSummarizeSessionChange004::test_prior_session_shown_when_summary_block_pre │
+
   │  → last_goal injection  │                 │ sent                                                                           │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ Import path             │ test_recap.py   │ TestImportPath::test_import_from_core_session_chain_with_syspath               │
+
   │ core.session_chain      │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ User-friendly error     │                 │                                                                                │
+
   │ messages (no "chain     │ test_recap.py   │ TestErrorMessages::test_error_messages_are_user_friendly                       │
+
   │ broken")                │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ v2 smoke: module        │ test_recap_v2.p │ test_recap_v2_module_import                                                    │
+
   │ imports                 │ y               │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ v2 smoke:               │                 │                                                                                │
+
   │ build_recap_v2,         │ test_recap_v2.p │ test_recap_v2_module_import                                                    │
+
   │ render_json,            │ y               │                                                                                │
+
   │ render_markdown         │                 │                                                                                │
+
   ├─────────────────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+
   │ acquire smoke:          │                 │                                                                                │
+
   │ discover_evidence,      │ test_acquire.py │ (import smoke only)                                                            │
+
   │ _is_subagent_transcript │                 │                                                                                │
+
   └─────────────────────────┴─────────────────┴────────────────────────────────────────────────────────────────────────────────┘
 
+
+
   ---
+
   5. Known Degradation Cases
 
+
+
   ┌─────────────────────────────────┬──────────────────────────────────────────────────────────┬────────────────────────────────┐
+
   │              Mode               │                      What degrades                       │              Why               │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ No registry / sessions-index    │ Falls back to handoff chain or direct transcript         │ sessions-index stopped         │
+
   │                                 │                                                          │ updating ~Jan 2026             │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ Registry unavailable            │ Falls back to session_chain.walk_handoff_chain → may     │ Network/path unavailable       │
+
   │                                 │ return stale or empty                                    │                                │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ Stale handoff (>5 min)          │ _get_fresh_handoff skips it; falls to walk_session_chain │ Freshness window is 300s       │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ Subagent transcripts in chain   │ Filtered via _is_subagent_transcript (exact component    │ Subagent noise excluded        │
+
   │                                 │ match)                                                   │                                │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ No modified files in session    │ Claims only INFERENCE/GAP; no FACT anchors               │ Transcript-only narrative      │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ enrich_file_structure → None    │ code_structures always empty                             │ No TLDR/AID wired              │
+
   │ (Phase 1)                       │                                                          │                                │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ condense_transcript budget      │ First 2000 chars only; rest silently dropped             │ Budget cap — not authoritative │
+
   │ exceeded                        │                                                          │  substrate                     │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ sessions-index.json stale       │ Registry takes priority (correct behavior)               │ Registry written on every      │
+
   │                                 │                                                          │ PreCompact                     │
+
   ├─────────────────────────────────┼──────────────────────────────────────────────────────────┼────────────────────────────────┤
+
   │ Empty sessions list             │ resume_packet.current_goal = None; brief JSON returns    │ Graceful empty state           │
+
   │                                 │ session: None                                            │                                │
+
   └─────────────────────────────────┴──────────────────────────────────────────────────────────┴────────────────────────────────┘
 
+
+
   ---
+
   Red flags the new architecture avoids:
+
   - Canonical output is JSON from RecapGraph — markdown is rendered from it, not the source of truth
+
   - regexextractsemantic() is not on the hot path — event typing from tool blocks is primary
+
   - condense_transcript is evidence-preview only, not semantic substrate
+
   - Verification queue is typed VerificationItem objects, not prose
+
   - Claim types FACT/INFERENCE/GAP are explicit in schema, not markdown section labels
+
   - ResumePacket is the first emitted object in render_markdown, not buried in session history"
 
 ## Assistant
@@ -5379,3 +5715,4 @@ Do not omit real structure or compress everything into pseudo-code. I am primari
 ***
 
 Use that brief exactly as the spec for your next iteration.
+```

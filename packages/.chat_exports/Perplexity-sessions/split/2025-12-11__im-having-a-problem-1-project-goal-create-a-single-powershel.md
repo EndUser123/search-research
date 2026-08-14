@@ -372,11 +372,17 @@ if __name__ == "__main__":
 ## Human
 
 PS P:\> .\.claude\proxy\START_unified_manager.ps1 -Start
+
 LiteLLM Unified Manager - OpenRouter + Chutes.ai
+
 Setting up isolated LiteLLM environment with UV...
+
 CRITICAL: Python 3.12 not found via 'py -3.12'.
+
 Install from [https://www.python.org/downloads/release/python-31211/](https://www.python.org/downloads/release/python-31211/)
+
 Then retry: .\Test-CompatiblePython -Start
+
 PS P:\>
 
 I thought we have python 3.12.
@@ -445,8 +451,11 @@ If you paste your `py -0p` and `python --version` outputs, an updated drop‑in 
 ## Human
 
 PS P:\> py -0p
+
  -V:3.14 *        C:\Users\brsth\AppData\Local\Python\pythoncore-3.14-64\python.exe
+
  -V:3.12          C:\Users\brsth\AppData\Local\Programs\Python\Python312\python.exe
+
 PS P:\>
 
 ## Assistant
@@ -786,18 +795,31 @@ You can drop this in as `START_unified_manager.ps1` and keep `START_runner.py` a
 ## Human
 
 PS P:\> .\.claude\proxy\START_unified_manager.ps1 -Start
+
 Starting Unified Server...
+
 Setting up isolated LiteLLM environment with Python 3.12 + uv...
+
 Python 3.12 confirmed via 'py -3.12'
+
 uv venv path failed or uv not available for this interpreter, falling back to built-in venv...
+
 InvalidOperation: P:\.claude\proxy\START_unified_manager.ps1:71
+
 Line |
+
   71 |                  return { param([string[]]$moreArgs) & $exe @args @mor …
+
      |                                                        ~~~~
+
      | The expression after '&' in a pipeline element produced an object
+
      | that was not valid. It must result in a command name, a script
+
      | block, or a CommandInfo object.
+
 Failed to create venv at P:\.claude\proxy\litellm_venv
+
 PS P:\>
 
 Maybe we need to install uv.
@@ -1038,39 +1060,74 @@ You can add `uv` back later by swapping the `venv` creation block with a `& $Pyt
 ## Human
 
 PS P:\> .\.claude\proxy\START_unified_manager.ps1 -Start
+
 Starting Unified Server...
+
 Setting up isolated LiteLLM environment with Python 3.12...
+
 Python 3.12 confirmed via 'py -3.12'
+
 Creating venv at P:\.claude\proxy\litellm_venv with Python 3.12...
+
 Upgrading pip in venv...
+
 &: P:\.claude\proxy\START_unified_manager.ps1:107
+
 Line |
+
  107 |      & $VenvPip "install" "--upgrade" "pip"
+
      |        ~~~~~~~~
+
      | The term 'P:\.claude\proxy\litellm_venv\Scripts\python.exe -m pip'
+
      | is not recognized as a name of a cmdlet, function, script file, or
+
      | executable program. Check the spelling of the name, or if a path was
+
      | included, verify that the path is correct and try again.
+
 Installing LiteLLM proxy dependencies in venv (3.12, avoids 3.14 wheel issues)...
+
 &: P:\.claude\proxy\START_unified_manager.ps1:114
+
 Line |
+
  114 |      & $VenvPip "install" "backoff" "fastapi" "uvicorn" "python-multip …
+
      |        ~~~~~~~~
+
      | The term 'P:\.claude\proxy\litellm_venv\Scripts\python.exe -m pip'
+
      | is not recognized as a name of a cmdlet, function, script file, or
+
      | executable program. Check the spelling of the name, or if a path was
+
      | included, verify that the path is correct and try again.
+
 LiteLLM dependencies installed successfully in P:\.claude\proxy\litellm_venv
+
 Updating Python Runner script...
+
 Starting Router on Port 8787...
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
 Traceback (most recent call last):
+
   File "P:\.claude\proxy\START_runner.py", line 2, in <module>
+
     from litellm.proxy.proxy_cli import run_server
+
 ModuleNotFoundError: No module named 'litellm'
 
+
+
 Unified Server is NOT running
+
 (If it fails again, you may need to check the venv or Python 3.12 install.)
+
+
 
 PS P:\>
 
@@ -1619,25 +1676,46 @@ This version ensures pip is called correctly from the venv and that `START_runne
 ## Human
 
 PS P:\> .\.claude\proxy\START_unified_manager.ps1 -Start
+
 Starting Unified Server...
+
 Using existing venv at P:\.claude\proxy\litellm_venv
+
 Updating Python Runner script...
+
 Starting Router on Port 8787...
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
 Traceback (most recent call last):
+
   File "P:\.claude\proxy\START_runner.py", line 5, in <module>
+
     from litellm.proxy.proxy_cli import run_server
+
 ModuleNotFoundError: No module named 'litellm'
+
+
 
 During handling of the above exception, another exception occurred:
 
+
+
 Traceback (most recent call last):
+
   File "P:\.claude\proxy\START_runner.py", line 8, in <module>
+
     from litellm.proxy.proxy_server import run_server
+
 ModuleNotFoundError: No module named 'litellm'
 
+
+
 Unified Server is NOT running
+
 (If it fails again, you may need to check the venv or Python 3.12 install.)
+
+
 
 PS P:\>
 
@@ -1673,27 +1751,50 @@ Once the manual `pip install` path is confirmed working, the script’s `Install
 ## Human
 
 PS P:\> P:\.claude\proxy\litellm_venv\Scripts\python.exe -m pip show litellm
+
 Name: litellm
+
 Version: 1.80.9
+
 Summary: Library to easily interface with LLM API providers
+
 Home-page: [https://litellm.ai](https://litellm.ai)
+
 Author: BerriAI
+
 Author-email:
+
 License: MIT
+
 Location: P:\.claude\proxy\litellm_venv\Lib\site-packages
+
 Requires: aiohttp, click, fastuuid, grpcio, httpx, importlib-metadata, jinja2, jsonschema, openai, pydantic, python-dotenv, tiktoken, tokenizers
+
 Required-by:
+
 PS P:\> P:\.claude\proxy\litellm_venv\Scripts\python.exe -c "import sys; print(sys.version)"
+
 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]
+
 PS P:\> .\.claude\proxy\START_unified_manager.ps1 -Start
+
 Starting Unified Server...
+
 Using existing venv at P:\.claude\proxy\litellm_venv
+
 Updating Python Runner script...
+
 Starting Router on Port 8787...
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
 
+
+
 Unified Server is NOT running
+
 (If it fails again, you may need to check the venv or Python 3.12 install.)
+
+
 
 PS P:\>
 
@@ -1761,40 +1862,76 @@ It took a while to start:
 
 PS P:\> Get-Content .\.claude\proxy\START_unified_manager.ps1 | Select-String -SimpleMatch "Start-Process"
 
+
+
     $job = Start-Process $VenvPython -ArgumentList "`"$RunnerFile`"",
+
 "--config", "`"$ConfigFile`"", "--port", "$Port" `
 
+
+
 PS P:\> INFO:     Started server process [74144]
+
 INFO:     Waiting for application startup.
 
+
+
    ██╗     ██╗████████╗███████╗██╗     ██╗     ███╗   ███╗
+
    ██║     ██║╚══██╔══╝██╔════╝██║     ██║     ████╗ ████║
+
    ██║     ██║   ██║   █████╗  ██║     ██║     ██╔████╔██║
+
    ██║     ██║   ██║   ██╔══╝  ██║     ██║     ██║╚██╔╝██║
+
    ███████╗██║   ██║   ███████╗███████╗███████╗██║ ╚═╝ ██║
+
    ╚══════╝╚═╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝     ╚═╝
 
 
-#------------------------------------------------------------#
-#                                                            #
-#       'This feature doesn't meet my needs because...'       #
-#        [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)        #
-#                                                            #
+
+
+
 #------------------------------------------------------------#
 
+#                                                            #
+
+#       'This feature doesn't meet my needs because...'       #
+
+#        [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)        #
+
+#                                                            #
+
+#------------------------------------------------------------#
+
+
+
  Thank you for using LiteLLM! - Krrish & Ishaan
+
+
+
+
 
 
 
 Give Feedback / Get Help: [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)
 
 
+
+
+
 LiteLLM: Proxy initialized with Config, Set models:
+
     amazon/nova-2-lite-v1:free
+
     kwaipilot/kat-coder-pro:free
+
     x-ai/grok-4-fast:free
+
     mistralai/Devstral-2-123B-Instruct-2512
+
 INFO:     Application startup complete.
+
 INFO:     Uvicorn running on [http://0.0.0.0:8787](http://0.0.0.0:8787) (Press CTRL+C to quit)
 
 ## Assistant
@@ -2192,71 +2329,131 @@ This way:
 This is chutes:
 
 curl -X POST \
+
 		[https://llm.chutes.ai/v1/chat/completions](https://llm.chutes.ai/v1/chat/completions) \
+
 		-H "Authorization: Bearer $CHUTES_API_TOKEN" \
+
 	-H "Content-Type: application/json" \
+
 	-d '  {
+
     "model": "moonshotai/Kimi-K2-Instruct-0905",
+
     "messages": [
+
       {
+
         "role": "user",
+
         "content": "Tell me a 250 word story."
+
       }
+
     ],
+
     "stream": true,
+
     "max_tokens": 1024,
+
     "temperature": 0.7
+
   }'
 
 curl -X POST \
+
 		[https://llm.chutes.ai/v1/chat/completions](https://llm.chutes.ai/v1/chat/completions) \
+
 		-H "Authorization: Bearer $CHUTES_API_TOKEN" \
+
 	-H "Content-Type: application/json" \
+
 	-d '  {
+
     "model": "deepseek-ai/DeepSeek-V3.2",
+
     "messages": [
+
       {
+
         "role": "user",
+
         "content": "Tell me a 250 word story."
+
       }
+
     ],
+
     "stream": true,
+
     "max_tokens": 1024,
+
     "temperature": 0.7
+
   }'
 
 curl -X POST \
+
 		[https://llm.chutes.ai/v1/chat/completions](https://llm.chutes.ai/v1/chat/completions) \
+
 		-H "Authorization: Bearer $CHUTES_API_TOKEN" \
+
 	-H "Content-Type: application/json" \
+
 	-d '  {
+
     "model": "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
+
     "messages": [
+
       {
+
         "role": "user",
+
         "content": "Tell me a 250 word story."
+
       }
+
     ],
+
     "stream": true,
+
     "max_tokens": 1024,
+
     "temperature": 0.7
+
   }'
 
 curl -X POST \
+
 		[https://llm.chutes.ai/v1/chat/completions](https://llm.chutes.ai/v1/chat/completions) \
+
 		-H "Authorization: Bearer $CHUTES_API_TOKEN" \
+
 	-H "Content-Type: application/json" \
+
 	-d '  {
+
     "model": "mistralai/Devstral-2-123B-Instruct-2512",
+
     "messages": [
+
       {
+
         "role": "user",
+
         "content": "Tell me a 250 word story."
+
       }
+
     ],
+
     "stream": true,
+
     "max_tokens": 1024,
+
     "temperature": 0.7
+
   }'
 
 ## Assistant
@@ -2380,53 +2577,102 @@ Now a single LiteLLM instance can route to all your OpenRouter and Chutes models
 ## Human
 
 PS P:\> .\.claude\proxy\START_unified_manager.ps1 -Start
+
 Starting Unified Server...
+
 Port 8787 is busy with 'python'. Killing it...
+
 Freed port 8787.
+
 Using existing venv at P:\.claude\proxy\litellm_venv
+
 Updating Python Runner script...
+
 Starting Router on Port 8787...
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
 INFO:     Started server process [73348]
+
 INFO:     Waiting for application startup.
 
+
+
    ██╗     ██╗████████╗███████╗██╗     ██╗     ███╗   ███╗
+
    ██║     ██║╚══██╔══╝██╔════╝██║     ██║     ████╗ ████║
+
    ██║     ██║   ██║   █████╗  ██║     ██║     ██╔████╔██║
+
    ██║     ██║   ██║   ██╔══╝  ██║     ██║     ██║╚██╔╝██║
+
    ███████╗██║   ██║   ███████╗███████╗███████╗██║ ╚═╝ ██║
+
    ╚══════╝╚═╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝     ╚═╝
 
 
-#------------------------------------------------------------#
-#                                                            #
-#           'It would help me if you could add...'            #
-#        [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)        #
-#                                                            #
+
+
+
 #------------------------------------------------------------#
 
+#                                                            #
+
+#           'It would help me if you could add...'            #
+
+#        [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)        #
+
+#                                                            #
+
+#------------------------------------------------------------#
+
+
+
  Thank you for using LiteLLM! - Krrish & Ishaan
+
+
+
+
 
 
 
 Give Feedback / Get Help: [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)
 
 
+
+
+
 LiteLLM: Proxy initialized with Config, Set models:
+
     amazon/nova-2-lite-v1:free
+
     kwaipilot/kat-coder-pro:free
+
     x-ai/grok-4-fast:free
+
     tngtech/deepseek-r1t2-chimera:free
+
     mistralai/devstral-2512:free
+
     moonshotai/Kimi-K2-Instruct-0905
+
     deepseek-ai/DeepSeek-V3.2
+
     deepseek-ai/DeepSeek-V3.2-Speciale-TEE
+
     mistralai/Devstral-2-123B-Instruct-2512
+
 INFO:     Application startup complete.
+
 INFO:     Uvicorn running on [http://0.0.0.0:8787](http://0.0.0.0:8787) (Press CTRL+C to quit)
 
+
+
 Unified Server is NOT running
+
 (If it fails again, you may need to check the venv or Python 3.12 install.)
+
+
 
 PS P:\>
 
@@ -2485,7 +2731,9 @@ If that returns 200, the proxy is good; only the old `/health` check was giving 
 ## Human
 
 PS P:\> Invoke-WebRequest -Uri "http://localhost:8787/v1/health" -TimeoutSec 2
+
 Invoke-WebRequest: The request was canceled due to the configured HttpClient.Timeout of 2 seconds elapsing.
+
 PS P:\>
 
 ## Assistant
@@ -2786,52 +3034,100 @@ Start-Server
 ## Human
 
 PS P:\> .\.claude\proxy\START_unified_manager.ps1 -Start
+
 Starting Unified Server...
+
 Using existing venv at P:\.claude\proxy\litellm_venv
+
 Updating Python Runner script...
+
 Starting Router on Port 8787...
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
 INFO:     Started server process [80492]
+
 INFO:     Waiting for application startup.
 
+
+
    ██╗     ██╗████████╗███████╗██╗     ██╗     ███╗   ███╗
+
    ██║     ██║╚══██╔══╝██╔════╝██║     ██║     ████╗ ████║
+
    ██║     ██║   ██║   █████╗  ██║     ██║     ██╔████╔██║
+
    ██║     ██║   ██║   ██╔══╝  ██║     ██║     ██║╚██╔╝██║
+
    ███████╗██║   ██║   ███████╗███████╗███████╗██║ ╚═╝ ██║
+
    ╚══════╝╚═╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝     ╚═╝
 
 
-#------------------------------------------------------------#
-#                                                            #
-#            'The thing I wish you improved is...'            #
-#        [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)        #
-#                                                            #
+
+
+
 #------------------------------------------------------------#
 
+#                                                            #
+
+#            'The thing I wish you improved is...'            #
+
+#        [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)        #
+
+#                                                            #
+
+#------------------------------------------------------------#
+
+
+
  Thank you for using LiteLLM! - Krrish & Ishaan
+
+
+
+
 
 
 
 Give Feedback / Get Help: [https://github.com/BerriAI/litellm/issues/new](https://github.com/BerriAI/litellm/issues/new)
 
 
+
+
+
 LiteLLM: Proxy initialized with Config, Set models:
+
     amazon/nova-2-lite-v1:free
+
     kwaipilot/kat-coder-pro:free
+
     x-ai/grok-4-fast:free
+
     tngtech/deepseek-r1t2-chimera:free
+
     mistralai/devstral-2512:free
+
     moonshotai/Kimi-K2-Instruct-0905
+
     deepseek-ai/DeepSeek-V3.2
+
     deepseek-ai/DeepSeek-V3.2-Speciale-TEE
+
     mistralai/Devstral-2-123B-Instruct-2512
+
 INFO:     Application startup complete.
+
 INFO:     Uvicorn running on [http://0.0.0.0:8787](http://0.0.0.0:8787) (Press CTRL+C to quit)
 
+
+
 INFO:     127.0.0.1:59270 - "GET /health/liveliness HTTP/1.1" 200 OK
+
 Unified Server is RUNNING on port 8787 (health: http://localhost:8787/health/liveliness)
+
 Routing Table: P:\.claude\proxy\START_litellm_config.yaml
+
+
 
 PS P:\>
 
@@ -2847,22 +3143,39 @@ You can open multiple terminals, run `cc_menu.ps1` in each to pick different mod
 ## Human
 
 Claude Code Model Selector (Unified LiteLLM Proxy)
+
 -------------------------------------------------
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite            (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                 (kwaipilot/kat-coder-pro:free)
+
   3. DeepSeek R1T2 Chimera         (tngtech/deepseek-r1t2-chimera:free)
+
   4. Mistral Devstral 2512         (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   5. Kimi K2 Instruct 0905         (moonshotai/Kimi-K2-Instruct-0905)
+
   6. DeepSeek V3.2                 (deepseek-ai/DeepSeek-V3.2)
+
   7. DeepSeek V3.2 Speciale TEE    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   8. Devstral 2 123B Instruct      (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
  Q. Quit
+
 -------------------------------------------------
+
 Select a model: 3
+
 PS P:\>
 
 
@@ -2982,11 +3295,17 @@ This mirrors the “Configuration / API Endpoints” style from `cc_z_ai.ps1`, b
 please look up this error and the fix, for the context we are in.
 
   ⎿ API Error: 404 {"error":{"message":"litellm.NotFoundError:
+
     NotFoundError: OpenrouterException - {\"error\":{\"message\":\"No
+
     endpoints found that support tool use. To learn more about provider
+
     routing, visit: [https://openrouter.ai/docs/guides/routing/provider-selec](https://openrouter.ai/docs/guides/routing/provider-selec)
+
     tion\",\"code\":404}}. Received Model
+
     Group=tngtech/deepseek-r1t2-chimera:free\nAvailable Model Group
+
     Fallbacks=None","type":null,"param":null,"code":"404"}}
 
 ## Assistant
@@ -3390,25 +3709,45 @@ This script:
 ## Human
 
 PS P:\> .\.claude\proxy\cc_speed_test.ps1
+
 LiteLLM Model Latency Check (via http://localhost:8787)
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
+
 
 Proxy status: ONLINE
 
+
+
 Measuring per-model latency with tiny test requests...
+
 (This is one-shot latency, not full throughput or long-context performance.)
 
 
+
+
+
 Results:
+
   mistralai/devstral-2512:free               2567 ms
+
   kwaipilot/kat-coder-pro:free               2932 ms
+
   amazon/nova-2-lite-v1:free               FAILED
+
   moonshotai/Kimi-K2-Instruct-0905         FAILED
+
   deepseek-ai/DeepSeek-V3.2                FAILED
+
   deepseek-ai/DeepSeek-V3.2-Speciale-TEE   FAILED
+
   mistralai/Devstral-2-123B-Instruct-2512  FAILED
 
+
+
 Tip: Use these latencies to decide which model to select in cc_menu.ps1.
+
 PS P:\>
 
 ## Assistant
@@ -3562,48 +3901,86 @@ Write-Host "Tip: Use these latencies to decide which option to pick in cc_menu.p
 
 This is cc_menu:
 Claude Code Model Selector (Unified LiteLLM Proxy)
+
 -------------------------------------------------
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite            (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                 (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512         (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905         (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                 (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct      (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
  Q. Quit
+
 -------------------------------------------------
+
 Select a model:
 
 ---
 
 This is cc_speed_test, it doesn't look similar:
 PS P:\> .\.claude\proxy\cc_speed_test.ps1
+
 Claude Code Model Latency Check (via LiteLLM Proxy)
+
 -------------------------------------------------
+
 Proxy:  http://localhost:8787
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
+
 
 Proxy status: ONLINE
 
+
+
 Measuring per-model latency with tiny test requests...
+
 (One-shot latency only, not full throughput/long-context performance.)
 
+
+
 PROVIDER: Chutes
+
   Kimi K2 Instruct 0905          FAILED    (moonshotai/Kimi-K2-Instruct-0905)
+
   DeepSeek V3.2                  FAILED    (deepseek-ai/DeepSeek-V3.2)
+
   DeepSeek V3.2 Speciale TEE     FAILED    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   Devstral 2 123B Instruct       FAILED    (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
 PROVIDER: OPENROUTER
+
   Mistral Devstral 2512            2587 ms  (mistralai/devstral-2512:free)
+
   Kat Coder Pro                    2910 ms  (kwaipilot/kat-coder-pro:free)
+
   Amazon Nova 2 Lite               3302 ms  (amazon/nova-2-lite-v1:free)
 
+
+
 Tip: Use these latencies to decide which option to pick in cc_menu.ps1.
+
 PS P:\>
 
 ## Assistant
@@ -3959,7 +4336,9 @@ Write-Host "  $modelName via LiteLLM proxy on http://localhost:8787" -Foreground
 
 Can we vertically align the keys?
 Environment keys (process scope):
+
   - OPENROUTER_API_KEY: sk-o...57
+
   - CHUTES_API_KEY: cpk_...7o
 
 ## Assistant
@@ -4004,28 +4383,51 @@ Environment keys (process scope):
 ## Human
 
 PS P:\> .\.claude\proxy\cc_speed_test.ps1
+
 Claude Code Model Latency Check (Unified LiteLLM Proxy)
+
 ------------------------------------------------------
+
 Proxy:  http://localhost:8787
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
+
 
 Proxy status: ONLINE
 
+
+
 Measuring per-model latency with tiny test requests...
+
 (One-shot latency only, not full throughput/long-context performance.)
 
+
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite             3105 ms  (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                  3538 ms  (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512          2653 ms  (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905        FAILED    (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                FAILED    (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE   FAILED    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct     FAILED    (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
 Tip: Pick the same number in cc_menu.ps1 as the fastest passing option here.
+
 PS P:\>
 
 
@@ -4207,28 +4609,51 @@ Write-Host "Tip: Pick the same number in cc_menu.ps1 as the fastest passing opti
 
 It didn't line up:
 PS P:\> .\.claude\proxy\cc_speed_test.ps1
+
 Claude Code Model Latency Check (Unified LiteLLM Proxy)
+
 ------------------------------------------------------
+
 Proxy:  http://localhost:8787
+
 Config: P:\.claude\proxy\START_litellm_config.yaml
+
+
 
 Proxy status: ONLINE
 
+
+
 Measuring per-model latency with tiny test requests...
+
 (One-shot latency only, not full throughput/long-context performance.)
 
+
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite               3590 ms  (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                    3008 ms  (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512            2621 ms  (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905          FAILED    (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                  FAILED    (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE     FAILED    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct       FAILED    (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
 Tip: Pick the same number in cc_menu.ps1 as the fastest passing option here.
+
 PS P:\>
 
 ## Assistant
@@ -4372,30 +4797,55 @@ That worked!
 
 The litellm server is showing this:
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\router.py", line 4385, in async_function_with_retries
+
     response = await self.make_call(original_function, *args, **kwargs)
+
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\router.py", line 4505, in make_call
+
     response = await response
+
                ^^^^^^^^^^^^^^
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\router.py", line 1575, in _acompletion
+
     raise e
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\router.py", line 1527, in _acompletion
+
     response = await _response
+
                ^^^^^^^^^^^^^^^
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\utils.py", line 1643, in wrapper_async
+
     raise e
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\utils.py", line 1489, in wrapper_async
+
     result = await original_function(*args, **kwargs)
+
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\main.py", line 626, in acompletion
+
     raise exception_type(
+
           ^^^^^^^^^^^^^^^
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 2329, in exception_type
+
     raise e
+
   File "P:\.claude\proxy\litellm_venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 450, in exception_type
+
     raise AuthenticationError(
+
 litellm.exceptions.AuthenticationError: litellm.AuthenticationError: AuthenticationError: OpenAIException - The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable. Received Model Group=mistralai/Devstral-2-123B-Instruct-2512
+
 Available Model Group Fallbacks=None
+
 INFO:     127.0.0.1:53197 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
 
 ## Assistant
@@ -4557,37 +5007,69 @@ Notes:
 ## Human
 
 PS P:\> -d '  {
+
 >>     "model": "moonshotai/Kimi-K2-Instruct-0905",
+
 >>     "messages": [
+
 >>       {
+
 >>         "role": "user",
+
 >>         "content": "Tell me a 250 word story."
+
 >>       }
+
 >>     ],
+
 >>     "stream": true,
+
 >>     "max_tokens": 1024,
+
 >>     "temperature": 0.7
+
 >>   }'^C
+
 PS P:\> $env:CHUTES_API_TOKEN = $env:CHUTES_API_KEY  # if token/key names differ
+
 PS P:\>
+
 PS P:\> curl.exe -X POST `
+
 >>   "https://llm.chutes.ai/v1/chat/completions" `
+
 >>   -H "Authorization: Bearer $($env:CHUTES_API_TOKEN)" `
+
 >>   -H "Content-Type: application/json" `
+
 >>   -d '{
+
 >>     "model": "moonshotai/Kimi-K2-Instruct-0905",
+
 >>     "messages": [
+
 >>       {
+
 >>         "role": "user",
+
 >>         "content": "Tell me a 250 word story."
+
 >>       }
+
 >>     ],
+
 >>     "stream": false,
+
 >>     "max_tokens": 128,
+
 >>     "temperature": 0.7
+
 >>   }'
+
 {"id":"62883943e1a44c9e82786a989ba42083","object":"chat.completion","created":1765431231,"model":"moonshotai/Kimi-K2-Instruct-0905","choices":[{"index":0,"message":{"role":"assistant","content":"On the last day the sky still worked, Mira tied her grandmother’s cracked telescope to her bicycle and rode to the abandoned drive-in. The aurora had been flickering for weeks, but tonight it sagged like torn silk, dripping colors that hissed when they touched the weeds. She aimed the telescope at the breach overhead, where constellations were unscrewing themselves and drifting away as if ashamed.\n\nInside the cracked concession stand, the old popcorn machine rattled awake. A single kernel jumped, golden, then unfolded into a tiny star. It rose, weightless, and hovered between Mira and the screen. She laughed","reasoning_content":null,"tool_calls":null},"logprobs":null,"finish_reason":"length","matched_stop":null}],"usage":{"prompt_tokens":34,"total_tokens":162,"completion_tokens":128,"prompt_tokens_details":null,"reasoning_tokens":0},"metadata":{"weight_version":"default"},"chutes_verification":"8398bd25fed248d69e3e20862126d348"}
+
 PS P:\>
+
 PS P:\>
 
 ## Assistant
@@ -4866,3 +5348,4 @@ You’re already reading `.env`; add one key like `LITELLM_DEBUG=1`:
   - Maybe echo the exact `curl` equivalent for the selected `ANTHROPIC_*` triple for quick debugging.
 
 None of these change the core architecture; they just make day‑to‑day use and troubleshooting smoother while you keep a single LiteLLM instance and multiple Claude Code shells pointed at it.
+```

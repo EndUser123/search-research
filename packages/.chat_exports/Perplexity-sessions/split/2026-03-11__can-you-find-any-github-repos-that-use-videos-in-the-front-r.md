@@ -63,7 +63,7 @@ The optimal pattern in 2026 is: don’t fight GitHub’s limited video support i
 Host video on YouTube/Vimeo/your own site and use a clickable image:
 
 ```md
-[[image]](https://example.com/your-demo-video "Watch the demo")
+/image(https://example.com/your-demo-video "Watch the demo")
 ```
 
 - Works everywhere GitHub renders Markdown, no HTML quirks.[7][1][2]
@@ -81,7 +81,7 @@ Minimal flow:
 If you want everything on GitHub:
 
 ```md
-[[image]](https://raw.githubusercontent.com/you/your-repo/main/assets/demo.mp4 "Project demo")
+/image(https://raw.githubusercontent.com/you/your-repo/main/assets/demo.mp4 "Project demo")
 ```
 
 - GeeksforGeeks and others recommend exactly this pattern.[2][7]
@@ -153,7 +153,7 @@ You can also download the video file if you want a local MP4 backup: Studio → 
 Pattern (most robust with least friction):
 
 ```md
-[[image]](https://notebooklm.google.com/video/your-video-id "NotebookLM video overview")
+/image(https://notebooklm.google.com/video/your-video-id "NotebookLM video overview")
 ```
 
 - This is the “clickable thumbnail → video URL” pattern recommended for GitHub in 2026.[2][3]
@@ -195,8 +195,8 @@ Example section you can drop into any public project:
 
 High-level feature tours generated with NotebookLM Video Overviews:
 
-- [[image]](https://notebooklm.google.com/video/FEATURE_ID "NotebookLM feature tour")
-- [[image]](https://notebooklm.google.com/video/ARCH_ID "NotebookLM architecture overview")
+- /image(https://notebooklm.google.com/video/FEATURE_ID "NotebookLM feature tour")
+- /image(https://notebooklm.google.com/video/ARCH_ID "NotebookLM architecture overview")
 
 Prefer local copies?
 - [Download MP4 (feature overview)](https://raw.githubusercontent.com/you/your-repo/main/assets/notebooklm-feature.mp4)
@@ -263,13 +263,13 @@ So to keep notebooks private while videos are public, you must use Option 3 and 
 4. In your README, link via a clickable thumbnail:
 
 ```md
-[[image]](https://youtu.be/YOUR_VIDEO_ID "Video overview")
+/image(https://youtu.be/YOUR_VIDEO_ID "Video overview")
 ```
 
 or, if hosting in the repo:
 
 ```md
-[[image]](https://raw.githubusercontent.com/you/your-repo/main/assets/notebooklm-demo.mp4 "Video overview")
+/image(https://raw.githubusercontent.com/you/your-repo/main/assets/notebooklm-demo.mp4 "Video overview")
 ```
 
 This way:
@@ -321,8 +321,8 @@ Example:
 ```md
 ## Video walkthroughs (NotebookLM)
 
-- [[image]](https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/assets/video/overview-intro.mp4 "Intro overview (MP4)")
-- [[image]](https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/assets/video/feature-tour.mp4 "Feature tour (MP4)")
+- /image(https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/assets/video/overview-intro.mp4 "Intro overview (MP4)")
+- /image(https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/assets/video/feature-tour.mp4 "Feature tour (MP4)")
 ```
 
 Details:

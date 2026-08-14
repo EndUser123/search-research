@@ -671,7 +671,7 @@ and I'll help you implement it in this session.
 request="$1"
 
 # Cross-platform new terminal spawn
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if /"$OSTYPE" == "darwin"*; then
   # macOS
   open -a Terminal "$(
     cat <<EOF
@@ -681,10 +681,10 @@ claude --permission-mode plan -p "$request"
 read -p "Press Enter to close this terminal..."
 EOF
   )"
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+elif /"$OSTYPE" == "linux-gnu"*; then
   # Linux
   gnome-terminal -- bash -c "cd '$PWD'; claude --permission-mode plan -p '$request'; read -p 'Press Enter to close...'"
-elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+elif /"$OSTYPE" == "msys"; then
   # Windows PowerShell
   start powershell -NoExit -Command "cd '$PWD'; claude --permission-mode plan -p '$request'"
 fi
@@ -1493,33 +1493,61 @@ Everything is documented with enough detail that any competent developer can imp
 
 Feedback from CC.  Remember don't trust it, what it says is only hypothesis.
 
+
 ● Review: Authority Gate Hook
+
+
 
   Questions & Concerns
 
+
+
   1. Constitutional conflict? Your CLAUDE.md has "Vague Directive Gate" and "Spec Compliance". This hook adds another layer. Does it conflict or complement?
+
   2. Solo dev context: The doc mentions "production environments" and "team workflows" but your system is solo-dev. The risk profile is different - you don't have accidental deployment from others.
+
   3. False positives: Test 14 admits "How does this regex work?" would trigger a warning. For a solo dev exploring their own codebase, this seems excessive.
+
+
 
   Gaps
 
+
+
   1. No integration with your existing hooks: You have PreToolUse_vague_directive_gate.py, anti_bleed_gate.py, etc. How does this coexist?
+
   2. No mention of /plan command: Your system has /plan mode already. Does this hook duplicate that functionality?
+
   3. Windows-specific path: Uses ~/.claude/ which works on Windows, but should clarify C:/Users/brsth/.claude/ for your setup.
+
+
 
   Opportunities
 
+
+
   1. Merge with vague directive gate: Instead of two separate hooks, combine into one "planning mode" detector that:
+
     - Uses your existing PreToolUse_vague_directive_gate.py infrastructure
+
     - Checks for question patterns AND vague directives
+
   2. Add to SKILL.md: If implemented, add pattern to csf-nip-integration/SKILL.md under "Constitutional Patterns"
+
   3. Consider /plan instead: You already have built-in plan mode (EnterPlanMode tool). Use that instead of adding another hook.
+
+
 
   Recommendation
 
+
+
   Don't implement this hook. Your existing system already has:
+
   - /plan command for planning mode
+
   - PreToolUse_vague_directive_gate.py for unclear directives
+
   - Constitutional guidance against premature implementation
 
 ## Assistant
@@ -1717,86 +1745,168 @@ Answer skipped.
 
 From CC talking to me:
 
+
 ● You're right. I missed the practical gap between "theoretically sufficient" and "actually enforced."
+
+
 
   Legitimate questions:
 
+
+
   1. Integration with your existing hooks: Should authority-check.py run before or after vague_directive_gate.py? Does order matter?
+
   2. Settings.json path: You're on Windows 11. The doc shows ~/.claude/ - should be C:/Users/brsth/.claude/. Want me to update the doc for your specific path?
+
   3. Python executable: The doc uses python3. On Windows, it's python. Want me to update the command in the doc?
+
   4. Test cases: Want me to run through the test cases after you implement, to verify it works in your environment?
+
+
 
   That's it. The hook solves a real problem - context drift in multi-turn planning conversations. Your rationale holds.
 
+
+
 ❯ What do you think is optimal to your own questions?
+
+
 
 ● Optimal approach - answer my own questions:
 
+
+
   1. Hook order: Doesn't matter. Both inject text. Order won't break anything.
+
   2. Windows path: ~/.claude/ works fine - Python/Claude resolve it. Doc is fine as-is.
+
   3. Python executable: python on Windows, but python3 in doc is generic. Leave it - users know their platform.
+
   4. Test cases: Yes - but I should run them NOW, not ask.
 
+
+
   What actually matters:
+
   - Does the hook work in your environment?
+
   - Are the false positives acceptable?
+
   - Does it solve the context drift problem?
+
+
 
   Want me to install and test it now?
 
+
+
 ❯ We use project path P:/.claude.
+
   Do you think the hook will work?
+
   Can you think of ways to usefully mitigate or prevent the false positives?
+
   Be professional and helpful.
+
+
 
 ● Will it work?
 
+
+
   Yes. The hook reads from sys.stdin (JSON from Claude Code), not from a file path. Your P:/.claude vs ~/.claude only matters for:
+
   - Hook file location: P:/.claude/hooks/authority-check.py
+
   - Settings location: P:/.claude/settings.json
+
+
 
   Both work. The JSON input format is platform-agnostic.
 
+
+
   False positive mitigation
+
+
 
   Current problem: "How does this regex work?" triggers warning (exploratory question about existing code, not planning new feature).
 
+
+
   Mitigation strategies:
+
+
 
   1. Code-aware detection (moderate effort)
 
+
+
   def is_about_existing_code(prompt: str) -> bool:
+
       """Check if question is about existing code, not new implementation."""
+
       code_indicators = [
+
           r'this\s+(function|code|regex|class|method)',
+
           r'line\s+\d+',
+
           r'in\s+[\w/]+\.py',
+
           r'file\s+[\w/]+',
+
       ]
+
       return any(re.search(p, prompt.lower()) for p in code_indicators)
+
+
 
   # Then: if detect_question() and not has_authorization() and not is_about_existing_code():
 
+
+
   2. "Explain" exception (simple, effective)
 
+
+
   # Add to detect_question() - early return False
+
   if re.search(r'\b(explain|describe|show me|walk through)\b', prompt_lower):
+
       return False
+
+
 
   3. Question mark only when alone
 
+
+
   # Only trigger on "?" if it's a question ABOUT implementation
+
   if '?' in prompt and not any(word in prompt_lower for word in auth_keywords):
+
       # Has question mark, but no authorization words
+
       # Check if it's asking "how to implement" vs "how does this work"
+
       if re.search(r'how\s+(do|does|did|to|should|would)\s+\w+', prompt_lower):
+
           # "how does X work" - existing code
+
           return False
+
       elif re.search(r'how\s+(should|would|can)\s+(we|i|you)', prompt_lower):
+
           # "how should we implement" - planning
+
           return True
 
+
+
   Recommendation: Start with #2 (explain exception). It's simple, covers the common false positive case, and you can iterate later if needed.
+
+
 
   Want me to implement #2 into the hook code?
 

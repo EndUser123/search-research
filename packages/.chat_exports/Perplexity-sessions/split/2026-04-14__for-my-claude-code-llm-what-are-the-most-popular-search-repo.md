@@ -2528,7 +2528,7 @@ tags:
   - "tag1"
   - "tag2"
 links:
-  - "[[Related Page Title]]"
+  - "/Related Page Title"
 ```
 
 ## Graphify Integration

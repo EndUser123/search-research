@@ -206,7 +206,7 @@ exit 0
 | Bash | PowerShell |
 |------|-----------|
 | `set -euo pipefail` | `$ErrorActionPreference = 'Stop'` + `$PSNativeCommandUseErrorActionPreference = $true` |
-| `[[ ! -f "$FILE" ]]` | `-not (Test-Path $file)` |
+| `/! -f "$FILE"` | `-not (Test-Path $file)` |
 | `sed` / `grep` / `awk` | PowerShell regex with `-match` operator |
 | `jq` parsing | `ConvertFrom-Json` and object property access |
 | `perl -0777` (slurp) | PowerShell regex with `(?s)` flag for multiline |

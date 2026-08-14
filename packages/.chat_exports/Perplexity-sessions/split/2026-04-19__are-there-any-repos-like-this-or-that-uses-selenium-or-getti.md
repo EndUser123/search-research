@@ -765,7 +765,7 @@ If you want to stay fully “local / self‑owned”:
   - With built‑in sleeps and backoff.
 - Or, build a **local proxy switcher**:
   - simple SOCKS/HTTP proxies on each node.
-  - your main orchestrator rotates `--proxy http://user:pass@ip:port` for yt‑dlp on each job.[2][4]
+  - your main orchestrator rotates `--proxy [REDACTED]:port` for yt‑dlp on each job.[2][4]
 
 Proxy vendors say: “use rotating proxies to prevent IP bans; yt‑dlp doesn’t rotate itself, so you must handle it externally.”[4][2]
 

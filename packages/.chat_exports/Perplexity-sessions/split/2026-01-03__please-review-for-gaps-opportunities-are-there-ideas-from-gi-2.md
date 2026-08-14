@@ -6067,61 +6067,118 @@ The design doc has all prompts, pseudocode, and integration points.
 
 Feedback from CC:
 
+
   Analysis: RCA System Design v2.0 Implementation Feasibility
+
+
 
   What Already Exists (from our existing /debug and /rca systems):
 
+
+
   | Component                      | Status    | Notes                                      |
+
   |--------------------------------|-----------|--------------------------------------------|
+
   | Phase 0: Fingerprint Matching  | ✅ Exists | Fix registry with <1s matching             |
+
   | Phase 1: Context Gathering     | ✅ Exists | Logs, traces, git history                  |
+
   | Phase 2: Hypothesis Generation | ✅ Exists | CHS search, pattern matching               |
+
   | Phase 3: Multi-Agent Council   | ✅ Exists | Architect, Skeptic, Domain Expert personas |
+
   | Phase 4: Verification          | ✅ Exists | Git rollback, validation                   |
+
   | RCA Specialist Subagent        | ✅ Exists | ProductionRCAEngine                        |
+
   | Ralph Loop                     | ✅ Exists | Iterative retry with test gate             |
+
+
 
   What's NEW in v2.0 (needs implementation):
 
+
+
   | Feature                                                                                         | Complexity | Dependencies                      | Effort     |
+
   |-------------------------------------------------------------------------------------------------|------------|-----------------------------------|------------|
+
   | Cognitive Frameworks (Cynefin, Inversion, Hanlon's Razor, Chesterton's Fence, Devil's Advocate) | Medium     | System prompt updates             | Low-Medium |
+
   | Temporal Freshness Check (Phase 2.5)                                                            | Medium     | pip show, web search for docs     | Medium     |
+
   | Log Airlock (sanitization)                                                                      | Low        | Regex patterns                    | Low        |
+
   | Complexity Gate (15% threshold)                                                                 | Medium     | Cyclomatic complexity calculation | Medium     |
+
   | Cost Circuit Breaker ($2 limit, 3 retries)                                                      | Low        | Token tracking                    | Low        |
+
   | Dissenter Persona (4th council member)                                                          | Low        | Prompt only                       | Low        |
+
   | Skills Architecture (3 new skills)                                                              | Medium     | Skill file creation               | Medium     |
+
+
 
   Implementation Assessment:
 
+
+
   YES, this can be implemented. Most components are low-medium complexity and build on existing infrastructure.
+
+
 
   Recommended Implementation Order:
 
+
+
   Week 1 (Low hanging fruit):
+
   1. Log Airlock - Regex sanitization, wrap logs in <untrusted_logs> tags
+
   2. Dissenter Persona - Add 4th persona to council
+
   3. Cost Circuit Breaker - Simple token/retry counter
 
+
+
   Week 2 (Core enhancements):
+
   4. Cognitive Frameworks Skill - Create skill with 5 mental models
+
   5. Complexity Gate - Add complexity check before commit
 
+
+
   Week 3 (Advanced):
+
   6. Temporal Freshness Check Skill - Version extraction + deprecation checking
+
   7. Integration testing - Golden set regression tests
+
+
 
   Constitutional Considerations:
 
+
+
   All proposed features comply with existing constitutional principles:
+
   - C.1 (Singular Dev): No enterprise patterns, direct developer control
+
   - G (Data Safety): Automatic git backup before changes
+
   - H (Subagent-First): Delegates to specialist subagents
+
+
 
   Recommendation:
 
+
+
   Proceed with implementation. This is a well-designed enhancement that adds production-grade safety without architectural violations.
+
+
 
   Would you like me to start with Week 1 items (Log Airlock, Dissenter, Cost Circuit Breaker)?
 
@@ -6193,63 +6250,123 @@ Implement Feature 1.1 (Log Airlock) first.
 
 > C:\Users\brsth\Downloads\RCA-Implementation-Roadmap.md, feedback from Perplexity
 
+
+
 ● Read(C:\Users\brsth\Downloads\RCA-Implementation-Roadmap.md)
+
   ⎿  Read 1197 lines
+
   ⎿  Running PostToolUse hooks… (1/6 done)
+
+
 
 ● RCA Implementation Roadmap - Feasibility Analysis
 
+
+
   Quick Assessment
 
+
+
   | Feature                      | Complexity | Effort | Dependencies         | Ready? |
+
   |------------------------------|------------|--------|----------------------|--------|
+
   | Week 1: Log Airlock          | Low        | 1-2h   | None                 | ✅     |
+
   | Week 1: Dissenter Persona    | Low        | 2-3h   | Council exists       | ✅     |
+
   | Week 1: Cost Circuit Breaker | Low        | 2-3h   | Token tracking       | ✅     |
+
   | Week 2: Cognitive Frameworks | Medium     | 4-5h   | Skill system         | ✅     |
+
   | Week 2: Complexity Gate      | Medium     | 5-6h   | AST parsing          | ✅     |
+
   | Week 3: Temporal Check       | Medium     | 6-7h   | pip show, web search | ⚠️     |
+
   | Week 3: Golden Set Tests     | Medium     | 5-6h   | All above            | ✅     |
+
+
 
   Total: ~30 hours, ~900 lines across 5 files
 
+
+
   Implementation Readiness
 
+
+
   YES - This is implementable. The roadmap is detailed with:
+
   - Exact code snippets for each feature
+
   - Test cases for validation
+
   - Clear integration points
+
   - Constitutional compliance verified
+
+
 
   Key Dependencies Already Present
 
+
+
   | Dependency          | Location            | Status    |
+
   |---------------------|---------------------|-----------|
+
   | Multi-Agent Council | /rca command        | ✅ Exists |
+
   | RCA Specialist      | ProductionRCAEngine | ✅ Exists |
+
   | Ralph Loop          | Test gate + retry   | ✅ Exists |
+
   | Skill System        | .claude/skills/     | ✅ Exists |
+
   | Git Integration     | Phase 4             | ✅ Exists |
+
+
 
   Recommended Approach
 
+
+
   Start with Week 1 features (8 hours, immediate value):
+
   1. Log Airlock - Prevents prompt injection via logs
+
   2. Dissenter Persona - 4th council member for safety
+
   3. Cost Circuit Breaker - $2 limit, 3 retry max
 
+
+
   These are:
+
   - Low complexity
+
   - High impact
+
   - No external dependencies
+
   - Testable in isolation
+
+
 
   Next Steps
 
+
+
   Would you like me to:
+
   1. Start Week 1 implementation - Create the 3 features (Log Airlock, Dissenter, Cost Circuit Breaker)
+
   2. Create implementation plan - Break down into granular tasks for subagent execution
+
   3. Review specific feature - Deep dive into any component first
+
+
 
   The roadmap is production-ready. The only consideration is whether to implement as skills (reusable across commands) or integrate directly into /rca and /debug commands.
 
@@ -6370,92 +6487,181 @@ You are ready to switch context to CC and start building.
 From CC:
 ● The 5 Alignment Questions from Week 1
 
+
+
   Based on what I've discovered, here are the questions with actual answers for CSF NIP:
 
+
+
   ---
+
   Question 1: Skills System Location
 
+
+
   Week 1 asks:
+
   Does .claude/skills/ directory exist in your system?
+
   [ ] Yes, it's at: _______________
+
   [ ] No, I'll create it
+
+
 
   Actual Answer: ✅ Yes, P:\.claude\skills\
 
+
+
   Implication: Features 2.1 (Cognitive Frameworks) and 3.1 (Temporal Check) can be skills.
 
+
+
   ---
+
   Question 2: Token Counting Method
 
+
+
   Week 1 asks:
+
   How do you currently count tokens?
+
   [ ] Claude API response metadata (response['usage']['output_tokens'])
+
   [ ] Manual estimation (tokens ≈ words / 0.75)
+
   [ ] Already tracking in system: _______________
+
   [ ] Not yet implemented
+
+
 
   Actual Answer: ✅ Already tracking in src/lib/llm_providers/base.py via _extract_token_usage()
 
+
+
   Implication: Cost Circuit Breaker can hook into existing token extraction.
 
+
+
   ---
+
   Question 3: Git Command Style
 
+
+
   Week 1 asks:
+
   How does Phase 4 interact with git?
+
   [ ] Direct shell commands: subprocess.run(['git', ...])
+
   [ ] Git library (GitPython): git.Repo()
+
   [ ] Custom abstraction: _______________
+
+
 
   Actual Answer: ✅ GitPython service via GitPythonService class
 
+
+
   Implication: Complexity Gate (Week 2) needs GitPython integration.
 
+
+
   ---
+
   Question 4: Council Invocation Pattern
 
+
+
   Week 1 asks:
+
   How are council personas currently invoked?
+
   [ ] Sequential loop: for persona in personas: query_claude()
+
   [ ] Parallel execution: [query_claude(p) for p in personas]
+
   [ ] Custom pattern: _______________
+
+
 
   Actual Answer: ⚠️ None of the above - /rca uses /async-debate for real multi-LLM consultation, not simulated personas
 
+
+
   Implication: Dissenter Persona (Week 1 Feature 1.2) needs redesign - current system doesn't have simulated personas to add to.
 
+
+
   ---
+
   Question 5: Phase 1 Log Format
 
+
+
   Week 1 asks:
+
   What format are logs in when collected?
+
   [ ] Plain text string
+
   [ ] Structured JSON: {lines: [...], metadata: {...}}
+
   [ ] Custom format: _______________
+
+
 
   Actual Answer: ✅ Structured JSON via CWO12StepEvidence dataclass
 
+
+
   Implication: Log Airlock needs JSON-aware sanitization (not just regex on plain text).
 
+
+
   ---
+
   Summary: Alignment Issues
 
+
+
   | Question           | Status      | Blocker?                                |
+
   |--------------------|-------------|-----------------------------------------|
+
   | 1. Skills location | ✅ Aligned  | No                                      |
+
   | 2. Token counting  | ✅ Aligned  | No                                      |
+
   | 3. Git style       | ✅ Aligned  | No                                      |
+
   | 4. Council pattern | ❌ Mismatch | Yes - Dissenter feature redesign needed |
+
   | 5. Log format      | ⚠️ Partial  | No - but needs JSON handling            |
 
+
+
   ---
+
   The Real Question
+
+
 
   Do you want to:
 
+
+
   A) Adapt Week 1 features to actual CSF NIP architecture (redesign Dissenter approach)
 
+
+
   B) Implement Week 1 as-written into a new RCA system (separate from existing /rca and /debug)
+
+
 
   C) Skip Week 1 and implement a different set of enhancements that match the actual architecture
 
@@ -6564,18 +6770,31 @@ With sections:
 
 From CC:
 
+
   Information Needed
 
+
+
   1. The /async-debate implementation - How does it actually work?
+
     - File path to the debate/council code
+
     - How many LLMs participate currently
+
     - Could we add a "Devil's Advocate" prompt to one participant?
+
   2. RCA specialist subagent location - Where does the actual RCA analysis happen?
+
     - Is it .claude/agents/rca-specialist.md or somewhere else?
+
     - How is it invoked (Task tool parameters)?
+
   3. Your preference on Dissenter approach - Since you use real LLMs, should the Dissenter be:
+
     - A specialized prompt added to one debate participant?
+
     - A post-debate critique step?
+
     - Something else?
 
 ## Assistant
@@ -6657,79 +6876,154 @@ Which feels right for your architecture?
 
 While I was waiting for your response, I asked CC:
 
+
 > Can you answer some of those questions you ahve?
+
+
 
 ● Let me explore to answer those questions:
 
+
+
 ● Search(pattern: "**/*debate*.md")
+
   ⎿  Found 8 files (ctrl+o to expand)
+
   ⎿  Running PostToolUse hooks… (1/6 done)
+
+
 
 ● Search(pattern: "**/*council*.md")
+
   ⎿  Found 0 files
+
   ⎿  Running PostToolUse hooks… (1/6 done)
 
+
+
 ● Read(.claude\agents\rca-specialist.md)
+
   ⎿  Read 983 lines
+
   ⎿  Running PostToolUse hooks… (1/6 done)
+
+
 
 ● Now let me check the /async-debate system:
 
+
+
 ● Read(.claude\commands\async-debate.md)
+
   ⎿  Read 11 lines
+
   ⎿  Running PostToolUse hooks… (1/6 done)
 
+
+
 ● Read(__csf.nip\src\commands\nip\async-debate.md)
+
   ⎿  Read 331 lines
+
   ⎿  Running PostToolUse hooks… (1/6 done)
+
+
 
 ● Now I can answer all my questions:
 
+
+
   ---
+
   Questions Answered
+
+
 
   Question 1: /async-debate Implementation
 
+
+
   Location: P:/__csf.nip/src/commands/nip/async-debate.md
 
+
+
   How it works:
+
   - Uses 6-7 real LLM providers via OpenRouter (concurrent asyncio.gather())
+
   - Providers include: minimax-m2, polaris-alpha, deepseek-r1t2, glm-4.5-air, kat-coder-pro, qwen3-coder
+
   - Has resilience features: Circuit breakers, rate limiting, connection pooling
+
+
 
   Question 2: RCA Specialist Location
 
+
+
   Location: P:\.claude\agents\rca-specialist.md
+
+
 
   How it's invoked: Via Task tool delegation from /rca or /debug commands
 
+
+
   What it does:
+
   - Cognitive-enhanced RCA with CHS/CKS integration
+
   - Has simulated multi-agent reasoning: Factual Agent, Critical Agent, Synthesis Agent
+
   - Note: The "Critical Agent" already does risk assessment and blind spot analysis
+
+
 
   Question 3: Dissenter Approach Options
 
+
+
   Since you have TWO types of "councils":
 
+
+
   | System         | Type               | Current Agents                                    |
+
   |----------------|--------------------|---------------------------------------------------|
+
   | rca-specialist | Simulated personas | Factual, Critical, Synthesis                      |
+
   | /async-debate  | Real LLMs          | Architecture, Performance, Security, Code Quality |
 
+
+
   Dissenter options:
+
   1. Enhance the Critical Agent in rca-specialist (already does dissent-like work)
+
   2. Add a dissent phase to /async-debate (post-debate critique)
+
   3. Create separate Dissenter skill that can be invoked after RCA
 
+
+
   ---
+
   Summary: Week 1 Adaptation Plan
 
+
+
   | Feature              | Actual Integration Point                                                                |
+
   |----------------------|-----------------------------------------------------------------------------------------|
+
   | Log Airlock          | Add to /debug Step 1 (after CHS, before rca-specialist) OR add to rca-specialist prompt |
+
   | Dissenter            | Enhance existing "Critical Agent" OR add post-RCA dissent step                          |
+
   | Cost Circuit Breaker | Wrap Task tool calls OR integrate with existing metrics_tracker.py                      |
+
+
 
   Your decision still needed: Option A, B, or C?
 
@@ -6776,3 +7070,4 @@ Perfect. ✅
 **D) Skip entirely**
 
 Once you choose, CC can implement immediately with exact file locations.
+```

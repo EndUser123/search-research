@@ -296,115 +296,226 @@ A single, comprehensive markdown file containing:
 
 Feedback from CC:
 
+
   ---
+
   [ADF] Review: Claude Code Safety System
+
+
 
   Context: A four-layer safety architecture to prevent Claude Code's three failure modes: Intent Inversion, Pattern-Matching Confidence, and Design Blindness.
 
+
+
   Confidence: High | Reversibility: Low (this is new architecture)
 
+
+
   ---
+
   Gaps & Opportunities
+
+
 
   1. Overlaps with Existing Hooks (Critical Question)
 
+
+
   You already have substantial hook infrastructure:
+
   - intent_confirmation_gate.py (or similar)
+
   - empirical_claims_gate.py (observation sufficiency)
+
   - constitutional_enforcer.py (behavior enforcement)
+
   - error_attribution_validator.py (commitment pattern)
+
   - PreToolUse_tdd_blocker.py (execution gating)
+
+
 
   Question: Is this replacing or augmenting? If replacing, what happens to the existing 150+ hook files? If augmenting, how do layers interact (conflict? redundancy?)?
 
+
+
   ---
+
   2. "No Parallel Tool Execution" Contradiction (Critical)
 
+
+
   The document states (line 83):
+
   "No parallel tool execution. Signal collection is synchronous."
+
+
 
   But your hooks execute in parallel when multiple match an event. The safety router assumes it can collect signals before any tools run - but existing hooks may already be running in parallel.
 
+
+
   Question: How does this system coordinate with the existing parallel hook execution model? Does this replace ALL hooks, or sit alongside them?
 
+
+
   ---
+
   3. Missing: Context State Management (Gap)
 
+
+
   The system references codebase_state and session_state but doesn't specify:
+
   - How known_facts are populated and updated
+
   - How stale known_facts are refreshed
+
   - What happens when documentation changes
+
+
 
   Question: Who owns the codebase_state database? Is it a separate indexing system, or does it query CKS? What's the sync strategy when codebase changes?
 
+
+
   ---
+
   4. Observation Sufficiency vs. Existing Constitution (Overlap)
+
+
 
   Your constitution already defines evidence tiers (95%/85%/75%/50%). The new Tier system (Tier 1/2/3) appears duplicative.
 
+
+
   Question: Can Tier 1/2/3 map directly to your existing evidence tier ceilings? Or is this a replacement? If replacement, what's the migration path?
 
+
+
   ---
+
   5. Missing: False Positive Feedback Loop (Gap)
 
+
+
   The system claims to learn from rejected blocks (line 1397), but the implementation only shows metrics collection. There's no mechanism for:
+
   - User marking blocks as incorrect
+
   - Automatic pattern weight adjustment
+
   - A/B testing for threshold calibration
+
+
 
   Question: How does learning actually happen? Is there a UI for users to reject blocks? Or is this manual analysis only?
 
+
+
   ---
+
   6. Phase 1 "Think Trigger" is Duplicate (Concern)
+
+
 
   You already have /debate, /brainstorm, /meditate. The "think trigger" (line 1152) appears to reinvent existing zen commands.
 
+
+
   Question: Why not integrate with existing zen commands rather than creating new trigger detection?
 
+
+
   ---
+
   7. No Rollout Strategy (Gap)
 
+
+
   The document suggests a 6-week implementation but doesn't specify:
+
   - Shadow mode (run alongside, don't block, compare results)
+
   - Canary deployment (1% of prompts, then 10%, then 100%)
+
   - Gradual blocking (warn-only → soft-block → hard-block)
+
+
 
   Question: What's the rollout plan? Ship all-at-risk is dangerous for safety infrastructure.
 
+
+
   ---
+
   8. Performance Claims Unverified (Concern)
 
+
+
   Target: < 100ms per prompt (line 1500). But:
+
   - Regex over all patterns is O(n) where n grows with usage
+
   - codebase_state lookup may be slow if large
+
   - No caching strategy described
+
+
 
   Question: What's the caching strategy? How is known_facts indexed for fast lookup?
 
+
+
   ---
+
   Questions for the Original Designer
 
+
+
   1. Hook Coexistence: Does this replace existing hooks, or integrate? If integrate, how do we prevent conflict/interference?
+
   2. Codebase State Source: Where does codebase_state come from? Is it CKS, a new index, something else? How is it kept fresh?
+
   3. Parallel Execution Resolution: How does the "no parallel tools" principle work alongside Claude Code's parallel hook execution?
+
   4. Learning Mechanism: How do users provide feedback on false positives? How are pattern weights actually updated?
+
   5. Tier vs. Evidence Tier: How do Tier 1/2/3 relate to the existing 95%/85%/75%/50% confidence ceilings?
+
   6. Rollout Plan: Is there a shadow mode? How do we validate before enabling blocking?
+
   7. Think Trigger vs. Zen Commands: Why not use /meditate or similar instead of creating new trigger detection?
+
   8. Caching Strategy: How is known_facts structured for O(1) lookup as the codebase grows?
 
+
+
   ---
+
   Summary
 
+
+
   | Category     | Issue                                                             | Severity |
+
   |--------------|-------------------------------------------------------------------|----------|
+
   | Integration  | Unclear how this coexists with 150+ existing hooks                | HIGH     |
+
   | Architecture | "No parallel tools" conflicts with hook execution model           | HIGH     |
+
   | Data Source  | codebase_state provenance and update strategy undefined           | MED      |
+
   | Duplication  | Think trigger overlaps zen commands; Tiers overlap evidence tiers | MED      |
+
   | Learning     | Feedback loop mechanism not specified                             | MED      |
+
   | Rollout      | No shadow/canary plan                                             | MED      |
+
   | Performance  | Caching strategy unspecified                                      | LOW      |
+
+
 
   The design is coherent but needs integration clarity and rollout strategy.
 
@@ -465,141 +576,279 @@ This document is **production-ready for implementation team**:
 
 ● [ADF] Review: Claude Code Safety System v2 (Integration)
 
+
+
   The v2 document thoughtfully addresses all 8 questions from v1. Let me assess what's been resolved and what gaps remain.
 
+
+
   ---
+
   Issues Resolved ✓
 
+
+
   | #   | Issue                   | Resolution                                                               | Quality |
+
   |-----|-------------------------|--------------------------------------------------------------------------|---------|
+
   | 1   | Hook coexistence        | Augment, not replace - prepends to pipeline                              | Clear   |
+
   | 2   | Parallel tools conflict | Orthogonal concerns - safety router is sequential, hooks remain parallel | Clear   |
+
   | 3   | codebase_state source   | CKS with lazy refresh - 1h TTL, manual override                          | Good    |
+
   | 4   | Tier vs evidence tier   | Direct mapping - 95%/85%/50% floors                                      | Solid   |
+
   | 5   | Learning mechanism      | 3-stage feedback - rejection tracking → weekly → A/B calibration         | Good    |
+
   | 6   | Think trigger duplicate | Delegate to /meditate - reuse zen commands                               | Good    |
+
   | 7   | Rollout strategy        | Shadow → Canary → Full with rollback                                     | Strong  |
+
   | 8   | Caching performance     | O(1) lookups, pre-compiled regex, ~10ms total                            | Strong  |
 
+
+
   ---
+
   Remaining Gaps & Opportunities
+
+
 
   1. CKS Schema Not Defined (New Gap)
 
+
+
   The document references CKS tables that may not exist:
+
   - architecture_facts (line 212)
+
   - behavior_verification_log (line 230)
+
   - Columns: fact_name, fact_value, category, verified, last_verified_timestamp
+
+
 
   Question: Do these tables exist in your CKS? If not, what's the migration/schema creation plan?
 
+
+
   ---
+
   2. Hook Pipeline Integration Point is Unclear (Critical Gap)
+
+
 
   The document shows safety router running "before existing hooks" but doesn't specify where:
 
+
+
   User Prompt
+
       ↓
+
   [NEW] Safety Router Orchestrator  ← WHERE DOES THIS HOOK FIRE?
+
       ↓
+
   [EXISTING] All 150+ hooks execute in parallel
 
+
+
   Options:
+
   - Option A: Add to UserPromptSubmit matcher .* with layer: -999 (first)
+
   - Option B: Modify Claude Code core to call safety router before hooks
+
   - Option C: Wrapper script that intercepts and routes
+
+
 
   Question: Which approach? Option A is simplest but requires ensuring your existing hooks don't have conflicting layer priorities.
 
+
+
   ---
+
   3. Shadow Mode Decision Logging Not Implemented (Gap)
 
+
+
   The ShadowModeOrchestrator logs decisions to self.decision_log but:
+
   - Where is this persisted?
+
   - How is it analyzed for the "1000 prompts" requirement?
+
   - What happens if the process crashes?
+
+
 
   Question: Is decision_log persisted to disk/SQLite? Or is it in-memory only (lost on crash)?
 
+
+
   ---
+
   4. Canary User ID Not Available (Critical Gap)
+
+
 
   def process_user_submission(self, user_prompt: str, session_state: Dict, user_id: str):
 
+
+
   Problem: Claude Code hooks don't provide a user_id. There's no concept of "different users" in a local Claude Code session.
+
+
 
   Question: How will you implement the 1% → 10% → 50% → 100% canary rollout without user segmentation?
 
+
+
   Possible answers:
+
   - Time-based segmentation (hour-based cohorts)
+
   - Session ID hashing (deterministic but not truly random)
+
   - Skip canary entirely, go shadow → full
 
+
+
   ---
+
   5. CKS Connector Interface Not Specified (Gap)
 
+
+
   def __init__(self, cks_connector):
+
       self.cks = cks_connector
 
+
+
   Question: What's the interface? Is this:
+
   - Your existing CKS() class from src.cks.unified?
+
   - A new wrapper?
+
   - How does query() work - is it SQL or your search API?
 
+
+
   ---
+
   6. Config File Path Not Specified (Minor)
 
+
+
   References:
+
   - config/safety_system.yaml (line 1406)
+
   - config_file for AdaptiveThresholdCalibration (line 548)
+
+
 
   Question: Where do these live? P:/.claude/config/safety_system.yaml?
 
+
+
   ---
+
   7. Phase 1.3 deploy.ps1 Fix is Tangential (Concern)
 
+
+
   The document suggests fixing deploy.ps1 flag-for-default as Phase 1 proof-of-concept. But:
+
   - This is a project-specific fix, not system-level
+
   - Doesn't validate the safety router itself
+
   - May not demonstrate "learning"
+
+
 
   Question: Should Phase 1 include a more representative validation, like detecting/intention-inversion prompts from your chat history?
 
+
+
   ---
+
   8. No Integration with Existing Constitution (Gap)
 
+
+
   Your constitutional_enforcer.py already:
+
   - Checks TRUTH, FORBIDDEN, SUCCESS rules
+
   - Has evidence tiers
+
   - Runs at Stop hook
+
+
 
   The new ObservationSufficiencyGate appears to duplicate this rather than integrate.
 
+
+
   Question: Can the new Tier 1/2/3 checks be added inside constitutional_enforcer.py rather than as a separate gate? Or should constitutional_enforcer import from the safety router?
 
+
+
   ---
+
   New Questions for the Designer
 
+
+
   1. CKS Tables: Do architecture_facts and behavior_verification_log tables exist? If not, what's the schema migration plan?
+
   2. Hook Entry Point: How is the safety router registered? Is it a UserPromptSubmit hook with lowest layer priority?
+
   3. Canary Segmentation: How do you implement user-percentage canary without user IDs? Time-based? Session-hash?
+
   4. Shadow Persistence: Where is decision_log stored? How do we prevent data loss on crash?
+
   5. CKS Connector: What's the actual interface? Is it your existing CKS class or new?
+
   6. Config Paths: Where do config files live? P:/.claude/config/?
+
   7. Constitution Integration: Should this integrate with constitutional_enforcer.py or run independently?
+
   8. Phase 1 Validation: Is deploy.ps1 fix representative enough? Should we validate against real prompt history instead?
 
+
+
   ---
+
   Summary
 
+
+
   | Category               | Status            | Notes                       |
+
   |------------------------|-------------------|-----------------------------|
+
   | Original 8 questions   | All resolved      | Strong responses            |
+
   | Hook integration point | Needs clarity     | Where/how does it register? |
+
   | Canary implementation  | Needs alternative | No user ID concept in CC    |
+
   | CKS schema             | Undefined         | Tables may not exist        |
+
   | Shadow persistence     | Needs spec        | In-memory only?             |
+
   | Constitution overlap   | Needs resolution  | Integrate or duplicate?     |
+
+
 
   The v2 document is a significant improvement but needs 3-5 concrete clarifications before implementation can begin safely.
 
@@ -652,151 +901,298 @@ This is the **production-ready, implementation-blocking-gaps-resolved version** 
 
 Feedback from CC ok?
 
+
   Changes & Optimizations
+
+
 
   1. Hook Execution Model Already Handles Parallelism
 
+
+
   The design correctly uses layer: -999 for safety_router_main.py, but this assumes hooks are sorted by layer before parallel execution. Verify:
 
+
+
   # P:/.claude/safety_router/layer_registry.py
+
   class LayerRegistry:
+
       PRIORITY_LAYERS = {
+
           "safety_router": -999,      # CRITICAL: runs first
+
           "empirical_claims": 0,      # Existing
+
           "error_attribution": 0,     # Existing
+
           # ... rest of hooks
+
       }
+
+
 
   Optimization: Document the layer contract clearly—hooks with the same layer run in parallel, lower layers execute first.
 
+
+
   ---
+
   2. Decision Logger Should Use WAL Mode
+
+
 
   The SQLite decision logger in Gap 3 uses commit() but not WAL mode:
 
+
+
   # Current:
+
   conn.commit()
 
+
+
   # Optimized:
+
   conn.execute("PRAGMA journal_mode=WAL")
+
   conn.commit()
+
+
 
   Why: WAL allows concurrent reads during writes, reduces I/O contention, and provides better crash recovery.
 
+
+
   ---
+
   3. Hash-Based Canary Has Edge Case
+
+
 
   The hash-based canary in Gap 4 uses session_id or sha256(prompt):
 
+
+
   identifier = session_id or hashlib.sha256(user_prompt.encode()).hexdigest()
+
+
 
   Problem: Without session_id, identical prompts from different sessions hash identically—both get same canary treatment.
 
+
+
   Optimization:
+
   # Add timestamp-based bucketing for stateless prompts
+
   if not session_id:
+
       # Use hour-based bucket so prompts in same hour get consistent treatment
+
       hour_bucket = datetime.now(UTC).strftime("%Y%m%d%H")
+
       identifier = hashlib.sha256(f"{user_prompt}:{hour_bucket}".encode()).hexdigest()
 
+
+
   ---
+
   4. CKS Bootstrap Should Be Idempotent
+
+
 
   The CKSBootstrap in Gap 1 uses CREATE TABLE IF NOT EXISTS but the seed function may insert duplicates:
 
+
+
   def seed_architecture_facts(self):
+
       for fact in facts:
+
           self.cks.insert("architecture_facts", fact)
 
+
+
   Optimization:
+
   def seed_architecture_facts(self):
+
       for fact in facts:
+
           self.cks.execute("""
+
               INSERT IGNORE INTO architecture_facts
+
               (fact_name, fact_value, verified)
+
               VALUES (?, ?, ?)
+
           """, (fact["fact_name"], fact["fact_value"], fact["verified"]))
 
+
+
   ---
+
   5. ConfigManager Should Support Overrides
+
+
 
   The ConfigManager in Gap 6 only loads from file:
 
+
+
   def _load_config(self) -> Dict:
+
       if not self.path.exists():
+
           return self._get_defaults()
 
+
+
   Optimization: Support environment variable overrides for deployment flexibility:
+
   def get(self, key: str, default=None):
+
       # Check env var first: SAFETY_SYSTEM_INTENT_CONFIRMATION_ENABLED
+
       env_key = f"SAFETY_SYSTEM_{key.upper().replace('.', '_')}"
+
       if env_value := os.environ.get(env_key):
+
           return yaml.safe_load(env_value) if env_value.lower() not in ('true', 'false') else env_value.lower() == 'true'
 
+
+
       # Fall back to file config
+
       # ... existing logic
 
+
+
   ---
+
   6. HistoricalValidation Should Cache Results
+
+
 
   The validator in Gap 8 re-routes all prompts on every call:
 
+
+
   def validate(self) -> Dict:
+
       for case in self.history:
+
           decision = self.router.process_user_submission(case["prompt"], {})
 
+
+
   Optimization: Cache routing decisions by prompt hash:
+
   @dataclass
+
   class CachedDecision:
+
       action: str
+
       risk_score: float
+
       cached_at: datetime
 
+
+
   def validate(self) -> Dict:
+
       cache = {}
+
       for case in self.history:
+
           prompt_hash = hashlib.sha256(case["prompt"].encode()).hexdigest()[:16]
+
           if prompt_hash not in cache:
+
               cache[prompt_hash] = self.router.process_user_submission(case["prompt"], {})
+
           decision = cache[prompt_hash]
+
           # ... validation logic
 
+
+
   ---
+
   7. IntentConfirmationGate Should Have Timeout Escape
+
+
 
   The immediate block score of 70 in config could trap users:
 
+
+
   intent_confirmation:
+
     immediate_block_score: 70
+
+
 
   Optimization: Add a maximum confirmation attempts limit:
+
   intent_confirmation:
+
     immediate_block_score: 70
+
     max_confirmation_rounds: 3  # After 3 rounds, allow with strong warning
 
+
+
   ---
+
   8. SQLite Syntax Correction
 
+
+
   Gap 3 uses MySQL-style syntax:
+
   # Current (MySQL):
+
   SUM(decision_type='block') as blocks
 
+
+
   # Should be (SQLite):
+
   SUM(CASE WHEN decision_type='block' THEN 1 ELSE 0 END) as blocks
 
+
+
   ---
+
   Summary Priority
 
+
+
   | Priority | Change                       | Impact                       |
+
   |----------|------------------------------|------------------------------|
+
   | P0       | SQLite syntax fix            | Breaks on first run          |
+
   | P0       | CKS idempotent seeding       | Duplicate rows on restart    |
+
   | P1       | WAL mode for decision logger | Crash recovery               |
+
   | P1       | Canary session fallback      | Inconsistent canary behavior |
+
   | P2       | Config env overrides         | Deployment flexibility       |
+
   | P2       | Validation caching           | Faster testing               |
+
   | P3       | Intent confirmation escape   | UX fallback                  |
+
   | P3       | Layer registry documentation | Future maintenance           |
+
+
 
   The design is solid—these are refinements, not structural changes.
 
@@ -1097,81 +1493,158 @@ This single markdown file contains:
 CC:
   Questions for P
 
+
+
   1. Hook Input Field Name Inconsistency
+
+
 
   Finding: Different UserPromptSubmit hooks use different field names for the user's prompt:
 
+
+
   | Hook                          | Field Used                                                       |
+
   |-------------------------------|------------------------------------------------------------------|
+
   | safety_router.py              | data.get("user_prompt", "")                                      |
+
   | command_directive_injector.py | data.get("prompt", "") or data.get("message", "")                |
+
   | debug_guidance.py             | data.get("prompt", data.get("message", data.get("content", ""))) |
+
+
 
   Question: What is the actual field name Claude Code passes to UserPromptSubmit hooks? Is it prompt, message, content, or user_prompt?
 
+
+
   ---
+
   2. session_state.recent_tools Source Unknown
 
+
+
   Finding: The observation sufficiency gate (orchestrator.py:147-151) expects:
+
   recent_tools = session_state.get("recent_tools", [])
+
   has_observation = any(
+
       tool.get("name") in ("Read", "Grep", "Glob")
+
       for tool in recent_tools[-10:]
+
   )
 
+
+
   But:
+
   - No documentation confirms Claude Code actually provides session_state["recent_tools"]
+
   - Other hooks use session_state only for internal file-based tracking (debug_session_state.json)
+
   - The guide's Gap 2 notes this is HIGH severity and needs verification
 
+
+
   Question: Does Claude Code populate session_state["recent_tools"]? If not, should we:
+
   - A) Read from a tool sequence file (e.g., transcript.jsonl)?
+
   - B) Fall back to conservative behavior (warn on all empirical claims)?
+
   - C) Skip this gate entirely?
 
+
+
   ---
+
   3. Guide's Hook File Location Mismatch
 
+
+
   Finding: The guide specifies:
+
   P:/.claude/hooks/UserPromptSubmitted/safety_router_main.py
 
+
+
   But actual file is:
+
   P:/.claude/hooks/UserPromptSubmit_safety_router.py
 
+
+
   Question: Which naming convention is correct? Does Claude Code discover hooks by:
+
   - A) Filename pattern (UserPromptSubmit_*.py)?
+
   - B) Directory name (UserPromptSubmitted/)?
+
   - C) Both?
 
+
+
   ---
+
   4. Missing Scripts from Guide
 
+
+
   Finding: Guide references scripts that don't exist:
+
   - promote_phase.py - Auto-escalate canary based on metrics
+
   - monitor_canary.py - Continuous monitoring loop
+
   - metrics_dashboard.py - Operator visibility
+
+
 
   Question: Are these scripts needed for production, or is manual config edit acceptable?
 
+
+
   ---
+
   5. Observation Sufficiency Gate Effectiveness
+
+
 
   Finding: Without recent_tools, the gate always returns false (no observation), triggering REQUEST_CONFIRM for any empirical claim pattern like "the code has X". This could be noisy.
 
+
+
   Question: Should the observation sufficiency gate be:
+
   - A) Disabled until recent_tools source is confirmed?
+
   - B) Made more conservative (fewer patterns)?
+
   - C) Kept as-is for safety, accepting potential noise?
 
+
+
   ---
+
   Summary Table
 
+
+
   | Issue                         | Severity | Impact                                |
+
   |-------------------------------|----------|---------------------------------------|
+
   | Hook field name inconsistency | HIGH     | Hook may not receive input correctly  |
+
   | recent_tools source unknown   | HIGH     | Gate always triggers, potential noise |
+
   | Hook location mismatch        | LOW      | Hook works, but docs wrong            |
+
   | Missing monitoring scripts    | MEDIUM   | Manual operations only                |
+
   | Gate effectiveness            | MEDIUM   | UX impact if too noisy                |
 
 ## Assistant
@@ -1495,124 +1968,244 @@ DON'T provide in PDF or DOCX.  use MARKDOWN.
 
 ● Safety System Implementation Report
 
+
+
   Date: 2026-01-04
+
   Session: Post-Q&A implementation from P's guides v2.2
 
+
+
   ---
+
   Work Completed
+
+
 
   1. Hook Input Field Name Fix (Q1 Resolution)
 
+
+
   File: P:\.claude\hooks\UserPromptSubmit_safety_router.py
 
+
+
   Change: Hook now tries multiple field names for compatibility:
+
   user_prompt = (
+
       input_data.get("user_prompt", "") or
+
       input_data.get("prompt", "") or
+
       input_data.get("message", "") or
+
       input_data.get("content", "")
+
   )
+
+
 
   Status: ✅ Verified working - test prompt successfully processed
 
+
+
   ---
+
   2. recent_tools Fallback Function (Q2 Resolution)
+
+
 
   File: P:\__csf.nip\src\safety_system\orchestrator.py
 
+
+
   Change: Added _get_recent_tools() method with 3-tier fallback:
+
   1. Check session_state["recent_tools"] (if provided)
+
   2. Read from transcript.jsonl files
+
   3. Return [] (conservative)
+
+
 
   Status: ✅ Implemented, untested (no transcript files found yet)
 
+
+
   ---
+
   3. Observation Sufficiency Gate Disabled (Q5 Resolution)
+
+
 
   File: P:\__csf.nip\config\safety_system\config.yaml
 
+
+
   Change:
+
   observation_sufficiency:
+
     enabled: false  # Disabled until recent_tools source is verified
+
+
 
   Status: ✅ Disabled per conservative approach (Week 1 strategy)
 
+
+
   ---
+
   4. Metrics Script Created (Q4 Resolution)
+
+
 
   File: P:\__csf.nip\scripts\check_canary_metrics.py
 
+
+
   Features:
+
   - Query decisions by time window
+
   - Calculate block rate
+
   - Promotion readiness assessment
+
   - Formatted dashboard output
 
+
+
   Usage:
+
   python P:/__csf.nip/scripts/check_canary_metrics.py --current-pct 50
+
+
 
   Status: ✅ Created and functional
 
+
+
   ---
+
   Test Results
+
+
 
   Manual Hook Test
 
+
+
   Prompt: "Remove the --verify flag from the config"
+
   Result: inject_warning (Canary Mode - not in 50% group)
+
   Risk Score: 75 (logic_inversion, severity 5)
+
+
 
   Decision Log Summary
 
+
+
   | Metric              | Value |
+
   |---------------------|-------|
+
   | Total Decisions     | 193   |
+
   | Shadow Mode         | 191   |
+
   | Canary Mode         | 2     |
+
   | Blocks (shadow)     | 74    |
+
   | Warnings (canary)   | 2     |
+
   | Block Rate (shadow) | 38%   |
 
+
+
   ---
+
   Current State
 
+
+
   | Component               | Status      |
+
   |-------------------------|-------------|
+
   | Hook (UserPromptSubmit) | ✅ Active   |
+
   | Design Smell Detection  | ✅ Enabled  |
+
   | Intent Confirmation     | ✅ Enabled  |
+
   | Observation Sufficiency | ⏸️ Disabled |
+
   | Canary Mode             | ✅ 50%      |
+
   | Decision Logger         | ✅ Logging  |
 
+
+
   ---
+
   Open Questions for P
 
+
+
   1. Hook discovery mechanism: Which pattern does Claude Code use?
+
     - Filename: UserPromptSubmit_*.py
+
     - Directory: UserPromptSubmitted/*.py
+
   2. transcript.jsonl location: Where does Claude Code store tool execution history?
+
     - Checked: P:/.claude/session_data/transcript.jsonl (not found)
+
     - Needed for: recent_tools fallback verification
+
   3. Canary progression: When to promote from 50% → 100%?
 
+
+
   ---
+
   Files Modified
 
+
+
   | File                                               | Change                           |
+
   |----------------------------------------------------|----------------------------------|
+
   | P:\.claude\hooks\UserPromptSubmit_safety_router.py | Multi-field input handling       |
+
   | P:\__csf.nip\src\safety_system\orchestrator.py     | Added _get_recent_tools()        |
+
   | P:\__csf.nip\config\safety_system\config.yaml      | Disabled observation_sufficiency |
+
+
 
   Files Created
 
+
+
   | File                                         | Purpose                 |
+
   |----------------------------------------------|-------------------------|
+
   | P:\__csf.nip\scripts\check_canary_metrics.py | Manual metrics checking |
 
+
+
   ---
+
   End of Report
 
 ## Assistant
@@ -1797,3 +2390,4 @@ This markdown file contains:
 - No proprietary formats—pure markdown
 
 **Download now via artifact ID 14** and hand to another LLM with full context. They can implement immediately without clarification loops.
+```

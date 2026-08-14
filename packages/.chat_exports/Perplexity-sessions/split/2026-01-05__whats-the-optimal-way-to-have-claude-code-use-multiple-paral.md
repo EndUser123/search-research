@@ -109,49 +109,94 @@ Start with **Method 1** using the provided "Supervisor" prompt. If you find Clau
 Below is a conversation with a LLM.  "/cwo" is the overall cognitive workflow orchestration, and "/exec" is the execution part of that workflow.  They should spawn multiple subagents to work on tasks.  Here's what I get from the LLM.  What should I tell it to use claude code subagents optimally?
 
 "
+
 > we shouldn't have to invoke specific subagents (but we can).  how are we
+
 supposed to ask Claude Code to use parallel subagents?  I know it's supposed
+
 to be simple.
+
+
 
 ● You're right—it is simple. Here's how it works:
 
+
+
   Parallel Subagents in Claude Code
+
+
 
   Just make multiple Task calls in a single response. Claude Code executes them in parallel automatically.
 
+
+
   Example:
+
+
 
   I'll implement this feature using parallel subagents for faster development.
 
+
+
   <invoke>
+
   <parameter name="subagent_type">tdd-test-writer</parameter>
+
   <parameter name="prompt">Write failing tests for user authentication</parameter>
+
   </invoke>
 
+
+
   <invoke>
+
   <parameter name="subagent_type">tdd-implementer</parameter>
+
   <parameter name="prompt">Prepare implementation plan for auth (after tests written)</parameter>
+
   </invoke>
 
+
+
   <invoke>
+
   <parameter name="subagent_type">code-reviewer</parameter>
+
   <parameter name="prompt">Review authentication approach for security issues</parameter>
+
   </invoke>
+
+
 
   All three Task calls in one message = parallel execution.
 
+
+
   No special syntax needed—just multiple Task tool uses. Claude Code handles the parallelization.
+
+
 
   For /cwo and /exec: They should automatically dispatch parallel Task calls when implementing features. The workflow should:
 
+
+
   1. Detect "implement X" request
+
   2. Break into subtasks (tests, implementation, review)
+
   3. Launch multiple Task calls in one response for parallel work
+
   4. Aggregate results
 
+
+
   The issue with current /exec: It has code saying "deploy parallel Task tool calls" but the actual implementation either:
+
   - Uses a local Task class import (not the real tool)
+
   - Doesn't actually generate multiple Task invocations in its output
+
+
 
   The fix: /exec should output multiple <invoke> blocks for actual parallel work, not simulate it internally."
 
@@ -201,56 +246,108 @@ You can download it directly using that artifact ID.
 
 What Makes Sense
 
+
+
   1. Ground truth about Claude Code (lines 22-32) - Correct. Single session = sequential. True parallelism = multiple terminals.
+
   2. .claude/ORCHESTRATION.md as shared state - Simple, human-readable, LLM-readable. Good choice.
+
   3. Separation of concerns - /cwo = planning/decomposition, /exec = concrete launch instructions. Clean split.
+
   4. Task dependency tracking - The Depends on field prevents agents from stepping on each other.
+
+
 
   Questions
 
+
+
   1. Claude Code CLI Syntax
 
+
+
   The launch commands use:
+
   claude "You are the Test-Writer agent..."
 
+
+
   Question: Is this the correct Claude Code CLI syntax? I believe it's:
+
   claude --prompt "You are..."
+
   # or
+
   echo "You are..." | claude
+
+
 
   Should verify the actual CLI invocation format.
 
+
+
   2. File Contention
+
+
 
   When multiple agents update ORCHESTRATION.md simultaneously:
 
+
+
   Question: Should there be a simple locking convention? For example:
+
   ## Lock
+
   - Held by: Test-Writer (since 2026-01-05T15:10:00Z)
+
   - Purpose: Prevents concurrent Status updates
+
+
 
   Or rely on git conflict resolution + agent retry logic?
 
+
+
   3. Agent Discovery
+
+
 
   The spec mentions .claude/agents/*.md definitions (line 433).
 
+
+
   Question: Does Claude Code actually read/use these files? Or should agents be invoked purely via prompt engineering without relying on IDE agent discovery?
+
+
 
   4. Status Polling vs Push
 
+
+
   The Reviewer agent "periodically checks" the file (line 422).
+
+
 
   Question: Should /exec recommend a simple polling interval (e.g., "check every 30s") or suggest using a filesystem watcher?
 
+
+
   ---
+
   Minor Suggestion
+
+
 
   Add a Quick Start example at the top:
 
+
+
   ## Quick Start
+
   1. Run `/cwo "Implement user auth"` → Creates ORCHESTRATION.md + launch commands
+
   2. Copy-paste the `claude "..."` commands into separate terminals
+
   3. Agents coordinate via the shared file
 
 ## Assistant
@@ -312,85 +409,166 @@ We are not using IDE like vscode (I use it for reading, but all work is in CC). 
 
 From CC:
 
+
 ● This is an excellent revision. The v2 spec is comprehensive and addresses the gaps from v1. Here's my review:
+
+
 
   What Makes Sense
 
+
+
   1. Quick Start section (lines 18-37) - Immediately shows the 30-second flow. Great addition.
+
   2. File contention solution (section 3.5) - The lightweight Lock mechanism is simple and LLM-friendly. The "wait 10-30s and retry" behavior is clear.
+
   3. CLI syntax section (section 4) - Acknowledges uncertainty and provides verification steps. Smart to make this testable.
+
   4. Polling strategy (section 6.3) - The 30-60s polling with exponential backoff is practical. No complex filesystem watchers needed.
+
   5. Q&A section (section 10) - Anticipates and answers the obvious questions. Good for downstream LLMs.
+
   6. Implementation checklist (section 8) - Step-by-step for another LLM to follow.
+
+
 
   Questions & Minor Gaps
 
+
+
   1. .claude/agents/*.md Support - Still Unclear
+
+
 
   Section 7.2 says "If supported by your IDE" but doesn't verify.
 
+
+
   Suggestion: Add a verification step:
+
   # Test agent discovery
+
   mkdir .claude/agents
+
   echo "---" > .claude/agents/test-writer.md
+
   # Run: claude "list available agents"
+
   # Check if test-writer appears
+
+
 
   If .claude/agents/*.md isn't actually supported by Claude Code, this section is misleading.
 
+
+
   2. Lock Timeout - 5 Minutes May Be Too Long
+
+
 
   For quick tasks, a 5-minute stale lock is a long wait.
 
+
+
   Question: Should stale lock detection be shorter (e.g., 2 minutes) for interactive workflows? Or make it configurable per task type?
+
+
 
   3. Heartbeat Format
 
+
+
   The heartbeat example (line 792) uses ISO timestamps. Consider standardizing the format for LLM parsing:
+
+
 
   - Last heartbeat: 2026-01-05T15:10:30Z | Age: ~2 minutes
 
+
+
   Adding "Age" makes it easier for LLMs to detect staleness without parsing timestamps.
+
+
 
   4. PowerShell Escape Sequences
 
+
+
   Section 4.3 mentions escaping quotes but doesn't show the full pattern. For complex prompts with nested quotes, PowerShell gets messy:
 
+
+
   # This is error-prone
+
   claude "You are /cwo. User said: `"Implement feature X`"..."
 
+
+
   Suggestion: Recommend here-strings for anything complex:
+
   $prompt = @"
+
   You are /cwo.
+
   User request: $userRequest
+
   "@
+
   claude $prompt
+
+
 
   5. What Happens When T-001 Fails?
 
+
+
   If Test-Writer crashes or produces invalid tests, T-002 (Implementer) waits forever with 30-60s polling.
 
+
+
   Question: Should there be a failure signaling mechanism? For example:
+
   ### [T-001] Write Auth Tests
+
   - Status: FAILED
+
   - Error reason: Test framework not found
+
   - Blocked tasks: T-002, T-003
+
+
 
   Dependent agents need to distinguish "waiting for DONE" vs "upstream failed, should I abort?"
 
+
+
   ---
+
   Overall Assessment
 
+
+
   Strengths:
+
   - Clear, pragmatic, LLM-friendly
+
   - Good separation of concerns (/cwo vs /exec)
+
   - Simple coordination mechanism (no custom protocols)
+
   - Addresses real constraints (single-session sequential, multi-session parallel)
 
+
+
   Minor issues:
+
   - .claude/agents/*.md support needs verification
+
   - Failure handling could be more explicit
+
   - Lock timeout might be too generous
+
+
 
   Ready for implementation once the .claude/agents/*.md question is resolved empirically.
 
@@ -712,208 +890,411 @@ Here are the clarifying questions to ask Claude Code:
 
 CC:
 
+
   ---
+
   System Ecosystem Analysis
+
+
 
   1. Current Command Inventory
 
+
+
   155 commands registered in P:/.claude/registry/commands.toml
 
+
+
   Core orchestration commands:
+
   | Command  | Responsibility                                                                                   |
+
   |----------|--------------------------------------------------------------------------------------------------|
+
   | /cwo     | 16-step unified orchestration workflow (specify → arch → plan → exec → documentation → cleanup)  |
+
   | /exec    | CWO15 execution entry point, context-aware execution analysis                                    |
+
   | /specify | Create TSK project + Step 1 specification                                                        |
+
   | /arch    | Architecture analysis with enhancement modes (--debate, --challenge, --brainstorm, --synthesize) |
+
   | /plan    | Granular implementation planning (2-5 minute tasks)                                              |
+
   | /tm      | TaskMaster: task CRUD, project switching, TSK directory management                               |
+
   | /ralph   | Self-referential development loop (feeds output back as input)                                   |
 
+
+
   Analysis commands:
+
   | Command  | Responsibility                                                              |
+
   |----------|-----------------------------------------------------------------------------|
+
   | /analyze | Unified analysis engine (consolidates pmgoa, preview, intel, asef, quality) |
+
   | /ast     | AST dependency analysis, import analysis, circular dependency detection     |
+
   | /ask     | Natural language interface for unified search                               |
+
   | /chs     | Chat history search                                                         |
+
   | /cks     | Constitutional Knowledge System                                             |
 
+
+
   Quality/Validation commands:
+
   | Command   | Responsibility                                 |
+
   |-----------|------------------------------------------------|
+
   | /tdd      | TDD cycle enforcement (RED → GREEN → REFACTOR) |
+
   | /quality  | Quality gate validation                        |
+
   | /cb       | System audits (governance)                     |
+
   | /bug-scan | Security vulnerability scanning                |
 
+
+
   ---
+
   2. Command Interaction Flow
+
+
 
   Intended CWO sequence (16 steps):
 
+
+
   Phase 0: Pre-Execution
+
     0.1 /tm (TaskMaster Resolution)
+
     0.2 ML Health Check
+
     0.3 Context Usage Check
+
     0.4 RWV Protocol (Read-Before-Write)
+
     0.5 /discover
+
     0.6 Ralph Loop Assessment
+
           ↓
+
   Phase 1: Discovery (Steps 1-3)
+
     1   /specify → specify.md
+
     2   /ask → requirements.md
+
     3   /research → research.md
+
           ↓
+
   Phase 2: Planning (Steps 4-6)
+
     4   /arch → arch.md
+
     5   /plan → plan.md
+
     6   /quadlet or /tm → tasks.json
+
           ↓
+
   Phase 3: Execution (Steps 7-9)
+
     7   /exec → Code + TDD
+
     8   /quality → qual-gate.md
+
     9   Built-in → metrics.md
+
           ↓
+
   Phase 4: Completion (Steps 10-12)
+
     10  Built-in → synthesis.md
+
     11  /doc → doc.md
+
     12  TaskMaster update
+
           ↓
+
   Phase 5: Post-Completion (Steps 13-16)
+
     13  /quality → qual-gate-final.md
+
     14  Command registry update
+
     15  Skills/Agents sync
+
     16  Built-in → closure.json
 
+
+
   Sequential vs Parallel:
+
   - Sequential: /specify → /arch → /plan (must complete in order, each builds on previous)
+
   - Potentially parallel: /research and /arch (in theory could run together)
+
   - No actual parallel implementation exists
 
+
+
   ---
+
   3. Current Gaps & Friction
 
+
+
   | Gap                | Status          | Details                                                                                                   |
+
   |--------------------|-----------------|-----------------------------------------------------------------------------------------------------------|
+
   | Parallel execution | ❌ NOT WORKING  | Parallel subagents spec (v2.2) describes ORCHESTRATION.md coordination but ORCHESTRATION.md doesn't exist |
+
   | CWO completion     | ⚠️ PARTIAL      | CWO often stops before Step 16, rarely reaches closure.json                                               |
+
   | Agent coordination | ❌ BROKEN       | No shared state mechanism for multi-terminal coordination                                                 |
+
   | Task decomposition | ⚠️ VARIABLE     | /quadlet exists but not consistently used                                                                 |
+
   | State loss         | ⚠️ OCCURS       | No systematic state preservation between agent handoffs                                                   |
+
   | Final validation   | ⚠️ INCONSISTENT | /quality gates exist but not always executed                                                              |
 
+
+
   ---
+
   4. Speckit & SpecWriter Role
 
+
+
   Speckit: No /speckit command exists. However:
+
   - TaskMaster creates TSK-{ID} directories in .speckit/memory/
+
   - TSK directories serve the same purpose as Speckit memory
+
   - Path format: P:/__csf.nip/.speckit/memory/TSK-YYMMDD-Feature-HHMM/
 
+
+
   SpecWriter: No separate /specwriter agent.
+
   - /specify creates specifications (Step 1 of CWO)
+
   - Spec is written to TSK directory, not to project root
+
   - Template includes: FRs, NFRs, user stories, success criteria
 
+
+
   Sequence position:
+
   /specify → /arch → /plan → /quadlet → /exec
+
      ↓         ↓       ↓
+
     specs   architecture  task breakdown
 
+
+
   ---
+
   5. Actual Task Execution Model
+
+
 
   Current state: NOT WORKING
 
+
+
   The parallel subagents spec (v2.2) describes:
+
   ORCHESTRATION.md as shared state
+
       ↓
+
   Multiple terminals running Claude sessions
+
       ↓
+
   Each agent reads/writes ORCHESTRATION.md
+
       ↓
+
   Coordination via status field (TODO/IN_PROGRESS/DONE)
 
+
+
   Reality:
+
   - ORCHESTRATION.md file does not exist
+
   - No multi-terminal coordination mechanism
+
   - /exec has "MANDATORY parallel Task tool calls" but these are within a single session, not true parallel terminals
+
   - No way for agents to detect upstream completion other than manual checking
 
+
+
   ---
+
   6. Failure & Recovery
+
+
 
   Current state: POOR
 
+
+
   | Aspect                  | Status                                                  |
+
   |-------------------------|---------------------------------------------------------|
+
   | Error logging           | Some components log errors (exec_workflow.py)           |
+
   | Failure detection       | No systematic failure detection across agents           |
+
   | Downstream notification | No mechanism for agents to know about upstream failures |
+
   | Recovery flow           | Manual retry or user intervention required              |
+
   | Escalation              | /rca exists for root cause analysis but not automatic   |
 
+
+
   ---
+
   7. Final Deliverables & Reporting
 
+
+
   Intended end state (per CWO):
+
   TSK-{ID}/
+
   ├── specify.md (Step 1)
+
   ├── requirements.md (Step 2)
+
   ├── research.md (Step 3)
+
   ├── arch.md (Step 4)
+
   ├── plan.md (Step 5)
+
   ├── tasks.json (Step 6)
+
   ├── implementation/ (Step 7)
+
   ├── qual-gate.md (Step 8)
+
   ├── metrics.md (Step 9)
+
   ├── synthesis.md (Step 10)
+
   ├── doc.md (Step 11)
+
   ├── qual-gate-final.md (Step 13)
+
   ├── closure.json (Step 16)
+
   └── evidence/ (all steps)
+
+
 
   Reality: Most workflows stop after Step 7-8. Step 16 (closure.json) is rarely reached.
 
+
+
   "Done" determination: Currently user decides. No automated "done" detection.
 
+
+
   ---
+
   8. Role Definitions
+
+
 
   Specified but not systematically implemented:
 
+
+
   | Role        | Command/File           | System Prompt                                    |
+
   |-------------|------------------------|--------------------------------------------------|
+
   | Test-Writer | /tdd                   | ✅ TDD cycle enforcement                         |
+
   | Implementer | /exec                  | ⚠️ Partial (context-aware but not role-specific) |
+
   | Reviewer    | /analyze, /code-review | ⚠️ Fragmented across multiple commands           |
+
   | Architect   | /arch                  | ✅ Architecture-specific                         |
+
   | Docs        | /doc                   | ⚠️ Exists but not systematically called          |
 
+
+
   No unified role prompt system. Roles are:
+
   - Command-specific (each command has its own behavior)
+
   - Not persistent across projects
+
   - Not systematically defined (no roles/ directory with prompt templates)
 
+
+
   ---
+
   9. What's Actually Missing
+
+
 
   Single biggest problem:
 
+
+
   The parallel subagents coordination mechanism described in v2.2 spec doesn't exist. The spec describes an ORCHESTRATION.md-based shared state system for multi-terminal parallelism, but:
 
+
+
   1. ORCHESTRATION.md file doesn't exist
+
   2. No agent spawn mechanism for multiple terminals
+
   3. No status polling mechanism for agents to check each other's progress
+
   4. No shared state beyond TSK directories (which are per-project, not per-workflow)
+
+
 
   Result: The CWO/EXEC systems are comprehensive single-session workflows, but cannot actually coordinate parallel agents across terminals as the v2.2 spec envisions. The "MANDATORY parallel Task tool calls" in exec_workflow.py are within a single Claude session, not true multi-terminal parallelism.
 
+
+
   What would fix it:
+
   1. Create ORCHESTRATION.md shared state file
+
   2. Implement spawn mechanism for multiple Claude sessions
+
   3. Add status polling for inter-agent coordination
+
   4. Integrate existing CWO steps with parallel agent roles
 
 ## Assistant
@@ -1802,3 +2183,4 @@ Total: 6 weeks @ 1.5-2 hours/week           10.5 hours
 ***
 
 **Start with Part 1.1 (SOP Encoding)—it's the highest-impact, easiest-to-implement pattern. You'll see results immediately.**
+```

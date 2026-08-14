@@ -1,7 +1,10 @@
 ---
 title: "For claude code, is this true?  What is missing?
 
+
 ● Claude Code environment variables available to hooks:
+
+
 
   | Variab"
 date: "2026-01-07"
@@ -14,24 +17,43 @@ entry_count: 4
 
 For claude code, is this true?  What is missing?
 
+
 ● Claude Code environment variables available to hooks:
 
+
+
   | Variable               | Value           |
+
   |------------------------|-----------------|
+
   | CLAUDECODE             | 1               |
+
   | CLAUDE_CODE_ENTRYPOINT | cli             |
+
   | CSF_SESSIONID          | auto-generated  |
+
   | WT_SESSION             | GUID session ID |
+
+
 
   Notable missing: No $CLAUDE_PROJECT_DIR in the actual environment.
 
+
+
   The docs mentioned $CLAUDE_PROJECT_DIR but it's not actually set. You'd need to derive it from $PWD or current directory.
 
+
+
   Also available in hook stdin input (not env vars):
+
   - tool_name
+
   - tool_input / input
+
   - output / result
+
   - duration_ms
+
   - cwd (current working directory)
 
 ## Assistant
@@ -106,150 +128,295 @@ This idempotent test runs in <1s, confirms docs vs. reality, and matches your ho
 
 Please review:
 
+
 Name                           Value                                                                                   
+
 ----                           -----                                                                                   
+
 _                              C:/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe                               
+
 3DVPATH                        C:\AMD\Chipset_Software\Binaries\3D_V-Cache_Performance_Optimizer_Driver\               
+
 ACLOCAL_PATH                   C:\Program Files\Git\mingw64\share\aclocal;C:\Program Files\Git\usr\share\aclocal       
+
 ACSetupSvcPort                 23210                                                                                   
+
 AGENT_HANDOFF_VALIDATOR_ENA... true                                                                                    
+
 ALLUSERSPROFILE                C:\ProgramData                                                                          
-ANTHROPIC_AUTH_TOKEN           97bd18158a8e454994f78f300bd3b4ec.IHba3cLXxc2szNBK                                       
+
+ANTHROPIC_AUTH_TOKEN           [REDACTED].IHba3cLXxc2szNBK                                       
+
 ANTHROPIC_BASE_URL             [https://api.z.ai/api/anthropic](https://api.z.ai/api/anthropic)                                                          
+
 ANTI_DECEPTION_ARCHITECTURE    v2.3_constitution_primary                                                               
+
 ANTI_SYCOPHANCY_ENABLED        true                                                                                    
+
 API_TIMEOUT_MS                 3000000                                                                                 
+
 APPDATA                        C:\Users\brsth\AppData\Roaming                                                          
+
 BLOAT_GUARD_ENABLED            true                                                                                    
+
 BLOAT_GUARD_EXTENDED_ENABLED   true                                                                                    
+
 CC_DIAGNOSTICS_DIR             P:/.claude/hooks/logs/diagnostics                                                       
+
 CC_DIAGNOSTICS_ENABLED         true                                                                                    
+
 CHANGE_VERIFICATION_ENABLED    false                                                                                   
+
 ChocolateyInstall              C:\ProgramData\chocolatey                                                               
+
 ChocolateyLastPathUpdate       134087745112980393                                                                      
+
 CKS_CONTEXT_LENGTH_LIMIT       1500                                                                                    
+
 CKS_HOOK_TIMEOUT_MS            3000                                                                                    
+
 CKS_INTEGRATION_ENABLED        true                                                                                    
+
 CKS_MAX_MEMORIES               5                                                                                       
+
 CKS_SIMILARITY_THRESHOLD       0.4                                                                                     
+
 CLAUDE_CODE_ENTRYPOINT         cli                                                                                     
+
 CLAUDECODE                     1                                                                                       
+
 COMMAND_DIRECTIVE_INJECTOR_... true                                                                                    
+
 COMMAND_EXECUTION_VALIDATOR... true                                                                                    
+
 COMMONPROGRAMFILES             C:\Program Files\Common Files                                                           
+
 CommonProgramFiles(x86)        C:\Program Files (x86)\Common Files                                                     
+
 CommonProgramW6432             C:\Program Files\Common Files                                                           
+
 COMPUTERNAME                   DESKTOP-70TFAGN                                                                         
+
 COMSPEC                        C:\WINDOWS\system32\cmd.exe                                                             
+
 CONFIG_SITE                    C:/Program Files/Git/etc/config.site                                                    
+
 CONSTITUTIONAL_ENFORCER_ENA... true                                                                                    
+
 COREPACK_ENABLE_AUTO_PIN       0                                                                                       
+
 CSF_OBSERVABILITY_ENABLED      true                                                                                    
+
 CSF_SESSIONID                  auto-generated                                                                          
+
 CUDA_PATH                      C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6                                
+
 CUDA_PATH_V12_6                C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6                                
+
 DIAGNOSTIC_CLAIM_CHECK         true                                                                                    
+
 DISPLAY                        needs-to-be-defined                                                                     
+
 DriverData                     C:\Windows\System32\Drivers\DriverData                                                  
+
 DUPLICATE_PREVENTION_ENABLED   true                                                                                    
+
 EMPIRICAL_CLAIMS_GATE_ENABLED  true                                                                                    
+
 ENFORCER_EVIDENCE              true                                                                                    
+
 ENFORCER_FORBIDDEN             true                                                                                    
+
 ENFORCER_SUCCESS               true                                                                                    
+
 ENFORCER_TRUTH                 true                                                                                    
+
 EXEPATH                        C:\Program Files\Git\bin                                                                
+
 FAILURE_ACK_CHECK              true                                                                                    
+
 FALSIFICATION_ASSESSOR_ENABLED true                                                                                    
+
 FALSIFICATION_GATE_ENABLED     true                                                                                    
+
 FALSIFICATION_INJECTOR_ENABLED true                                                                                    
+
 FILE_STATE_CHECK               true                                                                                    
+
 FIX_CLAIM_CHECK                true                                                                                    
+
 GIT_EDITOR                     true                                                                                    
+
 GOAL_ANCHOR_ENABLED            true                                                                                    
+
 GOAL_RESTATEMENT_ENABLED       true                                                                                    
+
 HEDGING_CHECK                  true                                                                                    
+
 HOME                           C:\Users\brsth                                                                          
+
 HOMEDRIVE                      C:                                                                                      
+
 HOMEPATH                       \Users\brsth                                                                            
+
 HOSTNAME                       DESKTOP-70TFAGN                                                                         
+
 INFOPATH                       C:\Program Files\Git\mingw64\local\info;C:\Program Files\Git\mingw64\share\info;C:\Pr...
+
 INHERITED_CHOICE_VALIDATOR_... true                                                                                    
+
 LANG                           en_US.UTF-8                                                                             
+
 LOCALAPPDATA                   C:\Users\brsth\AppData\Local                                                            
+
 LOGONSERVER                    \\DESKTOP-70TFAGN                                                                       
+
 MANPATH                        C:\Program Files\Git\mingw64\local\man;C:\Program Files\Git\mingw64\share\man;C:\Prog...
+
 MINGW_CHOST                    x86_64-w64-mingw32                                                                      
+
 MINGW_PACKAGE_PREFIX           mingw-w64-x86_64                                                                        
+
 MINGW_PREFIX                   C:/Program Files/Git/mingw64                                                            
+
 MONITORING_ENABLED             true                                                                                    
+
 MSYSTEM                        MINGW64                                                                                 
+
 MSYSTEM_CARCH                  x86_64                                                                                  
+
 MSYSTEM_CHOST                  x86_64-w64-mingw32                                                                      
+
 MSYSTEM_PREFIX                 C:/Program Files/Git/mingw64                                                            
+
 NoDefaultCurrentDirectoryIn... 1                                                                                       
+
 NUMBER_OF_PROCESSORS           16                                                                                      
+
 OneDrive                       C:\Users\brsth\OneDrive                                                                 
+
 OneDriveConsumer               C:\Users\brsth\OneDrive                                                                 
+
 ORIGINAL_PATH                  C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\brsth\bin;C:\P...
+
 ORIGINAL_TEMP                  C:/Users/brsth/AppData/Local/Temp                                                       
+
 ORIGINAL_TMP                   C:/Users/brsth/AppData/Local/Temp                                                       
+
 OS                             Windows_NT                                                                              
+
 OTEL_EXPORTER_OTLP_METRICS_... delta                                                                                   
+
 PATH                           C:\Users\brsth\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\local\bi...
+
 PATHEXT                        .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW;.CPL                     
+
 PKG_CONFIG_PATH                C:\Program Files\Git\mingw64\lib\pkgconfig;C:\Program Files\Git\mingw64\share\pkgconfig 
+
 PKG_CONFIG_SYSTEM_INCLUDE_PATH C:/Program Files/Git/mingw64/include                                                    
+
 PKG_CONFIG_SYSTEM_LIBRARY_PATH C:/Program Files/Git/mingw64/lib                                                        
+
 PLINK_PROTOCOL                 ssh                                                                                     
+
 POWERSHELL_DISTRIBUTION_CHA... MSI:Windows 10 Pro                                                                      
+
 PROCESSOR_ARCHITECTURE         AMD64                                                                                   
+
 PROCESSOR_IDENTIFIER           AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD                                       
+
 PROCESSOR_LEVEL                26                                                                                      
+
 PROCESSOR_REVISION             4400                                                                                    
+
 ProgramData                    C:\ProgramData                                                                          
+
 PROGRAMFILES                   C:\Program Files                                                                        
+
 ProgramFiles(x86)              C:\Program Files (x86)                                                                  
+
 ProgramW6432                   C:\Program Files                                                                        
+
 PS1                            \[\033]0;$TITLEPREFIX:$PWD\007\]\n\[\033[32m\]\u@\h \[\033[35m\]$MSYSTEM \[\033[33m\]...
+
 PSModulePath                   C:\Users\brsth\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modu...
+
 PUBLIC                         C:\Users\Public                                                                         
+
 PWD                            P:/                                                                                     
+
 PYTHONIOENCODING               utf-8                                                                                   
+
 PYTHONSTARTUP                  "C:\Users\brsth/AppData/Roaming/Python/python_startup.py"                               
+
 PYTHONUTF8                     1                                                                                       
+
 RCA_AGGREGATE_TIMEOUT          60                                                                                      
+
 RCA_PER_AGENT_TIMEOUT          20                                                                                      
+
 RCA_TIMEOUT_GUARD_ENABLED      true                                                                                    
+
 RESPONSE_QUALITY_GATE_ENABLED  true                                                                                    
+
 RlsSvcPort                     22112                                                                                   
+
 RQG_EXCUSE_PATTERNS            true                                                                                    
+
 RQG_SYCOPHANCY                 true                                                                                    
+
 SAFETY_ROUTER_ENABLED          true                                                                                    
+
 SESSION_CHANGE_TRACKING_ENA... true                                                                                    
+
 SESSION_REVERSION_CHECK_ENA... true                                                                                    
+
 SESSIONNAME                    Console                                                                                 
+
 SHELL                          C:\Program Files\Git\usr\bin\bash.exe                                                   
+
 SHLVL                          1                                                                                       
+
 SLASH_COMMAND_REMINDER         true                                                                                    
+
 SSH_ASKPASS                    C:/Program Files/Git/mingw64/bin/git-askpass.exe                                        
+
 STRATEGY_ESCALATION_ENABLED    true                                                                                    
+
 SUCCESS_VALIDATOR_ENABLED      true                                                                                    
+
 SYSTEMDRIVE                    C:                                                                                      
+
 SYSTEMROOT                     C:\WINDOWS                                                                              
+
 TDD_CHECK_ENABLED              true                                                                                    
+
 TEMP                           C:\Users\brsth\AppData\Local\Temp                                                       
+
 TERM                           xterm-256color                                                                          
+
 TMP                            C:\Users\brsth\AppData\Local\Temp                                                       
+
 TMPDIR                         C:\Users\brsth\AppData\Local\Temp                                                       
+
 TOOL_SEQUENCE_TRACKER_ENABLED  true                                                                                    
+
 TRUTH_VALIDATOR_ENABLED        true                                                                                    
+
 USERDOMAIN                     DESKTOP-70TFAGN                                                                         
+
 USERDOMAIN_ROAMINGPROFILE      DESKTOP-70TFAGN                                                                         
+
 USERNAME                       brsth                                                                                   
+
 USERPROFILE                    C:\Users\brsth                                                                          
+
 WINDIR                         C:\WINDOWS                                                                              
+
 WSLENV                         WT_SESSION:WT_PROFILE_ID:                                                               
+
 WT_PROFILE_ID                  {574e775e-4f2a-5b96-ac1e-a2962a402336}                                                  
+
 WT_SESSION                     196711b1-7388-46b4-8964-223a5182739c
 
 ## Assistant

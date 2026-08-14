@@ -946,3 +946,4 @@ Want me to create:
 1. Integration tests validating the gate blocks bad recommendations?
 2. Specific examples of how CKS + web search would unfold for 2-3 realistic queries?
 3. A scoring rubric for "evidence quality" so the judgment call is less fuzzy?
+```

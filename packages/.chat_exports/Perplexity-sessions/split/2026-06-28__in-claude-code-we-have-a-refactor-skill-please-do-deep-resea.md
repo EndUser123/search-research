@@ -116,3 +116,4 @@ The following are **pending** (designed, not yet wired — see CHANGELOG):
 | P3 | < 8  | Log — opportunistic |
 
 **Health Score** = `100 - (CRITICAL×20 + HIGH×10 + MEDIUM×5 + LOW×2)`, clamped to [0, 100]
+```

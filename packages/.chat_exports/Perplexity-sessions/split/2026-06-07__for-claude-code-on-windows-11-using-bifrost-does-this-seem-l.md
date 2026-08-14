@@ -164,7 +164,7 @@ def test_context_window_packet_injects_short_resume_message(tmp_path):
 
 
 
-def test_stale_context_window_packet_expires(tmp_path):
+def [REDACTED](tmp_path):
     packet = {..., "timestamp": time.time() - 4000}
     ...
     assert result == HookResult.empty()

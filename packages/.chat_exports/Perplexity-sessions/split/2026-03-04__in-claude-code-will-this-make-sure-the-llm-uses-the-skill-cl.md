@@ -2,6 +2,7 @@
 title: "In Claude Code, will this make sure the LLM uses the skill?
 
 '
+
 ❯ /claude-code-setup:claude-automation-recommender pleas"
 date: "2026-03-04"
 mode: "COPILOT"
@@ -14,57 +15,109 @@ entry_count: 13
 In Claude Code, will this make sure the LLM uses the skill?
 
 "
+
 ❯ /claude-code-setup:claude-automation-recommender please review our hooks
+
+
 
 ● I will call Skill("claude-automation-recommender") to handle this request.
 
+
+
 ● Skill(claude-code-setup:claude-automation-recommender)
+
   ⎿  Successfully loaded skill
+
+
 
 ● Now let me analyze your codebase with a focus on reviewing your existing hooks.
 
+
+
 ● Searched for 1 pattern, read 2 files (ctrl+o to expand)
+
   ⎿  PreToolUse:Bash hook returned blocking error
+
   ⎿  [E_SKILL_FIRST_PENDING_INTENT]
+
      ⛔ SKILL-FIRST GATE: You typed /claude-automation-recommender but haven't called Skill("claude-automation-recommender") yet.
+
+
 
      Your FIRST action must be:  Skill(skill="claude-automation-recommender")
 
+
+
      Do NOT analyze the codebase, run scripts, or provide your own assessment.
+
      Do NOT bypass this gate by outputting inline analysis text without calling Skill(...).
+
      Call Skill("claude-automation-recommender") to load the skill, then follow its instructions.
+
+
 
 ● I need to invoke the skill tool properly:
 
+
+
 ● Skill(claude-automation-recommender)
+
   ⎿  Successfully loaded skill
+
+
 
 ● Now let me analyze your codebase with focus on reviewing your existing hooks.
 
+
+
 ● Searched for 1 pattern, read 2 files (ctrl+o to expand)
+
   ⎿  PreToolUse:Bash hook returned blocking error
+
   ⎿  [E_SKILL_FIRST_PENDING_INTENT]
+
      ⛔ SKILL-FIRST GATE: You typed /claude-automation-recommender but haven't called Skill("claude-automation-recommender") yet.
+
+
 
      Your FIRST action must be:  Skill(skill="claude-automation-recommender")
 
+
+
      Do NOT analyze the codebase, run scripts, or provide your own assessment.
+
      Do NOT bypass this gate by outputting inline analysis text without calling Skill(...).
+
      Call Skill("claude-automation-recommender") to load the skill, then follow its instructions.
 
+
+
 ● I see there's a PreToolUse hook blocking me from running analysis tools until I invoke the skill. Let me read the hook to understand what's
+
   happening:
 
+
+
 ● Reading 1 file… (ctrl+o to expand)
+
   ⎿  .claude\\hooks\\PreToolUse.py
+
   ⎿  PreToolUse:Read hook returned blocking error
+
   ⎿  [E_SKILL_FIRST_PENDING_INTENT]
+
      ⛔ SKILL-FIRST GATE: You typed /claude-automation-recommender but haven't called Skill("claude-automation-recommender") yet.
+
+
 
      Your FIRST action must be:  Skill(skill="claude-automation-recommender")
 
+
+
      Do NOT analyze the codebase, run scripts, or provide your own assessment.
+
      Do NOT bypass this gate by outputting inline analysis text without calling Skill(...).
+
      Call Skill("claude-automation-recommender") to load the skill, then follow its instructions."
 
 ## Assistant
@@ -230,7 +283,7 @@ Fires pre-prompt processing—no matcher. Stdout (exit 0) appends to context; ex
 prompt=$(jq -r '.prompt' /dev/stdin)
 
 # Check for skill triggers (e.g., /skill-name or keywords)
-if [[ "$prompt" =~ "/claude-automation-recommender" ]]; then
+if /"$prompt" =~ "/claude-automation-recommender"; then
   cat << EOF
 MANDATORY FIRST ACTION: Skill("claude-automation-recommender")
 Do NOT analyze, read files, or use tools until skill loaded.
@@ -464,7 +517,7 @@ Blocks `rm -rf` or git --force; JSON denies with reason fed to Claude.[5]
 ```
 #!/bin/bash
 command=$(jq -r '.toolArguments.command' /dev/stdin)
-if [[ "$command" =~ "rm -rf" || "$command" =~ "--force.*git" ]]; then
+if /"$command" =~ "rm -rf"; then
   cat << EOF
 {
   "hookSpecificOutput": {
@@ -559,7 +612,7 @@ Triggers PreToolUse block; Claude must Skill() to proceed.[4][6]
 read stdin
 command=$(echo "$stdin" | jq -r '.toolArguments.command // empty')
 
-if [[ "$command" =~ git.*(commit|push|rebase|reset\ --hard|\-\-force) ]]; then
+if /"$command" =~ git.*(commit; then
   cat << EOF
 {
   "hookSpecificOutput": {
@@ -653,7 +706,7 @@ Injects "EVALUATE: Use hook-reviewer?" pre-prompt; blocks on no Skill() for gate
 ```
 #!/bin/bash  # .claude/hooks/skill-gate.sh
 prompt=$(jq -r '.prompt' /dev/stdin)
-if [[ "$prompt" =~ "hook|PreToolUse" ]]; then
+if /"$prompt" =~ "hook; then
   cat << EOF
 CRITICAL: FIRST ACTION Skill("hook-reviewer")
 NO tools until loaded. Skills available: [list from ls .claude/skills]
@@ -730,7 +783,7 @@ settings.json:
 ```
 Script blocks unsafe:
 ```
-if [[ ! "$file" =~ ^\.claude/skills/ ]]; then
+if /! "$file" =~ ^\.claude/skills/; then
   echo '{"permissionDecision": "deny", "reason": "Use Skill(\"safe-edit\") first"}'
 fi
 ```
@@ -772,204 +825,405 @@ Which of these two LLM responses has the better operational guide?
 Grok:
 "**Yes — the team and I just ran a quick review with the latest March 2026 Claude Code behavior (skills + slash commands now merged, scoped hooks in frontmatter, JSON output preferred, new PostToolUse/TeammateIdle events, etc.).**
 
+
+
 Here is **v2 of the Operational Best Practices** with the highest-value upgrades baked in:
 
+
+
 - Bootstrap script at the top (one-command setup)  
+
 - Executive summary + success metrics  
+
 - Phased roadmap  
+
 - Decision matrix (which method to use when)  
+
 - Native Skill-Scoped Hooks section (2026 feature)  
+
 - Full recovery / “Stuck in Gate” section first  
+
 - Diagnostic checklist + rollback procedure  
+
 - Production hardening + PostToolUse quality gate  
+
 - Activation testing harness  
+
 - Anti-patterns appendix  
+
+
 
 Everything is copy-paste ready and tested against current docs.
 
+
+
 ---
 
+
+
 **Operational Best Practices: Skills & Hooks in Claude Code**  
+
 **March 2026 Edition** (targeted at Claude Code v2.4+)  
+
 Last updated: March 03, 2026
 
+
+
 ### Executive Summary & Success Metrics
+
 A single PreToolUse gate + Forced-Eval UserPromptSubmit + clean skill frontmatter delivers:
+
 - 100% SKILL-FIRST compliance (no more loops)  
+
 - 84–100% auto-activation on target prompts  
+
 - <2% context-budget overhead with progressive disclosure  
 
+
+
 ### Quick Bootstrap Script (Run Once)
+
 ```bash
+
 #!/bin/bash
+
 mkdir -p .claude/hooks .claude/hooks/state .claude/skills/claude-automation-recommender/docs
+
 cat > .claude/hooks/PreToolUse-gate.sh << 'EOF'
+
 #!/bin/bash
+
 # PreToolUse gate – forces Skill() first
+
 input=$(cat)
-if [[ "$input" == *"/claude-automation-recommender"* ]]; then
+
+if /"$input" == *"/claude-automation-recommender"*; then
+
   cat << JSON
+
 {
+
   "hookSpecificOutput": {
+
     "hookEventName": "PreToolUse",
+
     "permissionDecision": "deny",
+
     "permissionDecisionReason": "⛔ SKILL-FIRST GATE: Call Skill(\\"claude-automation-recommender\\") as your FIRST action."
+
   }
+
 }
+
 JSON
+
   exit 0
+
 fi
+
 echo "{}"
+
 exit 0
+
 EOF
+
+
 
 cat > .claude/hooks/forced-eval.sh << 'EOF'
+
 #!/bin/bash
+
 prompt=$(jq -r '.prompt // ""' /dev/stdin)
+
 skills=$(ls .claude/skills/*.md 2>/dev/null | xargs -n1 basename -s .md)
+
 cat << EOF
+
 MANDATORY EVALUATION (2026 best practice):
+
 $skills
 
+
+
 For: "$prompt"
+
 List every skill → YES/NO + 1-line reason.
+
 If YES → FIRST ACTION must be: Skill("name")
+
 NO tools or analysis until complete.
+
 EOF
+
 exit 0
+
 EOF
+
+
 
 # Add to settings.json (creates if missing)
+
 cat > .claude/settings.json << 'JSON'
+
 {
+
   "hooks": {
+
     "PreToolUse": [{
+
       "matcher": "Bash|Read|Grep|Edit",
+
       "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/PreToolUse-gate.sh" }]
+
     }],
+
     "UserPromptSubmit": [{
+
       "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/forced-eval.sh" }]
+
     }]
+
   }
+
 }
+
 JSON
 
+
+
 chmod +x .claude/hooks/*.sh
+
 echo "✅ Bootstrap complete. Restart Claude session and type /claude-automation-recommender"
+
 ```
+
+
 
 Run it → done.
 
+
+
 ### Phased Implementation Roadmap
+
 **Phase 1 (Must-have – 5 min)**  
+
 Bootstrap script + PreToolUse gate + Forced-Eval hook
 
+
+
 **Phase 2 (Recommended)**  
+
 Clean skill frontmatter + skill-rules.json + progressive disclosure
 
+
+
 **Phase 3 (Advanced)**  
+
 Native Skill-Scoped Hooks + PostToolUse quality gate + session markers
+
+
 
 ### Decision Matrix – Which Method to Use
 
+
+
 | Method                        | Activation Rate | Context Cost | Enforcement Strength | Best For                          | Risk of Loop |
+
 |-------------------------------|-----------------|--------------|----------------------|-----------------------------------|--------------|
+
 | PreToolUse Gate only          | 100% (once triggered) | Low         | Hard block           | SKILL-FIRST compliance            | High until obeyed |
+
 | UserPromptSubmit + Forced-Eval| 84–100%         | Low         | Soft + commitment    | Reliable auto-activation          | Very low     |
+
 | skill-rules.json (block)      | 95–100%         | Medium      | Hard via gate        | Domain/guardrail skills           | Low          |
+
 | Native Skill-Scoped Hooks     | 100% (scoped)   | Lowest      | Targeted             | Behavior only when skill active   | None         |
+
 | CLAUDE.md / description only  | 20–50%          | Medium      | Advisory             | Never use alone                   | High         |
 
+
+
 ### 1. The SKILL-FIRST GATE (Core Enforcement)
+
 Use the bootstrap version above (JSON output is now preferred in 2026).
 
+
+
 ### 2. Native Skill-Scoped Hooks (2026 Feature)
+
 You can now embed hooks directly in the skill’s YAML — they only fire while that skill is active.
 
+
+
 Example in `.claude/skills/claude-automation-recommender/SKILL.md`:
+
 ```yaml
+
 ---
+
 name: claude-automation-recommender
+
 description: Review .claude/hooks, fix PreToolUse blocks, recommend automation patterns. Keywords: hook, PreToolUse, E_SKILL_FIRST
+
 context: fork
+
 hooks:
+
   PreToolUse:
+
     - matcher: "Bash|Edit"
+
       hooks: [{ "type": "command", "command": "./internal-safety.sh" }]
+
   PostToolUse:
+
     - hooks: [{ "type": "command", "command": "./validation.sh" }]
+
 ---
+
 ```
+
+
 
 ### 3. Skill Frontmatter & Progressive Disclosure (Level 1–3)
+
 Keep Level 1 (YAML) under 1024 chars, Level 2 (core logic) ≤500 lines, defer everything else.
 
+
+
 ### 4. skill-rules.json (Advanced Trigger Control)
+
 Use `enforcement: "block"` for guardrails — it auto-triggers your PreToolUse gate.
 
+
+
 ### 5. Post-Activation Quality Gate (New Pattern)
+
 After the skill loads, run validation with PostToolUse:
+
 ```bash
+
 # .claude/hooks/post-skill-validation.sh
+
 cat << JSON
+
 {
+
   "hookSpecificOutput": {
+
     "hookEventName": "PostToolUse",
+
     "permissionDecision": "allow",
+
     "permissionDecisionReason": "Skill loaded successfully. Proceeding with hook review."
+
   }
+
 }
+
 JSON
+
 ```
+
+
 
 ### Recovery: “Stuck in Gate” Fix (Run if Claude loops)
+
 ```bash
+
 # Temporary disable (safe)
+
 mv .claude/hooks/PreToolUse-gate.sh .claude/hooks/PreToolUse-gate.sh.disabled
+
 # Force compliance manually:
+
 # Type exactly: Skill(skill="claude-automation-recommender")
+
 # Then re-enable the hook.
+
 ```
+
+
 
 **Rollback procedure** (if a hook bricks the session):  
+
 Delete the offending hook file or set `hooks: {}` in settings.json and restart Claude.
 
+
+
 ### Activation Testing Harness
+
 ```bash
+
 # Run in terminal
+
 for i in {1..50}; do
+
   claude -p "test prompt $i: review hooks PreToolUse E_SKILL_FIRST"
+
 done
+
 ```
+
 Count how often Skill() appears in the first turn. Target ≥84%.
 
+
+
 ### Production Hardening & Anti-Patterns
+
 - Always use session markers in skill-rules.json to avoid repeat gates.  
+
 - Never put arbitrary bash in global hooks without input validation.  
+
 - Limit global PreToolUse matchers (latency).  
+
 - Anti-patterns: >15 skills in context, vague descriptions, forgetting to chmod +x, mixing old exit-2 style with new JSON.
 
+
+
 ### Troubleshooting Diagnostic Checklist
+
 1. Run `/hooks` — are all hooks loaded?  
+
 2. Check `~/.claude/logs/` for gate firings.  
+
 3. Token budget (`/context`) under 16k for descriptions?  
+
 4. Exact skill name match (lowercase-hyphen)?  
+
 5. Still looping? Use Recovery section above.  
+
 6. Skill not loading full content? Use `context: fork`.
 
+
+
 ### Official References (2026)
+
 - [https://code.claude.com/docs/en/hooks-guide](https://code.claude.com/docs/en/hooks-guide)  
+
 - [https://code.claude.com/docs/en/skills](https://code.claude.com/docs/en/skills)  
+
 - [https://code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks) (scoped hooks section)
 
+
+
 ---
+
+
 
 This v2 is now truly operational: one script to rule them all, clear decision-making, recovery paths, and 2026 features included.
 
+
+
 Want me to:
+
 - Export this as a Markdown file you can drop into your repo?
+
 - Add the full recommended SKILL.md template for claude-automation-recommender?
+
 - Or generate a visual flowchart of the decision matrix?
+
+
 
 Just say the word and I’ll ship it."
 
@@ -1240,7 +1494,7 @@ arguments=$(echo "$stdin" | jq -r '.toolArguments // ""')
 recent_prompt=$(echo "$stdin" | jq -r '.recentUserPrompt // empty')
 
 # Detect intent to use claude-automation-recommender by slash command
-if [[ "$recent_prompt" == *"/claude-automation-recommender"* ]]; then
+if /"$recent_prompt" == *"/claude-automation-recommender"*; then
   cat << EOF
 {
   "hookSpecificOutput": {
@@ -1456,18 +1710,18 @@ tool_name=$(echo "$stdin" | jq -r '.toolName // ""')
 command=$(echo "$stdin" | jq -r '.toolArguments.command // ""')
 
 # Only care about Bash
-if [[ "$tool_name" != "Bash" ]]; then
+if /"$tool_name" != "Bash"; then
   echo "{}"
   exit 0
 fi
 
 # Simple destructive checks
-if [[ "$command" =~ "git push" && "$command" =~ "--force" ]] \
-   || [[ "$command" =~ "git reset" && "$command" =~ "--hard" ]]; then
+if /"$command" =~ "git push" && "$command" =~ "--force" \
+   || /"$command" =~ "git reset" && "$command" =~ "--hard"; then
 
   # Optional session marker check
   session_marker=".claude/hooks/state/safe-git-used-$$.json"
-  if [[ -f "$session_marker" ]]; then
+  if /-f "$session_marker"; then
     echo "{}"
     exit 0
   fi
@@ -1557,56 +1811,107 @@ If you’d like, I can next:
 
 Do you think the reviewing LLM went too far?
 "
+
 › what should I tell the original LLM about your edits?
+
+
+
 
 
 • Tell it this:
 
+
+
   1. PreToolUse compatibility fix
 
+
+
   - Stop using {"continue": false} for PreToolUse blocks.
+
   - Use Claude-compatible payload:
+
       - hookSpecificOutput.hookEventName = "PreToolUse"
+
       - hookSpecificOutput.permissionDecision = "deny"
+
       - hookSpecificOutput.permissionDecisionReason = "..."
+
   - Return exit code 0 for deny/allow JSON responses.
+
+
 
   2. Skill-first reliability fix
 
+
+
   - Canonicalize skill names before comparing (namespace:skill, /skill, skill -> skill).
+
   - Avoid false loops after successful Skill(...).
+
+
 
   3. Multi-terminal + stale-data hardening (skill enforcement only)
 
+
+
   - Intent file naming stays scoped: pending_command_intent_{terminal}_{session}.json.
+
   - Intent payload now includes session_id and terminal_id.
+
   - PreToolUse validates payload scope; mismatched scope files are deleted/ignored (stale immunity).
+
   - No TTL dependency for skill intent correctness.
+
+
 
   4. Safer writes
 
+
+
   - Intent writes use atomic temp-file replace with one retry to reduce transient FS race failures.
+
+
 
   5. Better diagnostics
 
+
+
   - Added skill_loaded_unblocked event logging when gate clears after skill load.
+
   - Added skill_state_mismatch telemetry with raw/canonical intent vs state skill values.
+
+
 
   6. Explicit instruction text
 
+
+
   - Skill-first block message now includes:
+
       - Your FIRST action must be: Skill(skill='claude-automation-recommender') exactly, no analysis.
+
+
 
   7. Where changes were made
 
+
+
   - P:\\.claude\\hooks\\PreToolUse.py
+
   - P:\\.claude\\hooks\\UserPromptSubmit\\skill_enforcer.py
+
   - (earlier related work) P:\\.claude\\hooks\\__lib\\pre_tool_use_logic.py
+
   - (earlier related work) P:\\.claude\\hooks\\PreToolUse_python_c_validator.py
+
+
 
   8. Operational note
 
+
+
   - No settings.json re-registration required if it already points to these routers.
+
   - Must reload hooks/session (/hooks or restart) because hook behavior is snapshotted per session."
 
 ## Assistant

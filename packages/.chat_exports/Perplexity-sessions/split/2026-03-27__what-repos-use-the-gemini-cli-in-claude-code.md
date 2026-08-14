@@ -518,7 +518,7 @@ Typical `shellcheck`‑caught patterns that bite AI‑assisted Bash scripts:[10]
 - **Unquoted variables**  
   - Anti‑pattern: `[ $x = "y" ]` → quoted: `[ "$x" = "y" ]`.[10]
 - **Bash‑isms in `#!/bin/sh` scripts**  
-  - `[[ ... ]]`, arrays, `let` in `sh` context → either change shebang to `#!/bin/bash` or rewrite.[10]
+  - `/...`, arrays, `let` in `sh` context → either change shebang to `#!/bin/bash` or rewrite.[10]
 - **Bad `grep`‑in‑`if` lines**  
   - `if grep -q ...; then` is fine; `if [ $(grep -q ...) ]` is not.[10]
 

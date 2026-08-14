@@ -1280,112 +1280,219 @@ That's the gap a basic Ralph loop structurally cannot catch: it only iterates on
 ## Human
 
 Is the LLM describing the solution properly?  "
+
 ✻ Conversation compacted (ctrl+o for history)
 
+
+
   ⎿  Read C:\\Users\\brsth\\.claude\\projects\\P--\\memory\\github-ready-correction.md (102 lines)
+
   ⎿  Read loop-core\\PLUGIN_STANDARDS_REPORT.md (67 lines)
+
   ⎿  Read loop-core\\CHANGELOG.md (44 lines)
+
   ⎿  Read loop-core\\tests\\test_integration.py (227 lines)
+
   ⎿  Read loop-core\\tests\\test_state_manager.py (171 lines)
+
   ⎿  Skills restored (github-ready, learn)
 
+
+
 ● Based on my research of the Ralph repository, yes, your description matches Ralph's design. Here's what Ralph actually
+
   does:
+
+
 
   Ralph's Exit Detection Mechanism
 
+
+
   Dual-condition gate (from frankbria/ralph-claude-code):
+
   Exit requires BOTH conditions:
+
   1. completion_indicators >= 2 (heuristic detection of "done")
+
   2. EXIT_SIGNAL: true (explicit LLM signal in RALPH_STATUS block)
 
+
+
   How it works:
+
   1. LLM sets trigger condition: When the LLM believes the plan is finished and verified, it adds EXIT_SIGNAL: true to the
+
   RALPH_STATUS block in the plan file
+
   2. Stop hook checks condition: The loop's exit logic reads the plan file each iteration and checks if BOTH conditions are
+
    met
+
   3. Reset if not met: If exit conditions are NOT met, the loop continues (generates a new prompt for the next iteration)
 
+
+
   From the Ralph README:
+
   ▎ "Claude must explicitly signal completion by setting EXIT_SIGNAL: true in the RALPH_STATUS block. This is combined with
+
    a heuristic check (completion_indicators >= 2) to prevent premature exit."
 
+
+
   This matches your description:
+
   - ✅ "trigger condition or definition of done" = EXIT_SIGNAL: true
+
   - ✅ "that the llm uses when the plan is finished and verified" = LLM sets this in RALPH_STATUS
+
   - ✅ "then the stop hook reset the prompt if the condition is not met" = Loop continues if conditions aren't met
 
+
+
   loop-core's role: Provides parse_plan_tasks() and TerminalStateManager utilities that Ralph-style loops use to:
+
   - Read the plan file (check EXIT_SIGNAL)
+
   - Track completion_indicators
+
   - Persist loop state across iterations
 
+
+
   The memory file I created (github-ready-correction.md) documents this relationship correctly: loop-core is a library
+
   plugin that Ralph-style loops import and use, not a Ralph implementation itself.
+
+
 
 ✻ Churned for 40s
 
+
+
 ❯ How does a library plugin support what I described?
+
+
 
 ● Looking at the actual loop-core implementation, here's how it supports Ralph's exit detection:
 
+
+
   How loop-core Supports Ralph's Exit Mechanism
+
+
 
   From scripts/plan_parser.py:
 
+
+
   def parse_plan_tasks(plan_path: Path) -> list[dict]:
+
       """Extract tasks from markdown plan file.
 
+
+
       Handles RALPH_STATUS blocks for exit detection:
+
       - EXIT_SIGNAL: true (LLM's explicit completion signal)
+
       - completion_indicators (heuristic detection)
+
       """
+
       # Reads plan file and extracts task metadata
+
       # Parses RALPH_STATUS blocks for exit conditions
+
+
 
   The Ralph-style loop would use loop-core like this:
 
+
+
   from scripts import TerminalStateManager, parse_plan_tasks
 
+
+
   def ralph_loop_iteration(plan_path: str):
+
       """One iteration of Ralph-style autonomous loop."""
 
+
+
       # 1. Read plan file (check EXIT_SIGNAL from LLM)
+
       tasks = parse_plan_tasks(plan_path)
 
+
+
       # 2. Get current loop state
+
       manager = TerminalStateManager()
+
       state = manager.read_state("ralph_status")
 
+
+
       # 3. Check dual-condition exit gate
+
       llm_done = any(t.get("EXIT_SIGNAL") == True for t in tasks)
+
       completion_indicators = state.get("completion_indicators", 0)
 
+
+
       # 4. Exit if BOTH conditions met
+
       if llm_done and completion_indicators >= 2:
+
           print("✓ Exit conditions met")
+
           return  # Loop terminates
 
+
+
       # 5. Otherwise: reset prompt (continue loop)
+
       else:
+
           # Generate next prompt
+
           state["completion_indicators"] += 1
+
           manager.write_state("ralph_status", state)
+
           # Continue to next iteration
 
+
+
   loop-core provides:
+
   - ✅ parse_plan_tasks() → Reads plan file and extracts EXIT_SIGNAL
+
   - ✅ TerminalStateManager.read_state() → Retrieves completion_indicators
+
   - ✅ TerminalStateManager.write_state() → Persists state between iterations
+
   - ✅ Terminal isolation → Each Ralph loop gets its own state directory
 
+
+
   The Ralph loop itself (bash or Python) provides:
+
   - The loop logic
+
   - The prompt generation
+
   - The exit condition checking
 
+
+
   loop-core doesn't implement the loop — it provides the utilities the loop uses to manage state and parse plans. This is
+
   why it's a library plugin, not a workflow plugin.
+
 "
 
 ## Assistant
@@ -3092,3 +3199,4 @@ Stage 4: Output
     - Implement a script that scans `.claude/state/terminals/*/decision.log` and `loop_metrics.json` and produces a summary (error counts, exit reasons, durations).  
     - Use it to validate acceptance criteria during rollout (e.g., no cross-terminal effects, no unexpected exit reasons).  
   - Depends-on: PH2-T2, PH5-T2
+```

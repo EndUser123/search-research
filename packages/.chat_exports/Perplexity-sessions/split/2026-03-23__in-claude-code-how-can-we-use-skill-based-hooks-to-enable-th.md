@@ -269,8 +269,12 @@ else:
 
 did you address these points?
 Examples of Verify skill checklists for code tasks
-How to set up post-execution verification hooks
-Self-improving skills that update from verification failures
+
+
+How to set up post-execution verification hooks
+
+
+Self-improving skills that update from verification failures
 
 ## Assistant
 
@@ -291,13 +295,21 @@ GTO's embedded checklist mandates 5 steps + binary assertions before "done" (e.g
 
 does your solution address this failure mode?
 "
+
 ❯ which gto version did you use?
+
+
 
   Searched for 2 patterns (ctrl+o to expand)
 
+
+
 ● Ran gto_orchestrator.py directly — it has no version string. The SKILL.md advertises v4, but __init__.py reports 3.0.0.
+
   The orchestrator itself doesn't declare a version, so it's unclear which version actually executed. The documentation and
+
    code are out of sync.
+
 "
 
 ## Assistant
@@ -369,3 +381,4 @@ enforcement: strict  # From ADR
 ```
 
 **Confidence: 100%** — ADRs confirm the solution is production-ready for GTO v4 (fixes v4's no-frontmatter issue). Drop in as-is; adds the exact infrastructure they specify.[3][2][1]
+```

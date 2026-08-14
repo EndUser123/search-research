@@ -2,6 +2,7 @@
 title: "I'm trying to use mistral vibe from inside claude code, but I'm having problems.  Does the below sound true to you?
 
 '
+
 "
 date: "2026-04-12"
 mode: "COPILOT"
@@ -14,30 +15,48 @@ entry_count: 11
 I'm trying to use mistral vibe from inside claude code, but I'm having problems.  Does the below sound true to you?
 
 "
+
 ● Now I see the issue. The model selection shows:
 
+
+
   - Active: devstral-2
+
   - Available: devstral-2, devstral-small, Local
+
+
 
   But when running vibe -p (programmatic mode), it tries to use mistral-medium-3.5 which is NOT in that list and doesn't exist.
 
+
+
   Root Cause: Vibe's programmatic mode (-p flag) has a bug where it doesn't read the active_model from config. Instead, it appears
+
   to use a hardcoded or fallback model (mistral-medium-3.5) that has been deprecated on Mistral's servers.
+
+
 
   Interactive mode works because it properly reads the model selection. Programmatic mode doesn't.
 
+
+
   Not an /ai-cli issue - the same error occurs when running vibe -p "Say hello" directly from terminal.
 
+
+
   Fix options:
+
   1. Update Vibe binary to a newer version that fixes this bug
+
   2. Use interactive mode with /model to change active model, then use stdin pipe instead of -p flag
+
   3. Check Vibe release notes to see if this was fixed in a later version than 2.7.4"
 
 ## Assistant
 
 **No, the described root cause does not match official docs or reported issues—likely a config or version mismatch instead of a confirmed bug.**[1][2]
 
-1. **Vibe CLI Overview and Modes**: **Mistral Vibe** (open-source CLI coding agent from Mistral AI, GitHub: mistralai/mistral-vibe) supports interactive (`vibe`) and programmatic modes (`vibe --prompt "query"` or pipe stdin; no explicit `-p` flag documented, but `--prompt` is equivalent for non-interactive use). Programmatic mode auto-approves tools by default and shares the same **config.toml** (`~/.vibe/config.toml`) as interactive, with `active_model` (e.g., **devstral-2**) controlling selection across modes. Models/providers are defined in TOML sections like `[[models]]` with `alias` matching `active_model`.[2][3][4][1]
+1. **Vibe CLI Overview and Modes**: **Mistral Vibe** (open-source CLI coding agent from Mistral AI, GitHub: mistralai/mistral-vibe) supports interactive (`vibe`) and programmatic modes (`vibe --prompt "query"` or pipe stdin; no explicit `-p` flag documented, but `--prompt` is equivalent for non-interactive use). Programmatic mode auto-approves tools by default and shares the same **config.toml** (`~/.vibe/config.toml`) as interactive, with `active_model` (e.g., **devstral-2**) controlling selection across modes. Models/providers are defined in TOML sections like `/models` with `alias` matching `active_model`.[2][3][4][1]
 
 2. **Model Availability**: Available models include **devstral-2**, **devstral-small** (aliases like `mistral-vibe-cli-latest` on Mistral API), and **Local**. No mention of **mistral-medium-3.5** in docs, config examples, or recent releases (latest v1.3.3 Dec 2025; **2.7.4** exists per PyPI but unlinked to GitHub tags—possibly pip-specific). **mistral-medium** (or variants) was never default; **devstral** series launched Dec 2025 as primary for Vibe. Deprecated Mistral models exist but aren't hardcoded fallbacks.[5][3][4][6]
 
@@ -47,7 +66,7 @@ I'm trying to use mistral vibe from inside claude code, but I'm having problems.
 
 **Next Steps** (test minimal changes first):
 - Run `vibe` (interactive): confirm **active_model** list; use `/model` if needed.
-- `cat ~/.vibe/config.toml`: Verify `active_model = "devstral-2"`; `[[models]]` has matching `alias` under Mistral provider with valid **MISTRAL_API_KEY** in `~/.vibe/.env`.
+- `cat ~/.vibe/config.toml`: Verify `active_model = "devstral-2"`; `/models` has matching `alias` under Mistral provider with valid **MISTRAL_API_KEY** in `~/.vibe/.env`.
 - Update: `uv tool install --force mistral-vibe` or `pip install -U mistral-vibe` (target latest >2.7.4).
 - Test programmatic: `echo "Say hello" | vibe` or `vibe --prompt "Say hello"`.
 - If fails: Share exact error/traceback and `config.toml` (redacted keys).
@@ -63,16 +82,27 @@ Hope this helps! Let me know your config/error details.
 ## Human
 
 "  Vibe CLI bug confirmed: When using -p (programmatic mode), vibe sends mistral-vibe-cli-latest to Mistral's API, but Mistral no
+
   longer recognizes that model name (it was mapped to mistral-medium-3.5 which is deprecated). The config correctly sets
+
   active_model = "devstral-2" but the -p flag bypasses this setting.
 
+
+
   Summary of /ai-cli fixes completed:
+
   1. Gemini - Fixed: now uses list format with -m gemini-2.5-flash flag
+
   2. Qwen, Codex, OpenCode - Working (no changes needed)
+
   3. Vibe - NOT FIXABLE in /ai-cli: This is a vibe CLI bug when using -p mode. Interactive mode works. The user would need to either
+
    wait for a vibe update, or use a workaround like running vibe interactively.
 
+
+
   The other CLIs (qwen, codex, opencode, gemini via API mode) remain available as alternatives. Would you like me to mark the gemini
+
    fix as complete and note the vibe issue as pending a vibe CLI update?"
 
 Is this realistic?  Can we provide a prompt to determine if this is true or not?
@@ -128,8 +158,8 @@ has this problem been confirmed by others?  what do they do as a workaround?
 3. **Common Workarounds**:
    | Issue Type | Workaround | Source |
    |------------|------------|--------|
-   | Model 400/alias | Edit **config.toml**: Set `active_model = "devstral-small-2-24b-instruct-2501"` (valid ID); remap aliases under `[[models.mistral]]`. Reinstall `pip install -U mistral-vibe`. | [3][9][10] |
-   | API errors | Local/ollama: `active_model = "Local"`, add `[[models.local]] path="devstral.gguf"` (25GB RAM ok) [11][10]. | [10][12] |
+   | Model 400/alias | Edit **config.toml**: Set `active_model = "devstral-small-2-24b-instruct-2501"` (valid ID); remap aliases under `/models.mistral`. Reinstall `pip install -U mistral-vibe`. | [3][9][10] |
+   | API errors | Local/ollama: `active_model = "Local"`, add `/models.local path="devstral.gguf"` (25GB RAM ok) [11][10]. | [10][12] |
    | Programmatic | Pipe stdin: `echo "prompt" \| vibe` (uses config). Custom prompts in `~/.vibe/prompts/`. | [5] |
    | General | Auto-update disabled; manual `uv tool update mistral-vibe`. Switch VSCode Kilo Code/Claude [2]. Proxy for compat [13]. | [14][2] |
 
@@ -480,52 +510,99 @@ Hope this helps! Which MCP first?
 ## Human
 
 "
+
   Vibe Update Investigation
 
+
+
   Current state:
+
   - Installed: vibe 2.7.4 (binary at C:\\Users\\brsth\\.local\\bin\\vibe.exe)
+
   - Not from npm (vibe-cli not in npm global packages)
+
   - Not from pip
+
   - Appears to be a direct binary installation
 
+
+
   npm shows vibe-cli@0.14.54 - but these are different packages. The installed vibe (2.7.4) is a compiled binary that predates the
+
   npm package.
 
+
+
   Root cause: devstral-2 alias doesn't work in -p (programmatic) mode. devstral-small does work. This is a vibe CLI bug, not a
+
   version issue.
 
+
+
   Options:
+
   1. Workaround (immediate): Change active_model = "devstral-small" in ~/.vibe/config.toml
+
   2. Report bug: To Mistral (vibe-2.7.4 has a bug where -p mode doesn't resolve model aliases correctly)
+
   3. Check for updates: The binary at .local/bin suggests a standalone install - no automatic update mechanism found
 
+
+
   Would you like me to change the config to use devstral-small as a permanent workaround?
+
   ⎿  Stop says: ⚠️ Overconfident assertion detected: **causal_assertion**
+
+
 
      Matched: `caused by`
 
+
+
      Fix: Add evidence tier: '[Tier X]: This explains...' or reframe as hypothesis: 'This MAY explain...'
+
+
 
      Add evidence tier (e.g. `[Tier 1]:`) or reframe as hypothesis to suppress.
 
+
+
 ✻ Cogitated for 7m 36s · 4 shells still running
+
+
 
 ❯ are you trying to say that we should uninstall all versions of vibe, and install the best and latest?
 
+
+
 ● No. I wasn't recommending that.
+
+
 
   Two separate issues:
 
+
+
   1. devstral-2 broken in -p mode - Workaround: use devstral-small instead (change one line in config)
+
   2. Two different vibe packages exist:
+
     - Your installed: vibe 2.7.4 (binary at .local/bin) - can't be updated via npm
+
     - npm package: vibe-cli@0.14.54 - different package, may not apply
+
+
 
   The practical fix is simply changing one line in ~/.vibe/config.toml:
 
+
+
   active_model = "devstral-small"   # instead of "devstral-2"
 
+
+
   devstral-small works in both interactive and programmatic (-p) modes. That's the tested workaround. No uninstall/reinstall needed.
+
 "
 
 ## Assistant
@@ -542,7 +619,7 @@ Hope this helps! Which MCP first?
   ```
   # ~/.vibe/config.toml (Windows: %USERPROFILE%\.vibe\config.toml)
   active_model = "devstral-small"  # Or full: "devstral-small-2-24b-instruct-2501"
-  [[models]]
+  /models
   provider = "mistral"
   alias = "devstral-small"
   model = "devstral-small-2-24b-instruct-2501"

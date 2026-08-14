@@ -1,6 +1,9 @@
 ---
 title: "'
+
   Problem Statement: Agentic CLI Skills Lack File Output Mechanism
+
+
 
   Context: 9 skills invoke external agentic CLI"
 date: "2026-04-11"
@@ -12,26 +15,47 @@ entry_count: 4
 ## Human
 
 "
+
   Problem Statement: Agentic CLI Skills Lack File Output Mechanism
 
+
+
   Context: 9 skills invoke external agentic CLIs (OpenCode, Codex, Gemini, Vibe). Each skill's Section 9 documents CLI invocation
+
   but does not capture output to disk.
 
+
+
   Current behavior: CLI output goes to stdout/JSONL stream. The orchestrating skill receives the output but has no defined mechanism
+
    to save it to a file.
+
+
 
   Desired behavior: Running a skill produces a saved file at a user-specified path, with no intermediate steps shown to the user.
 
+
+
   Root cause: Skills describe how to invoke the CLI but don't implement the file-output step. OpenCode has no --output flag; shell
+
   redirection (>) is the available mechanism. Other CLIs may differ.
 
+
+
   Affected skills (9):
+
   - P:/.claude/skills/ai-oc-*/SKILL.md (6 files)
+
   - P:/.claude/skills/ai-copilot/SKILL.md
+
   - P:/.claude/skills/ai-gemini/SKILL.md
+
   - P:/.claude/skills/ai-vibe/SKILL.md
 
+
+
   Proposed fix: Update Section 9 in each skill to add file-output invocation pattern. Shell redirection (>) for OpenCode; verify and
+
    document per-CLI for Codex/Gemini/Vibe."
 
 This solution described sounds non-optimal.  What do you think is the optimal way to use these agentic clis from claude code, and have our skills properly ensure token efficient use, maybe by having the agentic cli write their output to a file.
@@ -108,12 +132,12 @@ So we're essentially using a bash command with a wrapper.
 ```bash
 #!/bin/bash
 cli=$1; shift; args=("$@"); output=${args[-1]}; args=("${args[@]:0:-1}")
-if [[ $cli == "codex" ]]; then
+if /$cli == "codex"; then
   codex "${args[@]}" --output-last-message "$output"
 else
   "$cli" "${args[@]}" | tee "$output"
 fi
-[[ -f "$output" ]] && echo "$output" || { echo "Failed"; exit 1; }
+/-f "$output" && echo "$output" || { echo "Failed"; exit 1; }
 ```
 Save `agentic-cli.sh`; `chmod +x`. Invoke: `./agentic-cli.sh opencode run "task" output.json`.
 

@@ -93,7 +93,7 @@ bash
 #!/bin/bash
 # Block file writes if in main worktree
 if [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ]; then
-  if [[ "$TOOL_NAME" =~ ^(write|edit|str_replace) ]]; then
+  if /"$TOOL_NAME" =~ ^(write; then
     echo '{"decision": "block", "reason": "Create worktree first: /worktree <name>"}'
     exit 0
   fi
@@ -827,7 +827,7 @@ Git hooks on Windows can be finicky. Add a **CI/CD check** (GitHub Actions, pre-
 ```bash
 # .claude/hooks/pre-tool-use.sh
 if [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ]; then
-  if [[ "$TOOL_NAME" =~ ^(write|edit|str_replace) ]]; then
+  if /"$TOOL_NAME" =~ ^(write; then
     echo '{"decision": "block", "reason": "Create worktree: /worktree <name>"}'
     exit 0
   fi

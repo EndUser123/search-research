@@ -528,36 +528,67 @@ This is the exact pattern people use for "autonomous drift detection" — it's n
 
 I asked CC what it kept forgetting, here's it's list:
 
+
 ● Summary: Top 10 Most Common Forgotten Items
+
+
 
   Based on analysis of 65 "did you forget" conversations across 500 recent sessions:
 
+
+
   | Rank | Category      | Count | Examples                                                       |
+
   |------|---------------|-------|----------------------------------------------------------------|
+
   | 1    | Verification  | 87    | Need to check API, validate assumptions, verify implementation |
+
   | 2    | Logging       | 46    | Missing logging, observability gaps                            |
+
   | 3    | Integration   | 36    | Broken integrations, missing connections                       |
+
   | 4    | Dependencies  | 25    | Import issues, missing dependencies                            |
+
   | 5    | Cleanup       | 24    | Temporary files not removed, cleanup not done                  |
+
   | 6    | Documentation | 18    | README not updated, docs missing                               |
+
   | 7    | Configuration | 11    | Hardcoded paths, no config file                                |
+
   | 8    | Tests         | 5     | Integration tests missing                                      |
+
   | 9    | Edge Cases    | 3     | Edge case handling                                             |
+
   | 10   | Other         | N/A   | Various smaller items                                          |
+
+
 
   Key Patterns:
 
+
+
   1. "Need to check/verify" - Most common - forgetting to validate assumptions
+
   2. "Missing X" - Features/integrations not implemented
+
   3. "Should have" - Post-completion realizations
+
   4. "Forgot to add/include" - Omissions discovered during review
+
+
 
   Note: The search also picks up some false positives from code snippets and documentation discussions. The actual top forgotten items are:
 
+
+
   1. Testing (unit tests, integration tests)
+
   2. Documentation (README, comments)
+
   3. Verification (checking that things work)
+
   4. Cleanup (removing temp files, commented code)
+
   5. Configuration (making things configurable instead of hardcoded)
 
 How do people like to use hook, and/or statusline to address or notify them of these misses?
@@ -581,7 +612,7 @@ input=$(cat)
 file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 
 # Only run if it's a code file
-if [[ $file_path =~ \.(ts|js|py)$ ]]; then
+if /$file_path =~ \.(ts; then
   # Write "RUNNING" state
   echo "RUNNING" > /tmp/cc_test_status
 

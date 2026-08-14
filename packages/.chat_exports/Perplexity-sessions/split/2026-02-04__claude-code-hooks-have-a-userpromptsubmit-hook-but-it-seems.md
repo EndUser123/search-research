@@ -121,7 +121,7 @@ text
 stdin=$(cat)
 transcript_path=$(echo "$stdin" | jq -r '.transcript_path')
 # Check last 5 assistant items for triggers...
-if [[ "$needs_reminder" == "true" ]]; then
+if /"$needs_reminder" == "true"; then
   echo 'Avoid agreement phrases; analyze critically.' # Appends on exit 0
 fi
 
@@ -939,315 +939,626 @@ Both guides are current to v2.1.31 and incorporate your specific context (Window
 Does this from another LLM add value to our two documents?
 Yes. While the current documents are excellent for **understanding** (Mental Models) and **configuring** (Operational), they lack **immediate actionability** and **tooling**.
 
+
+
 To make them significantly more useful without removing information, you should add a **third artifact**: a **"Scaffold/Starter Kit"** that bridges the gap between reading the guide and having a working system.
+
+
 
 Here are the three specific additions that will maximize utility:
 
+
+
 1.  **`claude-hooks-scaffold-v2131.md`**: A copy-paste implementation kit (Python & Bash) that sets up the file structure and master scripts immediately.
+
 2.  **`mock-claude.py`**: A testing harness tool. The docs say "Test in isolation," but don't provide the tool to do it.
+
 3.  **Mermaid Diagrams**: Replacing the ASCII art with precise flowcharts for better cognitive load management.
+
+
 
 Below is the **new content** to add.
 
+
+
 ---
+
+
 
 ### Addition 1: The Implementation Kit (New File)
 
+
+
 Create this file to accompany the other two. It converts the "Concepts" into immediate "Code".
+
+
 
 **File:** `claude-hooks-scaffold-v2131.md`
 
+
+
 ```markdown
+
 # Claude Code Hooks – Starter Scaffold (v2.1.31)
 
+
+
 **Purpose**: Copy-paste setup to go from "zero" to "fully hooked environment" in 5 minutes.
+
 **Prerequisites**: Python 3.8+, Claude Code v2.1.31+
+
+
 
 ## 1. Directory Structure Setup
 
+
+
 Run this in your project root to create the recommended structure:
 
+
+
 ```bash
+
 mkdir -p .claude/hooks
+
 touch .claude/hooks/README.md
+
 touch .claude/hooks/master_prompt.py
+
 touch .claude/hooks/master_tool.py
+
 chmod +x .claude/hooks/*.py
+
 ```
+
+
 
 ## 2. The Configuration (`.claude/settings.json`)
 
+
+
 This configuration implements the "Master Script" pattern described in the Operational Guide.
 
+
+
 ```json
+
 {
+
   "hooks": {
+
     "UserPromptSubmit": [
+
       {
+
         "hooks": [
+
           {
+
             "type": "command",
+
             "command": "python3 ./.claude/hooks/master_prompt.py",
+
             "async": false,
+
             "timeout": 30
+
           }
+
         ]
+
       }
+
     ],
+
     "PreToolUse": [
+
       {
+
         "matcher": "Bash|Write|Edit",
+
         "hooks": [
+
           {
+
             "type": "command",
+
             "command": "python3 ./.claude/hooks/master_tool.py",
+
             "async": false,
+
             "timeout": 30
+
           }
+
         ]
+
       }
+
     ]
+
   }
+
 }
+
 ```
+
+
 
 ## 3. Master Prompt Handler (`.claude/hooks/master_prompt.py`)
 
+
+
 Handles logging, validation, and context injection safely.
 
+
+
 ```python
+
 #!/usr/bin/env python3
+
 import sys
+
 import json
+
 import datetime
+
 import os
 
+
+
 # --- CONFIGURATION ---
+
 LOG_FILE = os.path.expanduser("~/.claude/global_prompt_log.jsonl")
+
 PROJECT_RULES = """
+
 [INJECTED CONTEXT]
+
 1. Use TypeScript for all new code.
+
 2. If editing existing files, match the indentation style.
+
 3. No console.log in production code.
+
 """
 
+
+
 def log_prompt(data):
+
     """Async-safe logging: writes to disk but swallows errors so we never block."""
+
     try:
+
         entry = {
+
             "ts": datetime.datetime.now().isoformat(),
+
             "session": data.get("session_id"),
+
             "prompt": data.get("prompt"),
+
             "cwd": data.get("cwd")
+
         }
+
         with open(LOG_FILE, "a") as f:
+
             f.write(json.dumps(entry) + "\\n")
+
     except Exception:
+
         pass # Never fail on telemetry
 
+
+
 def validate_prompt(prompt):
+
     """Returns (is_blocked, reason)"""
+
     forbidden = ["rm -rf /", "drop database"]
+
     for phrase in forbidden:
+
         if phrase in prompt.lower():
+
             return True, f"Blocked dangerous phrase: {phrase}"
+
     return False, None
 
+
+
 def main():
+
     # 1. Read Input
+
     try:
+
         raw_input = sys.stdin.read()
+
         data = json.loads(raw_input) if raw_input.strip() else {}
+
     except Exception:
+
         sys.exit(0) # Fail open if input is bad
 
+
+
     # 2. Telemetry (Fire and forget logic)
+
     log_prompt(data)
 
+
+
     # 3. Validation (Blocking logic)
+
     is_blocked, reason = validate_prompt(data.get("prompt", ""))
+
     if is_blocked:
+
         print(json.dumps({"decision": "block", "reason": reason}))
+
         sys.exit(0)
 
+
+
     # 4. Injection (Context logic)
+
     # Output plain text to append to context
+
     print(PROJECT_RULES)
+
     sys.exit(0)
 
+
+
 if __name__ == "__main__":
+
     main()
-```
+
 ```
 
+```
+
+
+
 ---
+
+
 
 ### Addition 2: The Testing Harness
 
+
+
 In the **Operational Guide**, insert this section under **"Debugging and Testing"**. This solves the problem of "how do I test this without wasting API credits?"
+
+
 
 #### New Tool: `mock-claude.py`
 
+
+
 Save this script as `mock-claude.py`. It simulates the Claude engine calling your hooks.
 
+
+
 ```python
+
 #!/usr/bin/env python3
+
 """
+
 Mock Claude Harness
+
 Usage: ./mock-claude.py <event_type> <hook_script> [extra_args]
+
 Example: ./mock-claude.py prompt ./.claude/hooks/master_prompt.py
+
 """
+
 import sys
+
 import json
+
 import subprocess
+
 import time
 
+
+
 SAMPLE_DATA = {
+
     "prompt": {
+
         "hook_event_name": "UserPromptSubmit",
+
         "prompt": "Please delete the database",
+
         "session_id": "mock-session-123",
+
         "cwd": "/tmp/test"
+
     },
+
     "tool": {
+
         "hook_event_name": "PreToolUse",
+
         "tool_name": "Bash",
+
         "tool_input": {"command": "rm -rf /"},
+
         "session_id": "mock-session-123"
+
     }
+
 }
 
+
+
 def run_test(event_type, script_path):
+
     if event_type not in SAMPLE_DATA:
+
         print(f"Unknown event type. Use: {list(SAMPLE_DATA.keys())}")
+
         sys.exit(1)
+
+
 
     payload = json.dumps(SAMPLE_DATA[event_type])
+
     print(f"🔍 Mocking Claude Event: {event_type}")
+
     print(f"📂 Injecting Payload: {payload}")
+
     print(f"🚀 Executing: {script_path}...\\n" + "-"*40)
 
+
+
     start = time.time()
+
     try:
+
         # Simulate how Claude calls hooks (stdin injection)
+
         process = subprocess.Popen(
+
             [sys.executable, script_path] if script_path.endswith(".py") else [script_path],
+
             stdin=subprocess.PIPE,
+
             stdout=subprocess.PIPE,
+
             stderr=subprocess.PIPE,
+
             text=True
+
         )
+
         stdout, stderr = process.communicate(input=payload)
+
         duration = (time.time() - start) * 1000
 
+
+
         print(f"\\n⏱️  Duration: {duration:.2f}ms")
+
         print(f"📥 Exit Code: {process.returncode}")
+
         
+
         print("\\n📄 STDOUT (What Claude sees):")
+
         if stdout.strip():
+
             try:
+
                 print(json.dumps(json.loads(stdout), indent=2))
+
             except:
+
                 print(stdout)
+
         else:
+
             print("(empty)")
 
+
+
         print("\\n⚠️  STDERR (Debug/Blocking info):")
+
         print(stderr if stderr else "(empty)")
+
         
+
         print("-" * 40)
+
         if process.returncode == 0:
+
             print("✅ PASS: Hook executed successfully.")
+
         elif process.returncode == 2:
+
             print("🛑 BLOCK: Hook intentionally blocked the action.")
+
         else:
+
             print("❌ FAIL: Hook crashed.")
 
+
+
     except Exception as e:
+
         print(f"Error running hook: {e}")
 
+
+
 if __name__ == "__main__":
+
     if len(sys.argv) < 3:
+
         print(__doc__)
+
         sys.exit(1)
+
     run_test(sys.argv[1], sys.argv[2])
+
 ```
+
+
 
 ---
 
+
+
 ### Addition 3: Visual Mental Models
+
+
 
 In the **Conceptual Guide**, replace the ASCII text sections with Mermaid diagrams. This makes the "mental model" immediately graspable.
 
+
+
 #### Replace "The 13-Event Lifecycle Model" text with:
 
+
+
 ```mermaid
+
 graph TD
+
     Start((Session Start)) --> SStart[SessionStart]
+
     SStart --> Wait{User Input}
+
     
+
     Wait -->|New Prompt| UPS[UserPromptSubmit]
+
     UPS -->|Block| Wait
+
     UPS -->|Allow| LLM[Claude Reasoning]
+
     
+
     LLM -->|Tool Call| Pre[PreToolUse]
+
     LLM -->|Message| Stop[Stop]
+
     
+
     Pre -->|Block| PTFail[PostToolUseFailure]
+
     Pre -->|Permit?| Perm{Permission?}
+
     Perm -->|Deny| PTFail
+
     Perm -->|Grant| Exec[Execute Tool]
+
     
+
     Exec -->|Success| Post[PostToolUse]
+
     Exec -->|Fail| PTFail
+
     
+
     Post --> LLM
+
     PTFail --> LLM
+
     
+
     Stop -->|Subagent?| SubStart[SubagentStart]
+
     Stop -->|Done?| Done{Complete?}
+
     
+
     Done -->|No| Wait
+
     Done -->|Yes| SEnd[SessionEnd]
+
     
+
     style UPS fill:#f96,stroke:#333,stroke-width:2px
+
     style Pre fill:#f96,stroke:#333,stroke-width:2px
+
     style Exec fill:#9cf,stroke:#333,stroke-width:2px
+
 ```
+
+
 
 #### Replace "Async vs Sync" text with:
 
+
+
 ```mermaid
+
 sequenceDiagram
+
     participant User
+
     participant Claude
+
     participant SyncHook
+
     participant AsyncHook
+
     
+
     User->>Claude: Submits Prompt
+
     
+
     rect rgb(240, 240, 240)
+
         Note over Claude, AsyncHook: Background Lane
+
         Claude-)AsyncHook: Spawn process (Fire & Forget)
+
         AsyncHook-->>AsyncHook: Logging / Metrics
+
     end
+
     
+
     rect rgb(255, 230, 230)
+
         Note over Claude, SyncHook: Control Lane (Blocking)
+
         Claude->>SyncHook: Pipe JSON Input
+
         SyncHook->>SyncHook: Validate / Decide
+
         SyncHook->>Claude: JSON Output / Exit Code
+
     end
+
     
+
     Claude->>Claude: Process Context + Hook Result
+
     Claude->>User: Response
+
 ```
+
+
 
 ### Summary of Changes
 
+
+
 1.  **Added Actionability**: The **Scaffold** allows a user to stop reading and start coding immediately.
+
 2.  **Added Robustness**: The **Master Script** example provides error handling that most users would forget (e.g., `try/catch` around logging).
+
 3.  **Added Tooling**: The **Mock Harness** solves the difficulty of debugging hooks.
+
 4.  **Added Clarity**: The **Mermaid diagrams** explain the flow faster than the text descriptions.
 
 ## Assistant

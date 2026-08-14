@@ -211,71 +211,138 @@ P:\.claude\hooks\adversarial_aggregator.py — Parallel adversarial subagent agg
 LLM_2:
 " Plan: Multi-Explanation Gate Hook
 
+
+
  Context
+
+
 
  Problem: We stop investigations at the first plausible explanation, often wrong.
 
+
+
  Why this happens: Current hooks enforce Hypothesis → Evidence → Conclusion structure,
+
   but don't require ruling out alternatives. Finding one explanation that fits creates
+
   a false sense of completion.
+
+
 
  Synergies with Existing System
 
+
+
  The cognitive_enhancers already inject frameworks at UserPromptSubmit time:
+
  - devils_advocate: "stress-test this proposal by finding counterarguments"
+
  - comparative_analysis: "Generate 2-3 diverse approaches first (don't commit to first
+
   idea)"
 
+
+
  Gap: These frameworks are enforced at input, but no Stop hook verifies they were
+
  actually applied at output. The model generates a definitive answer without showing
+
  alternatives were considered.
+
+
 
  Approach
 
+
+
  Add a Stop hook that detects definitive conclusions and verifies alternatives were
+
  addressed.
 
+
+
  Detection patterns (definitive conclusion language):
+
  - "the problem is", "the root cause is", "it turns out"
+
  - "so it's actually", "the issue is"
+
  - "definitely", "clearly", "obviously" (confidence markers)
 
+
+
  Requirements to unblock (any one):
+
  1. Explicit alternatives considered: "alternatives: X, Y were ruled out because..."
+
  2. Tentative language: "likely", "probably", "one possibility", "appears to be"
+
  3. Multiple tool events showing investigation of different paths
+
  4. Pattern matching showing multiple hypotheses explored
 
+
+
  Integration with existing hooks:
+
  - Extend Stop_hypothesis_as_fact_gate.py verification engine (already has claim
+
  extraction and evidence matching)
+
  - Use existing evidence_store for tool event lookup
+
  - Follow same architecture pattern as Stop_hypothesis_enforcement.py
+
+
 
  Files to Modify
 
+
+
  1. New file: P:/.claude/hooks/Stop_alternatives_required.py
+
    - Detects definitive conclusion patterns
+
    - Checks for evidence of alternative consideration
+
    - Uses verification engine from Stop_hypothesis_as_fact_gate.py
+
  2. Registration: P:/.claude/hooks/Stop_router.py (add to HOOK_SEQUENCE and
+
  ACTIVE_RUNTIME_HOOKS)
+
  3. Settings: P:/.claude/settings.json (add env var
+
  STOP_ALTERNATIVES_REQUIRED_ENABLED=true)
+
+
 
  Key Design Decisions
 
+
+
  - Default: warn mode - Don't block, warn that alternatives should be considered
+
  - Blocking upgrade via env var for RCA/debug turns
+
  - Tentative language is exempt - "likely", "probably" signals awareness of
+
  alternatives
+
  - Tool evidence exemption - If tool outputs show investigation of multiple paths,
+
  allow
+
+
 
  Verification
 
+
+
  1. Run existing hook tests: pytest P:/.claude/hooks/tests/ -v
+
  2. Create test cases: "the root cause is X" + no alternatives → WARN
+
  3. Create test cases: "the root cause is X" + "alternatives Y ruled out" → ALLOW"
 
 ## Assistant
@@ -575,7 +642,7 @@ from typing import Callable, Dict, Any, List, Tuple
 import uuid
 import time
 
-Predicate = Callable[[Dict[str, Any]], bool]
+Predicate = Callable/Dict[str, Any, bool]
 
 PREDICATES: Dict[str, Predicate] = {}
 
@@ -868,7 +935,7 @@ Below is a self-contained example that:
 from __future__ import annotations
 from typing import Callable, Dict, Any
 
-Predicate = Callable[[Dict[str, Any]], bool]
+Predicate = Callable/Dict[str, Any, bool]
 PREDICATES: Dict[str, Predicate] = {}
 
 def predicate(name: str):

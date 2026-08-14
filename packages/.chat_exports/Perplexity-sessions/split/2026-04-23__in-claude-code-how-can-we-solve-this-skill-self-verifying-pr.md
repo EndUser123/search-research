@@ -415,17 +415,17 @@ TOOL_NAME="$(printf '%s' "$INPUT" | jq -r '.tool_name // ""')"
 COMMAND="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')"
 
 if [ "$TOOL_NAME" = "Bash" ]; then
-  if printf '%s' "$COMMAND" | grep -Eq '(^|[[:space:]])rm[[:space:]]+-rf[[:space:]]+/($|[[:space:]])'; then
+  if printf '%s' "$COMMAND" | grep -Eq '(^|/:space:)rm/:space:+-rf/:space:+/($|/:space:)'; then
     echo "Blocked dangerous command: rm -rf /" >&2
     exit 2
   fi
 
-  if printf '%s' "$COMMAND" | grep -Eq 'git[[:space:]]+push[[:space:]]+(-f|--force)([[:space:]].*)?[[:space:]](main|master)\b'; then
+  if printf '%s' "$COMMAND" | grep -Eq 'git/:space:+push/:space:+(-f|--force)(/:space:.*)?/:space:(main|master)\b'; then
     echo "Blocked dangerous command: force-push to protected branch" >&2
     exit 2
   fi
 
-  if printf '%s' "$COMMAND" | grep -Eq 'git[[:space:]]+reset[[:space:]]+--hard\b'; then
+  if printf '%s' "$COMMAND" | grep -Eq 'git/:space:+reset/:space:+--hard\b'; then
     echo "Blocked dangerous command: git reset --hard" >&2
     exit 2
   fi
@@ -654,63 +654,119 @@ Would you like the next step as a full reviewed package with:
 ## Human
 
 "
+
 ❯ Is there anything else you wish you knew? Any other questions I should ask of the deep research agent?
+
+
 
 ● Yes. One critical unknown remains:
 
+
+
   What completion signals does /refactor actually emit?
 
+
+
   The PostToolUse_refactor_transition.py hook works by grepping tool output for phase-completion markers (e.g., "DISCOVERY
+
   COMPLETE", "git tag created"). But /refactor SKILL.md prose may not tell Claude to emit any such marker. If it doesn't, the
+
   transition hook has nothing to detect — the state machine never advances, and the whole system is blind.
+
+
 
   The question to ask:
 
+
+
   ▎ "For /refactor SKILL.md — does the skill prose explicitly tell Claude to emit completion signals (e.g., 'type DONE', 'phase
+
   ▎ complete') after each step? If not, what text does Claude typically outputs when completing each of the 15 steps?"
 
+
+
   This is the linchpin. Everything else — the state machine, the gates, the Stop verifier — depends on those signals existing or
+
   being insertable into the skill prose.
 
+
+
   If the answer is "no signals exist and the prose doesn't tell Claude to emit them," the fix is straightforward: add a line to
+
   SKILL.md prose telling Claude to emit a completion marker after each phase. But if that line already exists somewhere I haven't
+
   seen, the system might already work.
 
+
+
 ● Ran 10 stop hooks (ctrl+o to expand)
+
   ⎿  Stop hook error: Hook evaluator API error: API Error: 400
+
   {"type":"error","error":{"type":"invalid_request_error","message":"invalid params"}}
+
+
 
 ✻ Baked for 1m 23s
 
+
+
 ❯ Well, the Deep Agent won't tell me that, but you can look it up from the skill yourself.
+
+
 
   Read 1 file (ctrl+o to expand)
 
+
+
 ❯ I think we've already talked about how each step can emit its own state.
 
+
+
 ● The prose does not tell Claude to emit completion signals. Each step relies on the PostToolUse_refactor_transition.py hook having
+
   hardcoded text patterns to detect. Let me check what those patterns actually are:
+
 
 
 ● Now I can see the full picture. Two things are now clear:
 
+
+
   1. The transition IS artifact-driven, not signal-driven — advance_if_complete checks if files exist on disk (deduplicated.json,
+
   plan.json), not whether the skill emitted a completion marker. So the absence of explicit "DONE" signals in the prose is actually
+
   fine — the hook looks at artifacts, not signals.
 
+
+
   2. The 4-phase model vs 15-step mismatch remains the real gap. The state machine lumps
+
   PREFLIGHT→DISCOVER→DEDUPLICATE→CLASSIFY_DEBT→PRIORITIZE all into DISCOVERY, and
+
   CONSTITUTIONAL_FILTER→PLAN→RED_PHASE→CHECKPOINT_RED into PLANNING. So steps 1-5 are invisible to the state machine individually.
 
+
+
   On your point about steps emitting their own state — the current design already does this, just at phase granularity (4 groups)
+
   rather than step granularity (15 individual). The skill prose drives what artifacts appear; the hook observes them and advances.
+
   That's sound.
 
+
+
   The remaining gap is narrow: the Stop verifier's checklist (lines 19-34 in Stop_refactor_verifier.py) lists 14 items that map to
+
   the 15 SKILL.md steps, but the state machine only records 4 phase-level checkpoints. The Stop verifier can't distinguish whether
+
   step 3 of 5 within DISCOVERY was done — only that DISCOVERY eventually completed.
 
+
+
   The question is whether that distinction matters for /refactor's actual safety. Would a phase-level record catch a real failure
+
   mode that step-level wouldn't?"
 
 Does this help drive new ideas you have that can be useful?

@@ -1,5 +1,6 @@
 ---
 title: "My design skill made some lazy errors.  '
+
 ❯ /think what's the reasoning root cause?  And what's the fix?  '_is_notebook"
 date: "2026-04-19"
 mode: "COPILOT"
@@ -10,58 +11,111 @@ entry_count: 105
 ## Human
 
 My design skill made some lazy errors.  "
+
 ❯ /think what's the reasoning root cause?  And what's the fix?  "_is_notebook_usable" is a symptom, not the root cause.  Should we
+
 enforce doing a full trace?  Should we have an agent act as a critic to the design?  More?  Ideas?
+
+
 
 ● Root Cause of the Reasoning Failure
 
+
+
   The proximate cause: I stopped reading too early and called a bug from static structure.
 
+
+
   The root cause: I was pattern-matching ("no cleanup() call → dirty notebook") rather than reasoning about execution order. I
+
   treated the absence of a call at line 1180 as the complete story, without asking "what happens after extraction returns in
+
   sequential execution?" The question I should have asked but didn't: "When does this function return, and does cleanup fire before
+
   the next caller gets control?"
 
+
+
   Static code structure ≠ temporal execution order. The finally block at line 1195 is invisible when you're reading line 1180 in
+
   isolation.
 
+
+
   ---
+
   The Fix
+
+
 
   Structural — not a one-off discipline fix:
 
+
+
   1. Enforce a "trace to next boundary" rule: For any design-review conclusion about a code path, mandatory question: "what runs
+
   AFTER this code, and does cleanup/deinit fire before the next caller gets control?" Missing this was the exact failure. This is a
+
   single question, not a full formal trace — highest leverage check.
+
   2. Lifecycle state machine check (better version of #1): Frame any "missing cleanup" or "missing pre-condition" claim as a state
+
   transition question. "What is the state of the notebook when process_batch returns vs when the NEXT process_batch call starts?" If
+
    cleanup fires in between (via finally), the bug narrative is wrong in normal operation.
+
   3. Add a skeptic pass (your critic idea): Before finalizing a design review conclusion, ask "what's the strongest alternative
+
   explanation for what I just observed?" In H2's case: "the finally cleanup runs between batches in sequential execution — the bug
+
   only exists in the crash path." A skeptic pass would have surfaced this before the review went out.
+
   4. Bookend rule: For architecture/DSL reviews, always read at least N lines past the "obvious" code before concluding. In H2's
+
   case: reading past line 1186 to line 1195 (the finally) would have changed the conclusion. A "read to natural boundary" rule —
+
   finish the function, finish the try/finally, finish the call chain — prevents premature calls on partial traces.
 
+
+
   ---
+
   Why These Would Have Caught It
 
+
+
   ┌──────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────┐
+
   │                     Rule                     │                               What it surfaces                                │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ "When does this return + does cleanup fire   │ finally runs after extraction, before next batch → normal path is clean       │
+
   │ before next caller?"                         │                                                                               │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ State transition framing                     │ Notebook state: "dirty after extraction" → "clean after finally" → "clean at  │
+
   │                                              │ next process_batch start"                                                     │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ Skeptic pass before finalize                 │ "What if cleanup fires after extraction, in the finally block, before next    │
+
   │                                              │ call?" → H2 collapses to crash-path only                                      │
+
   ├──────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+
   │ Bookend rule (finish the try/finally)        │ Read past line 1186 to 1195 → finally: cleanup() found → conclusion changes   │
+
   └──────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────┘
 
+
+
   The bookend rule is the simplest and most robust. The skeptic pass is most reliable for catching reasoning errors that survive a
+
   single pass."
 
 What do you think we should do?
@@ -16113,7 +16167,7 @@ if ! git worktree list --porcelain | grep -q "$(pwd)"; then
 fi
 
 CURRENT_BRANCH="$(git branch --show-current)"
-if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+if /"$CURRENT_BRANCH" == "main"; then
   echo -e "${RED}✗ Refusing to run /go on ${CURRENT_BRANCH}${NC}"
   exit 1
 fi
@@ -16146,7 +16200,7 @@ echo "Go dir: ${GO_DIR}"
 echo "Code dir: ${CODE_DIR}"
 
 echo
-if [[ ! -f "${PLAN_DIR}/active-plan.json" ]]; then
+if /! -f "${PLAN_DIR}/active-plan.json"; then
   echo -e "${RED}✗ Missing ${PLAN_DIR}/active-plan.json${NC}"
   echo "Seed planning JSON before invoking /go."
   exit 1
@@ -16173,7 +16227,7 @@ EOF
 /go "$@"
 
 RESULT_FILE="${GO_DIR}/pr-ready_${RUN_ID}.md"
-if [[ -f "$RESULT_FILE" ]]; then
+if /-f "$RESULT_FILE"; then
   echo
   echo -e "${GREEN}✓ PR_READY artifact created${NC}"
   cat "$RESULT_FILE"
@@ -18666,7 +18720,7 @@ if ! git worktree list --porcelain | grep -q "$(pwd)"; then
 fi
 
 CURRENT_BRANCH=$(git branch --show-current)
-if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+if /"$CURRENT_BRANCH" == "main"; then
   echo -e "${RED}✗ Refusing to run on ${CURRENT_BRANCH}${NC}"
   exit 1
 fi
@@ -18899,7 +18953,7 @@ if ! git worktree list --porcelain | grep -q "$(pwd)"; then
 fi
 
 CURRENT_BRANCH=$(git branch --show-current)
-if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+if /"$CURRENT_BRANCH" == "main"; then
   echo -e "${RED}✗ Refusing to run on ${CURRENT_BRANCH}${NC}"
   exit 1
 fi
@@ -23378,12 +23432,12 @@ die() {
 
 require_file() {
   local path="$1"
-  [[ -f "$path" ]] || die "missing required file: $path"
+  /-f "$path" || die "missing required file: $path"
 }
 
 CURRENT_BRANCH="$(git branch --show-current 2>/dev/null || true)"
-[[ -n "${CURRENT_BRANCH}" ]] || die "not in a git repository or branch undetectable"
-[[ "${CURRENT_BRANCH}" != "main" && "${CURRENT_BRANCH}" != "master" ]] || die "refusing to run on ${CURRENT_BRANCH}"
+/-n "${CURRENT_BRANCH}" || die "not in a git repository or branch undetectable"
+/"${CURRENT_BRANCH}" != "main" && "${CURRENT_BRANCH}" != "master" || die "refusing to run on ${CURRENT_BRANCH}"
 
 if git worktree list --porcelain >/tmp/go_worktrees.$$ 2>/dev/null; then
   if grep -Fq "worktree $(pwd)" /tmp/go_worktrees.$$; then
@@ -26834,26 +26888,48 @@ If you want, I can next give you the **exact four JSON schemas plus the executio
 
 "● Yes, I agree with the framing. Here's what go_new has vs. those 5 gaps:
 
+
+
 ──┌──────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────┐ ──
+
   │               Gap                │                                          Status in go_new                                           │
+
 ──├──────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤───
+
   │ run-status.json                  │ Partially covered — run.schema.json exists but doesn't track current_step, blocking_reason,         │
+
   │                                  │ retry_count as the doc recommends                                                                   │
+
   ├──────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ code-result.json                 │ Missing — dispatch-result.schema.json exists but is for routing, not decomposed function results    │
+
   ├──────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ verification-result.json         │ Missing — no unified verification ledger aggregating command checks + TDD + simplify + review       │
+
   ├──────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ block-state.json                 │ Missing — no machine-readable blocked/waiver record; only .blocked_ flag exists                     │
+
   ├──────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Routing rules /go ↔ /tdd ↔       │ Missing — routing table exists in SKILL.md but no enforcement contract                              │
+
   │ /refactor                        │                                                                                                     │
+
   └──────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+
+
   On item 1: the token fragility fix IS done — task_outcome() checks .pr-ready_$RUN_ID first. That was one of the two fixes explicitly
+
   requested and it's implemented.
 
+
+
   On the other 4 items: they're missing from go_new. Which should I create first? The verification-result.json schema and the block-state.json
+
   schema are the most impactful for making the orchestrator machine-readable end-to-end"
 
 ## Assistant
@@ -27138,27 +27214,49 @@ If you want, next I can give you the **exact instance examples** for all four sc
 ## Human
 
 "
+
 ● All four schema deliverables complete:
 
+
+
   ┌─────────────────────────────────┬────────────────────┐
+
   │             Schema              │       Status       │
+
   ├─────────────────────────────────┼────────────────────┤
+
   │ verification-result.schema.json │ created            │
+
   ├─────────────────────────────────┼────────────────────┤
+
   │ block-state.schema.json         │ created            │
+
   ├─────────────────────────────────┼────────────────────┤
+
   │ run-status.schema.json          │ created (new file) │
+
   ├─────────────────────────────────┼────────────────────┤
+
   │ code-result.schema.json         │ created            │
+
   └─────────────────────────────────┴────────────────────┘
 
+
+
   go_new/schemas/ now has 11 schemas total. SKILL.md also updated with:
+
   - STEP 1B: /t + /gap auto-invoke before coding
+
   - STEP 1C: /tdd conditional auto-invoke with diff classification
+
   - Pre-mortem recommendation after test discovery
+
   - Recommendation block after verification
+
   - Stakeholder sync before PR artifacts
+
   - Updated artifact layout with new artifact names
+
   - ROUTING.md with schema linkage, routing table, and blocking transitions"
 
 ## Assistant
@@ -27805,3 +27903,4 @@ If you want a crisp policy statement for `SKILL.md`, I’d use this:
 If you want, I can next turn that recommended pipeline into either:
 1. a **repo-ready Mermaid diagram**, or  
 2. a **`ROUTING.md` skeleton** with states, transitions, and terminal outcomes.
+```

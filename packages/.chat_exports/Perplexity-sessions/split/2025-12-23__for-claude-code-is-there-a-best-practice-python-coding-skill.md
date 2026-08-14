@@ -122,7 +122,7 @@ Set up automatic validation hooks that run on file edits:[7]
     {
       "matcher": "Edit",
       "type": "command",
-      "command": "if [[ \"$CLAUDE_FILE_PATHS\" =~ \\.py$ ]]; then mypy \"$CLAUDE_FILE_PATHS\"; fi"
+      "command": "if /\"$CLAUDE_FILE_PATHS\" =~ \\.py$; then mypy \"$CLAUDE_FILE_PATHS\"; fi"
     }
   ]
 }

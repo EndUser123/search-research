@@ -1787,3 +1787,4 @@ Use one folder per skill, for example:
 Keep the rubric YAML files either beside each skill or in a small shared rubric directory, as documented in the README. Codex detects skills from `SKILL.md`, and iterative improvement works best when the skills themselves are versioned and reviewed like normal code artifacts.[10][4][2]
 
 The next highest-value artifact would be a **transcript-to-rollout schema and judge prompt** so `skillopt` can score real Codex sessions against these rubrics instead of relying on manual interpretation.
+```

@@ -1,5 +1,6 @@
 ---
 title: "'
+
 ❯ Can you see any value that is missing?  are we actually finding all the sessions optimally?  will the user be happy"
 date: "2026-04-04"
 mode: "COPILOT"
@@ -10,7 +11,9 @@ entry_count: 34
 ## Human
 
 "
+
 ❯ Can you see any value that is missing?  are we actually finding all the sessions optimally?  will the user be happy with
+
  what you have done?  will they ask for more?"
 
 I asked the LLM this question.  What domain is the above quoted question related to?  Are there best practice type prompts that are supersets of the question?
@@ -423,53 +426,101 @@ Yields divergence without coord cost.[11][1]
 I used your prompt and got this output. It's not actually that helpful as presented.  I don't read json very well, and I don't have actionable insights.
 
 "
+
 ● {
+
     "contrast": "A: Regex-extracted Problem/Fix/Action fields remain garbage (truncated, noisy); B: Raw Context now gives
+
   LLM actual transcript text to reason from, fixing the fundamental design flaw of trying to parse structure from
+
   unstructured text",
+
     "gaps": [
+
       "Raw Context 800-char preview is arbitrary — sessions with dense discussion may truncate mid-thought, losing the
+
   evidence needed for Macro-Audit reasoning",
+
       "No LLM verification mechanism — recap asks 'does this provide enough evidence?' but there's no check that the
+
   transcript text is actually sufficient vs. just command noise",
+
       "Sessions that are purely tool execution (no user conversation) produce empty Raw Context — 0 evidence, but still
+
   shown in recap"
+
     ],
+
     "ideas": [
+
       "Adaptive transcript budget: 800 chars for short sessions, expand to 1500 for sessions with >500 entries (dense
+
   sessions carry more signal)",
+
       "Auto-answer Macro-Audit: if the LLM (synthesizer) finds <3 sentences of meaningful user intent in Raw Context, flag
+
   'Evidence insufficient for session N' rather than letting the question go unanswered",
+
       "Filter <local-command-*> XML noise from Raw Context — these command-execution artifacts dominate short sessions and
+
   obscure actual discussion"
+
     ],
+
     "stress_test": [
+
       "Truncation mid-sentence: session with 1990 useful chars gets cut at 800, leaving the LLM reasoning over 'we need to
+
   fix the bug in cleanup_viol' (no verb) — false confidence in incomplete evidence",
+
       "Tool-only session: session of 400 entries all from tool executions with zero user conversation — Raw Context is
+
   empty or command noise, yet session appears in recap with 'Goal: /clear'"
+
     ],
+
     "scores": {"c": 7, "o": 8, "s": 8, "confidence": "high"},
+
     "next_steps": [
+
       {
+
         "action": "Filter <local-command-*> XML blocks from Raw Context text — these are transcript overhead, not
+
   evidence",
+
         "priority": "high",
+
         "impact": "prevent"
+
       },
+
       {
+
         "action": "Add 'Evidence: sufficient/insufficient' assessment per session — let the LLM synthesizer flag when Raw
+
   Context lacks enough signal to answer Macro-Audit",
+
         "priority": "medium",
+
         "impact": "realize"
+
       },
+
       {
+
         "action": "Increase preview to 1500 chars for sessions with >500 entries — dense sessions have proportionally more
+
   signal worth capturing",
+
         "priority": "medium",
+
         "impact": "improve"
+
       }
+
     ]
+
   }"
 
 ## Assistant
@@ -1061,6 +1112,7 @@ Claude skills are **prompt templates** (frontmatter + protocol)—no code needed
 ## Human
 
 One caveat to verify: <local-command-*> stripping — is this for audit-logging purposes (exporting clean transcripts) or
+
   for recap synthesis?
 
 ## Assistant
@@ -1356,4 +1408,5 @@ Output JSON (Phase 2):
 - **Learning velocity +30%:** Each session feeds foresight (compounding agent IQ). [web:207]
 
 **Confidence: 92%** (SAMULE, RetroAgent papers validate DIF pattern). **Next:** Add Phase 2 prompt to /retro; test on 5 sessions, compare accuracy vs. baseline. [web:203][web:206]
+```
 ```

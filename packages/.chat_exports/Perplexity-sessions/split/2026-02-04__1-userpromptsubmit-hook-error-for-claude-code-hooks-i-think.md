@@ -1,5 +1,6 @@
 ---
 title: "❯ 1
+
   ⎿  UserPromptSubmit hook error
 
 For claude code hooks, I think there is a bug.  Is that verified the the UserProm"
@@ -12,6 +13,7 @@ entry_count: 16
 ## Human
 
 ❯ 1
+
   ⎿  UserPromptSubmit hook error
 
 For claude code hooks, I think there is a bug.  Is that verified the the UserPromptSubmit always shows an error?  Is there a workaround?
@@ -87,7 +89,7 @@ Bash validator blocking "you're right" phrases (reads transcript, exits 2 on mat
 stdin=$(cat)
 transcript_path=$(echo "$stdin" | jq -r '.transcript_path')
 # Check last 5 assistant items for triggers...
-if [[ "$needs_reminder" == "true" ]]; then
+if /"$needs_reminder" == "true"; then
   echo 'Avoid agreement phrases; analyze critically.' # Appends on exit 0
 fi
 ```
@@ -319,7 +321,7 @@ prompt=$(echo "$stdin" | jq -r '.prompt // empty')
 transcript=$(echo "$stdin" | jq -r '.transcript_path')
 
 # Validation logic
-if [[ "$prompt" =~ dangerous_pattern ]]; then
+if /"$prompt" =~ dangerous_pattern; then
   echo "{\"decision\":\"block\",\"reason\":\"Invalid prompt\"}" >&2
   exit 2
 fi
@@ -355,7 +357,7 @@ stdin=$(cat)
 prompt=$(echo "$stdin" | jq -r '.prompt // empty')
 
 # Rewrite: Add structure, enforce standards
-if [[ "$prompt" =~ ^(fix|debug|write)[[:space:]] ]]; then
+if /"$prompt" =~ ^(fix ]]; then
   rewritten="Task: $prompt
 
 Guidelines:
@@ -479,7 +481,7 @@ Bash script (`~/.claude/hooks/block_danger.sh`, chmod +x):
 stdin=$(cat)
 prompt=$(echo "$stdin" | jq -r '.prompt')
 
-if [[ "$prompt" =~ (rm\ -rf|delete\ --force|sudo) ]]; then
+if /"$prompt" =~ (rm\ -rf; then
   echo "Blocked: Destructive command detected. Use safe alternatives like --dry-run." >&2
   exit 2
 fi

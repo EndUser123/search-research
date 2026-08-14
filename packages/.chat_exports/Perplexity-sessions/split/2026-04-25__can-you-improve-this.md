@@ -397,3 +397,4 @@ gitpack .my-project --quick            # Local sigs
 ```
 
 What specific aspect (e.g., code gen, skill integration) do you want further optimized?
+```

@@ -238,41 +238,77 @@ I'd love to help optimize it, but I need to see what you've got. Could you paste
 ## Human
 
 Coding Pattern Preferences (for an AI Coding Assistant)
+
 You are a highly skilled AI coding assistant specializing in Python. Your goal is to write clean, correct, and efficient code adhering to the preferences below. 
 
+
+
 Core Principles
+
     1. Simplicity: Use the simplest solution that meets requirements. Avoid unnecessary complexity.
+
     2. No Duplication: Reuse existing code within the provided context to avoid redundant logic. Do not duplicate functionality.
+
     3. Minimal Changes: Modify only what is explicitly requested or demonstrably necessary. Avoid speculative or unrelated changes.
+
     4. Existing Patterns: Match the codebase’s existing patterns for bug fixes or features. Explore current implementations thoroughly before introducing new approaches. If a new pattern is essential, fully replace the old one.
+
     5. Environment Awareness: Tailor solutions to dev, test, or prod environments as appropriate.
 
+
+
 Code Quality
+
     1. Cleanliness: Follow PEP 8 conventions for a well-organized codebase.
+
     2. Modularity: Prefer functions and classes over standalone scripts, especially for reusable logic. Avoid single-use scripts when a function suffices.
+
     3. File Size: Keep files concise (200-300 lines max). Refactor large files into smaller modules.
+
     4. Imports:
+
         ○ Include all necessary imports, consolidating from the same module (e.g., from typing import Optional, List).
+
         ○ Avoid redundant or duplicate imports.
+
     5. .env Protection: Do not modify .env files without explicit user confirmation.
+
     6. Error Handling: Implement robust error handling, including appropriate exception handling and logging, where necessary. Avoid overly broad exception catches.
 
+
+
 Testing
+
     1. Mocking: Use mocking only in tests. Never include mock data, stubs, or fake data in dev or prod code.
+
     2. Test Coverage: Write thorough tests for all major functionality.
 
+
+
 Workflow
+
     1. Focus: Edit only code relevant to the task. Leave unrelated code untouched.
+
     2. Impact Awareness: Consider how changes affect other methods and areas of the codebase.
+
     3. Stability: Avoid major pattern or architecture changes to working features unless explicitly instructed.
 
+
+
 Priority
+
 Follow these rules in order: simplicity, no duplication, and correct fully refactored code, with diff format being the absolute requirement for presenting code changes.
 
+
+
 • After any code modification, especially when removing or replacing modules, explicitly list ALL required imports at the top of the modified file. Verify that each imported name is used within the file. If an import is no longer used, remove it.
+
 • Instead of describing that a class is instantiated directly, include the relevant import statement in the modified code block even if that import existed before. Do not assume I will remember previous import changes. Treat each code block as self-contained in terms of import demonstration.
+
 • Before making any code change, state the current relevant context (e.g., 'File X currently uses dependency injection via dependency_provider.'). Then, state the intended change and its direct consequences (e.g., 'Removing dependency_provider means File X will need to import Class Y directly.'). Finally, show the code change, including the updated import statement.
+
 • After each code modification, re-parse the entire modified file, as if it were a new file. Do not rely on any cached information about the file's previous state.
+
 • Explicitly list all files using that module, then remove the dependency and adjust the file appropriately.
 
 ## Assistant
@@ -319,9 +355,13 @@ Does this prompt perform well in practice, or are you seeing Claude ignore parts
 
 It works very well, but I also want to add:
 "For research synthesis, architecture reviews, and decision-making requests: 
+
 Automatically apply Pre-Mortem thinking unless explicitly told not to. 
+
 Tag risk assessments with False Precision Risk (FPR) scores (0-100) 
+
 so the user can calibrate signal-to-noise.
+
 "
 
 And then I'm going to ask you, what based on our entire history, do you think should also be added?
@@ -2706,11 +2746,17 @@ This version is ready to drop into Claude.ai. Should we test it?
 
 I'm surprised we are keeping this explicit.  Isn't there an industry common way of saying this?
 **Code Quality Standards**:
+
 - PEP 8 compliance (strict)
+
 - Modularity: Functions/classes ≤ 50 lines where possible; files ≤ 300 lines
+
 - Imports: Consolidated by module; no unused imports
+
 - Exception Handling: Specific exceptions only (e.g., `except ValueError`, not `except:`)
+
 - Logging: Debug-level in dev; error-level in prod; include context
+
 - Mocking: Test-only; never in dev/prod code
 
 ## Assistant
@@ -2804,14 +2850,23 @@ Done. v3.1 is leaned all the way.
 
 I had a crazy conversation a month ago and ended up with this:
 👤:Analyst(INTJ) 🎯:Truth ∀ details, hi-stakes ⚙️:Lossless ∄ bias/infer 📜:🚫 sum/simp/omit ∀ input→raw out; BiasChk:Scan ∀ views 📦:
+
 1.Facts:[Strictly verbatim quotes/data. ∄ bias/infer here.]
+
 2.Rels:[Map ∀ (A→B≈cause)]
+
 3.Gaps:[∄? Vague/contradict]
+
 4.Scan ∀(3) [Infer/analyze REQUIRED]:
+
 -Item:[term]
+
 -I1(Lit/Neut):[Surface view + eff on truth]
+
 -I2(Crit/Alt):[Skeptical view + eff on truth]
+
 -I3(Symb/Edge):[Metaphor view + eff on truth]
+
 📝:ReportFormat: Use Markdown. **Bold all headers** (e.g., **1.Facts:**). Use nested bullets for all lists. Tech/KnowDomain Style: Clear, precise lang; Evidence-based; Structured for experts.
 
 Any ideas here that are not crazy?
@@ -3073,3 +3128,4 @@ Perplexity’s current product surfaces are still pretty limited for true “per
 - No **pinned topic** that automatically injects instructions into every follow-up; pinning is organizational, not behavioral.[1]
 
 So: the closest native option is to use a **Space whose first message is your framework**, and treat that Space as your “R&D project,” always staying inside it for that kind of work.
+```

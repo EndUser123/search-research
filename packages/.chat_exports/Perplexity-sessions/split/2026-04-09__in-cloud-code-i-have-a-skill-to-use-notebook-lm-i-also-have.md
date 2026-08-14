@@ -80,7 +80,7 @@ The real gains emerge in specific workflows:
 
 **Worth doing if:**
 - You treat Notebook LM as an **analytical layer** (synthesis, structured extraction, spaced repetition via flashcards), then import the *outputs* back to Obsidian as **first-class artifacts**
-- You're disciplined about organizing exports into folders and adding backlinks to source notes (e.g., `[[Research Source: Paper X]]`)
+- You're disciplined about organizing exports into folders and adding backlinks to source notes (e.g., `/Research Source: Paper X`)
 - You use the programmatic API or extensions to batch-export with metadata intact
 
 **Not worth the overhead if:**

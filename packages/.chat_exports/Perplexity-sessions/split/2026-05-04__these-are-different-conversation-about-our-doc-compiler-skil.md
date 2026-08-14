@@ -11,40 +11,75 @@ entry_count: 9
 These are different conversation about our doc-compiler skill in claude code.   How do we continue the work to get the best outcomes?  Here's the current errors.  If you need information, what prompt should we give the target LLM?
 
 "
+
 ● Status after full pipeline run:
 
+
+
   Fixes applied:
+
   1. Stage K truncation (4000→40000 chars) — Stage K now receives full HTML
+
   2. Stage K --system → --system-prompt — critic now produces valid JSON
+
   3. Browser harness daemon state — moved restart_daemon() into BROWSER_SCRIPT so each run gets a fresh daemon (fixes timeout)
 
+
+
   Current pipeline results:
+
   - Stage J: 7/9 PASS — J2_toc_toggle and J6_mermaid_rendered still failing
+
   - Stage K: FAIL — critic reports steps 10-12 missing, route-outs section missing
+
   - Stage L: FAIL — correctly blocks certification when J/K fail
+
+
 
   Root cause of remaining failures:
 
+
+
   J6 (Mermaid not rendering): The module script executes but the mermaid import from CDN appears to silently fail in the file://
+
   context at the time init calls are made. The functions are defined but typeof mermaid === 'undefined' when initMermaid runs. I
+
   confirmed mermaid imports successfully via dynamic import on the same page — but static module import appears to have a race
+
   condition.
 
+
+
   J2 (TOC toggle not working): initTocToggle() is called in the module but the toc-hidden class never appears. The initTocToggle()
+
   function is defined as window.initTocToggle in shared-scripts.js scope, and the call site correctly refers to initTocToggle (no
+
   window prefix) — but it appears the function either isn't executing or the DOM structure doesn't support the toggle behavior in
+
   the file:// page context.
 
+
+
   Stage K (missing steps/sections): The source model (skill-to-page) has 9 steps, not 12. The artifact plan builder (Stage G) only
+
   renders what's in the source model. Missing route-outs/terminals sections are a Stage G gap, not a Stage H emission bug.
 
+
+
   Verdict: The 3 bugs I was tasked to fix are:
+
   1. ✓ Stage K truncation (4000→40000)
+
   2. ✓ Stage K --system → --system-prompt
+
   3. ✓ Browser harness daemon restart (moved into BROWSER_SCRIPT)
 
+
+
   The remaining failures (J2, J6, Stage K content gaps) are different bugs from what was in scope. J6 is a module ESM import timing
+
   issue in file:// context. J2 is a TOC state/class interaction. The missing steps 10-12 are an upstream artifact-plan issue.
+
 "
 
 ## Assistant
@@ -200,120 +235,235 @@ Would you like me to turn this into an even tighter “Claude Code operator prom
 ## Human
 
 "
+
 ● Audit: J2 and J6 failures — root cause identified
 
+
+
   ---
+
   J2: TOC Toggle (before_hidden=False, after_hidden=False)
+
+
 
   Root cause: Module script never executes.
 
+
+
   Evidence:
+
   - typeof window.initTocToggle → undefined (function never set on window)
+
   - typeof window.PALETTES → undefined (26K module script has zero effect)
+
   - Console log array is empty — no errors, no side effects from module execution
+
   - mermaidSource text exists and is readable, but initMermaid is undefined
 
+
+
   The module script element is present (type="module", 26,631 chars, initTocToggle and PALETTES present in text) but its code never
+
   runs. This is a module loading failure, not a function definition issue.
 
+
+
   Fix: Change window.initTocToggle to a plain top-level function in shared-scripts.js — module-scope function initTocToggle() — AND
+
   call it as initTocToggle() from diagram-scripts.js call site. Currently window.initTocToggle assignment in a module creates a
+
   property on the module's exports namespace, not on window.
 
+
+
   ---
+
   J6: Mermaid not rendered (svg count=0)
+
+
 
   Root cause: Same as J2 — module script doesn't execute, so _ensureMermaid(), initMermaid(), and renderMermaid() never run.
 
+
+
   mermaidSource pre element has the diagram text. diagramStage div exists. But _ensureMermaid() never resolves the CDN import and no
+
    SVG is produced.
 
+
+
   ---
+
   Confirmed root cause for both
 
+
+
   The module script (<script type="module">) containing all 26K of combined JS fails to execute silently. The module is parseable
+
   (no syntax errors visible in the text), but nothing runs — no functions defined, no console output, no side effects.
 
+
+
   On file:// protocol, Chromium's module loader behavior differs from http:// — specifically, module scripts with inline content on
+
   file:// may fail to execute if the page structure or script ordering causes a deferral issue. The 26K module script is the only
+
   module script; no other scripts depend on it.
 
+
+
   The fix is the same for both J2 and J6: make the module script actually execute by removing the type="module" attribute and
+
   converting to a regular deferred <script> tag. The module pattern was introduced for ESM imports, but the dynamic await import()
+
   approach already works on the page (confirmed by live test showing dynamic import result: {'ok': True}). The module wrapper is
+
   causing the failure.
 
+
+
   ---
+
   Stage K: Missing steps 10-12 and route-outs section
 
+
+
   Root cause: doc-model.json section_bindings has step_ids: ["step-1"..."step-12"] but content_hints.steps has only 9 items. Stage G
+
    passes content_hints.steps (9) to content_bindings. The 12-step expectation in the Stage K critic is based on step_ids array, not
+
    actual content. Similarly, section_bindings lacks route-outs and terminals sections.
+
+
 
   This is an upstream data mismatch in doc-model.json, not a Stage H bug.
 
+
+
   ---
+
   Exact fixes needed
+
+
 
   For J2 + J6 (both caused by module script non-execution):
 
+
+
   1. shared-scripts.js: Change window.initTocToggle = function() {...} to function initTocToggle() {...} (remove window. prefix,
+
   keep function body unchanged). This makes initTocToggle a module-scope binding.
+
   2. diagram-scripts.js: Change window.initTocToggle(); at end back to initTocToggle(); (remove window. prefix since it's now a
+
   module-scope function).
+
   3. Also in diagram-scripts.js: The type="module" script tag causes the loader issue. Change Stage H's module script assembly to
+
   use <script defer> instead of <script type="module"> — inline the same JS without module semantics, since we're already using
+
   dynamic await import() for mermaid.
 
+
+
   For Stage K: Update the Stage K checklist to compare against content_bindings.steps.length (9) rather than step_ids array length
+
   (12), and accept absent route-outs/terminals sections when content_bindings has empty arrays for them.
 
+
+
   ---
+
   Direct answer: Both J2 and J6 fail because the <script type="module"> tag fails to execute silently on file:// protocol. The fix
+
   is to convert it to a regular deferred <script> tag and change window.initTocToggle to a module-scope function so initTocToggle()
+
   call resolves correctly.
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Self-reflection: Issues found: {'logical_gaps': [], 'overconfidence': [], 'contradictions': ["Contradiction: 'The module
+
      pattern was introduced for ESM imports, but the dynamic `await import()` approach already works on the page (confirmed by live
+
      test showing `dynamic import result: {'ok': True}`)' vs '7\\n\\nStage 2 (research):\\n  Research context for: **Audit: J2 and J6
+
      failures — root cause identified**\\n\\n---\\n\\n## J2: TOC Toggle (`before_hidden=False, after_hidden=False`)\\n\\n**Root cause**:
+
      Module script never executes'", "Contradiction: 'The module pattern was introduced for ESM imports, but the dynamic `await
+
      import()` approach already works on the page (confirmed by live test showing `dynamic import result: {'ok': True}`)' vs
+
      '7\\n\\nStage 3 (analysis):\\n  Analyze the problem: **Audit: J2 and J6 failures — root cause identified**\\n\\n---\\n\\n## J2: TOC
+
      Toggle (`before_hidden=False, after_hidden=False`)\\n\\n**Root cause**: Module script never executes'", "Contradiction: 'The
+
      module pattern was introduced for ESM imports, but the dynamic `await import()` approach already works on the page (confirmed
+
      by live test showing `dynamic import result: {'ok': True}`)' vs '7\\n\\nStage 4 (synthesis):\\n  Synthesize findings for: **Audit:
+
       J2 and J6 failures — root cause identified**\\n\\n---\\n\\n## J2: TOC Toggle (`before_hidden=False, after_hidden=False`)\\n\\n**Root
+
       cause**: Module script never executes'", "Contradiction: 'The module pattern was introduced for ESM imports, but the dynamic
+
      `await import()` approach already works on the page (confirmed by live test showing `dynamic import result: {'ok': True}`)' vs
+
      '7\\n\\nStage 3 (analysis):\\n  Analyze the problem: **Audit: J2 and J6 failures — root cause identified**\\n\\n---\\n\\n## J2: TOC
+
      Toggle (`before_hidden=False, after_hidden=False`)\\n\\n**Root cause**: Module script never executes'", "Contradiction: 'The
+
      module pattern was introduced for ESM imports, but the dynamic `await import()` approach already works on the page (confirmed
+
      by live test showing `dynamic import result: {'ok': True}`)' vs '7\\n\\nStage 4 (synthesis):\\n  Synthesize findings for: **Audit:
+
       J2 and J6 failures — root cause identified**\\n\\n---\\n\\n## J2: TOC Toggle (`before_hidden=False, after_hidden=False`)\\n\\n**Root
+
       cause**: Module script never executes'", "Contradiction: 'The module pattern was introduced for ESM imports, but the dynamic
+
      `await import()` approach already works on the page (confirmed by live test showing `dynamic import result: {'ok': True}`)' vs
+
      '7\\n\\nStage 4 (synthesis):\\n  Synthesize findings for: **Audit: J2 and J6 failures — root cause identified**\\n\\n---\\n\\n## J2:
+
      TOC Toggle (`before_hidden=False, after_hidden=False`)\\n\\n**Root cause**: Module script never executes'"],
+
      'missing_alternatives': []}
+
      ADVISORY: Response does not mention any of the 13 items from the user's structured list. Consider whether the investigation
+
      covered the intended entities.
 
+
+
      ============================================================
+
      ⚠️  HOOK HEALTH ALERT
+
      ============================================================
+
      Failing hooks: 0
+
      Errors in last hour: 13
 
+
+
      Next steps:
+
        Run: python P:/.claude/hooks/hook_audit_dashboard.py health
+
        Or:  python P:/.claude/hooks/hook_diagnostics.py
+
      ============================================================"
 
 ## Assistant
@@ -479,91 +629,177 @@ Then your next prompt to the LLM can be decisively framed as "your investigation
 ## Human
 
 "
+
 ● Bash(cd "P:\\packages\\cc-skills-meta\\skills\\doc-compiler" && python -c "
+
       import json, re…)
+
   ⎿  module_present: True
+
      module_size_chars: 26662
+
      module_has_initTocToggle: True
+
      … +4 lines (ctrl+o to expand)
 
+
+
 ● Bash(cd "P:\\packages\\cc-skills-meta\\skills\\doc-compiler" && python -c "
+
       import json…)
+
   ⎿  Error: Exit code 1
+
      Traceback (most recent call last):
+
        File "<string>", line 12, in <module>
+
          steps_section = next((s for s in sb if s.get('section','').get('id') == 'steps'), {})
+
        File "<string>", line 12, in <genexpr>
+
          steps_section = next((s for s in sb if s.get('section','').get('id') == 'steps'), {})
+
                                                 ^^^^^^^^^^^^^^^^^^^^^^^
+
      AttributeError: 'str' object has no attribute 'get'
+
      source_model_steps_count: 12
+
      source_model_step_ids: ['step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6', 'step-7', 'step-8', 'step-9', 'step-10',
+
      'step-11', 'step-12']
 
+
+
 ● Bash(cd "P:\\packages\\cc-skills-meta\\skills\\doc-compiler" && python -c "
+
       import json…)
+
   ⎿  source_model_steps_count: 12
+
      doc_model keys: ['kind', 'version', 'source_path', 'workflow_shape', 'diagram_roles', 'section_bindings', 'content_hints',
+
       'ui_config', 'css_contract', 'mermaid_config', 'source_model_ref', 'artifacts_emitted']
+
      … +43 lines (ctrl+o to expand)
 
+
+
 ● Bash(cd "P:\\packages\\cc-skills-meta\\skills\\doc-compiler" && python -c "
+
       import json…)
+
   ⎿  Error: Exit code 1
+
      Traceback (most recent call last):
+
        File "<string>", line 11, in <module>
+
          sections = [s['id'] for s in ap.get('page_structure', {}).get('sections', [])]
+
                      ~^^^^^^
+
      KeyError: 'id'
+
      route_outs_in_html: False
+
      route-outs section in html: True
+
      terminals section in html: True
 
+
+
 ● Bash(cd "P:\\packages\\cc-skills-meta\\skills\\doc-compiler" && python -c "
+
       import json…)
+
   ⎿  route_outs_in_html: False
+
      terminals_in_html: False
+
      route-outs label in html: True
+
      … +3 lines (ctrl+o to expand)
 
+
+
 ● {
+
     "j2_j6_script_execution": {
+
       "module_tag_present": true,
+
       "module_tag_size_chars": 26662,
+
       "boot_marker_exists": null,
+
       "initTocToggle_defined": false,
+
       "initMermaid_defined": false,
+
       "console_output": "empty",
+
       "hypothesis": "module never ran"
+
     },
+
     "stage_k_data_mismatch": {
+
       "source_model_steps_count": 12,
+
       "doc_model_step_ids_count": 12,
+
       "doc_model_steps_content_count": 12,
+
       "route_outs_in_artifact_plan": false,
+
       "terminals_in_artifact_plan": false,
+
       "route_outs_in_html": false,
+
       "terminals_in_html": false,
+
       "hypothesis": "upstream model mismatch"
+
     },
+
     "recommendations": [
+
       "add boot marker script to determine whether module parses but fails to execute, or never runs at all",
+
       "if boot marker does not appear, convert <script type=\\"module\\"> to <script defer> in Stage H template assembly",
+
       "if boot marker appears but initTocToggle/initMermaid are still undefined, functions exist in module scope but window
+
   assignments are missing — use window. prefix at call site instead of removing module type",
+
       "if step_ids and content_hints.steps are both 12, Stage G was previously passing only 9 — re-run Stage G to rebuild with full
+
   12-step content_hints",
+
       "route-outs and terminals missing from both artifact-plan.json and HTML because content_hints.route_outs and
+
   content_hints.terminal_states are empty arrays — Stage B/Stage G never populated them",
+
       "add explicit boot marker to Stage J validator check",
+
       "add SVG count check to Stage J validator (diagramStage > svg count > 0)",
+
       "add aria-expanded state check to Stage J TOC validator"
+
     ]
+
   }
+
   ⎿  Stop says: EPISTEMIC FORMAT REPAIR: Your response is missing required section headers. Reformat your previous answer into the
+
      required schema only. Do not add or remove substantive content. Do not include text outside the required section headers.
+
      Missing: [FACT], [INFERENCE], [RECOMMENDATION], [UNKNOWN].
+
      ADVISORY: Response does not mention any of the 13 items from the user's structured list. Consider whether the investigation
+
      covered the intended entities."
 
 ## Assistant
@@ -718,140 +954,275 @@ If you paste me that next result, I can turn it into a very tight **implementati
 ## Human
 
 "
+
   [FACT]
+
   - ABCD experiment results:
+
     - A (26K inline <script type="module">): window.__BOOT__A__ = undefined — module never executed
+
     - B (26K inline <script defer>): window.__BOOT__B__ = True — classic deferred script executes
+
     - C (tiny inline module, 43 chars): window.__TINY_MODULE__ = True — tiny module works
+
     - D (tiny classic script): window.__TINY_CLASSIC__ = True — tiny classic works
+
   - Module body: 26,631 chars, no syntax errors visible, initTocToggle and initMermaid present in text, ends with
+
   window.initTocToggle();
+
   - source-model.json: steps array has 12 items (step-1 through step-12, with names stage_a through stage_i_emit_proof_metadata)
+
   - doc-model.json: section_bindings has 4 sections (overview, diagram, steps, proof); step_ids array has 12 items;
+
   content_hints.steps has 12 items; content_hints.route_outs = []; content_hints.terminal_states = []
+
   - artifact-plan.json: top-level keys include page_structure, content_bindings, workflow_shape; page_structure.sections list has 4
+
   entries (overview, diagram, steps, proof); no route-outs or terminals section entries in page_structure.sections;
+
   content_bindings.steps has 12 items; content_bindings.route_outs = []; content_bindings.terminal_states = []
+
   - generated index.html: class="step" div count = 9; step IDs found = 9; id="route-outs" = absent; id="terminals" = absent; no
+
   heading text containing "route-outs" or "terminals"; steps section container present (step accordion renders 9)
+
   - Stage K critic output (validation-report.json): 5 failed checks; step_coverage: declared=12, rendered=9 (75% — steps 10-12
+
   missing); decision_coverage flag; route_out_coverage flag; terminal_states flag; step-8/step-9 labeling concern
 
+
+
   [INFERENCE]
+
   - Strong: The <script type="module"> wrapper causes silent non-execution for the 26K inline content on file:// protocol. This is
+
   not a function-level bug — the entire module script body (including the boot marker placed at line 1) never runs. Classic deferred
+
    <script> with identical content works (Test B = True).
+
   - Strong: The window.initTocToggle and window.initMermaid are undefined because the module never ran, not because the functions
+
   failed to define themselves.
+
   - Strong: The 9-vs-12 step count in HTML is NOT a data problem — content_bindings.steps has 12 items and artifact-plan.json
+
   declares 12 step_ids. The HTML template in Stage H only iterates over 9 items, leaving steps 10-12 unrendered.
+
   - Strong: Route-outs and terminals are absent from HTML because content_bindings.route_outs = [] and
+
   content_bindings.terminal_states = [] in artifact-plan.json. Stage H skips these sections when arrays are empty. Stage K critic
+
   correctly identifies these as missing.
+
   - Strong: Stage K's "steps 10-12 missing" finding is a real bug: 3 of 12 declared steps are not rendered in the accordion.
+
   - Strong: content_bindings is the authoritative contract Stage H uses, not section_bindings.step_ids. Both happen to agree
+
   (both 12), but the actual HTML output only shows 9 because the Stage H template iterates 9 items — the step_ids array in
+
   section_bindings is not used by the template.
+
   - Tentative: The 26K module non-execution on file:// may be a Chrome security restriction on inline module scripts served from
+
   file:// origin. The same content works as <script defer>, which does not use ESM module semantics.
 
+
+
   [RECOMMENDATION]
+
   1. Investigate: Confirm Chrome version and whether inline <script type="module"> works on file:// with
+
   allow-file-access-from-files flag. Test A failing does not definitively prove it's the protocol — could be Chrome config or
+
   version.
+
   2. Investigate: Test whether a minimal 26K inline module works on http:// or only fails on file://.
+
   3. Fix for J2/J6: Change Stage H's <script type="module"> to <script defer> — the module semantics are not required since dynamic
+
   import() is already used for mermaid. The <script defer> approach passes Test B.
+
   4. Fix for Stage K step count: Stage H template iterates bindings.steps but only renders 9 items. Check fill_steps_section() or
+
   equivalent — the template likely reads .length from a hardcoded count or only processes the first 9. Align the template to render
+
   all steps in bindings.steps.
+
   5. Fix for Stage K route-outs/terminals: Populate content_bindings.route_outs and content_bindings.terminal_states in Stage
+
   G/artifact-plan.json from source model data. Stage H already correctly skips empty sections — the gap is upstream data.
+
   6. Add boot marker to Stage J validator: Add window.__DOC_COMPILER_BOOT__ check to confirm script execution as a prerequisite for
+
   all other J-checks.
 
+
+
   [UNKNOWN]
+
   - Whether the module non-execution is a Chrome version/config issue (specific flag required) or a fundamental ESM/file://
+
   restriction
+
   - Whether the module would execute successfully on http:// or a local server
+
   - Why the Stage H template renders 9 steps instead of 12 when content_bindings.steps has 12 items — the template iteration logic
+
   has not been directly inspected in this pass
+
   - Whether the 12 steps in content_bindings.steps were present in the initial run or added by a recent rebuild (the summary noted
+
   only 9 in a prior run)
+
   ⎿  Stop says: EPISTEMIC ADVISORY (20 issue(s)):
+
        [__GLOBAL__] format: Found 1 line(s) outside any [FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] section.
+
        [__GLOBAL__] format: Section [UNKNOWN] appears after [RECOMMENDATION]. Order must be: [FACT] [INFERENCE] [UNKNOWN]
+
      [RECOMMENDATION].
-       [[RECOMMENDATION]] format: Line does not start with '- ': 1. **Investigate**: Confirm Chrome version and whether inlin
+
+       /RECOMMENDATION format: Line does not start with '- ': 1. **Investigate**: Confirm Chrome version and whether inlin
+
      **Enhanced Reasoning Applied**
+
+
 
      [SEQ]
 
+
+
      Conclude: Now I have the complete evidence. Let me compile the structured diagnostic output.
 
+
+
      [FACT]
+
      - **ABCD experiment results:**
+
        - A (26K inline `<script type="module">`): `window.__BOOT__A__` = **undefined** — module never executed
+
        - B (26K inline `<script defer>`): `window.__BOOT__B__` = **True** — classic deferred script executes
+
        - C (tiny inline module, 43 chars): `window.__TINY_MODULE__` = **True** — tiny module works
+
        - D (tiny classic script): `window.__TINY_CLASSIC__` = **True** — tiny classic works
+
      - **Module body**: 26,631 chars, no syntax errors visible, `initTocToggle` and `initMermaid` present in text, ends with
+
      `window.initTocToggle();`
+
      - **source-model.json**: `steps` array has **12 items** (step-1 through step-12, with names stage_a through
+
      stage_i_emit_proof_metadata)
+
      - **doc-model.json**: `section_bindings` has **4 sections** (`overview`, `diagram`, `steps`, `proof`); `step_ids` array has
+
      **12 items**; `content_hints.steps` has **12 items**; `content_hints.route_outs` = `[]`; `content_hints.terminal_states` = `[]`
+
      - **artifact-plan.json**: top-level keys include `page_structure`, `content_bindings`, `workflow_shape`;
+
      `page_structure.sections` list has **4 entries** (`overview`, `diagram`, `steps`, `proof`); no `route-outs` or `terminals`
+
      section entries in `page_structure.sections`; `content_bindings.steps` has **12 items**; `content_bindings.route_outs` = `[]`;
+
      `content_bindings.terminal_states` = `[]`
+
      - **generated index.html**: `class="step"` div count = **9**; step IDs found = **9**; `id="route-outs"` = **absent**;
+
      `id="terminals"` = **absent**; no heading text containing "route-outs" or "terminals"; `steps` section container present (step
+
      accordion renders 9)
+
      - **Stage K critic output** (validation-report.json): 5 failed checks; step_coverage: declared=12, rendered=9 (75% — steps
+
      10-12 missing); decision_coverage flag; route_out_coverage flag; terminal_states flag; step-8/step-9 labeling concern
 
+
+
      [INFERENCE]
+
      - **Strong**: The `<script type="module">` wrapper causes silent non-execution for the 26K inline content on `file://`
+
      protocol. This is not a function-level bug — the entire module script body (including the boot marker placed at line 1) never
+
      runs. Classic deferred `<script>` with identical content works (Test B = True).
+
      - **Strong**: The `window.initTocToggle` and `window.initMermaid` are `undefined` because the module never ran, not because the
+
       functions failed to define themselves.
+
      - **Strong**: The 9-vs-12 step count in HTML is NOT a data problem — `content_bindings.steps` has 12 items and
+
      `artifact-plan.json` declares 12 step_ids. The HTML template in Stage H only iterates over 9 items, leaving steps 10-12
+
      unrendered.
+
      - **Strong**: Route-outs and terminals are absent from HTML because `content_bindings.route_outs = []` and
+
      `content_bindings.terminal_states = []` in artifact-plan.json. Stage H skips these sections when arrays are empty. Stage K
+
      critic correctly identifies these as missing.
+
      - **Strong**: Stage K's "steps 10-12 missing" finding is a real bug: 3 of 12 declared steps are not rendered in the accordion.
+
      - **Strong**: `content_bindings` is the authoritative contract Stage H uses, not `section_bindings.step_ids`. Both happen to
+
      agree (both 12), but the actual HTML output only shows 9 because the Stage H template iterates 9 items — the step_ids array in
+
      section_bindings is not used by the template.
+
      - **Tentative**: The 26K module non-execution on `file://` may be a Chrome security restriction on inline module scripts served
+
       from `file://` origin. The same content works as `<script defer>`, which does not use ESM module semantics.
 
+
+
      [RECOMMENDATION]
+
      1. **Investigate**: Confirm Chrome version and whether inline `<script type="module">` works on `file://` with
+
      `allow-file-access-from-files` flag. Test A failing does not definitively prove it's the protocol — could be Chrome config or
+
      version.
+
      2. **Investigate**: Test whether a minimal 26K inline module works on `http://` or only fails on `file://`.
+
      3. **Fix for J2/J6**: Change Stage H's `<script type="module">` to `<script defer>` — the module semantics are not required
+
      since dynamic `import()` is already used for mermaid. The `<script defer>` approach passes Test B.
+
      4. **Fix for Stage K step count**: Stage H template iterates `bindings.steps` but only renders 9 items. Check
+
      `fill_steps_section()` or equivalent — the template likely reads `.length` from a hardcoded count or only processes the first
+
      9. Align the template to render all steps in `bindings.steps`.
+
      5. **Fix for Stage K route-outs/terminals**: Populate `content_bindings.route_outs` and `content_bindings.terminal_states` in
+
      Stage G/artifact-plan.json from source model data. Stage H already correctly skips empty sections — the gap is upstream data.
+
      6. **Add boot marker to Stage J validator**: Add `window.__DOC_COMPILER_BOOT__` check to confirm script execution as a
+
      prerequisite for all other J-checks.
 
+
+
      [UNKNOWN]
+
      - Whether the module non-execution is a Chrome version/config issue (specific flag required) or a fundamental ESM/`file://`
+
      restriction
+
      - Whether the module would execute successfully on `http://` or a local server
+
      - Why the Stage H template renders 9 steps instead of 12 when `content_bindings.steps` has 12 items — the template iteration
+
      logic has not been directly inspected in this pass
+
      - Whether the 12 steps in `content_bindings.steps` were present in the initial run or added by a recent rebuild (the summary
+
      noted only 9 in a prior run)"
 
 ## Assistant
@@ -1063,19 +1434,34 @@ If you’d like, I can also give you a much shorter “Stage J only” prompt to
 ## Human
 
 "
+
 ● Full pipeline complete:
 
+
+
   ┌───────┬───────────────────────────────┐
+
   │ Stage │            Result             │
+
   ├───────┼───────────────────────────────┤
+
   │ H     │ PASS — 59,848 chars           │
+
   ├───────┼───────────────────────────────┤
+
   │ J     │ PASS — 10/10 checks           │
+
   ├───────┼───────────────────────────────┤
+
   │ K     │ PASS — gate_passed=True       │
+
   ├───────┼───────────────────────────────┤
+
   │ L     │ PASS — PROOF BUNDLE CERTIFIED │
+
   └───────┴───────────────────────────────┘
+
+
 
   Temporary debug files (debug_module.py, debug_j6.py, debug_j6_v2.py, test_abcd.py) removed."
 

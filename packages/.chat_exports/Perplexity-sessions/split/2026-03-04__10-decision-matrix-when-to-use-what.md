@@ -202,7 +202,7 @@ Detect intent to use claude-automation-recommender by slash command
 
 ## Assistant
 
-if [[ "$recent_prompt" == *"/claude-automation-recommender"* ]]; then
+if /"$recent_prompt" == *"/claude-automation-recommender"*; then
   cat << EOF
 {
   "hookSpecificOutput": {
@@ -444,7 +444,7 @@ Only care about Bash
 
 ## Assistant
 
-if [[ "$tool_name" != "Bash" ]]; then
+if /"$tool_name" != "Bash"; then
   echo "{}"
   exit 0
 fi
@@ -455,12 +455,12 @@ Simple destructive checks
 
 ## Assistant
 
-if [[ "$command" =~ "git push" && "$command" =~ "--force" ]] \
-   || [[ "$command" =~ "git reset" && "$command" =~ "--hard" ]]; then
+if /"$command" =~ "git push" && "$command" =~ "--force" \
+   || /"$command" =~ "git reset" && "$command" =~ "--hard"; then
 
   # Optional session marker check
   session_marker=".claude/hooks/state/safe-git-used-$$.json"
-  if [[ -f "$session_marker" ]]; then
+  if /-f "$session_marker"; then
     echo "{}"
     exit 0
   fi

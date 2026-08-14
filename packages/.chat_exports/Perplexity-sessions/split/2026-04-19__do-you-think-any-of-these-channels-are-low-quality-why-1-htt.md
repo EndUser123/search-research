@@ -1,6 +1,7 @@
 ---
 title: "Do you think any of these channels are low quality?  why?
 '
+
   1. [https://www.youtube.com/channel/UCwivRjryrkmZ3bMHUmNt"
 date: "2026-04-19"
 mode: "CONCISE"
@@ -12,189 +13,373 @@ entry_count: 11
 
 Do you think any of these channels are low quality?  why?
 "
+
   1. [https://www.youtube.com/channel/UCwivRjryrkmZ3bMHUmNtykg](https://www.youtube.com/channel/UCwivRjryrkmZ3bMHUmNtykg)
+
   2. [https://www.youtube.com/channel/UCIuDdCJXnKZb4CUzhVO-DcQ](https://www.youtube.com/channel/UCIuDdCJXnKZb4CUzhVO-DcQ)
+
   3. [https://www.youtube.com/channel/UCTWxGlm5C9YNpkNlkAGV2-w](https://www.youtube.com/channel/UCTWxGlm5C9YNpkNlkAGV2-w)
+
   4. [https://www.youtube.com/channel/UCghJTNTO9kcDeUFXMuSDGLQ](https://www.youtube.com/channel/UCghJTNTO9kcDeUFXMuSDGLQ)
+
   5. [https://www.youtube.com/channel/UCPEmk9eb21N_LGwZaoqRPHA](https://www.youtube.com/channel/UCPEmk9eb21N_LGwZaoqRPHA)
+
   6. [https://www.youtube.com/channel/UCoaAe6ighxrzJuHeFPAlCeA](https://www.youtube.com/channel/UCoaAe6ighxrzJuHeFPAlCeA)
+
   7. [https://www.youtube.com/channel/UCg3pI4p6OKSFrDVZcwRIx8A](https://www.youtube.com/channel/UCg3pI4p6OKSFrDVZcwRIx8A)
+
   8. [https://www.youtube.com/channel/UCgl54MMemaGR47QeWs-lRcQ](https://www.youtube.com/channel/UCgl54MMemaGR47QeWs-lRcQ)
+
   9. [https://www.youtube.com/channel/UCJ-KJeHzrnZkGX7qAM2V74Q](https://www.youtube.com/channel/UCJ-KJeHzrnZkGX7qAM2V74Q)
+
   10. [https://www.youtube.com/channel/UCkUedU1YAz3QEYycpxz5HKw](https://www.youtube.com/channel/UCkUedU1YAz3QEYycpxz5HKw)
+
   11. [https://www.youtube.com/channel/UCh97UguoGjmZ8fLHRZwjuYA](https://www.youtube.com/channel/UCh97UguoGjmZ8fLHRZwjuYA)
+
   12. [https://www.youtube.com/channel/UCwvRf1alwULB0UOJD2mgnxA](https://www.youtube.com/channel/UCwvRf1alwULB0UOJD2mgnxA)
+
   13. [https://www.youtube.com/@AIforGood](https://www.youtube.com/@AIforGood)
+
   14. [https://www.youtube.com/channel/UC-zaTk6_dtHp9s4sPsTOSrw](https://www.youtube.com/channel/UC-zaTk6_dtHp9s4sPsTOSrw)
+
   15. [https://www.youtube.com/channel/UCz80JEs56coMRDd5OzYe_lw](https://www.youtube.com/channel/UCz80JEs56coMRDd5OzYe_lw)
+
   16. [https://www.youtube.com/channel/UCdFRvwde9cmdVm_Q-ODZTZg](https://www.youtube.com/channel/UCdFRvwde9cmdVm_Q-ODZTZg)
+
   17. [https://www.youtube.com/channel/UCfI2Wf-yji9reXIhn8U4jkQ](https://www.youtube.com/channel/UCfI2Wf-yji9reXIhn8U4jkQ)
+
   18. [https://www.youtube.com/channel/UCGs1DLZeVPYk053LbgNd0Og](https://www.youtube.com/channel/UCGs1DLZeVPYk053LbgNd0Og)
+
   19. [https://www.youtube.com/@akshay_pachaar](https://www.youtube.com/@akshay_pachaar)
+
   20. [https://www.youtube.com/channel/UC1oXUA7qgs0GZc_yk46K2OQ](https://www.youtube.com/channel/UC1oXUA7qgs0GZc_yk46K2OQ)
+
   21. [https://www.youtube.com/channel/UCuHO8EzUJYx7vcD8G6S-MAA](https://www.youtube.com/channel/UCuHO8EzUJYx7vcD8G6S-MAA)
+
   22. [https://www.youtube.com/@alexk1919_ai](https://www.youtube.com/@alexk1919_ai)
+
   23. [https://www.youtube.com/@alexxmcfarland](https://www.youtube.com/@alexxmcfarland)
+
   24. [https://www.youtube.com/@AmazonScience](https://www.youtube.com/@AmazonScience)
+
   25. [https://www.youtube.com/@AndreMikalsen](https://www.youtube.com/@AndreMikalsen)
+
   26. [https://www.youtube.com/@anthropic-ai](https://www.youtube.com/@anthropic-ai)
+
   27. [https://www.youtube.com/channel/UCeNt4ZUGajlELmfGeKyBtUg](https://www.youtube.com/channel/UCeNt4ZUGajlELmfGeKyBtUg)
+
   28. [https://www.youtube.com/channel/UCLw78juKiPI8YjpSK7sJ_eg](https://www.youtube.com/channel/UCLw78juKiPI8YjpSK7sJ_eg)
+
   29. [https://www.youtube.com/@AuroraInnovation](https://www.youtube.com/@AuroraInnovation)
+
   30. [https://www.youtube.com/@BaiduApollo](https://www.youtube.com/@BaiduApollo)
+
   31. [https://www.youtube.com/channel/UCybCsobEq5NzKKIRkpVZjYQ](https://www.youtube.com/channel/UCybCsobEq5NzKKIRkpVZjYQ)
+
   32. [https://www.youtube.com/channel/UCGIiO6Uo8V8vkuLOcFvf3ZQ](https://www.youtube.com/channel/UCGIiO6Uo8V8vkuLOcFvf3ZQ)
+
   33. [https://www.youtube.com/@BostonDynamics](https://www.youtube.com/@BostonDynamics)
+
   34. [https://www.youtube.com/channel/UCLHfIq7P2CkA62ReystiOrw](https://www.youtube.com/channel/UCLHfIq7P2CkA62ReystiOrw)
+
   35. [https://www.youtube.com/channel/UCBhTxsFP2VvjO87RsQY75Tw](https://www.youtube.com/channel/UCBhTxsFP2VvjO87RsQY75Tw)
+
   36. [https://www.youtube.com/channel/UCkXe-exqi25V4GnZendgEaA](https://www.youtube.com/channel/UCkXe-exqi25V4GnZendgEaA)
+
   37. [https://www.youtube.com/channel/UCaSM4GqhbaVmRT7fmmFmR1w](https://www.youtube.com/channel/UCaSM4GqhbaVmRT7fmmFmR1w)
+
   38. [https://www.youtube.com/channel/UCjc1vfduI7BhVMXBLJLDjmA](https://www.youtube.com/channel/UCjc1vfduI7BhVMXBLJLDjmA)
+
   39. [https://www.youtube.com/channel/UC9Rd0gi2po8pDZC5qKlQW6Q](https://www.youtube.com/channel/UC9Rd0gi2po8pDZC5qKlQW6Q)
+
   40. [https://www.youtube.com/channel/UCoqNpR_9YQc72dh2u5HGcDg](https://www.youtube.com/channel/UCoqNpR_9YQc72dh2u5HGcDg)
+
   41. [https://www.youtube.com/channel/UCZwcPsE_ApWOsCUyBtUTZXw](https://www.youtube.com/channel/UCZwcPsE_ApWOsCUyBtUTZXw)
+
   42. [https://www.youtube.com/channel/UCYhgVUxsl1PQUOMufZ8I5uQ](https://www.youtube.com/channel/UCYhgVUxsl1PQUOMufZ8I5uQ)
+
   43. [https://www.youtube.com/@CleverProgrammer](https://www.youtube.com/@CleverProgrammer)
+
   44. [https://www.youtube.com/channel/UCgKy5hcRubKAMrPSDtY-jyg](https://www.youtube.com/channel/UCgKy5hcRubKAMrPSDtY-jyg)
+
   45. [https://www.youtube.com/@Computerphile](https://www.youtube.com/@Computerphile)
+
   46. [https://www.youtube.com/channel/UC2gtQOm5jFEASO6mg_ibT_Q](https://www.youtube.com/channel/UC2gtQOm5jFEASO6mg_ibT_Q)
+
   47. [https://www.youtube.com/channel/UCR1B5ilfJ14nsEzNa9-aS_g](https://www.youtube.com/channel/UCR1B5ilfJ14nsEzNa9-aS_g)
+
   48. [https://www.youtube.com/channel/UCY0w_qU4qO5MgHpEkpRLocg](https://www.youtube.com/channel/UCY0w_qU4qO5MgHpEkpRLocg)
+
   49. [https://www.youtube.com/channel/UCODI7BNcFio2Pfq6L3uHVCw](https://www.youtube.com/channel/UCODI7BNcFio2Pfq6L3uHVCw)
+
   50. [https://www.youtube.com/channel/UC_a85mUHqsy5j0CYCgLnkEQ](https://www.youtube.com/channel/UC_a85mUHqsy5j0CYCgLnkEQ)
+
   51. [https://www.youtube.com/channel/UCI9w0pAIlXrQuSYA79x0F3w](https://www.youtube.com/channel/UCI9w0pAIlXrQuSYA79x0F3w)
+
   52. [https://www.youtube.com/channel/UC6Trx9FzdUbNDyFLB5QNQVA](https://www.youtube.com/channel/UC6Trx9FzdUbNDyFLB5QNQVA)
+
   53. [https://www.youtube.com/channel/UC__d7jgOunIVFz6TU_t1QOQ](https://www.youtube.com/channel/UC__d7jgOunIVFz6TU_t1QOQ)
+
   54. [https://www.youtube.com/channel/UCVyRiMvfUNMA1UPlDPzG5Ow](https://www.youtube.com/channel/UCVyRiMvfUNMA1UPlDPzG5Ow)
+
   55. [https://www.youtube.com/@devforgehq](https://www.youtube.com/@devforgehq)
+
   56. [https://www.youtube.com/channel/UCuE6iwZKgGz8s6kznBRI9LQ](https://www.youtube.com/channel/UCuE6iwZKgGz8s6kznBRI9LQ)
+
   57. [https://www.youtube.com/channel/UC8LbCdO57DhJsCmhUeL-DZA](https://www.youtube.com/channel/UC8LbCdO57DhJsCmhUeL-DZA)
+
   58. [https://www.youtube.com/channel/UCfOvNb3xj28SNqPQ_JIbumg](https://www.youtube.com/channel/UCfOvNb3xj28SNqPQ_JIbumg)
+
   59. [https://www.youtube.com/channel/UC2aCpykx9-R33dNjmGjYMrg](https://www.youtube.com/channel/UC2aCpykx9-R33dNjmGjYMrg)
+
   60. [https://www.youtube.com/channel/UC37JpWP5PxLSma2lh79HU9A](https://www.youtube.com/channel/UC37JpWP5PxLSma2lh79HU9A)
+
   61. [https://www.youtube.com/@dylandavisAI](https://www.youtube.com/@dylandavisAI)
+
   62. [https://www.youtube.com/@ETHZurich](https://www.youtube.com/@ETHZurich)
+
   63. [https://www.youtube.com/channel/UC5_2We-HeVdEeHcIyfmMHOg](https://www.youtube.com/channel/UC5_2We-HeVdEeHcIyfmMHOg)
+
   64. [https://www.youtube.com/channel/UCbhYLExS9jRS8gDeUeXY8pg](https://www.youtube.com/channel/UCbhYLExS9jRS8gDeUeXY8pg)
+
   65. [https://www.youtube.com/channel/UCxMt2GgYbO6-FCf0p4sAT0A](https://www.youtube.com/channel/UCxMt2GgYbO6-FCf0p4sAT0A)
+
   66. [https://www.youtube.com/channel/UCIumQAB--XargjJuF-w_MFA](https://www.youtube.com/channel/UCIumQAB--XargjJuF-w_MFA)
+
   67. [https://www.youtube.com/channel/UCFxwS8HIGH5_ut1fk0PNAHw](https://www.youtube.com/channel/UCFxwS8HIGH5_ut1fk0PNAHw)
+
   68. [https://www.youtube.com/channel/UCOXRjenlq9PmlTqd_JhAbMQ](https://www.youtube.com/channel/UCOXRjenlq9PmlTqd_JhAbMQ)
+
   69. [https://www.youtube.com/channel/UC3z9dDPBBClk-9IJJlXuMQg](https://www.youtube.com/channel/UC3z9dDPBBClk-9IJJlXuMQg)
+
   70. [https://www.youtube.com/@Fireship](https://www.youtube.com/@Fireship)
+
   71. [https://www.youtube.com/channel/UC2N4rULGp8kVb9hUmyGpx0g](https://www.youtube.com/channel/UC2N4rULGp8kVb9hUmyGpx0g)
+
   72. [https://www.youtube.com/channel/UC5fdyC4LxyyYv8Am6nDrkmg](https://www.youtube.com/channel/UC5fdyC4LxyyYv8Am6nDrkmg)
+
   73. [https://www.youtube.com/channel/UCzsmpPhpoweC6itJd_oAt3w](https://www.youtube.com/channel/UCzsmpPhpoweC6itJd_oAt3w)
+
   74. [https://www.youtube.com/channel/UCDueXqs49rTgwPe5ZLLU-KA](https://www.youtube.com/channel/UCDueXqs49rTgwPe5ZLLU-KA)
+
   75. [https://www.youtube.com/channel/UCx6kBc-lI6YxtpwQCYwFFig](https://www.youtube.com/channel/UCx6kBc-lI6YxtpwQCYwFFig)
+
   76. [https://www.youtube.com/channel/UC6P5WCWjqhhXVFBqbJHNxyw](https://www.youtube.com/channel/UC6P5WCWjqhhXVFBqbJHNxyw)
+
   77. [https://www.youtube.com/channel/UC7c3Kb6jYCRj4JOHHZTxKsQ](https://www.youtube.com/channel/UC7c3Kb6jYCRj4JOHHZTxKsQ)
+
   78. [https://www.youtube.com/@GithubAwesome](https://www.youtube.com/@GithubAwesome)
+
   79. [https://www.youtube.com/@GoogleDeepMind](https://www.youtube.com/@GoogleDeepMind)
+
   80. [https://www.youtube.com/@GoogleResearch](https://www.youtube.com/@GoogleResearch)
+
   81. [https://www.youtube.com/channel/UC5Ls4Ms_OFhUXIAm3iScyYQ](https://www.youtube.com/channel/UC5Ls4Ms_OFhUXIAm3iScyYQ)
+
   82. [https://www.youtube.com/channel/UC4ay94l73_FLJ_WJkIqLnSw](https://www.youtube.com/channel/UC4ay94l73_FLJ_WJkIqLnSw)
+
   83. [https://www.youtube.com/channel/UCpMSUrI11cLvDwoNitbtwIA](https://www.youtube.com/channel/UCpMSUrI11cLvDwoNitbtwIA)
+
   84. [https://www.youtube.com/channel/UCRQfu4zkBkebgdGG5pwQozA](https://www.youtube.com/channel/UCRQfu4zkBkebgdGG5pwQozA)
+
   85. [https://www.youtube.com/channel/UCRYY7IEbkHLH_ScJCu9eWDQ](https://www.youtube.com/channel/UCRYY7IEbkHLH_ScJCu9eWDQ)
+
   86. [https://www.youtube.com/@IBMResearch](https://www.youtube.com/@IBMResearch)
+
   87. [https://www.youtube.com/channel/UCHsThxa9HvDpSywv4bP55NA](https://www.youtube.com/channel/UCHsThxa9HvDpSywv4bP55NA)
+
   88. [https://www.youtube.com/channel/UC4DRUh4X4lNz22WBbmkdiQQ](https://www.youtube.com/channel/UC4DRUh4X4lNz22WBbmkdiQQ)
+
   89. [https://www.youtube.com/channel/UCaIm6rTg-RXb6rB19fYJgTg](https://www.youtube.com/channel/UCaIm6rTg-RXb6rB19fYJgTg)
+
   90. [https://www.youtube.com/channel/UC1VX1aGH6wjT80ndHP5H5yQ](https://www.youtube.com/channel/UC1VX1aGH6wjT80ndHP5H5yQ)
+
   91. [https://www.youtube.com/channel/UCIVAz0HAz5a_CRlJdV4yRFw](https://www.youtube.com/channel/UCIVAz0HAz5a_CRlJdV4yRFw)
+
   92. [https://www.youtube.com/channel/UC-5at4izid5vmBmbMd0RylQ](https://www.youtube.com/channel/UC-5at4izid5vmBmbMd0RylQ)
+
   93. [https://www.youtube.com/channel/UCv8GBt-zqWIDfXr_JJyKQsA](https://www.youtube.com/channel/UCv8GBt-zqWIDfXr_JJyKQsA)
+
   94. [https://www.youtube.com/@KennethLiao](https://www.youtube.com/@KennethLiao)
+
   95. [https://www.youtube.com/channel/UCSFUFfVEFHQxUaGS768rB9w](https://www.youtube.com/channel/UCSFUFfVEFHQxUaGS768rB9w)
+
   96. [https://www.youtube.com/channel/UCpM7ggiIMv2liE5_dv-1RvQ](https://www.youtube.com/channel/UCpM7ggiIMv2liE5_dv-1RvQ)
+
   97. [https://www.youtube.com/channel/UCYQS3jkfB79Diyr9sQJAj5Q](https://www.youtube.com/channel/UCYQS3jkfB79Diyr9sQJAj5Q)
+
   98. [https://www.youtube.com/channel/UC1yBb0iQWF7ByG5NugAZhvg](https://www.youtube.com/channel/UC1yBb0iQWF7ByG5NugAZhvg)
+
   99. [https://www.youtube.com/@leonvanzyl](https://www.youtube.com/@leonvanzyl)
+
   100. [https://www.youtube.com/@lev-selector](https://www.youtube.com/@lev-selector)
+
   101. [https://www.youtube.com/channel/UCCQ1uKUUYUXDnjYTAJUppQA](https://www.youtube.com/channel/UCCQ1uKUUYUXDnjYTAJUppQA)
+
   102. [https://www.youtube.com/channel/UCtipGTPFuEpiLoEpF3tWpZA](https://www.youtube.com/channel/UCtipGTPFuEpiLoEpF3tWpZA)
+
   103. [https://www.youtube.com/channel/UC-luaBAGSqZ---25Wifnnhg](https://www.youtube.com/channel/UC-luaBAGSqZ---25Wifnnhg)
+
   104. [https://www.youtube.com/channel/UCj7NrzZWW3w3lHTk5v-GuXw](https://www.youtube.com/channel/UCj7NrzZWW3w3lHTk5v-GuXw)
+
   105. [https://www.youtube.com/channel/UCG6qpjVnBTTT8wLGBygANOQ](https://www.youtube.com/channel/UCG6qpjVnBTTT8wLGBygANOQ)
+
   106. [https://www.youtube.com/@MachineLearningMastery](https://www.youtube.com/@MachineLearningMastery)
+
   107. [https://www.youtube.com/@MachineLearningTV](https://www.youtube.com/@MachineLearningTV)
+
   108. [https://www.youtube.com/channel/UC9HwoV7VQpDRDXOzviV2DIQ](https://www.youtube.com/channel/UC9HwoV7VQpDRDXOzviV2DIQ)
+
   109. [https://www.youtube.com/channel/UCT5C-u2lpdcQrfT-sZ9GZug](https://www.youtube.com/channel/UCT5C-u2lpdcQrfT-sZ9GZug)
+
   110. [https://www.youtube.com/@ManuAGI](https://www.youtube.com/@ManuAGI)
+
   111. [https://www.youtube.com/channel/UCHkzp52CldSPZqU5T49mOnA](https://www.youtube.com/channel/UCHkzp52CldSPZqU5T49mOnA)
+
   112. [https://www.youtube.com/@mkbhd](https://www.youtube.com/@mkbhd)
+
   113. [https://www.youtube.com/@MetalSole](https://www.youtube.com/@MetalSole)
+
   114. [https://www.youtube.com/channel/UCJUmE61LxhbhudzUugHL2wQ](https://www.youtube.com/channel/UCJUmE61LxhbhudzUugHL2wQ)
+
   115. [https://www.youtube.com/channel/UC8LNZzsetswiQ4ltf4gmXzg](https://www.youtube.com/channel/UC8LNZzsetswiQ4ltf4gmXzg)
+
   116. [https://www.youtube.com/channel/UC0gjVbm7HY5GzDTo5NbQruA](https://www.youtube.com/channel/UC0gjVbm7HY5GzDTo5NbQruA)
+
   117. [https://www.youtube.com/channel/UCAwT-7B6StW_xzXPku6v7MQ](https://www.youtube.com/channel/UCAwT-7B6StW_xzXPku6v7MQ)
+
   118. [https://www.youtube.com/channel/UC0d-j4fomNhnEvNxRqoo89Q](https://www.youtube.com/channel/UC0d-j4fomNhnEvNxRqoo89Q)
+
   119. [https://www.youtube.com/@NVIDIAdeveloper](https://www.youtube.com/@NVIDIAdeveloper)
+
   120. [https://www.youtube.com/channel/UCvS59S24crXmGfIEiejcr9g](https://www.youtube.com/channel/UCvS59S24crXmGfIEiejcr9g)
+
   121. [https://www.youtube.com/channel/UCR1SJseEXKbcbVEFd5ViHWg](https://www.youtube.com/channel/UCR1SJseEXKbcbVEFd5ViHWg)
+
   122. [https://www.youtube.com/channel/UC9x0AN7BWHpCDHSm9NiJFJQ](https://www.youtube.com/channel/UC9x0AN7BWHpCDHSm9NiJFJQ)
+
   123. [https://www.youtube.com/channel/UC6MhHkSosYXAD-LTXBWyLMg](https://www.youtube.com/channel/UC6MhHkSosYXAD-LTXBWyLMg)
+
   124. [https://www.youtube.com/channel/UC4FK5DEcMLB3CyJcbJfZEJA](https://www.youtube.com/channel/UC4FK5DEcMLB3CyJcbJfZEJA)
+
   125. [https://www.youtube.com/@Nuro](https://www.youtube.com/@Nuro)
+
   126. [https://www.youtube.com/channel/UCXfLZFSEeYR40lgXl3OCvHA](https://www.youtube.com/channel/UCXfLZFSEeYR40lgXl3OCvHA)
+
   127. [https://www.youtube.com/@OpenAI](https://www.youtube.com/@OpenAI)
+
   128. [https://www.youtube.com/channel/UCtXIWEsfSPllcOe6UWR04kg](https://www.youtube.com/channel/UCtXIWEsfSPllcOe6UWR04kg)
+
   129. [https://www.youtube.com/channel/UC08YjBHjjPFu8T1KbHGomnQ](https://www.youtube.com/channel/UC08YjBHjjPFu8T1KbHGomnQ)
+
   130. [https://www.youtube.com/channel/UCnpBg7yqNauHtlNSpOl5-cg](https://www.youtube.com/channel/UCnpBg7yqNauHtlNSpOl5-cg)
+
   131. [https://www.youtube.com/channel/UCMA50kbH_CXOrKQYtIPcRug](https://www.youtube.com/channel/UCMA50kbH_CXOrKQYtIPcRug)
+
   132. [https://www.youtube.com/channel/UCK1JnZpphwTJZfsjW4Ng3mA](https://www.youtube.com/channel/UCK1JnZpphwTJZfsjW4Ng3mA)
+
   133. [https://www.youtube.com/channel/UCX6c6hTIqcphjMsXbeanJ1g](https://www.youtube.com/channel/UCX6c6hTIqcphjMsXbeanJ1g)
+
   134. [https://www.youtube.com/channel/UC8RHewAQcUjOu_MkjnTeBiw](https://www.youtube.com/channel/UC8RHewAQcUjOu_MkjnTeBiw)
+
   135. [https://www.youtube.com/channel/UCbJSc2NyTZgz3Qu21kDId5Q](https://www.youtube.com/channel/UCbJSc2NyTZgz3Qu21kDId5Q)
+
   136. [https://www.youtube.com/@ratelimitedpod](https://www.youtube.com/@ratelimitedpod)
+
   137. [https://www.youtube.com/channel/UCzeFD1by4aT8RxBwSR7IzDA](https://www.youtube.com/channel/UCzeFD1by4aT8RxBwSR7IzDA)
+
   138. [https://www.youtube.com/@iamseankochel](https://www.youtube.com/@iamseankochel)
+
   139. [https://www.youtube.com/channel/UChIUO17UyR0Mb_qcCxCgLkw](https://www.youtube.com/channel/UChIUO17UyR0Mb_qcCxCgLkw)
+
   140. [https://www.youtube.com/channel/UCAohrrjG-3gEp5QF1WlM9_w](https://www.youtube.com/channel/UCAohrrjG-3gEp5QF1WlM9_w)
+
   141. [https://www.youtube.com/channel/UCKk_IEA0wbkibod2u7NctCQ](https://www.youtube.com/channel/UCKk_IEA0wbkibod2u7NctCQ)
+
   142. [https://www.youtube.com/channel/UCnveGtpTMr6QpHaC_Q_d6rg](https://www.youtube.com/channel/UCnveGtpTMr6QpHaC_Q_d6rg)
+
   143. [https://www.youtube.com/channel/UCfjaAUlTZRHJapJmCT6eyIg](https://www.youtube.com/channel/UCfjaAUlTZRHJapJmCT6eyIg)
+
   144. [https://www.youtube.com/@SpeedyFoxAi](https://www.youtube.com/@SpeedyFoxAi)
+
   145. [https://www.youtube.com/channel/UC-lzS2PWvUztxHIMdf55S5Q](https://www.youtube.com/channel/UC-lzS2PWvUztxHIMdf55S5Q)
+
   146. [https://www.youtube.com/channel/UC-W7dUPnSvZ4oTe_8vhk-qQ](https://www.youtube.com/channel/UC-W7dUPnSvZ4oTe_8vhk-qQ)
+
   147. [https://www.youtube.com/channel/UCJ-BGi8FbWgBi0_HYpDthBQ](https://www.youtube.com/channel/UCJ-BGi8FbWgBi0_HYpDthBQ)
+
   148. [https://www.youtube.com/@Supabase](https://www.youtube.com/@Supabase)
+
   149. [https://www.youtube.com/channel/UCkUWkIgXBV81bc9cR6cZh3Q](https://www.youtube.com/channel/UCkUWkIgXBV81bc9cR6cZh3Q)
+
   150. [https://www.youtube.com/channel/UCyU5wkjgQYGRB0hIHMwm2Sg](https://www.youtube.com/channel/UCyU5wkjgQYGRB0hIHMwm2Sg)
+
   151. [https://www.youtube.com/@TeslaAI](https://www.youtube.com/@TeslaAI)
+
   152. [https://www.youtube.com/channel/UCwvXnrOCRlhokHlJwohf2OA](https://www.youtube.com/channel/UCwvXnrOCRlhokHlJwohf2OA)
+
   153. [https://www.youtube.com/channel/UC5UIMngWquLaJXW301U_FNA](https://www.youtube.com/channel/UC5UIMngWquLaJXW301U_FNA)
+
   154. [https://www.youtube.com/channel/UCbzAhbNfR5jT1T4lC8ux2WA](https://www.youtube.com/channel/UCbzAhbNfR5jT1T4lC8ux2WA)
+
   155. [https://www.youtube.com/channel/UCcIeotMTE0gZtgcNUnhl2Kw](https://www.youtube.com/channel/UCcIeotMTE0gZtgcNUnhl2Kw)
+
   156. [https://www.youtube.com/channel/UCE6O7wATswjzR0JvgLy2-Og](https://www.youtube.com/channel/UCE6O7wATswjzR0JvgLy2-Og)
+
   157. [https://www.youtube.com/channel/UC-J-aDEOVjOjR6iXh7P8mJA](https://www.youtube.com/channel/UC-J-aDEOVjOjR6iXh7P8mJA)
+
   158. [https://www.youtube.com/channel/UChk6TQce1EJMn6_liKdHDog](https://www.youtube.com/channel/UChk6TQce1EJMn6_liKdHDog)
+
   159. [https://www.youtube.com/channel/UC6N_qOUJ78rJRxw7Kie4dXw](https://www.youtube.com/channel/UC6N_qOUJ78rJRxw7Kie4dXw)
+
   160. [https://www.youtube.com/channel/UC2UXDak6o7rBm23k3Vv5dww](https://www.youtube.com/channel/UC2UXDak6o7rBm23k3Vv5dww)
+
   161. [https://www.youtube.com/channel/UCReBnbhIyvummwBRMbRKLtQ](https://www.youtube.com/channel/UCReBnbhIyvummwBRMbRKLtQ)
+
   162. [https://www.youtube.com/channel/UC0ep2A36j7gTFdqW2Yvngbg](https://www.youtube.com/channel/UC0ep2A36j7gTFdqW2Yvngbg)
+
   163. [https://www.youtube.com/channel/UC7NJLsf6IonOy8QI8gt5BeA](https://www.youtube.com/channel/UC7NJLsf6IonOy8QI8gt5BeA)
+
   164. [https://www.youtube.com/channel/UCruC3Lkt_-StdHlPiyWbPSg](https://www.youtube.com/channel/UCruC3Lkt_-StdHlPiyWbPSg)
+
   165. [https://www.youtube.com/@UniverseofAIz](https://www.youtube.com/@UniverseofAIz)
+
   166. [https://www.youtube.com/channel/UClXAalunTPaX1YV185DWUeg](https://www.youtube.com/channel/UClXAalunTPaX1YV185DWUeg)
+
   167. [https://www.youtube.com/channel/UC2Bm4qXVUx9Md-hmHz3WuXw](https://www.youtube.com/channel/UC2Bm4qXVUx9Md-hmHz3WuXw)
+
   168. [https://www.youtube.com/channel/UC7XJj9pv_11a11FUxCMz15g](https://www.youtube.com/channel/UC7XJj9pv_11a11FUxCMz15g)
+
   169. [https://www.youtube.com/channel/UC7-v4Z9zLvXUd32XzrrBShw](https://www.youtube.com/channel/UC7-v4Z9zLvXUd32XzrrBShw)
+
   170. [https://www.youtube.com/@Waymo](https://www.youtube.com/@Waymo)
+
   171. [https://www.youtube.com/channel/UC5kPh2J2H3fXjRQhoj-Ml9Q](https://www.youtube.com/channel/UC5kPh2J2H3fXjRQhoj-Ml9Q)
+
   172. [https://www.youtube.com/channel/UC18KFTo_gFs3cNUxhwKMTGg](https://www.youtube.com/channel/UC18KFTo_gFs3cNUxhwKMTGg)
+
   173. [https://www.youtube.com/channel/UCgXDesc6IZBfNWqWJ3fBpdg](https://www.youtube.com/channel/UCgXDesc6IZBfNWqWJ3fBpdg)
+
   174. [https://www.youtube.com/channel/UC7TUInmEJ4NmYb-krFz-SuA](https://www.youtube.com/channel/UC7TUInmEJ4NmYb-krFz-SuA)
+
   175. [https://www.youtube.com/channel/UCvN3QmpWy_eFG8gIU_Ij-RQ](https://www.youtube.com/channel/UCvN3QmpWy_eFG8gIU_Ij-RQ)
+
   176. [https://www.youtube.com/@Zero2LaunchAI](https://www.youtube.com/@Zero2LaunchAI)
+
   177. [https://www.youtube.com/channel/UChiNcMgMUk9XNWVFSoUp5WA](https://www.youtube.com/channel/UChiNcMgMUk9XNWVFSoUp5WA)
+
   178. [https://www.youtube.com/channel/UC3i3qKQ5aR_guegQj5bhOMw](https://www.youtube.com/channel/UC3i3qKQ5aR_guegQj5bhOMw)
+
   179. [https://www.youtube.com/@a16z](https://www.youtube.com/@a16z)
+
   180. [https://www.youtube.com/@n8n-io](https://www.youtube.com/@n8n-io)
+
   181. [https://www.youtube.com/@samwitteveen](https://www.youtube.com/@samwitteveen)
+
   182. [https://www.youtube.com/@sentdex](https://www.youtube.com/@sentdex)
+
   183. [https://www.youtube.com/@FAIR](https://www.youtube.com/@FAIR)
+
   184. [https://www.youtube.com/channel/UC0xJUrdwmjQE8uXZ6UGyo8w](https://www.youtube.com/channel/UC0xJUrdwmjQE8uXZ6UGyo8w)
 "
 
@@ -2406,9 +2591,9 @@ https://www.youtube.com/@channel2
 
 `proxies.txt`
 ```text
-http://user:pass@proxy1:8080
+[REDACTED]
 socks5://user:pass@proxy2:1080
-http://user:pass@proxy3:8080
+[REDACTED]
 ```
 
 ### Operational note

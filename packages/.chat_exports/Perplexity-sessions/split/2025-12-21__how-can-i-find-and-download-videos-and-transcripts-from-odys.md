@@ -250,7 +250,7 @@ Install aria2c, then parallelize fragments (16x speed) without sequential bottle
 ## Proxy/Tor Rotation
 Rotate IPs via script or services to evade Odysee bans; Tor for free anonymity.[3][5]
 
-- Single proxy: `--proxy http://user:pass@ip:port` or `socks5://127.0.0.1:9050` (Tor).
+- Single proxy: `--proxy [REDACTED]:port` or `socks5://127.0.0.1:9050` (Tor).
 - Rotation script (PowerShell):
   ```
   $proxies = @("proxy1:port", "proxy2:port")
@@ -316,7 +316,7 @@ Use `--retry-sleep exponential` (doubles delay per retry) plus script-level slee
 ## Automatic Proxy Rotation
 Load proxies from file/JSON; cycle per video/channel via script args `--proxy`.[9][10]
 
-- List format (`proxies.txt`): `http://user:pass@ip:port` one per line.
+- List format (`proxies.txt`): `[REDACTED]:port` one per line.
 - yt-dlp-proxy tool: Auto-finds/tests free proxies, runs like `yt-dlp-proxy <args>`.[4][5]
 - Rotating service: `--proxy http://gateway:port` (auto-rotates on auth).[9]
 

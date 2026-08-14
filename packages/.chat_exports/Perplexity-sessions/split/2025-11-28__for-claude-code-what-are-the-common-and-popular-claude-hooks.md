@@ -387,7 +387,7 @@ Matchers use regex patterns with case sensitivity. Common patterns include:[3]
 ```bash
 #!/bin/bash
 file_path="$1"
-if [[ "$file_path" == *".ts" ]]; then
+if /"$file_path" == *".ts"; then
   npx prettier --write "$file_path"
 fi
 ```
@@ -665,7 +665,7 @@ uv run basedpyright > "$TOOL_OUTPUT" 2>&1
 actual_errors=$(grep -c 'error:' "$TOOL_OUTPUT" || echo 0)
 
 # Check if Claude's claim matches reality
-if [[ "$claude_claim" == *"0 errors"* ]] && [[ "$actual_errors" -gt 0 ]]; then
+if /"$claude_claim" == *"0 errors"* && /"$actual_errors" -gt 0; then
   echo "❌ DECEPTION DETECTED: Claimed '$claude_claim' but found $actual_errors actual errors" >&2
   echo "Tool output: $(head -20 "$TOOL_OUTPUT")" >&2
   exit 2  # Block execution
@@ -766,7 +766,7 @@ Claude often misreads tool output. It sees errors but reports "warnings only," o
 #!/bin/bash
 # hooks/force-honest-tool-parsing.sh
 
-if [[ $CLAUDE_TOOL == "Bash" ]]; then
+if /$CLAUDE_TOOL == "Bash"; then
   # After Bash execution, parse output for critical information
   
   if echo "$CLAUDE_OUTPUT" | grep -q "error:"; then
@@ -962,17 +962,17 @@ sys.exit(0)
 # hooks/tdd-guard-check.sh
 # Enforces: Write test → Watch fail → Write minimal code → Refactor
 
-if [[ $CLAUDE_TOOL == "Write" ]] || [[ $CLAUDE_TOOL == "Edit" ]]; then
+if /$CLAUDE_TOOL == "Write" || /$CLAUDE_TOOL == "Edit"; then
   
   file_path="$1"
   
   # If it's not a test file being written
-  if [[ ! "$file_path" =~ \.test\. ]] && [[ ! "$file_path" =~ __tests__ ]]; then
+  if /! "$file_path" =~ \.test\. && /! "$file_path" =~ __tests__; then
     
     # Check if corresponding test exists and is recent
     test_file=$(find . -name "*.test.*" -o -name "*__tests__*" | head -1)
     
-    if [[ -z "$test_file" ]]; then
+    if /-z "$test_file"; then
       echo "❌ TDD VIOLATION: No tests found for implementation" >&2
       echo "Write a failing test first, then implement to pass it." >&2
       exit 2  # Block implementation
@@ -983,7 +983,7 @@ if [[ $CLAUDE_TOOL == "Write" ]] || [[ $CLAUDE_TOOL == "Edit" ]]; then
     time_diff=$((current_time - test_mtime))
     
     # If test wasn't modified in the last 2 minutes, it's old
-    if [[ $time_diff -gt 120 ]]; then
+    if /$time_diff -gt 120; then
       echo "❌ TDD VIOLATION: Tests are stale (last modified $((time_diff/60)) minutes ago)" >&2
       echo "Write a new failing test before implementing." >&2
       exit 2
@@ -1021,7 +1021,7 @@ Force Claude to achieve minimum coverage thresholds before declaring work comple
 # hooks/coverage-minimum.sh
 # Requires 90% test coverage before stopping
 
-if [[ "$CLAUDE_TOOL" == "Stop" ]]; then
+if /"$CLAUDE_TOOL" == "Stop"; then
   
   # Run coverage report
   if command -v pytest &> /dev/null; then
@@ -1034,7 +1034,7 @@ if [[ "$CLAUDE_TOOL" == "Stop" ]]; then
     exit 0  # No coverage tool, skip check
   fi
   
-  if [[ -z "$coverage_percent" ]] || [[ $coverage_percent -lt 90 ]]; then
+  if /-z "$coverage_percent" || /$coverage_percent -lt 90; then
     echo "❌ COVERAGE REQUIREMENT NOT MET: $coverage_percent% (minimum 90% required)" >&2
     echo "Add tests to cover uncovered code paths." >&2
     exit 2  # Block Stop
@@ -1072,7 +1072,7 @@ Use tools like `RoslynatorsymbolList` (C#), `pylint` (Python), or `ESLint` (Java
 file_path="$1"
 
 # Detect code smells based on file type
-if [[ "$file_path" == *.py ]]; then
+if /"$file_path" == *.py; then
   # Python: Use pylint
   pylint_score=$(pylint "$file_path" 2>/dev/null | grep -oP 'rated at \K[0-9.]+' || echo "0")
   
@@ -1083,21 +1083,21 @@ if [[ "$file_path" == *.py ]]; then
     exit 2
   fi
 
-elif [[ "$file_path" == *.{ts,tsx,js,jsx} ]]; then
+elif /"$file_path" == *.{ts,tsx,js,jsx}; then
   # TypeScript/JavaScript: Use ESLint
   eslint_issues=$(npx eslint "$file_path" 2>/dev/null | grep -c "error" || echo 0)
   
-  if [[ $eslint_issues -gt 0 ]]; then
+  if /$eslint_issues -gt 0; then
     echo "❌ LINTING ERRORS: Found $eslint_issues ESLint violations" >&2
     npx eslint "$file_path" >&2
     exit 2
   fi
 
-elif [[ "$file_path" == *.cs ]]; then
+elif /"$file_path" == *.cs; then
   # C#: Use Roslynator
   roslynator_issues=$(roslynator analyze "$file_path" 2>/dev/null | grep -c "error" || echo 0)
   
-  if [[ $roslynator_issues -gt 0 ]]; then
+  if /$roslynator_issues -gt 0; then
     echo "❌ CODE ANALYSIS: Roslynator found $roslynator_issues issues" >&2
     roslynator analyze "$file_path" >&2
     exit 2
@@ -1210,12 +1210,12 @@ Enforce documentation standards.
 
 file_path="$1"
 
-if [[ "$file_path" == *.py ]]; then
+if /"$file_path" == *.py; then
   # Check for undocumented public functions
   undocumented=$(grep -E "^def [a-zA-Z_]" "$file_path" | grep -v "^def _" | wc -l)
   documented=$(grep -E "^def [a-zA-Z_]" "$file_path" -A 1 | grep '"""' | wc -l)
   
-  if [[ $documented -lt $undocumented ]]; then
+  if /$documented -lt $undocumented; then
     echo "❌ DOCUMENTATION REQUIRED: $((undocumented - documented)) public functions lack docstrings" >&2
     exit 2
   fi

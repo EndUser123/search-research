@@ -9,793 +9,1580 @@ entry_count: 9
 ## Human
 
 In claude code, I have a /arch workflow that I'm not happy with.  It's not giving great solutions.  Here's a chat.  I'll upload some arch solution docs.  Why isn't it great?
-"
+
+"
 ❯ /arch just because it's working as designed doesn't mean it's optimal.  The goal is
+
 to get transcripts.  Should we restructure the code to more efficiently, effectively,
+
 and robustly acomplish that goal?
 
+
+
 ● Read(P:/projects/yt-fts/src/yt_fts/services/rss_precheck.py)
+
   ⎿  Read 100 lines
+
   ⎿  Running PostToolUse hooks… (1/8 done)
+
+
 
 ● Read(P:/projects/yt-fts/src/yt_fts/download/download_handler.py)
+
   ⎿  Read 100 lines
+
   ⎿  Running PostToolUse hooks… (1/8 done)
+
+
 
 ● Search(pattern: "def.*_get_missing|get.*without.*subtitles|videos_without_subtitles",
+
          path: "P:/projects/yt-fts/src/yt_fts", glob: "*.py", output_mode: "content")
+
   ⎿  Found 40 lines (ctrl+o to expand)
+
   ⎿  Running PostToolUse hooks… (1/7 done)
+
+
 
 ● Search(pattern: "whisper|transcribe|auto_backfill", path:
+
         "P:/projects/yt-fts/src/yt_fts", glob: "*.py", output_mode: "content")
+
   ⎿  Found 176 lines (ctrl+o to expand)
+
   ⎿  Running PostToolUse hooks… (1/7 done)
 
+
+
 ● Read(P:/projects/yt-fts/src/yt_fts/download/batch_downloader.py)
+
   ⎿  Read 150 lines
+
   ⎿  Running PostToolUse hooks… (1/8 done)
+
+
 
 ● Read(C:\Users\brsth\.claude\projects\P--worktrees-w1t1\2e4c84ba-97c0-453e-9047-b93609
+
       61bf0d\tool-results\call_e21ea1e5356f459faeed34aa.txt)
+
   ⎿  Read 100 lines
+
   ⎿  Running PostToolUse hooks… (1/8 done)
 
+
+
 ● Now I have enough context to provide the full architectural analysis. Let me create
+
   the comprehensive ADR with all 13 mandatory artifacts.
 
+
+
 ● ---
+
   Architecture Decision: Transcript Acquisition Strategy
+
+
 
   1. Mental Model Application
 
+
+
   First Principles: The goal is to get transcripts. Any step that doesn't directly
+
   contribute to getting transcripts is waste.
 
+
+
   Current State Analysis:
+
   RSS Check (new videos only)
+
       ↓ NO new videos
+
   Channel marked "up to date"
+
       ↓ BUT
+
   121 videos exist in DB WITHOUT subtitles
+
       ↓
+
   Separate backfill pass required
+
+
 
   Inversion: What if we optimized for "missing transcripts" instead of "new videos"?
 
+
+
   Second-Order Thinking:
+
   - Current design prioritizes avoiding API quota usage
+
   - But this creates two-pass behavior: RSS pass → backfill pass
+
   - For 3494 channels with ~121 no-subs each, that's ~422,000 extra operations
 
+
+
   ---
+
   2. Pre-Mortem Analysis (6-Month Failure Scenario)
 
+
+
   Current Design Failure Mode:
+
   - Scenario: User runs batch-download, sees "0 new videos" for all channels
+
   - User assumes "everything is up to date"
+
   - But 400K+ videos lack transcripts
+
   - User searches, finds no results, assumes "no content matches"
+
   - Root Cause: "No new videos" ≠ "All videos have transcripts"
 
+
+
   Proposed Fix Failure Mode:
+
   - Scenario: Always scan for missing transcripts
+
   - Risk: Burns through YouTube API quota unnecessarily
+
   - User hits quota limits mid-download
+
   - Mitigation: Configurable scan frequency (daily vs weekly vs on-demand)
 
-  ---
-  3. Risk Matrix
-  ┌───────────────────────┬───────────┬───────────────┬─────────────┬────────────────┐
-  │       Approach        │ API Quota │ Completeness  │ Complexity  │ User Confusion │
-  │                       │    Risk   │     Risk      │    Risk     │      Risk      │
-  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
-  │ Current: RSS-first,   │ LOW       │ HIGH          │ MED         │ HIGH (see      │
-  │ backfill-later        │           │               │             │ pre-mortem)    │
-  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
-  │ Unified: Single-pass  │ MED       │ LOW           │ MED         │ LOW            │
-  │ transcript check      │           │               │             │                │
-  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
-  │ Hybrid: Configurable  │ LOW       │ MED           │ HIGH        │ MED            │
-  │ strategy              │           │               │             │                │
-  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
-  │ Skip-RSS: Direct scan │ CRITICAL  │ LOW           │ LOW         │ LOW            │
-  │  always               │           │               │             │                │
-  └───────────────────────┴───────────┴───────────────┴─────────────┴────────────────┘
-  Risk Scores (0-10, lower = better):
-  - Current: 18 (high user confusion risk)
-  - Unified: 15 (balanced)
-  - Hybrid: 20 (high complexity)
-  - Skip-RSS: 25 (critical quota risk)
+
 
   ---
+
+  3. Risk Matrix
+
+  ┌───────────────────────┬───────────┬───────────────┬─────────────┬────────────────┐
+
+  │       Approach        │ API Quota │ Completeness  │ Complexity  │ User Confusion │
+
+  │                       │    Risk   │     Risk      │    Risk     │      Risk      │
+
+  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
+
+  │ Current: RSS-first,   │ LOW       │ HIGH          │ MED         │ HIGH (see      │
+
+  │ backfill-later        │           │               │             │ pre-mortem)    │
+
+  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
+
+  │ Unified: Single-pass  │ MED       │ LOW           │ MED         │ LOW            │
+
+  │ transcript check      │           │               │             │                │
+
+  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
+
+  │ Hybrid: Configurable  │ LOW       │ MED           │ HIGH        │ MED            │
+
+  │ strategy              │           │               │             │                │
+
+  ├───────────────────────┼───────────┼───────────────┼─────────────┼────────────────┤
+
+  │ Skip-RSS: Direct scan │ CRITICAL  │ LOW           │ LOW         │ LOW            │
+
+  │  always               │           │               │             │                │
+
+  └───────────────────────┴───────────┴───────────────┴─────────────┴────────────────┘
+
+  Risk Scores (0-10, lower = better):
+
+  - Current: 18 (high user confusion risk)
+
+  - Unified: 15 (balanced)
+
+  - Hybrid: 20 (high complexity)
+
+  - Skip-RSS: 25 (critical quota risk)
+
+
+
+  ---
+
   4. Forced Alternatives
+
+
 
   Alternative A: Unified Transcript Acquisition Pipeline (RECOMMENDED)
 
+
+
   Concept: Single query that returns: new videos + videos without transcripts + videos
+
   needing metadata
 
+
+
   def get_transcript_acquisition_queue(channel_id: str) -> AcquisitionQueue:
+
       return {
+
           "new_videos": [],  # From RSS
+
           "missing_subtitles": [],  # From DB query
+
           "missing_metadata": [],  # From API backfill
+
           "total_to_acquire": 0
+
       }
 
+
+
   Pros:
+
   - Single pass per channel
+
   - Always works toward "complete transcript coverage"
+
   - Clear user feedback: "X transcripts to acquire"
 
+
+
   Cons:
+
   - More DB queries per channel
+
   - Need to balance quota usage
+
+
 
   Alternative B: Two-Phase with Explicit User Intent
 
+
+
   Concept: Explicit modes for "update" vs "backfill"
 
+
+
   yt-fts batch-download --mode update  # Only new videos
+
   yt-fts batch-download --mode complete  # Fill all gaps
+
   yt-fts batch-download --mode backfill  # Only missing transcripts
 
+
+
   Pros:
+
   - User controls quota usage
+
   - Clear mental model
+
   - Matches existing --auto-backfill pattern
 
+
+
   Cons:
+
   - Requires user to understand the distinction
+
   - Two commands needed for full coverage
+
   - More CLI surface area
+
+
 
   Alternative C: Smart Strategy (Current + Enhancement)
 
+
+
   Concept: Keep RSS-first, but auto-trigger backfill when no_cc > threshold
 
+
+
   RSS returns 0 new videos
+
       ↓
+
   Check DB: no_cc count
+
       ↓
+
   if no_cc > 10 or no_cc > total * 0.1:
+
       Auto-trigger backfill
 
+
+
   Pros:
+
   - Minimal changes to current design
+
   - Backfill only when "worth it"
+
   - Preserves quota savings
 
+
+
   Cons:
+
   - Still two-pass (just automated)
+
   - Threshold magic numbers
+
   - Doesn't solve root confusion
 
+
+
   ---
+
   5. Rollback Plan
+
+
 
   If Unified approach fails:
 
+
+
   1. Feature Flag: Add --unified-acquisition flag (default False)
+
   2. Code Path: New code behind flag, old path unchanged
+
   3. Rollback: Flip flag to False, revert to old behavior
+
   4. Data Migration: No schema changes needed (same DB queries)
 
+
+
   Rollback Steps:
+
   # Disable unified mode
+
   yt-fts config set unified_acquisition false
 
+
+
   # Or per-invocation
+
   yt-fts batch-download --no-unified-acquisition
 
+
+
   ---
+
   6. Tech Debt Estimation
 
+
+
   Current Code:
+
   - Coupling: RSS checker → BatchDownloader → DownloadHandler (3 layers)
+
   - Complexity: Medium (~2000 lines in batch_downloader.py)
+
   - Dehot: db_state["db_no_subs"] vs videos_without_subtitles (inconsistent naming)
 
+
+
   Proposed Unified Code:
+
   - Coupling: TranscriptAcquisitionService → DownloadHandler (2 layers)
+
   - Complexity: Medium (~500 lines new service)
+
   - Debt: Low (clean separation of concerns)
+
+
 
   Debt Score: -2 (improvement over current)
 
+
+
   ---
+
   7. Timeline Estimation
+
+
 
   T-Shirt Size: Medium
 
+
+
   Breakdown:
+
   ┌──────────────────────────────────────────┬───────┬────────────┐
+
   │                   Task                   │ Hours │ Confidence │
+
   ├──────────────────────────────────────────┼───────┼────────────┤
+
   │ Create TranscriptAcquisitionService      │ 4     │ 85%        │
+
   ├──────────────────────────────────────────┼───────┼────────────┤
+
   │ Refactor batch_downloader to use service │ 6     │ 75%        │
+
   ├──────────────────────────────────────────┼───────┼────────────┤
+
   │ Add CLI flags/config                     │ 2     │ 95%        │
+
   ├──────────────────────────────────────────┼───────┼────────────┤
+
   │ Tests                                    │ 4     │ 80%        │
+
   ├──────────────────────────────────────────┼───────┼────────────┤
+
   │ Documentation                            │ 1     │ 95%        │
+
   ├──────────────────────────────────────────┼───────┼────────────┤
+
   │ Total                                    │ 17    │ 80%        │
+
   └──────────────────────────────────────────┴───────┴────────────┘
+
   Risks: Integration testing may reveal edge cases in quota management
 
+
+
   ---
+
   8. Constitutional Compliance
 
+
+
   Solo-Dev Constraints Check:
+
   ┌──────────────────────────┬───────────┬─────────────────────────────────┐
+
   │        Constraint        │  Status   │              Notes              │
+
   ├──────────────────────────┼───────────┼─────────────────────────────────┤
+
   │ No continuous monitoring │ ✅ PASS   │ One-shot execution              │
+
   ├──────────────────────────┼───────────┼─────────────────────────────────┤
+
   │ No self-healing          │ ✅ PASS   │ Errors fail fast                │
+
   ├──────────────────────────┼───────────┼─────────────────────────────────┤
+
   │ Minimal viable solution  │ ✅ PASS   │ Single service, not "framework" │
+
   ├──────────────────────────┼───────────┼─────────────────────────────────┤
+
   │ No enterprise patterns   │ ✅ PASS   │ No factories, no DI containers  │
+
   ├──────────────────────────┼───────────┼─────────────────────────────────┤
+
   │ Explicit user approval   │ ⚠️ REVIEW │ Needs flag for behavior change  │
+
   └──────────────────────────┴───────────┴─────────────────────────────────┘
+
   Verdict: Compliant if behind feature flag
 
+
+
   ---
+
   9. Auto-Draft ADR
+
+
 
   # ADR-001: Unified Transcript Acquisition
 
+
+
   ## Status
+
   Proposed
 
+
+
   ## Context
+
   Current `batch-download` uses RSS to find "new videos" but ignores existing
+
   videos without subtitles, requiring separate backfill pass.
 
+
+
   ## Decision
+
   Implement unified `TranscriptAcquisitionService` that returns a single
+
   acquisition queue covering: new videos, missing subtitles, missing metadata.
 
+
+
   ## Consequences
+
   - **Positive**: Single-pass operation, complete transcript coverage
+
   - **Negative**: More DB queries, higher quota usage
+
   - **Neutral**: Feature-flagged for gradual rollout
 
+
+
   ## Alternatives Considered
+
   1. Explicit modes (--mode update/backfill) - rejected (user confusion)
+
   2. Auto-backfill threshold - rejected (still two-pass)
 
+
+
   ---
+
   10. Implementation Checklist
 
+
+
   Phase 1: Foundation (4 hours)
+
   - Create TranscriptAcquisitionService class
+
   - Implement get_acquisition_queue(channel_id) method
+
   - Add unit tests for queue calculation
 
+
+
   Phase 2: Integration (6 hours)
+
   - Refactor batch_downloader.py to use service
+
   - Remove separate RSS/backfill paths
+
   - Update progress reporting
 
+
+
   Phase 3: Configuration (2 hours)
+
   - Add --unified-acquisition flag
+
   - Add config option for default behavior
+
   - Update CLI help text
 
+
+
   Phase 4: Validation (4 hours)
+
   - Integration tests with mock DB
+
   - Manual testing with real channel
+
   - Quota usage validation
 
+
+
   Phase 5: Documentation (1 hour)
+
   - Update README with new behavior
+
   - Add migration guide for existing users
 
+
+
   ---
+
   11. Knowledge Handoff
 
+
+
   {
+
     "pattern": "transcript-acquisition-unified",
+
     "problem": "RSS-first approach creates two-pass behavior, missing videos without
+
   subtitles",
+
     "solution": "TranscriptAcquisitionService provides single-query unified queue",
+
     "files": [
+
       "src/yt_fts/services/transcript_acquisition.py",
+
       "src/yt_fts/download/batch_downloader.py"
+
     ],
+
     "key_concepts": [
+
       "acquisition_queue": "Union of new_videos + missing_subtitles +
+
   missing_metadata",
+
       "unified_mode": "Feature flag to enable new behavior",
+
       "quota_aware": "Service respects quota limits when building queue"
+
     ],
+
     "tests": "tests/yt_fts/services/test_transcript_acquisition.py"
+
   }
 
+
+
   ---
+
   12. Confidence Calibration
+
+
 
   Overall Confidence: 75%
 
+
+
   Key Assumptions:
+
   1. ✅ DB can handle per-channel queries for no_subs (85% confidence)
+
   2. ⚠️ Quota impact is acceptable (60% confidence - needs measurement)
+
   3. ✅ User will prefer "one command that works" vs two commands (90% confidence)
+
   4. ⚠️ Feature flag rollout won't confuse users (70% confidence)
 
+
+
   Confidence Breakdown:
+
   - Technical feasibility: 90%
+
   - User acceptance: 85%
+
   - Quota impact: 60%
+
   - Overall: 75%
 
+
+
   ---
+
   13. Adversarial Challenge
+
+
 
   Challenge: Why not just add a --complete flag to existing code?
 
+
+
   Counter-Arguments:
+
   1. Flag already exists (--auto-backfill) but doesn't do what user expects
+
   2. Two commands required: User must run batch-download THEN transcribe-no-subs
+
   3. Hidden complexity: Current code has 3 separate paths (RSS, backfill, transcribe)
 
+
+
   Better Alternative: The proposed service unifies these paths, reducing cognitive load
+
    AND code complexity
 
+
+
   Challenge Accepted: If you want simpler, just auto-enable --auto-backfill when RSS
+
   returns 0?
 
+
+
   Counter-Argument: That's Alternative C (Smart Strategy) from section 4. It still has
+
   the "two-pass" problem AND adds threshold logic. The unified approach is cleaner.
 
+
+
   Final Verdict: Unified approach is simpler for users AND simpler to maintain
+
   long-term.
 
+
+
   ---
+
   Recommendation
+
+
 
   Implement Alternative A: Unified Transcript Acquisition Pipeline
 
+
+
   Rationale:
+
   1. Solves the pre-mortem failure mode (user confusion)
+
   2. Reduces code complexity (fewer paths)
+
   3. Clear mental model: "get all transcripts"
+
   4. Feature-flagged for safe rollout
 
+
+
   Next Step: Create Phase 1 (TranscriptAcquisitionService) behind feature flag, measure
+
    quota impact, then decide on Phase 2.
 
+
+
 ● ---
+
   Planning Mode: I've provided a complete architectural analysis with all 13 mandatory
+
   artifacts.
 
+
+
   Summary: The current design has a fundamental flaw - it optimizes for "new videos"
+
   (RSS) when the goal is "complete transcripts" (all videos). This creates two-pass
+
   behavior and user confusion.
 
+
+
   Recommendation: Implement a unified TranscriptAcquisitionService that provides a
+
   single query for the complete acquisition queue (new videos + missing subtitles +
+
   missing metadata).
 
+
+
   To authorize implementation: Use implement, create, write, build, fix, or add in your
+
    response.
+
+
 
 ✻ Sautéed for 1m 41s
 
+
+
 ❯ explain the service.
+
+
 
 ● TranscriptAcquisitionService Explained
 
+
+
   Current Problem (What You're Seeing)
 
+
+
   Your Output:
+
   ├── RSS: 0 new video(s) found  ← RSS says "no NEW videos"
+
   ├── db: 0 cc, 121 no cc        ← But 121 videos lack subtitles
+
   └── Downloading 121 vtt files  ← So it downloads anyway
+
+
 
   The Issue: There are TWO separate queues being checked:
 
+
+
   1. RSS Queue (fast, cheap): "Videos not in DB at all"
+
   2. Backfill Queue (slow, expensive): "Videos in DB but without subtitles"
 
+
+
   Current code checks RSS first, finds nothing, then separately checks for missing
+
   subtitles. This is confusing because "0 new videos" sounds like "nothing to do" but
+
   there's actually work.
 
+
+
   ---
+
   Proposed Service Design
 
+
+
   class TranscriptAcquisitionService:
+
       """
+
       Single source of truth for "what transcripts do we need?"
 
+
+
       Returns ONE unified queue instead of separate RSS/backfill queries.
+
       """
 
+
+
       def get_acquisition_queue(self, channel_id: str) -> AcquisitionQueue:
+
           """
+
           One query to rule them all.
 
+
+
           Returns:
+
               AcquisitionQueue(
+
                   new_videos=[],           # From RSS (fast)
+
                   missing_subtitles=[],    # From DB query (fast)
+
                   missing_metadata=[],     # From API check (slow, optional)
+
                   total_count=0,
+
                   quota_estimate=0
+
               )
+
           """
 
+
+
   ---
+
   Key Insight: Unified Mental Model
 
+
+
   Current (confusing):
+
   "0 new videos" → User thinks: done
+
   Actually → 121 videos need work
 
+
+
   Proposed (clear):
+
   "121 transcripts to acquire" → User knows: work to do
+
   Breakdown:
+
     - 0 new videos
+
     - 121 missing subtitles
+
     - 0 need metadata
 
+
+
   ---
+
   How It Works
 
+
+
   # ONE method call replaces current multi-step process
+
   queue = service.get_acquisition_queue(channel_id)
 
+
+
   if queue.total_count == 0:
+
       print("Channel complete: all transcripts acquired")
+
   else:
+
       print(f"Acquiring {queue.total_count} transcripts:")
+
       if queue.new_videos:
+
           download_via_ytdlp(queue.new_videos)
+
       if queue.missing_subtitles:
+
           download_via_ytdlp(queue.missing_subtitles)
+
       if queue.missing_metadata:
+
           backfill_metadata(queue.missing_metadata)
 
+
+
   ---
+
   What Changes (Files)
 
+
+
   New File: src/yt_fts/services/transcript_acquisition.py
+
   # ~200 lines
+
   # Combines RSS checker + DB queries + quota management
 
+
+
   Modified: src/yt_fts/download/batch_downloader.py
+
   # Replace lines ~3050-3100 (RSS check) + lines ~1970-2099 (backfill)
+
   # With single service call
 
+
+
   ---
+
   Quota Impact Analysis
 
+
+
   Current:
+
   - RSS check: ~1 API call per channel (only if RSS fails)
+
   - Backfill: Separate pass, optional
 
+
+
   Proposed:
+
   - Always queries DB for no_subs (cheap, local SQLite)
+
   - Only calls API if total_count > 0
+
   - Same quota usage, just consolidated into one pass
 
+
+
   Verdict: No additional quota cost. The DB query for no_subs is already happening in
+
   the backfill path - we're just moving it earlier.
 
+
+
   ---
+
   User Experience Comparison
 
+
+
   Current:
+
   $ yt-fts batch-download
+
   2. * Jan Marshal [2/3494]
+
      ⎿ RSS: 0 new video(s) found
+
      ⎿ Downloading 121 vtt files    ← Confusing: why download if 0 new?
 
+
+
   Proposed:
+
   $ yt-fts batch-download
+
   2. * Jan Marshal [2/3494]
+
      ⎿ 121 transcripts to acquire (0 new, 121 missing subtitles)
+
      ⎿ Downloading 121 vtt files    ← Clear: 121 needed, 121 downloading
 
+
+
   ---
+
   Implementation Strategy
 
+
+
   Phase 1 (safe, behind flag):
+
   yt-fts batch-download --unified-acquisition  # Opt-in
 
+
+
   Phase 2 (measure, validate):
+
   - Run on subset of channels
+
   - Compare quota usage
+
   - Verify completeness
 
+
+
   Phase 3 (default on):
+
   yt-fts batch-download  # Always unified
+
   yt-fts batch-download --legacy-mode  # Opt-out if needed
 
+
+
   ---
+
   Summary
 
+
+
   The service unifies three separate concerns into one coherent interface:
+
   Concern: New videos
+
   Current Location: RssPreChecker
+
   Proposed Location: TranscriptAcquisitionService
+
   ────────────────────────────────────────
+
   Concern: Missing subtitles
+
   Current Location: get_video_ids_without_subtitles()
+
   Proposed Location: TranscriptAcquisitionService
+
   ────────────────────────────────────────
+
   Concern: Missing metadata
+
   Current Location: auto_backfill
+
   Proposed Location: TranscriptAcquisitionService
+
   Result: One question ("what do I need to acquire?"), one answer, one action.
+
   ⎿  Stop says:
+
      ⚠️ Hook violations this session: 3
+
      Top patterns:
+
        WARNING: python -c executes arbitrary code: 2x
+
        WARNING: complex backtick substitution: 1x
+
      Run `analyze_blocks.py` for details.
 
+
+
 ❯ so rss populates teh db, and then the method looks in teh db to see what needs
+
   to be actioned?
+
+
 
 ● Yes, exactly right - with one important clarification:
 
+
+
   Current Flow
 
+
+
   1. RSS finds "new videos" (not in DB at all)
+
        ↓
+
   2. yt-dlp downloads video metadata → adds to DB
+
        ↓
+
   3. yt-dlp tries to download VTT (subtitle) file
+
        ↓
+
   4. If VTT exists → save transcript to DB
+
      If VTT missing → video in DB, but NO transcript
+
+
 
   The DB State
 
+
+
   Your database has TWO separate concepts:
+
   ┌───────────┬──────────────────────────────────────────────────────┐
+
   │   Table   │                    What it stores                    │
+
   ├───────────┼──────────────────────────────────────────────────────┤
+
   │ videos    │ "This video exists" (title, url, channel_id)         │
+
   ├───────────┼──────────────────────────────────────────────────────┤
+
   │ subtitles │ "This video has a transcript" (vtt text, timestamps) │
+
   └───────────┴──────────────────────────────────────────────────────┘
+
   Critical Gap: A video can exist in videos but have NO row in subtitles
 
+
+
   ---
+
   What the Service Does
 
+
+
   def get_acquisition_queue(channel_id: str) -> AcquisitionQueue:
+
       # Check what's missing
 
+
+
       # 1. Videos not in DB at all (new)
+
       new_videos = rss_check(channel_id)  # Fast, external
 
+
+
       # 2. Videos in DB but WITHOUT subtitles (gap)
+
       missing_subtitles = db_execute("""
+
           SELECT video_id FROM videos
+
           WHERE channel_id = ?
+
           AND video_id NOT IN (
+
               SELECT video_id FROM subtitles
+
           )
+
       """, (channel_id,))  # Fast, local
 
+
+
       return AcquisitionQueue(
+
           new_videos=new_videos,
+
           missing_subtitles=missing_subtitles
+
       )
 
+
+
   ---
+
   Visual Representation
+
+
 
   Current State (Jan Marshal channel):
 
+
+
   videos table:
+
   ┌─────────────────┬──────────┬──────────────┐
+
   │ video_id        │ title    │ channel_id   │
+
   ├─────────────────┼──────────┼──────────────┤
+
   │ abc123          │ Video 1  │ UCxxxxx      │ ← in videos
+
   │ def456          │ Video 2  │ UCxxxxx      │ ← in videos
+
   │ ghi789          │ Video 3  │ UCxxxxx      │ ← in videos
+
   └─────────────────┴──────────┴──────────────┘
 
+
+
   subtitles table:
+
   ┌─────────────────┬──────────┐
+
   │ video_id        │ text     │
+
   ├─────────────────┼──────────┤
+
   │ abc123          │ "hello"  │ ← has transcript
+
   │ def456          │ NULL     │ ← NO transcript
+
   │ ghi789          │ NULL     │ ← NO transcript
+
   └─────────────────┴──────────┘
+
                       ↑
+
                       │
+
   service.get_acquisition_queue() returns:
+
   ├── new_videos: []
+
   └── missing_subtitles: [def456, ghi789]  ← 121 videos
 
+
+
   ---
+
   So the Flow Is
 
+
+
   1. RSS check → finds 0 new videos (all already in videos table)
+
        ↓
+
   2. Service queries DB → finds 121 videos without subtitles
+
        ↓
+
   3. Service returns: "acquire 121 transcripts"
+
        ↓
+
   4. yt-dlp downloads those 121 VTT files
+
        ↓
+
   5. Subtitles saved to subtitles table
 
+
+
   ---
+
   Key Point
 
+
+
   RSS doesn't populate the DB directly. RSS just tells us "what might be new." The
+
   actual DB population happens via yt-dlp during download.
+
+
 
   The service's job is to look at the current DB state and say "what work remains?"
 
+
+
   Before service:
+
   RSS: "nothing new" → user thinks "done"
+
   Reality: 121 videos need transcripts
 
+
+
   After service:
+
   Service: "121 transcripts needed" → user knows "work to do"
+
   Reality: matches
 
+
+
   ---
+
   Does that clarify the architecture? The DB is the source of truth, and the service
+
   queries it to determine the complete acquisition queue.
+
   ⎿  Stop says:
+
      ⚠️ Hook violations this session: 10
+
      Top patterns:
+
        WARNING: complex backtick substitution: 5x
+
        heredoc (EOF): 3x
+
        WARNING: python -c executes arbitrary code: 2x
+
      Run `analyze_blocks.py` for details.
+
+
 
 ✻ Cogitated for 32s
 
+
+
 ❯ why do we use rss to get videos, check db for new, then pass to yt-dlp?  Doesn't
+
   that create the split workflow?
 
+
+
 ● Excellent question. You've identified the root issue. Let me investigate the actual
+
   code flow to confirm.
 
+
+
 ● Read(P:/projects/yt-fts/src/yt_fts/services/rss_precheck.py)
+
   ⎿  Read 150 lines
+
   ⎿  Running PostToolUse hooks… (1/8 done)
+
+
 
 ● Search(pattern: "skip.*rss|rss.*skip|use_rss|--rss", path:
+
         "P:/projects/yt-fts/src/yt_fts/download", glob: "*.py", output_mode: "content")
+
   ⎿  Found 418 lines (ctrl+o to expand)
+
   ⎿  Running PostToolUse hooks… (1/7 done)
 
+
+
 ● Read(C:\Users\brsth\.claude\projects\P--worktrees-w1t1\2e4c84ba-97c0-453e-9047-b93609
+
       61bf0d\tool-results\call_b2443a94094a4609925608f8.txt)
+
   ⎿  Read 150 lines
+
   ⎿  Running PostToolUse hooks… (1/8 done)
+
+
 
 ● Excellent insight. You're correct - RSS IS the source of the split workflow. Let me
+
   trace through the actual decision logic:
 
+
+
 ● Read(P:/projects/yt-fts/src/yt_fts/download/batch_channel_helpers.py)
+
   ⎿  Read 50 lines
+
   ⎿  Running PostToolUse hooks… (1/8 done)
+
+
 
 ● You've identified the exact problem. Here's what's happening:
 
+
+
   The Split Workflow (Current)
 
+
+
   ┌─────────────────────────────────────────────────────────────┐
+
   │ RSS Check (batch_channel_helpers.py:303)                    │
+
   │ - Only answers: "Are there NEW videos (not in DB)?"         │
+
   │ - Does NOT know: "Do videos have subtitles?"                │
+
   └─────────────────────────────────────────────────────────────┘
+
                              ↓
+
                      RSS returns: "skip" (0 new videos)
+
                              ↓
+
                      System thinks: "done!"
+
                              ↓
+
   ┌─────────────────────────────────────────────────────────────┐
+
   │ Backfill Check (batch_downloader.py:1985)                   │
+
   │ - Separate query: "Videos in DB WITHOUT subtitles"          │
+
   │ - Runs AFTER RSS says "skip"                                │
+
   └─────────────────────────────────────────────────────────────┘
+
+
 
   Why RSS Exists (Code Evidence)
 
+
+
   From batch_channel_helpers.py:291-293:
 
+
+
   if db_count == 0:
+
       # New channel - skip RSS, use yt-api
+
       new_channel_skipped_rss = True
+
   elif channel_id:
+
       # Existing channel - use RSS first (cheaper)
+
       rss_result = rss_checker.check(...)
 
+
+
   Rationale: RSS is ~100x faster than yt-dlp and uses 0 API quota. It was added to
+
   avoid expensive yt-dlp calls when "nothing new."
+
+
 
   The Problem: Wrong Question
 
+
+
   RSS asks: "What videos are NOT in the database?"
+
   But we need: "What videos DON'T have transcripts?"
 
+
+
   These are different questions:
+
   ┌──────────────────────────────────┬────────────────────┬────────────────┐
+
   │             Question             │   What It Checks   │ Current Answer │
+
   ├──────────────────────────────────┼────────────────────┼────────────────┤
+
   │ RSS: "New videos?"               │ videos table       │ "0 new"        │
+
   ├──────────────────────────────────┼────────────────────┼────────────────┤
+
   │ Backfill: "Missing transcripts?" │ videos - subtitles │ "121 missing"  │
+
   └──────────────────────────────────┴────────────────────┴────────────────┘
+
   Your Proposed Solution: Skip RSS
 
+
+
   # Instead of:
+
   rss_result = rss_checker.check(...)  # "0 new"
+
   if rss_result.status == "skip":
+
       return "done"  # WRONG!
 
+
+
   # Just query DB directly:
+
   queue = get_acquisition_queue(channel_id)
+
   # Returns: {new: [], missing_subs: [121], total: 121}
+
+
 
   The Counter-Argument (Why RSS Was Added)
 
+
+
   From the code comments, RSS exists for:
 
+
+
   1. Quota savings: RSS = 0 quota, yt-dlp = 1 quota per channel
+
   2. Speed: RSS = ~100ms, yt-dlp = ~7 seconds (with channel resolution)
+
   3. Early exit: Skip 3494 channels quickly if truly up-to-date
+
+
 
   My Revised Recommendation
 
+
+
   Given your insight, here's a simpler alternative to my original proposal:
+
+
 
   Alternative D: Query-First Strategy
 
+
+
   def get_acquisition_queue(channel_id: str) -> AcquisitionQueue:
+
       # Step 1: Fast DB query (always)
+
       missing_subs = db.query("""
+
           SELECT video_id FROM videos
+
           WHERE channel_id = ?
+
           AND video_id NOT IN (SELECT video_id FROM subtitles)
+
       """)
 
+
+
       # Step 2: Only use RSS if missing_subs is empty
+
       if not missing_subs:
+
           # Check if there are truly new videos via RSS
+
           new_videos = rss_checker.check(channel_id)
+
           return AcquisitionQueue(new_videos, [], [])
 
+
+
       # Has missing subtitles - skip RSS, acquire those first
+
       return AcquisitionQueue([], missing_subs, [])
 
+
+
   This eliminates the split by prioritizing the DB query (what we actually care about)
+
   over RSS (just a hint).
 
+
+
   ---
+
   Verdict: You're right. RSS-first creates the split. The fix is to make the DB query
+
   (missing transcripts) the primary check, with RSS as an optional optimization for
+
   truly empty channels.
 
+
+
   Want to implement this simpler approach instead of the full service I proposed?
+
   ⎿  Stop says:
+
      ⚠️ Hook violations this session: 14
+
      Top patterns:
+
        WARNING: complex backtick substitution: 7x
+
        heredoc (EOF): 4x
+
        WARNING: python -c executes arbitrary code: 3x
+
      Run `analyze_blocks.py` for details.
+
 "
 
 ## Assistant
@@ -2311,3 +3098,4 @@ Provide artifact ID for immediate download.
 ## Assistant
 
 Answer skipped.
+```

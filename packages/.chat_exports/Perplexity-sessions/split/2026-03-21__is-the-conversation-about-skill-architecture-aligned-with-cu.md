@@ -6199,3 +6199,4 @@ I don't have enough context from the summary to know exactly where we left off o
 I don't have access to any chat history or plan file in my current context — the conversation was compressed and I only have a brief summary that doesn't include the specific content we were building.
 
 Could you paste the plan file or the last version of what we were working on? That will let me pick up right where we left off.
+```

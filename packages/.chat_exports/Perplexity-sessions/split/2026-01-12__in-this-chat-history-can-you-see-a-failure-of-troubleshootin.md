@@ -129,7 +129,7 @@ Since you use Claude Code heavily, this hook-based approach works best:
 
 verify_changes() {
   local claim="$1"
-  if [[ "$claim" == *"commit"* ]] || [[ "$claim" == *"applied"* ]]; then
+  if /"$claim" == *"commit"* || /"$claim" == *"applied"*; then
     echo "HALT: Verify git status before claiming completion"
     git status
     echo "Explicitly confirm: git diff shows your changes"

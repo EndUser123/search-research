@@ -947,3 +947,4 @@ def stop_hook_pattern():
 3. Force Claude to process "Stage N+1 must execute" as a blocker
 
 This is **reactive** continuation enforcement. av2's **proactive** approach (injecting directives before Claude decides to stop) would prevent the LLM from ever considering stoppage.
+```

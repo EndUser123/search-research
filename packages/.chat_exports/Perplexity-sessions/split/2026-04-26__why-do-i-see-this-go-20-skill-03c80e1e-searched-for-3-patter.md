@@ -3136,7 +3136,7 @@ from lib.conflict_resolver import resolve_conflicts
 from lib.synthesis_context import ContextFact
 
 
-def test_conflicts_surface_when_scores_close() -> None:
+def [REDACTED]() -> None:
     facts = [
         ContextFact("a", "plugin path is x", "project_local", "x", 0.92, 0.9, 0.5, 0.5, 50, conflict_group="plugin-path"),
         ContextFact("b", "plugin path is y", "knowledge_store", "y", 0.84, 0.91, 0.5, 0.5, 50, conflict_group="plugin-path"),
@@ -3177,250 +3177,496 @@ Phase Two is complete only when all of the following are true:
 ## Human
 
 "
+
 ❯ does this address the issues?  Can we do this also?"C:\\Users\\brsth\\Downloads\\claude-search-implementation-package (1).md"
+
+
 
   Read 1 file (ctrl+o to expand)
 
+
+
 ● This appears to be the same document — same Phase One spec, no code changes. The only addition is a Phase Two section (lines
+
   736–1186) for context assembly that wasn't in the first copy.
+
+
 
   Let me confirm by checking for actual differences:
 
+
+
 ● Bash(diff <(md5sum "C:\\Users\\brsth\\Downloads\\claude-search-implementation-package.md" | awk '{print $1}') <(md5sum
+
       "C:\\Users\\brsth\\Downloads\\claude-search-implementa…)
+
   ⎿  1c1
+
      < \\75753de6a705c0bd644aa88f8f6269d5
+
      ---
+
      > \\846b0faef46b13efa1e5dded6fb9c6ff
 
+
+
 ● Files are different — the (1) suffix version adds an entirely new Phase Two section (lines 736–1186) not present in the original.
+
   Let me check what that adds and whether it addresses my earlier gaps.
 
+
+
   ---
+
   What's New in the (1) Version: Phase Two
 
+
+
   Phase Two adds a context assembly layer — eight new modules that take search results, rank them by authority+relevance, compress
+
   into a prompt budget, and surface conflicts explicitly.
+
+
 
   Phase Two additions:
 
+
+
   ┌───────────────────────┬─────────────────────────────────────────────────────────────────────────┐
+
   │        Module         │                                 Purpose                                 │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ context_assembler.py  │ Orchestration entry point                                               │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ context_ranker.py     │ Score facts by authority×relevance×novelty×recency                      │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ context_compressor.py │ Budget-aware packing with per-source caps                               │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ context_budget.py     │ Token budget policy (4000 total / 1800 reserve / per-source caps)       │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ conflict_resolver.py  │ Detect and surface conflicting facts                                    │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ source_authority.py   │ Authority weights by source class (policy=1.00, entity_scope=0.98, ...) │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ synthesis_context.py  │ ContextFact, ContextConflict, PromptContext dataclasses                 │
+
   ├───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+
   │ evaluation_metrics.py │ Coverage/compression/conflict metrics                                   │
+
   └───────────────────────┴─────────────────────────────────────────────────────────────────────────┘
 
+
+
   ---
+
   Does Phase Two Address the Phase One Gaps?
+
+
 
   No. Phase Two is built on Phase One but doesn't fix it. Here's the dependency chain:
 
+
+
   Phase Two ContextAssembler
+
     └─► assemble_prompt_context(facts: list[ContextFact], ...)
+
           └─► requires ContextFact objects to be already produced
+
                └─► those come from the bridge + EvidencePacket flow
+
                     └─► EvidencePacket production has never been wired
+
+
 
   Specific new problems introduced by Phase Two:
 
+
+
   1. Phase Two requires provenance data the system doesn't produce yet
+
+
 
   ContextFact needs: fact_id, claim, source_class, source_ref, authority, relevance, novelty, recency, token_cost, conflict_group.
 
+
+
   None of these fields are produced by Phase One's EvidencePacket or SearchMatch. source_ref in particular would need a translation
+
   from SearchMatch → ContextFact with authority scores. That translation function doesn't exist and isn't specified.
+
+
 
   2. unknowns injection has no source
 
+
+
   Phase Two says unknowns must propagate when "one noisy backend didn't query something." But Phase One never produces this signal.
+
   The bridge doesn't emit "which backends were skipped / which roots were not in scope." Without that, context_unknowns stays empty
+
   always.
+
+
 
   3. Phase Two hook change adds a second injection path without clearing the first
 
+
+
   Phase One hook injects into additionalContext. Phase Two adds prompt_context injection. But there is no merge rule — what happens
+
   when both are present? What wins? The spec does not define a precedence relationship between additionalContext and prompt_context.
+
+
 
   4. Token cost estimation is assumed, not derived
 
+
+
   ContextFact.token_cost: int — but no function estimates token cost from a SearchMatch or EvidencePacket. The spec provides no
+
   token_cost() function. At 4000 total token budget with 1800 reserved for answer and per-source caps, this matters.
 
+
+
   ---
+
   Phase One Gaps Not Addressed (Still Open)
 
+
+
   ┌──────────────────────────────────────────────────────┬───────────┬──────────────────────────────────────────────────────────┐
+
   │                         Gap                          │  Still    │                         Evidence                         │
+
   │                                                      │   Open?   │                                                          │
+
   ├──────────────────────────────────────────────────────┼───────────┼──────────────────────────────────────────────────────────┤
+
   │ search_fn API mismatch with UnifiedAsyncRouter       │ YES       │ Phase Two doesn't touch the bridge                       │
+
   ├──────────────────────────────────────────────────────┼───────────┼──────────────────────────────────────────────────────────┤
+
   │ search_evidence_packet never populated in hook chain │ YES       │ Phase Two adds more consumers but no producer            │
+
   ├──────────────────────────────────────────────────────┼───────────┼──────────────────────────────────────────────────────────┤
+
   │ Per-root coverage tracking (not in search-research)  │ YES       │ Phase Two context assembler consumes aggregated output,  │
+
   │                                                      │           │ not per-root coverage                                    │
+
   ├──────────────────────────────────────────────────────┼───────────┼──────────────────────────────────────────────────────────┤
+
   │ policies.py is empty/deferred                        │ YES       │ Not mentioned in Phase Two                               │
+
   ├──────────────────────────────────────────────────────┼───────────┼──────────────────────────────────────────────────────────┤
+
   │ Backend name case mismatch (spec: lowercase,         │ YES       │ Not mentioned in Phase Two                               │
+
   │ registry: TitleCase)                                 │           │                                                          │
+
   └──────────────────────────────────────────────────────┴───────────┴──────────────────────────────────────────────────────────┘
 
+
+
   ---
+
   What's Good in Phase Two
 
+
+
   - Source authority weighting is principled and tunable (policy=1.00 is right)
+
   - Conflict surfacing when scores are close (surface_both when delta < 0.08) is the right behavior
+
   - Per-source token caps prevent single noisy source from dominating
+
   - Evaluation metrics (source_coverage_ratio, compression_ratio) enable measurement
+
   - Conflict resolution rule (prefer_higher_authority vs surface_both) is explicit and enforceable
 
+
+
   ---
+
   Bottom Line
 
+
+
   Phase Two is a solid design for a context assembly layer, but it assumes Phase One is complete and working. It is not. Phase Two
+
   cannot be implemented until the Phase One bridge produces properly formed ContextFact objects with token costs, source classes,
+
   ```python
+
   router = UnifiedAsyncRouter(mode=Mode.FAST)
+
   results = await router.search_async(query, mode=Mode.FAST, backend=["Grep", "Skills"], limit=20)
+
   # Returns SearchResults, not list[dict]
+
   There is no root parameter. There is no backends=list calling convention. The bridge MUST adapt — either async with asyncio.run()
+
   wrapper, or async-native with await.
+
+
 
   2. search_evidence_packet is never wired into the hook chain
 
+
+
   Stop_claim_verifier reads input_data["search_evidence_packet"]. Nothing writes it. The PostToolUse_evidence_logger also reads it.
+
   Nothing produces it. The spec shows the contract but not the data flow to populate it. YOU must wire: resolve → build plan →
+
   execute bridge → get EvidencePacket → inject into input_data["search_evidence_packet"] for the next hook in the chain.
+
+
 
   3. Backend names are case-mismatched
 
+
+
   Spec code: required_backends=("grep", "skills") — lowercase.
+
   search-research backend registry: "Grep", "Skills", "CHS", "CKS" — TitleCase.
+
   The bridge or intent classifier needs a mapping table.
+
+
 
   4. Per-root coverage tracking does not exist in search-research
 
+
+
   The spec's CoverageReport (which roots searched, which missing) requires the bridge to track this itself. UnifiedAsyncRouter does
+
   parallel async execution but does not report per-root coverage. The bridge must iterate roots, call the router per-root, and track
+
    results internally.
 
+
+
   ---
+
   Phase Two cannot be started until Phase One is green. Phase Two's ContextFact objects need token_cost, source_class, authority
+
   fields that Phase One's EvidencePacket does not produce. Implement Phase One completely first.
 
+
+
   Implementation order from the spec is correct: fake adapter first, tests with fakes, then real adapter. Do not skip the
+
   fake-adapter step.
+
   ```
+
+
 
 ❯ Any fixes you suggest?
 
+
+
 ● Four targeted fixes, in order of blast radius:
 
+
+
   ---
+
   Fix 1 — searchresearch_bridge.py: async-native adaptation
+
+
 
   The spec's SearchFn contract is fundamentally sync. Replace with:
 
+
+
   # Async-native bridge matching UnifiedAsyncRouter API
+
   import asyncio
+
   from search_research import UnifiedAsyncRouter, Mode
 
+
+
   BACKEND_NAME_MAP = {
+
       "grep": "Grep",
+
       "skills": "Skills",
+
       "chs": "CHS",
+
       "cks": "CKS",
+
       "cds": "CDS",
+
       "rlm": "RLM",
+
   }
 
+
+
   async def execute_plan_async(plan: SearchPlan) -> EvidencePacket:
+
       # Per-root iteration with coverage tracking
+
       # UnifiedAsyncRouter doesn't have root-level coverage
+
       # → call router per-root, track which roots returned results
+
       ...
 
+
+
   This also fixes per-root coverage (the router has no root tracking, so the bridge must do it iteratively per required_roots
+
   entry).
 
+
+
   ---
+
   Fix 2 — Add a search_evidence_packet producer
+
+
 
   The spec declares the contract but shows no producer. Add one explicit function:
 
+
+
   def produce_evidence_packet(plan: SearchPlan, router_result) -> EvidencePacket:
+
       """Translate UnifiedAsyncRouter output → EvidencePacket with coverage."""
+
       ...
 
+
+
   Then in the hook chain, after a search command runs, call produce_evidence_packet and inject into
+
   input_data["search_evidence_packet"] before Stop_claim_verifier fires. Without this, Stop_claim_verifier always sees an
+
   empty/missing packet and will either always allow or always block depending on its error path.
 
+
+
   ---
+
   Fix 3 — intent_classifier.py: lowercase → TitleCase mapping
+
+
 
   Add one constant:
 
+
+
   ENTITY_BACKEND_MAP = {
+
       EntityType.COMMAND: ["Grep"],
+
       EntityType.SKILL: ["Grep", "Skills"],
+
       EntityType.PLUGIN: ["Grep", "Skills"],
+
       EntityType.HOOK: ["Grep"],
+
       EntityType.HASH_SKILL_ARTIFACT: ["Grep", "Skills"],
+
   }
 
+
+
   Use this in build_search_plan instead of the hardcoded lowercase ("grep", "skills") tuple. This is a one-line-per-entity-type
+
   change but prevents silent backend-selection failures.
 
+
+
   ---
+
   Fix 4 — runtime_context.py: add terminal isolation
+
+
 
   The plain dict RuntimeContextStore will share state across terminals if used for cross-turn caching. Add an isolation key:
 
+
+
   from pathlib import Path
+
   import hashlib
 
+
+
   class RuntimeContextStore:
+
       def __init__(self) -> None:
+
           # Terminal-isolated by cwd hash
+
           self._terminal_id = hashlib.md5(str(Path.cwd()).encode()).hexdigest()[:8]
+
           self._state: dict[str, Any] = {}
 
+
+
   This costs 5 lines and prevents a class of stale-data-cross-terminal bugs if the store is ever used for anything beyond the
+
   current session.
 
+
+
   ---
+
   What these fix vs. what they don't:
 
+
+
   ┌───────────────────────────────────────┬───────────────────────────────┐
+
   │                  Fix                  │          Closes Gap           │
+
   ├───────────────────────────────────────┼───────────────────────────────┤
+
   │ Async bridge + BACKEND_NAME_MAP       │ API mismatch, case mismatch   │
+
   ├───────────────────────────────────────┼───────────────────────────────┤
+
   │ Per-root iteration                    │ Coverage tracking gap         │
+
   ├───────────────────────────────────────┼───────────────────────────────┤
+
   │ produce_evidence_packet               │ Evidence packet wiring gap    │
+
   ├───────────────────────────────────────┼───────────────────────────────┤
+
   │ Terminal-isolated RuntimeContextStore │ Multi-terminal isolation risk │
+
   └───────────────────────────────────────┴───────────────────────────────┘
 
+
+
   The policies.py gap remains deferred — the spec does not specify what rules belong there, so it should stay empty until a concrete
+
    policy need is identified.
+
+
 
   Should I write these fixes into the spec, or do you want to hand the corrected spec to the implementing LLM directly?"
 
@@ -3828,84 +4074,163 @@ Please:
 ## Human
 
 "
+
 ● The handoff is thorough and correctly addresses all 4 gaps I identified. A few observations:
 
+
+
   What's good:
+
   - 1.1 (async bridge) — correctly scoped
+
   - 1.2 (BACKEND_NAME_MAP) — right fix
+
   - 1.3 (per-root coverage) — correct coverage semantics definition
+
   - 1.4 (translate_results_to_matches) — explicit translator prevents field mapping drift
+
   - 1.5 (produce_evidence_packet) — closes the wiring gap
+
   - 1.6 (terminal isolation) — meets the multi-terminal safety requirement
+
+
 
   One gap remaining in the handoff itself:
 
+
+
   In section 2.1, token_cost is flagged as "you must implement a simple estimator" — but there's no further guidance on what makes a
+
    valid estimate vs. a guess. A naive len(text) // 4 will overcount for code (which tokenizes compactly) and undercount for short
+
   snippets.
 
+
+
   The discriminating test: if token cost is badly estimated, Phase Two's per_source_caps and reserve_for_answer budget logic
+
   produces wrong inclusions/exclusions. The handoff should say:
 
+
+
   ▎ "Implement a conservative estimator: max(10, len(content) // 4) for SearchMatch content, or use a real tokenizer if available.
+
   ▎ Do not leave token_cost=0 or leave it uninitialized."
+
+
 
   One minor note on 1.1 import:
 
+
+
   The placeholder from searchresearch.core import UnifiedRouter, Mode may not match the actual package layout. The
+
   search_research/__init__.py exports UnifiedAsyncRouter and Mode from core.unified_router and core.modes respectively. The
+
   implementing LLM should verify the actual import path before assuming.
 
+
+
   ---
+
   Verdict: The handoff is solid. Add the token cost estimator clarification and it's complete.
 
+
+
 ※ recap: The goal is implementing the claude-search Claude Code plugin (Phase One + Phase Two) against search-research. The handoff
+
   prompt is ready with all 4 API-gap fixes baked in — just add a token-cost estimator note, then send it to the implementing LLM.
+
   (disable recaps in /config)
+
+
 
 ❯ Any suggestions for an optimal token cost estimator?
 
+
+
 ● Tradeoff comparison (2 options + fallback):
 
+
+
   ┌─────────────┬──────────────────────────────────────┬────────────────────────────────────────┬───────────────────────────────┐
+
   │             │       max(10, len(text) // 4)        │        max(20, len(text) // 3)         │           tiktoken            │
+
   ├─────────────┼──────────────────────────────────────┼────────────────────────────────────────┼───────────────────────────────┤
+
   │ Accuracy    │ ~0.75 correlation                    │ ~0.85 correlation                      │ ~0.98 correlation             │
+
   ├─────────────┼──────────────────────────────────────┼────────────────────────────────────────┼───────────────────────────────┤
+
   │ Speed       │ O(1), no deps                        │ O(1), no deps                          │ O(n), extra dep               │
+
   ├─────────────┼──────────────────────────────────────┼────────────────────────────────────────┼───────────────────────────────┤
+
   │ Failure     │ Underestimates short strings →       │ Overestimates all → facts excluded     │ Slow, tiktoken not installed  │
+
   │ mode        │ budget leaks                         │ prematurely                            │                               │
+
   ├─────────────┼──────────────────────────────────────┼────────────────────────────────────────┼───────────────────────────────┤
+
   │ Blast       │ Low (prompt slightly over limit)     │ Medium (valid facts dropped)           │ Low (if available, else falls │
+
   │ radius      │                                      │                                        │  back)                        │
+
   └─────────────┴──────────────────────────────────────┴────────────────────────────────────────┴───────────────────────────────┘
 
+
+
   Failure mode that matters for this use case: underestimating is worse than overestimating. If token cost is underestimated, facts
+
   pass the budget check when they shouldn't → prompt exceeds limit → LLM context cutoff. If overestimated, facts get dropped
+
   conservatively → user sees fewer results but no corruption.
 
+
+
   Axis: accuracy vs. dependency cost. Code/prose混合 content is the common case — len(text) // 4 works fine for both since Claude
+
   tokenizers are similar to GPT's ~4 chars/token ratio.
+
+
 
   Recommendation:
 
+
+
   def estimate_token_cost(content: str, min_cost: int = 15) -> int:
+
       """Conservative token estimate with floor to prevent undercounting."""
+
       return max(min_cost, len(content) // 3)  # conservative: 3 not 4
 
+
+
   Use // 3 instead of // 4 for a safety buffer. Set min_cost=15 (not 10) — a SearchMatch snippet of fewer than ~60 chars should
+
   still count as at least 15 tokens.
+
+
 
   If tiktoken is already in the environment or a dependency of search-research, use it as the fast path:
 
+
+
   import tiktoken
+
   _encoder = tiktoken.get_encoding("cl100k_base")
 
+
+
   def estimate_token_cost(content: str) -> int:
+
       return max(15, len(_encoder.encode(content)))
 
+
+
   Fallback: if tiktoken isn't available and you don't want to add it, the // 3 + floor(15) formula is sufficient and has no new
+
   dependencies."
 
 ## Assistant
@@ -3951,50 +4276,95 @@ Confidence: **0.93** that this is the right final polish, because it closes the 
 ## Human
 
 "
+
 ● Verified facts (not inference):
 
+
+
   ┌───────────────┬────────────────────────────────┬────────────────────────────────────────────────────────────┐
+
   │     Item      │        Spec placeholder        │                           Actual                           │
+
   ├───────────────┼────────────────────────────────┼────────────────────────────────────────────────────────────┤
+
   │ Router class  │ from core import UnifiedRouter │ from core.unified_router import UnifiedAsyncRouter         │
+
   ├───────────────┼────────────────────────────────┼────────────────────────────────────────────────────────────┤
+
   │ Mode enum     │ Mode (generic)                 │ from core.modes import Mode                                │
+
   ├───────────────┼────────────────────────────────┼────────────────────────────────────────────────────────────┤
+
   │ Public export │ search_research.UnifiedRouter  │ search_research.UnifiedAsyncRouter via core.unified_router │
+
   ├───────────────┼────────────────────────────────┼────────────────────────────────────────────────────────────┤
+
   │ Mode values   │ FAST, COMPREHENSIVE, CUSTOM    │ ✓ matches                                                  │
+
   └───────────────┴────────────────────────────────┴────────────────────────────────────────────────────────────┘
 
+
+
   Canonical import for the implementing LLM:
+
   from search_research import UnifiedAsyncRouter, Mode
+
   # or equivalently:
+
   from search_research.core.unified_router import UnifiedAsyncRouter
+
   from search_research.core.modes import Mode
+
+
 
   The additional requirements look good. One clarification to add:
 
+
+
   ▎ Re: "do not assume the placeholder import path is correct" — the actual package uses UnifiedAsyncRouter (not UnifiedRouter). If
+
   ▎ the implementing LLM imports UnifiedRouter and it doesn't exist, they'll get an ImportError immediately — which is
+
   ▎ self-correcting. The more important deviation to flag is that search-research has no root parameter in search_async(), so the
+
   ▎ per-root coverage logic must live entirely in the bridge (iterate over roots, call per-root, filter hits by filepath prefix).
 
+
+
   This means the note about verifying import paths is good, but the more consequential gap the handoff should emphasize is the
+
   absence of root in the router API — that requires the bridge to do the path filtering manually.
+
+
 
 ✻ Worked for 1m 16s
 
+
+
 ❯ Is that something you can address yourself right now?
 
+
+
 ● The gap I'm highlighting (the root parameter absence + per-root coverage in the bridge) is not something I can address in the
+
   handoff document — it requires actual code. Whether I should implement it depends on your intent:
 
+
+
   If your goal is to hand off to another LLM: The handoff is ready as-is. The implementing LLM will discover the root gap on its own
+
    when it tries to call search_async() and realizes there's no such parameter.
 
+
+
   If you want me to implement claude-search directly: I can, but it's a full multi-module implementation (Phase One + Phase Two =
+
   ~15 modules, ~1200+ lines of code plus tests). That's a significant task. Should I proceed?
 
+
+
   If you want me to pre-fix the handoff with the actual verified import paths: Done — I already verified them above. That's a
+
   30-second update to the handoff document."
 
 ## Assistant
@@ -4062,326 +4432,647 @@ Confidence: **0.95** that this is the right correction, because it aligns direct
 ## Human
 
 "
+
   Phase One residual gaps (HIGH severity)
 
+
+
   1. search_evidence_packet is never produced
+
   The Stop_claim_verifier hook reads input_data.get("search_evidence_packet"), and PostToolUse_evidence_logger reads it too, but
+
   nothing in the spec names a function that populates it. The spec specifies the shape of the packet but not the producer. This is
+
   the same gap that was supposedly addressed via produce_evidence_packet() in conversation — that name doesn't appear in the
+
   document.
 
+
+
   2. SearchFn signature doesn't match the actual API
+
   The bridge defines SearchFn = Callable[..., list[dict[str, Any]]] and execute_plan() takes a sync callable. But
+
   UnifiedAsyncRouter.search_async() is async and returns SearchResults, not list[dict]. The async wrapper (execute_plan_async) was
+
   discussed in the handoff replacement text but does not appear anywhere in the spec.
 
+
+
   ---
+
   Phase Two gaps (4 open)
 
+
+
   3. ContextFact translation from SearchMatch is undefined
+
   SearchMatch has source_path, backend, title, snippet. ContextFact requires fact_id, authority, relevance, novelty, recency,
+
   token_cost, conflict_group. The spec provides no translation function or field mapping. An implementing LLM would have to invent
+
   all of these.
 
+
+
   4. context_unknowns has no authoritative source
+
   UserPromptSubmit_context_assembler reads input_data.get("context_unknowns"). No producer is named anywhere in the spec. Phase Two
+
   integration rules say "unknowns must be injected explicitly" but don't say by whom or from where.
 
+
+
   5. Phase One + Phase Two injection precedence is undefined
+
   When both additionalContext (Phase One's UserPromptSubmit_entity_scope) and prompt_context (Phase Two's
+
   UserPromptSubmit_context_assembler) are present, the spec doesn't say which wins or how they combine. A naive concatenation would
+
   double-inject entity scope information.
 
+
+
   6. token_cost has no estimator
+
   ContextFact.token_cost: int appears in the schema but no formula or function computes it. The max(15, len(text) // 3) approach was
+
    discussed but never written into the spec.
 
+
+
   ---
+
   Verdict
+
+
 
   No — the design has 6 gaps, 2 HIGH severity (Phase One integration) and 4 MEDIUM severity (Phase Two).
 
+
+
   The Phase One integration gaps would cause the Stop_claim_verifier to always see absence_claim_allowed: False (or KeyError) in
+
   practice, because search_evidence_packet is never wired. The Phase Two gaps would require an implementing LLM to make uninformed
+
   architectural choices on translation, precedence, and budget modeling.
 
+
+
   These are not implementation details left for later — they are contract gaps that would produce incorrect behavior if an
+
   implementing LLM followed the spec as-written.
+
+
 
 ✻ Crunched for 3m 12s
 
+
+
 ❯ For those that you can create an optimal fixed plan or solution, please tell me what that is. Then let me know what you need help
+
    with for an optimal solution.
+
+
 
 ● Here are the optimal fixes for all 6 gaps, in severity order.
 
+
+
   ---
+
   Fix 1 — search_evidence_packet never produced (HIGH)
 
+
+
   Root cause: Phase One only has 3 hooks but needs a 4th to intercept search results and populate the packet before
+
   Stop_claim_verifier fires.
+
+
 
   Fix: Add PostToolUse_evidence_producer.py as Hook 4:
 
+
+
   # hooks/PostToolUse_evidence_producer.py
+
   from __future__ import annotations
+
+
 
   from lib.searchresearch_bridge import execute_plan
 
+
+
   _TRIGGER_TOOL_RE = __import__("re").compile(
+
       r"\\b(grep|skills|cks|cds|rns|search)\\b",
+
       __import__("re").IGNORECASE,
+
   )
 
 
+
+
+
   def run(input_data: dict) -> dict:
+
       tool_name = str(getattr(input_data.get("tool", {}), "name", "") or "")
+
       if not _TRIGGER_TOOL_RE.search(tool_name):
+
           return input_data
 
+
+
       plan = input_data.get("search_plan")
+
       raw_results = input_data.get("tool", {}).get("results") or []
 
+
+
       if plan and raw_results:
+
           packet = execute_plan(plan, lambda **kw: raw_results)
+
           input_data["search_evidence_packet"] = {
+
               "absence_claim_allowed": packet.absence_claim_allowed,
+
               "coverage_complete": packet.coverage.complete,
+
               "matches": [
+
                   {"filepath": m.source_path, "source": m.backend, "title": m.title, "content": m.snippet}
+
                   for m in packet.matches
+
               ],
+
           }
+
       return input_data
+
+
 
   This fires after any search-adjacent tool call, produces the packet, and feeds Stop_claim_verifier.
 
+
+
   ---
+
   Fix 2 — SearchFn signature incompatible with actual API (HIGH)
 
+
+
   Root cause: execute_plan() takes a sync SearchFn returning list[dict], but the actual UnifiedAsyncRouter.search_async() is async
+
   and returns SearchResults.
+
+
 
   Fix: Add an async variant to the bridge, and fix the SearchFn type alias:
 
+
+
   # lib/searchresearch_bridge.py — additions
 
+
+
   async def execute_plan_async(plan: SearchPlan, router: UnifiedAsyncRouter) -> EvidencePacket:
+
       """Async variant: calls the real UnifiedAsyncRouter."""
+
       searched_roots: list[str] = []
+
       matches: list[SearchMatch] = []
+
       backend_failures: list[str] = []
 
+
+
       for root in plan.required_roots:
+
           expanded = _expand_root(root)
+
           try:
+
               # NOTE: UnifiedAsyncRouter has no root param; bridge does per-root iteration
+
               # and filepath prefix filtering — this is intentional (Gap 2 from design audit)
+
               results: SearchResults = await router.search_async(
+
                   query=plan.entity_id or plan.query,
+
                   backends=[b.lower() for b in plan.required_backends],  # TitleCase fix
+
                   limit=20,
+
               )
+
               searched_roots.append(root)
+
               for r in results.results:
+
                   # Filter to this root only
+
                   if not r.filepath.startswith(expanded):
+
                       continue
+
                   matches.append(
+
                       SearchMatch(
+
                           source_path=r.filepath,
+
                           backend=r.source,
+
                           title=r.title,
+
                           snippet=r.content[:300] if r.content else "",
+
                       )
+
                   )
+
           except Exception as exc:
+
               backend_failures.append(f"{root}: {exc!s}")
 
+
+
       missing_roots = tuple(r for r in plan.required_roots if r not in searched_roots)
+
       coverage = CoverageReport(
+
           required_roots=plan.required_roots,
+
           searched_roots=tuple(searched_roots),
+
           missing_roots=missing_roots,
+
           complete=len(missing_roots) == 0,
+
       )
+
       return EvidencePacket(
+
           query=plan.query,
+
           intent_kind=plan.intent_kind,
+
           entity_type=plan.entity_type,
+
           entity_id=plan.entity_id,
+
           coverage=coverage,
+
           matches=tuple(matches),
+
           backend_failures=tuple(backend_failures),
+
       )
+
+
 
   Also add a BACKEND_NAME_MAP at module level:
 
+
+
   # Canonical TitleCase names as used by search-research backends
+
   BACKEND_NAME_MAP = {
+
       "grep": "Grep",
+
       "skills": "Skills",
+
       "chs": "CHS",
+
       "cks": "CKS",
+
       "cds": "CDS",
+
       "rls": "RLM",
+
   }
 
+
+
   ---
+
   Fix 3 — ContextFact translation from SearchMatch undefined (MEDIUM)
+
+
 
   Root cause: SearchMatch fields don't map to ContextFact fields. The translation logic must be authored explicitly.
 
+
+
   Fix: Add a translation function in lib/synthesis_context.py (new file) or extend lib/evidence_packet.py:
+
+
 
   # lib/synthesis_context.py — additions
 
+
+
   from .source_authority import SOURCE_AUTHORITY
+
   from .evidence_packet import SearchMatch
 
+
+
   # token_cost estimator
+
   try:
+
       import tiktoken
+
       _enc = tiktoken.get_encoding("cl100k_base")
+
   except Exception:
+
       _enc = None
 
 
+
+
+
   def estimate_token_cost(text: str) -> int:
+
       """Estimate token cost for a text string.
 
+
+
       Uses tiktoken if available, otherwise approximates at ~3 chars/token.
+
       Minimum floor of 15 tokens.
+
       """
+
       if _enc is not None:
+
           return max(15, len(_enc.encode(text)))
+
       return max(15, len(text) // 3)
 
 
+
+
+
   def search_match_to_context_fact(
+
       match: SearchMatch,
+
       relevance: float = 0.8,
+
       novelty: float = 0.5,
+
       recency: float = 0.5,
+
       conflict_group: str | None = None,
+
   ) -> ContextFact:
+
       """Translate a SearchMatch (Phase One) into a ContextFact (Phase Two)."""
+
       authority = SOURCE_AUTHORITY.get(match.backend, 0.5)
+
       return ContextFact(
+
           fact_id=f"sm-{hash(match.source_path + match.title)}",
+
           claim=match.snippet or match.title,
+
           source_class=match.backend,
+
           source_ref=match.source_path,
+
           authority=authority,
+
           relevance=relevance,
+
           novelty=novelty,
+
           recency=recency,
+
           token_cost=estimate_token_cost(match.snippet or match.title),
+
           conflict_group=conflict_group,
+
       )
 
+
+
   ---
+
   Fix 4 — context_unknowns has no authoritative source (MEDIUM)
+
+
 
   Root cause: Phase Two integration rules say unknowns "must be injected explicitly" but no producer is named.
 
+
+
   Fix: Add a produce_unknowns function that aggregates from coverage gaps and backend failures:
+
+
 
   # lib/synthesis_context.py — additions
 
+
+
   def produce_unknowns(
+
       packet: EvidencePacket,
+
       backend_names: tuple[str, ...] = ("Grep", "Skills", "CHS", "CKS"),
+
   ) -> tuple[str, ...]:
+
       """Derive explicit unknowns from coverage state and backend failures.
 
+
+
       This is the authoritative source for context_unknowns.
+
       """
+
       unknowns: list[str] = []
 
+
+
       if not packet.coverage.complete:
+
           for root in packet.coverage.missing_roots:
+
               unknowns.append(f"Root not searched: {root}")
 
+
+
       for failure in packet.backend_failures:
+
           unknowns.append(f"Backend failure: {failure}")
 
+
+
       # Flag if required backends were not in the queried set
+
       for backend in backend_names:
+
           if not any(backend in str(f) for f in packet.backend_failures):
+
               pass  # not failed, not an unknown
+
+
 
       return tuple(unknowns)
 
+
+
   The UserPromptSubmit_context_assembler.py hook then calls this:
 
+
+
   def run(input_data: dict) -> dict:
+
       facts = input_data.get("candidate_context_facts") or []
+
       packet = input_data.get("search_evidence_packet") or {}
 
+
+
       unknowns = input_data.get("context_unknowns") or []
+
       if packet and not unknowns:
+
           from lib.synthesis_context import produce_unknowns
+
           unknowns = list(produce_unknowns(packet))
 
+
+
       if facts:
+
           assembler = ContextAssembler()
+
           input_data["prompt_context"] = assembler.build(facts=facts, unknowns=unknowns)
+
       return input_data
 
+
+
   ---
+
   Fix 5 — Phase One + Phase Two injection precedence undefined (MEDIUM)
 
+
+
   Root cause: Both additionalContext (Phase One) and prompt_context (Phase Two) write different keys to input_data. No guidance on
+
   combination or ordering.
+
+
 
   Fix: Add a precedence rule in the spec's Phase Two integration rules:
 
+
+
   ## Phase Two integration rules — addendum
+
+
 
   When both Phase One and Phase Two hooks are active:
 
+
+
   1. Phase One `UserPromptSubmit_entity_scope` fires FIRST, writing `additionalContext`.
+
   2. Phase Two `UserPromptSubmit_context_assembler` fires SECOND, writing `prompt_context`.
+
   3. The LLM prompt MUST concatenate as: `[prompt_context] + [additionalContext]`.
+
      - `prompt_context` carries ranked, budgeted, conflict-resolved facts.
+
      - `additionalContext` carries the search contract and required-roots declaration.
+
   4. The plugin MUST NOT merge `additionalContext` into `prompt_context` or vice versa;
+
      they are separate provenance streams.
+
   5. `Stop_claim_verifier` reads `search_evidence_packet` only; it is not affected
+
      by Phase Two precedence.
+
+
 
   This keeps provenance traceable and prevents double-injection of entity scope.
 
+
+
   ---
+
   Fix 6 — token_cost has no estimator (MEDIUM)
+
+
 
   Root cause: ContextFact.token_cost is used in budget calculations but no formula is in the spec.
 
+
+
   Fix: Already covered by Fix 3's estimate_token_cost() function above. The spec text should add:
+
+
 
   ### token_cost estimator
 
+
+
   Every ContextFact MUST have token_cost computed before budget evaluation.
 
+
+
   Default estimator (tiktoken with fallback):
+
   - Primary: tiktoken `cl100k_base` encoding, length of `claim` field
+
   - Fallback: max(15, len(claim) // 3)
+
   - Floor: 15 tokens minimum (prevents divide-by-edge-case)
+
+
 
   Implementation: `lib/synthesis_context.estimate_token_cost(claim: str) -> int`
 
+
+
   ---
+
   What I need from you
+
+
 
   To apply these fixes to the spec document, I need:
 
+
+
   1. Confirmation to update the spec file — I can edit claude-search-implementation-package (1).md directly with the Fix 1–6
+
   additions, or produce a clean replacement. Which file do you want updated?
+
   2. Bridge implementation scope — Fix 2 requires deciding whether the bridge calls search-research directly (bypassing the
+
   LLM-as-tool pattern) or stays as a passive adapter. The Phase One design uses commands that tell the LLM to call the bridge; Phase
+
    Two would call it directly from hooks. Which is preferred?
+
   3. Whether to include the execute_plan_async async variant — this is the cleanest fix for the async API mismatch, but it changes
+
   the bridge's role from passive adapter to active caller. Confirm yes/no."
 
 ## Assistant

@@ -24,7 +24,7 @@ All 13 referenced files/paths exist, including both memory files, the measuremen
 Commit 79bdb0e exists with the exact claimed subject ("rekey skill enforcement from frontmatter to invocation").
 cc-skills-analysis is at version 1.0.107; prompt_advisory rows are present in report-contracts.md.
 The registry.py claim is precise: [registry.py:776](https://claude.ai/epitaxy/local_d2ce7c58-5d08-4633-b0c4-255d36e3db24) is "plan_mode_schema", # Inject [PLAN]/[RATIONALE] schema... — a ] inside a comment, exactly as described.
-The 4 tests pass: pytest tests/test_completion_validator_registry_parse.py → 4 passed.
+The 4 tests pass: pytest tests/[REDACTED].py → 4 passed.
 The mechanism inventory lists /verify + /simplify; the backlog header has C1/C2/C3, the filing rule, roadmap, and falsification condition as described.
 The one real finding: [#1391](https://github.com/EndUser123/p/issues/1391) spec deviation already shipped
 The handoff says the delegate is "wiring record() into hook_runner.py's EXIT path" with the spec "WIRE the existing enforcement_telemetry.py (389 lines, SQLite, zero producers — do NOT build a duplicate)."

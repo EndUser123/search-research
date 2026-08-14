@@ -1,9 +1,14 @@
 ---
 title: "Is this true about yt-dlp?
 '
+
 ❯ why are we using youtube-transcript-api and not yt-dlp?
 
+
+
 ● [SEQ]
+
+
 
   Because youtube-"
 date: "2026-04-03"
@@ -16,29 +21,53 @@ entry_count: 6
 
 Is this true about yt-dlp?
 "
+
 ❯ why are we using youtube-transcript-api and not yt-dlp?
+
+
 
 ● [SEQ]
 
+
+
   Because youtube-transcript-api is significantly lighter — it calls YouTube's internal
+
    captions API directly, returning just text. yt-dlp must first download the video (or
+
    at least the audio stream), parse container formats, and extract captions as a
+
   side-effect. On a 3-minute video that's ~30MB of audio. For bulk downloading
+
   thousands of transcripts, the bandwidth and time difference is massive.
+
+
 
   The chain order in transcript.py reflects this by weight:
 
+
+
   1. sdk — youtube-transcript-api: direct captions API, ~200ms, no download
+
   2. yt-dlp: full audio download + extraction, ~10-30s, fallback only
+
   3. en_fallback: hardcoded English transcript (no network call)
+
   4. selenium: real Chrome browser, ~15-30s, for when YouTube blocks APIs entirely
+
   5. whisper: last resort audio transcription
 
+
+
   So yt-dlp is already in the chain as step 2 — but it's slow enough that burning
+
   bandwidth on full audio downloads for every video is wasteful when the lighter API
+
   method works. The circuit breaker on the SDK existing means YouTube is rate-limiting
+
   the lightweight path, so we're cascading down to the heavier methods more often than
+
   ideal.
+
 "
 
 ## Assistant
@@ -139,7 +168,7 @@ Prioritize: manual subs → auto-captions → Whisper (user-confirm size).[4][5]
 ## Proxy Setup (YTA)
 ```
 from youtube_transcript_api import YouTubeTranscriptApi
-YouTubeTranscriptApi.set_proxy('http://user:pass@proxy-ip:port')  # Per-request rotate
+YouTubeTranscriptApi.set_proxy('[REDACTED]:port')  # Per-request rotate
 transcript = YouTubeTranscriptApi.get_transcript(video_id)
 ```
 CLI: `export HTTP_PROXY=http://proxy:port; youtube-transcript-api ...`[3]
@@ -158,25 +187,45 @@ Rotate every 50-100 reqs; residential best for YouTube (mimic real users). Test:
 ## Human
 
 Does this seem right?  "
+
 ● Key finding: yt-dlp Python API bypasses bot detection (used android_vr client), got
+
   the subtitle URL — but then the subtitle endpoint itself returns 429. Same rate-limit
+
    as SDK, different failure mode.
 
+
+
   The bot detection (n challenge solving failed) comes from the CLI subprocess invoking
+
    yt-dlp's extraction engine. The Python API with android_vr impersonation bypasses it
+
    because it's using YouTube's own mobile API endpoint.
 
+
+
   So the real optimization the research is pointing at: replace the subprocess yt-dlp
+
   CLI call with the Python API using android_vr client. Subprocess fails at bot
+
   detection. Python API gets past it and hits the same rate-limit as SDK (acceptable —
+
   at least it gets to try).
 
+
+
   The yt-dlp CLI failures in production (n challenge solving failed) are all
+
   bot-detection failures, not rate-limit failures — meaning if we switched to the
+
   Python API, many of those 8 failures would be avoided.
 
+
+
   Action item: Rewrite _fetch_via_ytdlp to use yt_dlp.YoutubeDL Python API instead of
+
   subprocess, using the android_vr client for impersonation. This would put yt-dlp
+
   ahead of SDK in reliability, since it bypasses bot detection that CLI can't."
 
 ## Assistant

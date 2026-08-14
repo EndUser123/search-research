@@ -1939,21 +1939,38 @@ The bundle shows **real sophistication** — auto-depth detection, conditional r
 
 "✻ Baked for 1m 2s
 
+
+
 ❯ shouldn't /go have done a /simplify on the artifacts?
 
+
+
 ● Skill(go)
+
   ⎿  Successfully loaded skill
 
+
+
 ● No — /simplify runs on the code being committed, not on the PR artifacts. In our test, we added TEST.md (a docs file). Simplify
+
   checks the actual code diff for quality issues.
 
+
+
   The sequence is:
+
   1. Code changes → STEP 2 (verify) → STEP 3 (simplify on code) → STEP 4 (review passes on code)
+
   2. Artifacts → STEP 5 (generate from verified code)
+
+
 
   The artifacts are outputs, not inputs to simplify. They're prose descriptions of what was already verified.
 
+
+
   That said — if you were committing actual skill code (SKILL.md, ralph-loop.sh), simplify would run against those files as part of
+
   STEP 3, since they're in the git diff."
 
 I thought we wanted /simplify to be part of the /go workflow?
@@ -2695,36 +2712,67 @@ If you want a prettier name, `.task-state/` works too. Just be consistent.
 our standard pattern is .claude/.artifacts/{terminal_id}/{skill}/.  This makes it multi-terminal isolated immune to stale data and immune to workflow interruption caused by compact events.
 
 
+
   The .artifact pattern in this codebase refers to hidden (not really hidden, but in a folder that is used only for state or staging or temp files) state-flag files used by the /design_v1.1 skill to track process state. They are not  output artifacts (like ADRs or documents) — they are process markers.
+
+
 
   Files Found
 
+
+
   design/
+
   ├── .verified_<RUNID>       # Created on SUCCESS - validation passed, ADR auto-saved
+
   ├── .attempt_<RUNID>        # Tracks attempt count (max 3 per RUN ID)
+
   ├── .verified_smoke-test-001
+
   ├── .verified_qmd-batch-cite-001
+
   ├── .verified_debug-test-1776658407828414600
+
   ├── .attempt_bad-run-001
+
   ├── .attempt_ntp-invalid-1776658071462419400
+
+
 
   How It's Used
 
+
+
   The flow:
+
   1. Generate a RUN_ID (UUID)
+
   2. Draft design_draft_<RUNID>.json
+
   3. Run validate_design.py — on FAIL, creates .attempt_<RUNID> (increments)
+
   4. Run validate_design.py — on SUCCESS, creates .verified_<RUNID> AND auto-saves ADR to docs/architecture/ADR-<MODE>-<timestamp>.md
+
   5. A stop_if_unverified.py hook blocks any ADR output unless .verified_<RUNID> exists
 
+
+
   The hook path: skills/design_v1.1/hooks/stop_if_unverified.py looks for the flag at:
+
   skills/design_v1.1/design/.verified_<run_id>
+
+
 
   To Explain to an LLM
 
+
+
   ▎ The .artifact pattern is a filesystem-state marker system. Hidden files (.verified_<id>, .attempt_<id>) act as machine-readable proof that
+
   ▎ a multi-step process completed successfully or failed. It's used to gate downstream steps (the stop hook won't let ADR content through
+
   ▎ without a .verified_ flag), track retries (.attempt_ files), and decouple validation from output — the validator writes the flag, the hook
+
   ▎ enforces it.
 
 ## Assistant
@@ -2953,3 +3001,4 @@ bash ralph-go-loop.sh 5  # max 5 cycles
 ```
 
 All files are ready to use. Start with **`SKILL-artifact-pattern.md`** to understand the complete flow.
+```

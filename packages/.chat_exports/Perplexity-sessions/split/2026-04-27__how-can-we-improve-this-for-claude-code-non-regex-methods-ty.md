@@ -1587,239 +1587,473 @@ Why this is the right prompt: Claude Code hooks can be configured at multiple lo
 ## Human
 
 "
+
 ● Based on the files I read, here are the four requested deliverables:
 
+
+
   ---
+
   HOOK INVENTORY TABLE
 
+
+
   Event Type: SessionStart
+
   Hook Name: constitution_injector
+
   Path: P:/P--/.claude/hooks/constitution_injector.py
+
   Type: command
+
   Purpose: Injects constitution into new sessions
+
   Block/Warn/Context: Context (sysprompt)
+
   Stdin Data: session_id, resume_snapshot
+
   Overconfidence Relevance: Indirect - establishes evidence-tier rules
+
   ────────────────────────────────────────
+
   Event Type: UserPromptSubmit
+
   Hook Name: handoff_context_injector
+
   Path: P:/P--/.claude/hooks/handoff_context_injector.py
+
   Type: command
+
   Purpose: Injects session context on handoff
+
   Block/Warn/Context: Context
+
   Stdin Data: transcript_path, session_id
+
   Overconfidence Relevance: Low - workflow continuity
+
   ────────────────────────────────────────
+
   Event Type: UserPromptSubmit
+
   Hook Name: PrePrompt_hooks_router
+
   Path: P:/P--/.claude/hooks/router/UserPromptSubmit_router.py
+
   Type: command
+
   Purpose: Routes 8 registered prompt hooks
+
   Block/Warn/Context: Context
+
   Stdin Data: user_input, session_id
+
   Overconfidence Relevance: HIGH - 83% modules unregistered
+
   ────────────────────────────────────────
+
   Event Type: PreToolUse
+
   Hook Name: PreToolUse_write_router
+
   Path: P:/P--/.claude/hooks/router/PreToolUse_write_router.py
+
   Type: command
+
   Purpose: Routes pre-write tool hooks
+
   Block/Warn/Context: Block/Warn
+
   Stdin Data: tool_name, input, session_id
+
   Overconfidence Relevance: HIGH - stops writes before overconfident actions
+
   ────────────────────────────────────────
+
   Event Type: PreToolUse
+
   Hook Name: tdd_hook
+
   Path: P:/P--/.claude/hooks/tdd_hook.py
+
   Type: command
+
   Purpose: TDD enforcement gate
+
   Block/Warn/Context: Block
+
   Stdin Data: tool_call, session_id
+
   Overconfidence Relevance: Medium - blocks premature implementation
+
   ────────────────────────────────────────
+
   Event Type: PostToolUse
+
   Hook Name: evidence_store
+
   Path: P:/P--/.claude/hooks/evidence_store.py (Spool)
+
   Type: command
+
   Purpose: Logs tool events to SQLite
+
   Block/Warn/Context: Context (side-effect)
+
   Stdin Data: tool_events (JSON)
+
   Overconfidence Relevance: HIGH - records evidence for cross-turn analysis
+
   ────────────────────────────────────────
+
   Event Type: PostToolUse
+
   Hook Name: frameguard
+
   Path: P:/P--/.claude/hooks/frameguard.py
+
   Type: command
+
   Purpose: Detects structural regressions
+
   Block/Warn/Context: Warn
+
   Stdin Data: diff, frameguard_result
+
   Overconfidence Relevance: Medium - catches structural violations
+
   ────────────────────────────────────────
+
   Event Type: Stop
+
   Hook Name: Stop_router
+
   Path: P:/P--/.claude/hooks/router/Stop_router.py
+
   Type: command
+
   Purpose: Routes stop gates
+
   Block/Warn/Context: Block
+
   Stdin Data: response, tool_events, transcript
+
   Overconfidence Relevance: HIGH - runs all 25+ in-process blocking gates
+
   ────────────────────────────────────────
+
   Event Type: Stop
+
   Hook Name: Stop.py
+
   Path: P:/P--/.claude/hooks/Stop.py
+
   Type: command
+
   Purpose: In-process blocking gates
+
   Block/Warn/Context: Block
+
   Stdin Data: response_json via stdin
+
   Overconfidence Relevance: HIGH - overconfidence, affirmation, lazy-closure detection
+
   ────────────────────────────────────────
+
   Event Type: SubagentStop
+
   Hook Name: subagent_result_collector
+
   Path: P:/P--/.claude/hooks/subagent_result_collector.py
+
   Type: command
+
   Purpose: Collects subagent results
+
   Block/Warn/Context: Context
+
   Stdin Data: subagent_result
+
   Overconfidence Relevance: Low - subagent output logging
+
   ────────────────────────────────────────
+
   Event Type: SessionEnd
+
   Hook Name: session_compactor
+
   Path: P:/P--/.claude/hooks/session_compactor.py
+
   Type: command
+
   Purpose: Compacts session transcript
+
   Block/Warn/Context: Context
+
   Stdin Data: transcript_path
+
   Overconfidence Relevance: Low - archival
+
+
 
   Key finding: All hooks use type: "command" (subprocess pattern). No type: "prompt" or type: "agent" hooks found in registrations.
 
+
+
   ---
+
   FILE INVENTORY TABLE
 
+
+
   ┌──────────────────────────────────────────────────────────────┬───────┬───────────────────────────────────┬──────────────────┐
+
   │                             File                             │ Lines │              Purpose              │  Evidence Path   │
+
   │                                                              │       │                                   │       Role       │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/settings.json                                        │ ~700  │ All hook registrations, env var   │ Registration     │
+
   │                                                              │       │ toggles (60+)                     │ source-of-truth  │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/HOOKS_CATALOG.md                               │ ~900  │ Full CSF hook catalog, 55 hooks,  │ Documentation    │
+
   │                                                              │       │ 12 domains                        │ only             │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/Stop.py                                        │ ~1874 │ 25+ in-process blocking gates,    │ Primary blocking │
+
   │                                                              │       │ anti-sycophancy quality gate      │  architecture    │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │                                                              │       │ SQLite WAL evidence store,        │ Evidence         │
+
   │ .claude/hooks/evidence_store.py                              │ ~1690 │ tool_events,                      │ tracking         │
+
   │                                                              │       │ epistemic_commitments,            │ backbone         │
+
   │                                                              │       │ epistemic_bindings                │                  │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/anti_sycophancy/overconfidence_detector.py     │ ~427  │ Causal, catastrophe, attribution, │ Lexical triage   │
+
   │                                                              │       │  intensifier, outcome detection   │ engine           │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/anti_sycophancy/hypothesis_as_fact_detector.py │ ~545  │ 8 claim types, risk domains       │ Claim-type       │
+
   │                                                              │       │ (FS_CRITICAL/EXTERNAL/SYSTEM)     │ classifier       │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │                                                              │       │ Rationalization, stance           │ Cross-turn       │
+
   │ .claude/hooks/anti_sycophancy/lazy_closure_detector.py       │ ~340+ │ rationalization, conclusion       │ stance detection │
+
   │                                                              │       │ without evidence                  │                  │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/anti_sycophancy/affirmation_detector.py        │ ~200+ │ Green-state affirmation,          │ Confidence       │
+
   │                                                              │       │ over-affirmation, false-certitude │ calibration      │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/anti_sycophancy/README.md                      │ ~274  │ 5-module anti-sycophancy system,  │ Architecture     │
+
   │                                                              │       │ env var controls                  │ overview         │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/router/Stop_router.py                          │ ~300+ │ Routes to 8 registered Stop       │ Router           │
+
   │                                                              │       │ modules                           │ consolidation    │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │                                                              │       │ Routes to 8 registered prompt     │ Router - only    │
+
   │ .claude/hooks/router/UserPromptSubmit_router.py              │ ~250+ │ hooks                             │ 8/47 modules     │
+
   │                                                              │       │                                   │ active           │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/router/PreToolUse_write_router.py              │ ~200+ │ Routes pre-write tool hooks       │ Write-action     │
+
   │                                                              │       │                                   │ gate             │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/constitution_injector.py                       │ ~150+ │ Injects constitution into session │ Constitution     │
+
   │                                                              │       │  start                            │ enforcement      │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/tdd_hook.py                                    │ ~250+ │ TDD enforcement blocking gate     │ Test-driven      │
+
   │                                                              │       │                                   │ quality          │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/frameguard.py                                  │ ~300+ │ Structural diff detection         │ Quality gate     │
+
   ├──────────────────────────────────────────────────────────────┼───────┼───────────────────────────────────┼──────────────────┤
+
   │ .claude/hooks/breadcrumbs.py                                 │ ~400+ │ Workflow step tracking, trail     │ Provenance       │
+
   │                                                              │       │ persistence                       │ tracking         │
+
   └──────────────────────────────────────────────────────────────┴───────┴───────────────────────────────────┴──────────────────┘
 
+
+
   ---
+
   GAP ANALYSIS
+
+
 
   What's covered:
 
+
+
   1. Lexical overconfidence triage — overconfidence_detector.py catches causal assertions, catastrophizing, unverified attribution,
+
   intensifiers, outcome attribution. Evidence markers ([Tier 1], logs show, etc.) provide allow-list.
+
   2. Claim-type classification — hypothesis_as_fact_detector.py distinguishes 8 claim types (entity_absence, rule, system,
+
   convention, mechanism, analysis, session_behavior) with risk-domain tagging.
+
   3. In-process blocking — Stop.py runs all quality gates in-process (no subprocess overhead), reducing latency ~90% vs router
+
   pattern.
+
   4. Evidence recording — evidence_store.py persists tool events, epistemic commitments, and bindings to SQLite WAL. Can support
+
   cross-turn analysis.
+
   5. Cross-turn stance tracking — lazy_closure_detector.py detects rationalization patterns and stance-without-evidence.
+
+
 
   Critical gaps:
 
+
+
   1. Stop gate uses stdin JSON for response, not transcript — Stop.py receives transcript_path but the overconfidence detector only
+
   sees the current turn's response. Cannot do cross-turn stance/rationalization detection at the Stop gate without loading
+
   transcript.
+
   2. Overconfidence detector has no access to prior turns — _is_explanatory_prose() uses user_prompt as context, but no mechanism
+
   reads the actual prior turns from evidence_store.py to detect evolving rationalization.
+
   3. Evidence verification is lexical only — _has_evidence_marker() does substring matching. No verification that the cited evidence
+
    (e.g., "Tier 1") actually exists in the tool events or prior turns.
+
   4. UserPromptSubmit router has 83% module vacancy — Only 8 of 47 UserPromptSubmit_modules are registered. No active hook for
+
   pre-submission overconfidence triage on user prompts.
+
   5. No cross-validator for stance drift — No hook combines lazy_closure_detector output with hypothesis_as_fact_detector output to
+
   detect a pattern where one turn asserts a hypothesis, the next affirms it without evidence, and subsequent turns treat it as fact.
+
   6. Evidence store epistemic_commitments table exists but is not written to — Schema supports commitment tracking; no module
+
   currently populates it.
 
+
+
   ---
+
   RECOMMENDED ARCHITECTURE
+
+
 
   Answer to Q4 (command vs prompt vs agent):
 
+
+
   type: "command" is the only registered type and is correct for this workload. type: "prompt" would work for context injection but
+
   cannot block. type: "agent" is for spawning subagents, not enforcement. All blocking must flow through Stop.py in-process gates.
+
+
 
   Where to place each component:
 
+
+
   ┌────────────────────────────┬──────────────────────────────────────────────────────┬────────────────────────────────────────┐
+
   │         Component          │                      Placement                       │               Rationale                │
+
   ├────────────────────────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────┤
+
   │ Lexical triage             │ Keep in overconfidence_detector.py, call from        │ Already exists, proven, in-process     │
+
   │                            │ Stop.py _run_anti_sycophancy_quality()               │                                        │
+
   ├────────────────────────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────┤
+
   │ Evidence verification      │ New module: evidence_verifier.py, called from        │ Verify Tier citations against          │
+
   │                            │ Stop.py after lexical triage                         │ evidence_store.py tool_events          │
+
   ├────────────────────────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────┤
+
   │ Cross-turn                 │ Extend lazy_closure_detector.py, add                 │ Pass transcript to Stop gate, not just │
+
   │ stance/rationalization     │ evidence_store.py read access in Stop.py             │  transcript_path                       │
+
   ├────────────────────────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────┤
+
   │ Pre-submission triage      │ New UserPromptSubmit router module for               │ Fill the 83% vacancy in                │
+
   │                            │ overconfidence                                       │ UserPromptSubmit_router                │
+
   └────────────────────────────┴──────────────────────────────────────────────────────┴────────────────────────────────────────┘
+
+
 
   Optimal integration path:
 
+
+
   1. Phase 1 (cheap): Add transcript field to Stop.py stdin handling. Feed it to lazy_closure_detector for cross-turn analysis. No
+
   new files.
+
   2. Phase 2 (medium): Create evidence_verifier.py that reads tool_events from evidence_store.py and validates that cited Tier
+
   evidence actually exists in the execution history.
+
   3. Phase 3 (architectural): Populate epistemic_commitments table in evidence_store.py from Stop.py output, enabling future hooks
+
   to query "what has the system committed to this session."
 
+
+
   The existing infrastructure is 70%+ of what's needed. The gaps are specific: Stop gate needs transcript content (not just path),
+
   evidence verification needs DB read access, and the UserPromptSubmit router needs activation of dormant modules.
+
 "
 
 ## Assistant
@@ -1902,231 +2136,457 @@ The current summary is useful as a **working hypothesis**, not a final answer. T
 ## Human
 
 "
+
   CLAIM 1: Hook types supported by product docs
+
+
 
   VERIFIED (with caveat)
 
+
+
   File: P:\\.claude\\wiki\\entities\\claude-hooks-v3.md, line 29:
+
   | Hook types | command, prompt | **command, prompt, http, agent** |
 
+
+
   Excerpt: The left column (past version) supported command, prompt. The bold right column (current v3 docs) lists command, prompt,
+
   http, agent — four types.
 
+
+
   Caveat: "supported by docs" ≠ "wired in this repo." http hooks require an MCP server registration not present in this repo's
+
   settings.json.
 
+
+
   ---
+
   CLAIM 2: Hook types actually registered in settings.json
+
+
 
   VERIFIED — command only
 
+
+
   File: P:\\.claude\\settings.json, lines 163–504+. Every hook registration:
+
   "type": "command"
 
+
+
   Grep result: "type": "command" appears 50+ times. "type": "prompt" and "type": "agent" return zero matches in the entire settings
+
   file.
+
+
 
   Conclusion: This repo has never registered a prompt or agent hook. http hooks are also absent.
 
+
+
   ---
+
   CLAIM 3: What Stop.py receives (transcript content, path, tool events, or response JSON?)
+
+
 
   PARTIALLY PROVEN
 
+
+
   File: P:\\.claude\\hooks\\Stop.py, lines 307–343 and 460–468:
+
   # Lines 307-315: stdin data extraction
+
   {
+
       "assistant_response": data.get("response", ""),
+
       "session_id": data.get("session_id") or data.get("sessionId") or "",
+
       "tool_events": data.get("tool_events", []),    # ← passed as array
+
       "transcript_path": data.get("transcript_path", ""),
+
       "transcript": data.get("transcript", []),        # ← passed as array
+
   }
+
+
 
   # Lines 460-468: passed to behavioral gates
+
   {
+
       "assistant_response": data.get("response", ""),
+
       "tool_events": data.get("tool_events", []),
+
       "transcript_path": data.get("transcript_path", ""),
+
       "transcript": data.get("transcript", []),
+
       "session_id": data.get("session_id") or data.get("sessionId") or "",
+
   }
 
+
+
   Critical gap: transcript is extracted from the JSON but never read from disk by Stop.py. A grep across Stop.py for
+
   transcript.*read|read.*transcript|Path.*transcript finds no file I/O on the transcript path. The framework passes it as a field
+
   name transcript — whether it is populated depends on what Claude Code's framework sends. No evidence in this repo shows the
+
   transcript array is populated.
 
+
+
   Verdict: Stop.py receives response, tool_events, transcript_path, transcript from stdin JSON. It does not independently read the
+
   transcript file from disk.
 
+
+
   ---
+
   CLAIM 4: Can existing Stop-time code read prior turns or evidence-store state?
+
+
 
   UNPROVEN (no evidence of active use)
 
+
+
   File: P:\\.claude\\hooks\\evidence_store.py, lines 603–651:
+
   def load_tool_events(
+
       session_id: str, limit: int = 500, within_seconds: int | None = None
+
   ) -> list[dict[str, Any]]:
+
       # Returns: id, tool_name, ts, command, cwd, output_excerpt, session_id, terminal_id
 
+
+
   File: P:\\.claude\\hooks\\evidence_store.py, lines 1353–1389:
+
   def load_epistemic_commitments(
+
       session_id: str,
+
       terminal_id: str,
+
       # Returns: id, claim_type, content, artifact_path, created_at
 
+
+
   These functions exist and are properly implemented with SQLite queries. However, a grep across all Stop.py code for
+
   load_tool_events|load_epistemic_commitments|evidence_store returns zero matches. The functions are defined but not called by any
+
   Stop-time gate in this repo.
+
+
 
   The schema is wired; the reads are not. The infrastructure is present; no Stop gate currently exercises it.
 
+
+
   ---
+
   CLAIM 5: Does evidence_store.py persist enough data to verify structural claims?
+
+
 
   PARTIALLY PROVEN — schema supports it, but no writer exists for the key table
 
+
+
   File: P:\\.claude\\hooks\\evidence_store.py, lines 120–200:
+
   CREATE TABLE IF NOT EXISTS tool_events (
+
       id, session_id, terminal_id, ts, tool_name, command, cwd,
+
       output_excerpt, success, entities_json, metadata_json, event_key
+
   )
+
   CREATE TABLE IF NOT EXISTS epistemic_commitments (
+
       id, session_id, terminal_id, turn_id, claim_type, content, artifact_path
+
   )
+
   CREATE TABLE IF NOT EXISTS epistemic_bindings (
+
       id, commitment_id, tool_event_id, binding_kind, state_hash, is_stale
+
   )
+
+
 
   The writer problem: append_tool_event() (line 561) is called by PostToolUse hooks and writes tool events with command and
+
   output_excerpt fields — sufficient to verify "did tool X actually run with args Y?" But epistemic_commitments has no active writer
+
    in this repo. A grep for insert.*epistemic_commitments|record.*commitment|write_commitment finds no calls to the commitment
+
   insert function at line 1338.
 
+
+
   Verdict: Tool events are persisted. Commitment tracking is schema-only. The binding between commitments and tool events is defined
+
    but not populated.
 
+
+
   ---
+
   CLAIM 6: Existing pattern for "fast lexical triage + deep evidence verification"?
+
+
 
   PARTIALLY PROVEN — the architecture exists, integration is incomplete
 
+
+
   File: P:\\.claude\\hooks\\Stop.py, lines 502–530 (_run_anti_sycophancy_quality):
+
   def _run_anti_sycophancy_quality(data: dict) -> dict | None:
+
       # Calls: affirmation_detector, overconfidence_detector,
+
       #         lazy_closure_detector — all in-process, <10ms
 
+
+
   File: P:\\.claude\\hooks\\Stop.py, lines 1519–1556 (IN_PROCESS_GATES):
+
   IN_PROCESS_GATES = [
+
       ("anti_sycophancy_quality", _run_anti_sycophancy_quality),   # lexical only
+
       ("cross_validator", _run_cross_validator),                   # could be deep
+
       ...
+
   ]
 
+
+
   The tier 1 (lexical, in-process) is running. The tier 2 (cross-validator subprocess) exists but evidence_store is not fed into it.
+
    The gap is at the junction: cross_validator gate exists but load_tool_events() is not called to retrieve the evidence needed for
+
   deep verification.
 
+
+
   Also: The sequential thinking hooks (UserPromptSubmit → PreToolUse → Stop) implement a Generate → Critique → Improve loop — this
+
   is the closest existing pattern to "fast triage + deep verification," but it operates on reasoning, not on structural claim
+
   verification.
 
+
+
   ---
+
   CLAIM 7: Active prompt or agent hooks for Stop-time verification?
+
+
 
   UNPROVEN
 
+
+
   process_prompt() functions exist throughout UserPromptSubmit_modules/ and are used for context injection only — they return
+
   {"additionalContext": "..."}. No prompt hook has blocking capability.
+
+
 
   A grep for type.*prompt in settings.json returns zero matches. No agent hooks exist in any registration.
 
+
+
   The blocking architecture is exclusively command hooks + in-process Stop gates.
 
+
+
   ---
+
   CLAIM 8: Can prompt hooks block, warn, or only inject context?
+
+
 
   PROVEN — context injection only, no blocking
 
+
+
   File: P:\\.claude\\hooks\\CLAUDE.md, "Hook Output Formats" section:
+
   | UserPromptSubmit | Raw text (injected into context) |
+
   | PreToolUse       | {"continue": bool, "reason": "..."} |
+
   | Stop             | {"allow": bool, "reason": "..."}    |
 
+
+
   File: P:\\.claude\\hooks\\HOOKS_CATALOG.md, lines 451–455:
+
   def process_prompt(data: dict) -> dict:
+
       return {"additionalContext": "injection text"}
 
+
+
   UserPromptSubmit hooks cannot block. They inject text into context. Stop hooks block via {"allow": bool}. This is a hard
+
   architectural constraint — not a gap, a design decision.
 
+
+
   ---
+
   CLAIM 9: Best extension points for each function
+
+
 
   Structural overclaim lexical detection
 
+
+
   Extension point: Stop.py _run_anti_sycophancy_quality() (line 502)
 
+
+
   File: P:\\.claude\\hooks\\anti_sycophancy/overconfidence_detector.py — already exists, handles:
+
   - causal_assertion (this explains why)
+
   - catastrophizing (system is broken)
+
   - unverified_attribution (the root cause is)
+
   - overconfident_intensifier (definitely proves)
+
   - outcome_attribution (X correctly blocked Y)
 
+
+
   What is missing: _is_explanatory_prose() (line 171) uses only the current user_prompt string for context. It cannot see prior
+
   turns. For structural assessments, this is the correct layer — no new file needed.
+
+
 
   Evidence-backed claim verification
 
+
+
   Extension point: New gate in IN_PROCESS_GATES, or extend _run_cross_validator() (line 459)
 
+
+
   Files needed: evidence_store.py load_tool_events() (line 603) and append_tool_event() (line 561 — already wired from PostToolUse
+
   spool). The DB already has the schema. The missing piece is wiring: a Stop gate that calls load_tool_events(session_id) and
+
   matches cited evidence ("Tier 1: the hook blocked X") against actual tool_events rows.
+
+
 
   Key constraint: This must be an in-process call (within Stop.py), not a subprocess, to avoid the ~500ms boot penalty.
 
+
+
   Cross-turn stance drift detection
+
+
 
   Extension point: evidence_store.py load_epistemic_commitments() (line 1353) + new Stop gate
 
+
+
   Files needed: The epistemic_commitments table exists (line 162) but is not written to by any existing module. The write path
+
   (insert_epistemic_commitment, line 1338) is defined but never called. The read path exists and works. The gap is both sides: no
+
   writer populates the table, so the reader has nothing to query.
+
+
 
   Verdict: Requires both a writer (Stop gate that records stance claims) and a reader (subsequent Stop gate that flags drift).
 
+
+
   ---
+
   FINAL RECOMMENDATIONS
+
+
 
   Best immediate fix (no new architecture)
 
+
+
   Add import_spool_events() call at the top of process_stop() to materialize PostToolUse spool into SQLite before gates run. Then
+
   extend _run_cross_validator() to call load_tool_events(session_id) — this gives Stop gates access to all prior tool evidence
+
   within the same session, enabling Tier 2 verification of cited evidence.
+
+
 
   Files changed: 1 (Stop.py)
 
+
+
   Best medium-term fix
 
+
+
   Populate epistemic_commitments table by having overconfidence_detector.py write commitment records when it detects a claim (not
+
   just when it flags it). Then wire lazy_closure_detector to read prior-turn commitments via load_epistemic_commitments(). This
+
   closes the cross-turn drift loop.
+
+
 
   Files changed: anti_sycophancy/overconfidence_detector.py, Stop.py, evidence_store.py
 
+
+
   Best long-term fix
 
+
+
   Split IN_PROCESS_GATES into two sequences: fast-triage (lexical, <5ms) followed by evidence-verification (DB reads, <50ms). The
+
   fast sequence runs all 5 anti-sycophancy detectors. The slow sequence (triggered only when fast sequence flags something) reads
+
   tool_events and epistemic_bindings to upgrade a flag from "suspicious" to "verified violation." This mirrors the existing
+
   evidence_store design intent and the sequential thinking hooks' Generate → Critique pattern.
 
+
+
   Why not prompt/agent hooks: Product docs show prompt/agent are supported, but this repo has zero registrations of either. Both are
+
    context-injection-only (prompt) or subprocess-spawn (agent) — neither replaces the Stop gate's blocking capability. The command +
+
    in-process Stop gate architecture is correct for this use case."
 
 ## Assistant
@@ -2254,19 +2714,33 @@ The prompt you submitted is the **correct minimal viable step**. It improves det
 ## Human
 
 "
+
   1. skills and cases added to count-pattern alternation — fixes false negatives where "reviewed 37 skills" and "Checked 18 cases"
+
   weren't recognized as quantified evidence.
+
   2. Structural assessment detection — STRUCTURAL_ASSESSMENT_PHRASES (10 patterns) catches phrases like "optimal structure",
+
   "correct by design", "intentional exception", "deliberate pattern" that appear in architecture/code review contexts without actual
+
    evidence.
+
   3. detect_all_overconfidence() now runs all 6 detection steps and collects results across all pattern types.
+
   4. Evidence allow-listing covers: [Tier N], compared against/across, verified against/across, reviewed N files/skills, checked N
+
   instances, enumerated all skills, examined N cases, after reviewing all N peers.
 
+
+
   What was adjusted vs. the test assumptions:
+
   - "The structure is optimal" (predicate form) is not caught — only phrase-prefix patterns like "Optimal structure", "correct
+
   structure", "proper structure" trigger detection. Tests corrected to match actual behavior.
+
   - "I don't know if this is intentional" passes cleanly (uncertainty, not claim).
+
 "
 
 ## Assistant
@@ -2410,46 +2884,89 @@ This is intentionally narrow and implementation-specific so Sonnet 4.6 can act i
 
 "
 
+
+
   P:\\.claude\\hooks\\anti_sycophancy\\overconfidence_detector.py
+
   - detect_overconfidence(response, user_prompt, tool_events) — added tool_events param
+
   - detect_all_overconfidence(response, tool_events) — added tool_events param
+
   - _has_comparison_evidence(tool_events) — new function: returns True if tool_events show meaningful comparison work (≥2 comparison
+
    Bash commands, or ≥3 Read events, or 1 comparison Bash + 2 Reads)
+
   - Structural assessment step: when pattern matches without text evidence, checks _has_comparison_evidence(tool_events) before
+
   returning match — if evidence exists, returns None (allow)
+
   - __all__ exports both functions now
 
+
+
   P:\\.claude\\hooks\\Stop.py (line ~533)
+
   - _run_anti_sycophancy_quality now extracts tool_events = data.get("tool_events", []) and passes it to
+
   detect_all_overconfidence(response, tool_events=tool_events)
 
+
+
   P:\\.claude\\hooks\\anti_sycophancy\\tests\\test_overconfidence_detector.py
+
   - Added TestToolEventsEvidence with 11 tests covering all decision paths
+
+
 
   Exact behavior:
 
+
+
   ┌────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────┐
+
   │                Scenario                │                                       Result                                       │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Structural claim + tool_events=[]      │ OverconfidenceMatch(flag) — BLOCK                                                  │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Structural claim + tool_events=None    │ OverconfidenceMatch(flag) — BLOCK                                                  │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Structural claim + pwd only            │ OverconfidenceMatch(flag) — BLOCK                                                  │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Structural claim + ls skills/*/ (×2)   │ None — ALLOW                                                                       │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Structural claim + Read ×3 distinct    │ None — ALLOW                                                                       │
+
   │ files                                  │                                                                                    │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Structural claim + ls skills/ + Read   │ None — ALLOW                                                                       │
+
   │ ×2                                     │                                                                                    │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ Non-structural pattern + any           │ Pattern-specific detection (comparison evidence doesn't suppress                   │
+
   │ tool_events                            │ causal/catastrophizing)                                                            │
+
   ├────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+
   │ "I don't know if this is intentional"  │ None — ALLOW                                                                       │
+
   └────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────┘
+
+
 
   Test results: 60 passed in 0.25s. Stop.py imports cleanly."
 
@@ -2727,46 +3244,87 @@ If you want, I can compress that into a ~100–120 word version while keeping th
 ## Human
 
 "
+
   Files changed:
+
+
 
   P:\\.claude\\hooks\\anti_sycophancy\\overconfidence_detector.py
 
+
+
   Updated _has_comparison_evidence — new logic:
 
+
+
   1. _normalize_path(path) — strips the top-level directory component, keeps the rest as the sibling-key. skills/code/SKILL.md and
+
   skills/refactor/SKILL.md normalize to code/SKILL.md and refactor/SKILL.md (distinct). Repeated reads of the same file collapse to
+
   one entry.
+
   2. Enumeration signals — a Bash command is "enumeration" if it contains * (glob), -o/-a/-and/-or (find operators), | (pipe), or
+
   find predicates (-name, -path, -prune, -type, -maxdepth). ls skills/*/ qualifies; ls skills/ does not.
+
   3. Decision rule unchanged in outcome:
+
     - enumeration + ≥2 distinct inspected peers → True
+
     - ≥3 distinct inspected peers (no enumeration) → True
+
     - everything else → False
+
+
 
   P:\\.claude\\hooks\\Stop.py — unchanged (already extracts tool_events and passes it).
 
+
+
   P:\\.claude\\hooks\\anti_sycophancy\\tests\\test_overconfidence_detector.py
 
+
+
   New tests in TestToolEventsEvidence:
+
   - test_structural_block_enumeration_only — ls skills/*/SKILL.md ×2 with no Reads → BLOCK
+
   - test_structural_allow_with_enumeration_plus_inspection — ls skills/*/ + 2 distinct Reads → ALLOW
-  - test_structural_block_same_file_repeated — 3 Reads of identical path → BLOCK
+
+  - [REDACTED] — 3 Reads of identical path → BLOCK
+
   - test_structural_allow_with_three_distinct_siblings — 3 distinct sibling reads → ALLOW
+
   - test_structural_block_bash_no_glob_no_reads — ls skills/ (no glob) + 1 Read → BLOCK
+
   - test_structural_allow_with_find_enumeration_plus_inspection — find skills/ -name SKILL.md + 2 Reads → ALLOW
+
   - test_structural_allow_with_grep_enumeration_plus_inspection — grep -r "pattern" skills/ + 2 Reads → ALLOW
+
   - test_structural_allow_src_modules — 3 distinct src/module_*.rs reads → ALLOW
 
+
+
   Fixed: test_detect_all_with_comparison_tool_events now uses ls skills/*/ + 2 distinct Reads (the plain ls skills/ + ls packages/
+
   pair was enumeration-only per the new logic).
 
+
+
   Known limitations:
+
   - Normalization strips only the first path segment — deeply nested siblings (e.g., skills/code/sub/path/SKILL.md vs
+
   skills/refactor/sub/path/SKILL.md) would normalize to code/sub/path/SKILL.md and refactor/sub/path/SKILL.md (still distinct),
+
   which is correct behavior.
+
   - Grep on a single file path with no glob (grep "pattern" file.txt) is not enumeration — that's intentional; reading one file is
+
   inspection, not peer comparison.
+
   - bat and cat in Bash commands with output excerpt content could be used to infer file content without a Read event, but that edge
+
    case is out of scope for now."
 
 ## Assistant
@@ -2854,28 +3412,51 @@ Why this next step matters: the current version now proves “some peer comparis
 ## Human
 
 "
+
 ● What changed:
 
+
+
   _scope_root_of was computing scope from normalized paths (foo/SKILL.md) but enumeration scope roots come from raw command strings
+
   (skills). These didn't align — {'foo'} ≠ {'skills'} — causing false blocks.
 
+
+
   Fix: _scope_root_of now operates on original paths, not normalized ones. Added inspected_original_paths: list[str] to track raw
+
   Read paths for scope computation.
 
+
+
   Updated decision logic (lines 156-163, 198, 214):
+
   # inspect scope roots from ORIGINAL paths (aligns with enum roots)
+
   inspected_scope_roots = {_scope_root_of(p) for p in inspected_original_paths}
 
+
+
   # With enumeration: inspected_scope_roots ⊆ enumeration_scope_roots
+
   # Without enumeration: len(unique roots) == 1
+
+
 
   Test results: 65/65 passed
 
+
+
   Edge cases / limitations:
+
   - Path normalization still strips top-level dir for distinctness (two different skill reads → two entries), but scope root uses
+
   original path
+
   - Single-level paths like SKILL.md with no parent directory → returns the filename as root (edge, unlikely in real usage)
+
   - Mixed-depth reads (e.g., skills/foo and packages/bar) correctly flagged as mixed-scope if both enumerate but roots don't overlap
+
   - Enumeration-only with no reads → still blocked (correct)"
 
 ## Assistant
@@ -2988,74 +3569,143 @@ This makes the verifier check **"did you compare the right thing?"** instead of 
 ## Human
 
 "
+
   Summary: Subject-Aware Structural Claim Evidence Verification
+
+
 
   Files Changed
 
+
+
   overconfidence_detector.py (core logic):
+
   - Added _infer_structural_subject(response) — extracts directory-prefixed subject from structural claims via regex
+
   - Updated _has_comparison_evidence(tool_events, response) to accept response parameter and filter evidence to the claim's subject
+
   scope
+
   - Added 2 new structural patterns to STRUCTURAL_ASSESSMENT_PHRASES for passive-voice forms ("architecture is optimal", "pattern is
+
    intentional")
 
+
+
   test_overconfidence_detector.py (tests):
+
   - TestInferStructuralSubject: 6 tests for _infer_structural_subject
+
   - TestSubjectAwareEvidence: 8 tests for subject-aware blocking/allowing
+
   - Updated test_structural_only assertion to allow multiple pattern matches on one phrase
+
+
 
   Exact Decision Logic (updated section)
 
+
+
   subject = _infer_structural_subject(response) if response else None
 
+
+
   if has_enumeration:
+
       if subject:
+
           subject_roots = {r for r in enumeration_scope_roots if r == subject}
+
           if not subject_roots:
+
               return False  # subject not among enumerated roots -> wrong subject
+
           enumeration_scope_roots = subject_roots
+
       if not inspected_scope_roots:
+
           return False
+
       mixed_scope = bool(inspected_scope_roots - enumeration_scope_roots)
+
       if mixed_scope:
+
           return False
+
       if distinct_peers >= 2:
+
           return True
+
       return False
+
   else:
+
       if subject:
+
           if subject not in inspected_scope_roots:
+
               return False  # inspected a different scope than the claim subject
+
       if distinct_peers >= 3 and len(inspected_scope_roots) == 1:
+
           return True
+
       return False
+
+
 
   Test Results
 
+
+
   ┌────────────────────────────┬────────┬────────┐
+
   │           Suite            │ Passed │ Failed │
+
   ├────────────────────────────┼────────┼────────┤
+
   │ TestToolEventsEvidence     │ 19     │ 0      │
+
   ├────────────────────────────┼────────┼────────┤
+
   │ TestInferStructuralSubject │ 6      │ 0      │
+
   ├────────────────────────────┼────────┼────────┤
+
   │ TestSubjectAwareEvidence   │ 8      │ 0      │
+
   ├────────────────────────────┼────────┼────────┤
+
   │ All others                 │ 46     │ 0      │
+
   ├────────────────────────────┼────────┼────────┤
+
   │ Total                      │ 79     │ 0      │
+
   └────────────────────────────┴────────┴────────┘
+
+
 
   Edge Cases / Remaining Limitations
 
+
+
   1. Subject extraction requires keyword BEFORE / — "architecture/refactor is optimal" would NOT extract "refactor"; extraction
+
   looks for word/ prefix pattern
+
   2. Multiple pattern matches on single phrase — "Optimal structure — intentional exception" now matches 4 patterns instead of 2.
+
   This is correct behavior (layered detection) but the test had to be relaxed
+
   3. Passive-voice patterns added — "architecture is optimal" / "pattern is intentional" / "design is deliberate" now detected.
+
   These were previously gaps in the active-voice-only patterns
+
   4. Nested paths — _infer_structural_subject("skills/code/ structure is optimal") correctly returns "skills" (takes first segment
+
   only)
+
 "
 
 ## Assistant

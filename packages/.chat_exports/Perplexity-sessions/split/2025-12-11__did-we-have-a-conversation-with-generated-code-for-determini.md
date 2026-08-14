@@ -26,26 +26,47 @@ Recent browser activity shows heavy OpenRouter (237 visits) and Chutes (138 visi
 ## Human
 
 Claude Code Model Selector (Unified LiteLLM Proxy)
+
 -------------------------------------------------
+
 Loaded .env from: P:\.env
 
+
+
 Environment keys (process scope):
+
   - OPENROUTER_API_KEY  : sk-o...57
+
   - CHUTES_API_KEY      : cpk_...7o
 
+
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite            (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                 (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512         (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905         (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                 (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct      (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
  Q. Quit
+
 -------------------------------------------------
+
 Select a model:
 
 
@@ -213,187 +234,369 @@ If you want the `python` command changed to the exact venv interpreter (e.g., `P
 ## Human
 
 PS P:\> python .\.claude\proxy\api_quota_checker.py
+
 💳 Running API Quota and Credit Balance Check...
+
+
 
 💳 API Quota and Credit Balance Report
 
+
+
 Overall System Status
 
+
+
 - Status: ✅ HEALTHY
+
 - Timestamp: 2025-12-11T08:14:54.478188
+
 - Execution: P:\.claude\commands\api_quota_checker.py
+
+
 
 💳 Provider Quota Status
 
 
+
+
+
 ✅ OpenRouter: AVAILABLE
 
+
+
 - Status: Unknown status
+
 - Models: 342 models available
+
 - Model Breakdown: 342 total models
+
   Free: 32 models (32 explicit :free, 0 implicit $0.00)
+
   Paid: 310 models
+
   Free Examples: mistralai/devstral-2512:free, nex-agi/deepseek-v3.1-nex-n1:free, amazon/nova-2-lite-v1:free...
+
+
 
 ✅ Chutes AI: AVAILABLE
 
+
+
 - Status: Unknown status
+
 - Models: 56 models available
+
 - Daily Quota: 0/300 requests (0.0% used)
+
 - Remaining: 300 requests (Premium + Free)
+
 - Status: Healthy (Resets in: 15h 45m)
+
 - Model Types: 52 premium, 4 free models
+
 - Tracking: Local usage tracking (API doesn't provide quota info)
+
+
 
 ✅ Gemini: AVAILABLE
 
+
+
 - Status: Unknown status
+
 - Models: 9 models available
+
+
 
 ✅ Groq: AVAILABLE
 
+
+
 - Status: Unknown status
+
 - Models: 20 models available
+
+
 
 ✅ Mistral: AVAILABLE
 
+
+
 - Status: Unknown status
+
 - Models: 63 models available
+
+
 
 ✅ Perplexity: AVAILABLE
 
+
+
 - Status: Unknown status
+
 - Models: 18 models available
+
 - Model Breakdown: 18 total models
+
   🌐 Online Search: 6 models (real-time web search)
+
   🔒 Offline Instruct: 7 models (private processing)
+
   🔧 Legacy Models: 5 models (older versions)
+
   Examples: llama-3.1-sonar-small-128k-online, llama-3.1-sonar-medium-128k-online, llama-3.1-sonar-large-128k-online...
+
   💳 Account Tier: Pro/Enterprise (Excellent model access)
+
   🔍 Data: Live model detection completed
+
+
 
 ✅ Hugging Face: AVAILABLE
 
+
+
 - Status: Unknown status
+
+
 
 📊 Summary Statistics
 
+
+
 - Total Providers: 7
+
 - ✅ Healthy: 7 (100% success rate)
+
 - ❌ Failed: 0
+
+
 
 🔍 Key Insights
 
+
+
 Strong Performance:
+
 - 7 out of 7 providers are fully operational
 
+
+
 - Free-tier providers working: OpenRouter, Gemini, Groq
+
 - Premium provider (Chutes AI) accessible
+
 - Open source hub (Hugging Face) fully available
 
+
+
 Operational Status:
+
 - ✅ Free models fully available via OpenRouter, Gemini, Groq
+
 - ✅ Premium models available via Chutes AI (usage costs apply)
+
 - ✅ Large context models available via Mistral (128K-250K)
+
 - ✅ Open source models available via Hugging Face
+
+
 
 💰 Total Available Credits: $19.27
 
+
+
 ---
+
 🎉 All API quotas are healthy!
 
 
+
+
+
 📋 JSON Output:
+
 {
+
   "timestamp": "2025-12-11T08:14:54.478188",
+
   "overall_status": "healthy",
+
   "summary": {
+
     "total": 7,
+
     "healthy": 7,
+
     "failed": 0,
+
     "total_credits_usd": 19.27089250977,
+
     "credits_expiring_soon": []
+
   },
+
   "providers": {
+
     "OpenRouter": {
+
       "status": "available",
+
       "status_message": null,
+
       "models": 342,
+
       "billing_accessible": true,
+
       "billing_info": "Credits remaining: $19.27 (Total: $55.00, Used: $35.73)",
+
       "credits_remaining_usd": 19.27089250977,
+
       "low_credits_warning": false,
+
       "error_details": null,
+
       "last_checked": "2025-12-11T08:14:54.867767"
+
     },
+
     "Chutes AI": {
+
       "status": "available",
+
       "status_message": null,
+
       "models": 56,
+
       "billing_accessible": false,
+
       "billing_info": "Daily quota: 0/300 used (0.0%) - 300 requests remaining",
+
       "credits_remaining_usd": null,
+
       "low_credits_warning": false,
+
       "error_details": null,
+
       "last_checked": "2025-12-11T08:14:55.511953"
+
     },
+
     "Gemini": {
+
       "status": "available",
+
       "status_message": null,
+
       "models": 9,
+
       "billing_accessible": false,
+
       "billing_info": null,
+
       "credits_remaining_usd": null,
+
       "low_credits_warning": false,
+
       "error_details": null,
+
       "last_checked": "2025-12-11T08:14:55.703852"
+
     },
+
     "Groq": {
+
       "status": "available",
+
       "status_message": null,
+
       "models": 20,
+
       "billing_accessible": false,
+
       "billing_info": null,
+
       "credits_remaining_usd": null,
+
       "low_credits_warning": false,
+
       "error_details": null,
+
       "last_checked": "2025-12-11T08:14:55.926713"
+
     },
+
     "Mistral": {
+
       "status": "available",
+
       "status_message": null,
+
       "models": 63,
+
       "billing_accessible": false,
+
       "billing_info": null,
+
       "credits_remaining_usd": null,
+
       "low_credits_warning": false,
+
       "error_details": null,
+
       "last_checked": "2025-12-11T08:14:56.281255"
+
     },
+
     "Perplexity": {
+
       "status": "available",
+
       "status_message": null,
+
       "models": 18,
+
       "billing_accessible": false,
+
       "billing_info": "Usage tracked via billing dashboard (18 models detected) - Pro/Enterprise tier",
+
       "credits_remaining_usd": null,
+
       "low_credits_warning": false,
+
       "error_details": null,
+
       "last_checked": "2025-12-11T08:15:00.281703"
+
     },
+
     "Hugging Face": {
+
       "status": "available",
+
       "status_message": null,
+
       "models": 0,
+
       "billing_accessible": false,
+
       "billing_info": null,
+
       "credits_remaining_usd": null,
+
       "low_credits_warning": false,
+
       "error_details": null,
+
       "last_checked": "2025-12-11T08:15:00.502625"
+
     }
+
   }
+
 }
+
 PS P:\>
 
 ## Assistant
@@ -492,63 +695,121 @@ This will show, for your current run, something like:
 ## Human
 
 Claude Code Model Selector (Unified LiteLLM Proxy)
+
 -------------------------------------------------
+
 Loaded .env from: P:\.env
 
+
+
 Environment keys (process scope):
+
   - OPENROUTER_API_KEY  : sk-o...57
+
   - CHUTES_API_KEY      : cpk_...7o
 
 
+
+
+
 Split-Path: P:\.claude\proxy\cc_menu.ps1:42
+
 Line |
+
   42 |      $scriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
+
      |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
      | Cannot bind argument to parameter 'Path' because it is null.
+
 Join-Path: P:\.claude\proxy\cc_menu.ps1:44
+
 Line |
+
   44 |      $quotaScript = Join-Path $scriptDir "api_quota_checker.py"
+
      |                               ~~~~~~~~~~
+
      | Cannot bind argument to parameter 'Path' because it is null.
+
 Test-Path: P:\.claude\proxy\cc_menu.ps1:46
+
 Line |
+
   46 |      if (-not (Test-Path $quotaScript)) {
+
      |                ~~~~~~~~~~~~~~~~~~~~~~
+
      | Value cannot be null. (Parameter 'The provided Path argument was null or an
+
      | empty collection.')
+
 Split-Path: P:\.claude\proxy\cc_menu.ps1:42
+
 Line |
+
   42 |      $scriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
+
      |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
      | Cannot bind argument to parameter 'Path' because it is null.
+
 Join-Path: P:\.claude\proxy\cc_menu.ps1:44
+
 Line |
+
   44 |      $quotaScript = Join-Path $scriptDir "api_quota_checker.py"
+
      |                               ~~~~~~~~~~
+
      | Cannot bind argument to parameter 'Path' because it is null.
+
 Test-Path: P:\.claude\proxy\cc_menu.ps1:46
+
 Line |
+
   46 |      if (-not (Test-Path $quotaScript)) {
+
      |                ~~~~~~~~~~~~~~~~~~~~~~
+
      | Value cannot be null. (Parameter 'The provided Path argument was null or an
+
      | empty collection.')
+
 Quota:
+
   - OpenRouter quota: [script not found]
+
   - Chutes AI quota: [script not found]
 
+
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite            (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                 (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512         (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905         (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                 (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct      (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
  Q. Quit
+
 -------------------------------------------------
+
 Select a model:
 
 ## Assistant
@@ -634,31 +895,57 @@ With that change, running `.\cc_menu.ps1` from `P:\.claude\proxy` will find `api
 ## Human
 
 Claude Code Model Selector (Unified LiteLLM Proxy)
+
 -------------------------------------------------
+
 Loaded .env from: P:\.env
 
+
+
 Environment keys (process scope):
+
   - OPENROUTER_API_KEY  : sk-o...57
+
   - CHUTES_API_KEY      : cpk_...7o
 
 
+
+
+
 Quota:
+
   - OpenRouter quota: [script not found]
+
   - Chutes AI quota: [script not found]
 
+
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite            (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                 (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512         (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905         (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                 (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct      (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
  Q. Quit
+
 -------------------------------------------------
+
 Select a model:
 
 ## Assistant
@@ -852,32 +1139,59 @@ and it will still find `P:\.claude\proxy\api_quota_checker.py` and display OpenR
 ## Human
 
 Claude Code Model Selector (Unified LiteLLM Proxy)
+
 -------------------------------------------------
+
 Loaded .env from: P:\.env
 
+
+
 Environment keys (process scope):
+
   - OPENROUTER_API_KEY  : sk-o...57
+
   - CHUTES_API_KEY      : cpk_...7o
 
 
+
+
+
 Quota:
+
   - OpenRouter quota: [error]
+
   - Chutes AI quota: [error]
 
+
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite            (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                 (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512         (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905         (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                 (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct      (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
  Q. Quit
+
 -------------------------------------------------
+
 Select a model:
+
 PS P:\>
 
 
@@ -1031,11 +1345,17 @@ function Show-Menu {
 ## Human
 
 PS P:\> .\.claude\proxy\cc_menu.ps1
+
 ParserError: P:\.claude\proxy\cc_menu.ps1:116
+
 Line |
+
  116 |  function Show-Menu {
+
      |                     ~
+
      | Missing closing '}' in statement block or type definition.
+
 PS P:\>
 
 ## Assistant
@@ -1177,47 +1497,89 @@ function Show-Menu {
 
 another LLM said this:
 
+
 > can you figure out why this doesn't work?
+
 PS P:\> .\.claude\proxy\cc_menu.ps1
+
 ParserError: P:\.claude\proxy\cc_menu.ps1:129
+
 Line |
+
  129 |      Show-Key "OPENROUT
+
      |               ~~~~~~~~~
+
      | The string is missing the terminator: ".
+
 PS P:\>
 
+
+
 ● I'll help you fix the PowerShell script error. Let me first read the
+
   file to understand the issue.
 
+
+
 ● Read(.claude\proxy\cc_menu.ps1)
+
   ⎿  Read 130 lines
+
   ⎿  .claude\CLAUDE.md
 
+
+
 ● I can see the issue. The string on line 129 is missing the closing
+
   quote. Let me read a bit more to see the full context:
 
+
+
 ● Read(.claude\proxy\cc_menu.ps1)
+
   ⎿  Read 6 lines
 
+
+
 ● The error is clear: line 129 has an incomplete string. It shows
+
   Show-Key "OPENROUT but is missing the closing quote and the rest of
+
   the string. Let me read more of the file to understand what it should
+
   be:
 
+
+
 ● Search(pattern: "OPENROUT", path: ".claude\proxy\cc_menu.ps1",
+
         output_mode: "content")
+
   ⎿  Found 1 line (ctrl+o to expand)
 
+
+
 ● Let me check what environment variables are expected by looking for
+
   other patterns:
 
+
+
 ● Search(pattern: "Show-Key", path: ".claude\proxy\cc_menu.ps1",
+
         output_mode: "content")
+
   ⎿  Found 2 lines (ctrl+o to expand)
 
+
+
 ● Based on the context and the error message, it looks like the script
+
   is trying to show environment variables starting with "OPENROUT"
+
   (likely "OPENROUTER_API_KEY"). The fix is simple - we need to complete
+
    the string and add the closing quote.
 
 ## Assistant
@@ -1475,30 +1837,55 @@ try {
 
 Please show me just the fix for this:
 Claude Code Model Selector (Unified LiteLLM Proxy)
+
 -------------------------------------------------
+
 Loaded .env from: P:\.env
 
+
+
 Environment keys (process scope):
+
   - OPENROUTER_API_KEY  : sk-o...57
+
   - CHUTES_API_KEY      : cpk_...7o
 
+
+
 Quota:
+
   - OpenRouter quota: [error]
+
   - Chutes AI quota: [error]
 
+
+
  PROVIDER: OPENROUTER
+
   1. Amazon Nova 2 Lite            (amazon/nova-2-lite-v1:free)
+
   2. Kat Coder Pro                 (kwaipilot/kat-coder-pro:free)
+
   3. Mistral Devstral 2512         (mistralai/devstral-2512:free)
 
+
+
  PROVIDER: CHUTES
+
   4. Kimi K2 Instruct 0905         (moonshotai/Kimi-K2-Instruct-0905)
+
   5. DeepSeek V3.2                 (deepseek-ai/DeepSeek-V3.2)
+
   6. DeepSeek V3.2 Speciale TEE    (deepseek-ai/DeepSeek-V3.2-Speciale-TEE)
+
   7. Devstral 2 123B Instruct      (mistralai/Devstral-2-123B-Instruct-2512)
 
+
+
  Q. Quit
+
 -------------------------------------------------
+
 Select a model:
 
 ## Assistant
@@ -1594,3 +1981,4 @@ On the next run you should see something like:
 
 - `OpenRouter credits: 19.27 USD remaining`  
 - `Chutes: 300 / 300 requests left today (Healthy)`
+```

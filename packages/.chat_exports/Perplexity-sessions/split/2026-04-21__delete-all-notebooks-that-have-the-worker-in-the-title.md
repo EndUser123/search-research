@@ -3796,3 +3796,4 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           response.tab.id,
           { query: message.query ?? '', caseSensitive: false, selectedTitles: [], failedTitles: [] },
           'scan
+```
