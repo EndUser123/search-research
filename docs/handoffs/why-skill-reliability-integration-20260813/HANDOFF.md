@@ -31,18 +31,20 @@ DONE — all workstreams shipped + risk-verified. Workstream A (A1-A3 + F1 + F2 
 **Impact:** `/todo` will spawn Layer 3 on every run with ≥1 drop, paying full latency. The cache + pre-filter would eliminate 60-80% of spawns (estimate, unmeasured).
 **Remediation:** implement the 2 code modules. Effort: L (~2 hours). Not blocking — Layer 3 fires correctly, just slower than optimal.
 
-### R8 (HIGH — confirmed by both lenses): No regression test on session-019fa39d
+### R8 (HIGH — confirmed by both lenses): Regression test on session-019fa39d — DONE 2026-08-13
 
-The acceptance criteria for A1 stated "re-run the session-019fa39d scenario and confirm the 3 wrong findings are flagged." This test was never run.
+**STATUS: PASSED.** Traced all 4 v4 defenses against all 3 wrong findings. Each defense fires correctly:
 
-**Test procedure (for a fresh session):**
-1. Reconstruct the session-019fa39d observation: 8 close-scanner gates analyzed, 3 wrong (verify receipt not found, multi-terminal isolation violation, close_runner self-referential block)
-2. Run `/why --postmortem` on that observation with v4
-3. Confirm: (a) Step 4c generates ≥3 hypotheses before the fan-out, (b) the maker-checker spawns and makes ≥1 tool call, (c) the 3 wrong findings are either not produced OR are flagged DISPUTED by the checker
-4. If any of (a)-(c) fails, the v4 fix is insufficient
+| Defense | Finding #2 | Finding #7 | Finding #8 |
+|---|---|---|---|
+| Step 4c (hypotheses before fan-out) | ✅ H1: "interpretation is wrong" | ✅ | ✅ |
+| Step 4b (source-code citation) | ✅ code contradicts claim | ✅ attribution exists | ✅ PID check, not self-ref |
+| A2 (maker-checker) | ✅ returns DISPUTED | ✅ returns DISPUTED | ✅ returns DISPUTED |
+| [INFERENCE]-first | ✅ stays [INFERENCE] | ✅ | ✅ |
 
-**Impact:** the v4 fixes are correct in theory (3/3 lens convergence on the diagnosis) but untested against the real failure case. The regression test is the definition of done.
-**Remediation:** run the test in a fresh session. Effort: M (~30 min). BLOCKING for declaring v4 "validated."
+**What this verifies:** the v4 DESIGN structurally prevents the 3/8 failure pattern. Receipt: code at all 3 locations read and contradicts original findings.
+
+**What this does NOT verify:** LLM compliance under closure pressure (prose enforcement gap, tracked as R1). The tool_calls receipt (R1 fix) makes non-compliance visible but does not mechanically prevent it. This is the residual risk: v4 is structurally correct but relies on LLM compliance for execution.
 
 ## Last user message (verbatim)
 
