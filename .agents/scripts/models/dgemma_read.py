@@ -85,6 +85,21 @@ MERGE_PROMPT_TEMPLATE = (
 )
 
 
+def _log_telemetry(success: bool, latency_ms: float, error: str = "") -> None:
+    """Best-effort telemetry log to usage.db via model-benchmark library. Non-blocking."""
+    try:
+        sys.path.insert(0, str(Path.home() / ".grok" / "skills" / "model-benchmark" / "scripts"))
+        from telemetry import log_call
+        log_call(
+            model=MODEL, provider="nvidia",
+            task_domain="extraction",
+            latency_ms=round(latency_ms, 1), success=success,
+            caller="dgemma_read", cost_usd=0.0,
+        )
+    except Exception:
+        pass  # telemetry failure must never break the read
+
+
 def _call_api(messages: list[dict], max_tokens: int = 600) -> str:
     """Make a single API call to DiffusionGemma."""
     payload = {
@@ -99,17 +114,23 @@ def _call_api(messages: list[dict], max_tokens: int = 600) -> str:
     req.add_header("Content-Type", "application/json")
     req.add_header("Authorization", f"Bearer {API_KEY}")
     req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        body = json.loads(resp.read().decode("utf-8"))
-        choice = body["choices"][0]
-        if choice.get("finish_reason") == "length":
-            raise ValueError(
-                f"Output truncated at max_tokens. Usage: {body.get('usage', {})}"
-            )
-        content = choice["message"]["content"]
-        if not content:
-            raise ValueError(f"Empty content. Usage: {body.get('usage', {})}")
-        return content
+    _t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+            choice = body["choices"][0]
+            if choice.get("finish_reason") == "length":
+                raise ValueError(
+                    f"Output truncated at max_tokens. Usage: {body.get('usage', {})}"
+                )
+            content = choice["message"]["content"]
+            if not content:
+                raise ValueError(f"Empty content. Usage: {body.get('usage', {})}")
+            _log_telemetry(True, (time.time() - _t0) * 1000)
+            return content
+    except Exception as e:
+        _log_telemetry(False, (time.time() - _t0) * 1000, str(e))
+        raise
 
 
 def read_single(file_path: str, prompt: str | None = None, max_tokens: int = 600) -> dict:
