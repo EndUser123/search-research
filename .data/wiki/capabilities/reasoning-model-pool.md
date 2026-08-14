@@ -22,9 +22,11 @@ The entire point of /tp is a DIFFERENT lens. GLM-5.2 is the parent; spawning
 a fresh GLM-5.2 subagent is same-model-lens (fresh context, same blind spots).
 Selection prioritizes model-family diversity over raw reasoning power.
 
-1. **2nd lens (spawn_subagent):** zen-deepseek-v4-flash-free
-   - Different family from GLM-5.2 (DeepSeek vs Zhipu)
-   - Tau2 95.6, free, spawn-compatible
+1. **2nd lens (spawn_subagent):** zen-big-pickle
+   - Zen-hosted, free (cost 0 verified by direct probe 2026-08-14)
+   - Reasoning 13/13 (2026-07-29); Tau2 unmeasured; not GLM family
+   - Prior pick zen-deepseek-v4-flash-free (Tau2 95.6) config-removed
+     2026-08-14; Zen backend had disabled its free tier 2026-08-12 (401)
 2. **3rd + 4th lens (CLI parallel dispatch):** /codex (GPT) + /agy (Gemini)
    - Maximum cross-family diversity
    - Run in parallel when stakes are high
@@ -35,8 +37,8 @@ Selection prioritizes model-family diversity over raw reasoning power.
 glm-5-2 (Tau2 #1 globally, agentic #21) — this is the orchestrator, not a pool pick
 
 ### Deep reasoning (free-first, non-critique tasks)
-or-ling-3-flash-free (13/13 our benchmark, 2.2s)
-or-arcee-ai-trinity-large-thinking (13/13, 4.6s, $0/M)
+zen-big-pickle (13/13 our benchmark 2026-07-29; free — verified 2026-08-14)
+or-arcee-ai-trinity-large-thinking (13/13, 4.6s — now paid, ~$0.00005/call as of 2026-08-14)
 
 ## Tier-1 (verified 2026-07-29)
 ### Thought-partner / planning / delegation
@@ -46,29 +48,26 @@ glm-5-2 (Tau2 99.1 #1 world, coding #12/130 91st pct, agentic #21/129, knowledge
     this is sustainable: ~288K/month theoretical max, no per-token dollar cap.
 
 ### Deep reasoning (free-first)
-or-ling-3-flash-free (13/13 deep-reasoning, $0/M, 2.2s, spawn untested)
+zen-big-pickle (13/13 deep-reasoning 2026-07-29, free — cost 0 verified 2026-08-14)
   - Use for: math, logic, single-shot analysis
-or-arcee-ai-trinity-large-thinking (13/13, 4.6s, $0/M)
-  - Use for: reasoning-model tasks (has thinking trace)
+or-arcee-ai-trinity-large-thinking (13/13, 4.6s — now PAID ~$0.00005/call as of 2026-08-14 probe)
+  - Use for: reasoning-model tasks (has thinking trace); tiny per-call cost
+or-ling-3-flash-free — REMOVED 2026-08-14: OpenRouter retired the free variant (404 probe receipt)
 
 ### Institutional reasoning
 nvidia-nemotron-3-ultra (13/13, IFBench #2 globally at 81.4%, 32s avg)
   - Use for: instruction-constrained reasoning, structured analysis
 
 ## Backup (when GLM-5-2 unavailable)
-zen-deepseek-v4-flash-free (Tau2 95.6, 13/13 reasoning, 7.4s median, $0)
-  - Same provider as go-deepseek-v4-flash (opencode.ai/zen/go/v1), but zen
-    billing path is $0 free tier vs go subscription quota
-  - Coding rank: #84/130 (36th pct) vs GLM-5.2's #12/130 (91st pct) —
-    significant quality drop for coding tasks, acceptable for reasoning
+zen-big-pickle (13/13 reasoning 2026-07-29, $0 — liveness and cost verified 2026-08-14)
+  - Zen free tier; coding rank unmeasured (not a coding pick)
   - Quota: no published RPM/TPM limits. $0 during OpenCode free promotion.
-  - At 1,000s of requests/month this is sustainable at zero cost.
-    If the free promotion ends, switch to go-deepseek-v4-pro ($60/month
-    shared Go budget, ~30K requests/month capacity).
+  - Prior backup zen-deepseek-v4-flash-free (Tau2 95.6) was config-removed
+    2026-08-14 after the Zen backend disabled the free tier (401, 2026-08-12).
 
 ## Fallback chain after backup exhausted
 1. glm-5-2 (Tau2 99.1, coding #12, subscription, no dollar cap)
-2. zen-deepseek-v4-flash-free (Tau2 95.6, coding #84, $0 free)
+2. zen-big-pickle (13/13 reasoning, $0 free — verified alive 2026-08-14)
 3. go-deepseek-v4-pro (Tau2 96.2, shares $60/mo Go budget, ~6K req/5hr)
 4. go-qwen3-7-max (Tau2 94.7, IFEval 94.3%, shares $60/mo Go budget)
 

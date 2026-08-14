@@ -23,18 +23,17 @@ has high MiniMax quota and low /review frequency, so M3 is included despite
 being subscription quota.
 
 **Review panel (parallel dispatch):**
-1. **or-ling-3-flash-free** — free, 5/5 code-exec, fast (2.2s)
-2. **zen-deepseek-v4-flash-free** — free, different family (DeepSeek), Tau2 95.6
-3. **nim-openai-gpt-oss-20b** — free, 13/13 reasoning, spawn-compatible
-4. **minimax-m3** — subscription, high quota available, IFBench #1 for formatting/structured output
+1. **zen-big-pickle** — free (cost 0 verified 2026-08-14), 13/13 reasoning
+2. **nim-openai-gpt-oss-20b** — free (liveness verified 2026-08-14), 13/13 reasoning, spawn-compatible
+3. **minimax-m3** — subscription, high quota available, IFBench #1 for formatting/structured output
 
-**Why these four:** three free-tier models (zero quota cost) plus M3 for
-structured-output quality. The diversity across families (Ling, DeepSeek,
-OpenAI-oss, MiniMax) catches different bug classes. Decomposition makes any
+**Why these three:** two free-tier models (zero quota cost) plus M3 for
+structured-output quality. The diversity across families (Zen, OpenAI-oss,
+MiniMax) catches different bug classes. Decomposition makes any
 of them work — per-file or per-lens specialists, not one giant review.
 
-**When to use fewer:** for `--lite` reviews, use or-ling-3-flash-free alone.
-For single-file focused reviews, use zen-deepseek-v4-flash-free (strongest
+**When to use fewer:** for `--lite` reviews, use nim-openai-gpt-oss-20b alone.
+For single-file focused reviews, use zen-big-pickle (strongest
 reasoning of the free tier).
 
 ### /tp (critical-friend critique) — diversity-first
@@ -56,16 +55,18 @@ than the parent orchestrator (GLM-5.2/Zhipu). Constitutional AI research
 reduction — a weaker-but-different model catches what a stronger-but-same
 model misses.
 
-## Review panel models (verified 2026-07-30, operator directive)
-or-ling-3-flash-free (5/5 code-exec, $0/M, 2.2s — fast, free, spawn OK)
-zen-deepseek-v4-flash-free (13/13 reasoning, $0, Tau2 95.6 — strongest free reasoning)
-  - CAVEAT: hit max_tokens_truncation on multi-file code review (224K input
-    tokens consumed via repeated file reads). For code review tasks, INLINE
-    file content in the prompt — do NOT let the subagent discover files via
-    tool calls. Safe for single-file review with inline content and for short
-    critique prompts. See /review SKILL.md "diff-in-bundle optimization."
-nim-openai-gpt-oss-20b (4/5 code-exec, 13/13 reasoning, free, spawn OK)
+## Review panel models (verified 2026-07-30, operator directive; liveness re-probed 2026-08-14)
+zen-big-pickle (13/13 reasoning 2026-07-29, $0 — liveness and cost verified 2026-08-14; code-exec unmeasured)
+  - CAVEAT (carried over from zen-deepseek-v4-flash-free): hit
+    max_tokens_truncation on multi-file code review (224K input tokens consumed
+    via repeated file reads). For code review tasks, INLINE file content in the
+    prompt — do NOT let the subagent discover files via tool calls. Safe for
+    single-file review with inline content and for short critique prompts.
+    See /review SKILL.md "diff-in-bundle optimization."
+nim-openai-gpt-oss-20b (4/5 code-exec, 13/13 reasoning, free, spawn OK, liveness verified 2026-08-14)
 minimax-m3 (4/5 code-exec, 13/13 reasoning, IFBench #1 globally, subscription quota available)
+or-ling-3-flash-free — REMOVED 2026-08-14: OpenRouter retired the free variant (404 probe)
+zen-deepseek-v4-flash-free — REMOVED 2026-08-14: config-removed; Zen backend 401 since 2026-08-12
 
 ## Cross-model review (separate from this pool)
 For cross-model second opinions, use the CLI skills:
