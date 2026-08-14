@@ -1,5 +1,23 @@
 # Vault Log
 
+## [2026-08-13] ingest | Todo-triage-insight skill separation: CRUD vs analysis vs discovery
+Source: session-2026-08-13
+Agent: grok
+Notes: Ingest from .chat_exports: todo/triage/insight separation decision
+Page: wiki/concepts/todo-triage-insight-skill-separation-crud-vs-analysis-vs-discovery.md
+
+## [2026-08-13] ingest | Delegation memory: evidence-based model routing from historical performance
+Source: session-2026-08-13
+Agent: grok
+Notes: Ingest from .chat_exports: delegation memory design
+Page: wiki/concepts/delegation-memory-evidence-based-model-routing.md
+
+## [2026-08-13] ingest | Discover-first prompt patterns for unbiased work-item discovery
+Source: session-2026-08-13
+Agent: grok
+Notes: Ingest from .chat_exports: discover-first prompt patterns with bias checking
+Page: wiki/concepts/discover-first-prompt-patterns-for-unbiased-work-item-discovery.md
+
 ## Three-tier hedge detection: regex + structural + NLTK POS
 Source: session-20260813
 Agent: grok
