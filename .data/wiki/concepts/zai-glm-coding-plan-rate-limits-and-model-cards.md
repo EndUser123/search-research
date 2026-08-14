@@ -124,20 +124,57 @@ reasoning tokens on a trivial prompt" ([[model-benchmark-testing-quirks]]).
 Error `1113 Insufficient Balance` on the coding plan = wrong base URL or
 unsupported model (FAQ), not actual balance exhaustion.
 
+## Operator tier: Max (recorded 2026-08-14)
+
+[FACT] Operator is on the **Max** plan: 28,000 credits / 5h, 140,000 / weekly.
+[FACT] Host timezone: Mountain (UTC-6 DST; receipt: `tzutil /g`, 2026-08-14).
+Peak window (Mon–Fri 14:00–18:00 SGT) = **midnight–4:00 AM local** → the
+operator's entire working day is **off-peak → 50% credit rate** → effective
+quota sits at the top of the official 613–1,226M tokens/week band.
+
+Effective budgets (all-off-peak, GLM-5.3 at 6.9/1.7/24):
+- Coding-agent call (50K ctx: 45K cached, 5K fresh, 2K out) = 7.95 credits
+  → ~3,500 such calls per 5h window; ~17,600/week.
+- Benchmark-style call (~300 in / 400 out) ≈ 0.6 credits → ~47K/5h.
+- [FACT] Observed usage: 854 z.ai calls total across 3 weeks of telemetry —
+  credits are a non-issue for this fleet; the binding constraints are
+  concurrency and policy (below).
+
+[1311 resolved] All 68 `1311` errors in telemetry were `glm-5` (a
+non-supported, non-routed model — now removed from config). Both `1302`
+concurrency errors were `glm-4.5`/`glm-4.5-air` (also removed). Auto-routing
+of 5.2/5.1 is consistent with telemetry (zero 1311s on them). The 2026-08-14
+config cleanup therefore eliminates 100% of observed ZAI error classes.
+
+Cost ordering on-plan (per-token credits): GLM-4.7 (4.6/1.2/16) < GLM-5-Turbo
+(5.7/1.5/21) < GLM-5.3 (6.9/1.7/24). GLM-4.7 has **forced thinking** (cannot
+disable); GLM-5-Turbo supports `thinking: disabled` → cheapest plan-supported
+lane for mechanical/high-volume sweeps.
+
+[RISK, Max-specific] Usage policy limits the plan to "officially supported
+tools"; violations → rate limiting / account freezing; >3 violations → ban
+(usage-policy page). Whether this host's direct-HTTP benchmark scripts and
+PI/Grok dispatch count as supported tools is [UNKNOWN] — the supported-tools
+list was not fetched. On Max the stakes are account-level, not per-call.
+
+
+
 ## Recommendations for this workspace
 
 1. **Budget policy (GLM):** set `max_completion_tokens` to 131072 for
    plan-supported models (or omit and rely on provider default 65536 —
    better than our benchmark.py 4096 fallback). No TPM-style wall exists;
    the cap costs nothing until used.
-2. **Config cleanup:** remove or re-purpose the 6 non-supported GLM entries
-   (4.5, 4.5-air, 4.6, 5, 5.1, 5.2) — they 1311 or silently route to 5.3.
-   Keep glm-5-3, glm-5-turbo, glm-4-7. (Operator decision — config model
-   changes affect routing.)
-3. **Concurrency:** treat ZAI concurrency as ~1–2 for parallel benchmark
-   waves (matches observed 1302s and practitioner reports); the
-   concurrency-limits.json entry for ZAI (7) is optimistic for the coding
-   plan.
+2. **Config cleanup — DONE 2026-08-14:** the 6 non-supported GLM entries
+   (4.5, 4.5-air, 4.6, 5, 5.1, 5.2) removed from config.toml. Kept
+   glm-5-3, glm-5-turbo, glm-4-7. Legacy refs remain in fleet-models.json
+   (owned by fleet-database-migration Phase 3) and ~/.pi/agent/models.json.
+3. **Concurrency:** on Max, docs publish no numeric concurrency (tier-based,
+   dynamic, higher off-peak; "2+ concurrent projects" recommended).
+   Observed: only 2 code-1302 errors ever — both from now-removed models;
+   concurrency has never actually bound on this fleet. Keep the
+   concurrency-limits.json ZAI ceiling modest (≤4) and watch 1302s in
+   telemetry rather than assuming the Pro-tier ~1 horror story applies.
 4. **Cost control lever:** for benchmark sweeps where GLM quality floors
    don't matter, `thinking: disabled` or `reasoning_effort: none` cuts
    output-credit burn ~24x on the reasoning share.
