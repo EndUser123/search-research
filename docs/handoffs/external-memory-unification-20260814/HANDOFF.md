@@ -48,6 +48,21 @@ adding Grok session transcript parsing to the indexing pipeline.
 - **Risk:** Low. The plugin is identified by directory name + plugin.json name. No hardcoded references to "claude-mem-grok" in the worker code.
 
 ### 2. Port Grok session transcript parsing to episodic-memory → grok-chat-mem
+
+**Research completed (2026-08-13):** see
+`[[grok-chat-mem-candidate-repos-for-session-transcript-search]]` for the full
+15+ repo survey. Key finding: **marcelocantos/mnemo** is the only tool that
+already indexes Grok sessions out of the box, but it has 0 stars and 0 Windows
+downloads (unvalidated on our platform). Three paths identified:
+
+- **Path A (mnemo):** install the Windows installer, test if Grok indexing
+  works. Zero code. Highest external risk (0-star single-author project).
+- **Path B (extend episodic-memory):** write `parseGrokConversation()` using
+  the existing AAR parser (`~/.grok/skills/aar/__lib/transcript_parser.py`)
+  as reference. Lowest risk. We control the code. ~2-4 hours.
+- **Path C (memory_mcp):** cleanest parser-extension architecture, but trades
+  episodic-memory's test suite for a 12-commit codebase.
+
 This is the real work. Episodic-memory currently parses:
 - Claude Code JSONL format (`~/.claude/projects/`)
 - Codex rollout JSONL (`~/.codex/sessions/`)
