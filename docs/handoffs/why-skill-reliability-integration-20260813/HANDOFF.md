@@ -17,7 +17,7 @@ Fix `/why`'s root-cause unreliability (verified: 3/8 wrong findings in session 0
 
 ## Status
 
-PARTIALLY DONE — Workstream A (design complete, execution deferred to /skill-dev). Task B1 (Option F bridge test) DONE — bridge verified working 2026-08-13. Task B2 (Option G validator) and Workstream A execution remain. This handoff is the executable plan. A fresh session should be able to pick it up and act without re-deriving the analysis.
+DONE — all workstreams shipped. Workstream A (A1-A3 + F1 + F2 + F3) shipped as /why v4 (commit 6b4a819). Workstream B (B1 bridge verified + B2 validator shipped). Workstream C (/rca alias shipped). Workstream D (D1 threshold removed + D2 wiki concept revised). Workstream E (E1 recap bridge shipped). All 11 tasks complete.
 
 ## Last user message (verbatim)
 
