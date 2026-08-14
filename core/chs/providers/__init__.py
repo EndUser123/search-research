@@ -56,7 +56,9 @@ def ingest_since(provider_id: str, watermark: dict | None = None) -> list[dict]:
 from .claude_code_raw import ClaudeCodeRawProvider  # noqa: E402
 from .codex_desktop import CodexDesktopProvider  # noqa: E402
 from .claude_log import ClaudeLogProvider  # noqa: E402
+from .grok_sessions import GrokSessionsProvider  # noqa: E402
 
 register("claude_code_raw", ClaudeCodeRawProvider)
 register("codex_desktop", CodexDesktopProvider)
 register("claude_log", ClaudeLogProvider)
+register("grok_sessions", GrokSessionsProvider)
