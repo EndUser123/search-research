@@ -1,6 +1,6 @@
 ---
 title: "Skill dependency graph: who calls what and who consumes which providers"
-created: 2026-08-04
+created: 2026-08-13
 source: auto-generated
 generator: P:/.data/wiki/scripts/build_skill_graph.py
 tags: [skill-graph, dependencies, providers, delegation, blast-radius, maintenance, reference]
@@ -37,38 +37,36 @@ When a provider is disabled/broken/migrated, these skills need updates:
 
 | Provider | Consumer count | Skills |
 |----------|---------------|--------|
-| `agy` | 8 | `agy`, `ai-cli`, `codex`, `mmx`, `model-benchmark`, `search-fleet`, `tasks`, `tp` |
+| `agy` | 7 | `agy`, `ai-cli`, `codex`, `mmx`, `model-benchmark`, `search-fleet`, `tp` |
 | `brave` | 2 | `go`, `web` |
 | `chrome-devtools` | 2 | `chrome-devtools-cli`, `model-web` |
 | `chrome-devtools-mcp-tools` | 1 | `model-web` |
-| `codex` | 8 | `codex`, `mmx`, `model-benchmark`, `resume-codex`, `review`, `tasks`, `tp`, `wargame` |
+| `codex` | 11 | `codex`, `codex-cli-runtime`, `executing-plans`, `mmx`, `model-benchmark`, `resume-codex`, `review`, `review-relay`, `talking-head-recut`, `tp`, `wargame` |
 | `coding-model-pool` | 2 | `go`, `review` |
-| `context7` | 1 | `context7` |
+| `context7` | 2 | `claude-automation-recommender`, `refactor` |
 | `critic-model-pool` | 3 | `aar`, `review`, `tp` |
 | `ddg` | 5 | `go`, `search-fleet`, `tp`, `web`, `www` |
-| `duckduckgo` | 1 | `web` |
+| `duckduckgo` | 2 | `bright-data-best-practices`, `web` |
 | `episodic-memory` | 2 | `dream`, `remembering-conversations` |
-| `exa` | 27 | `aar`, `agy`, `codex`, `create-skill`, `design`, `dream`, `go`, `grok-parallel`, `grok-verify`, `handoff`, `imagine`, `mmx`, `model-benchmark`, `model-quota`, `notice`, `plan-writer`, `prompt-patterns`, `refactor`, `refine`, `review`, `search-fleet`, `skill-dev`, `tasks`, `todo`, `web`, `wiki`, `wiki-crawl4ai` |
+| `exa` | 29 | `aar`, `agy`, `codex`, `create-skill`, `design`, `dream`, `exa-agent`, `exa-search`, `go`, `grok-parallel`, `grok-verify`, `handoff`, `imagine`, `mmx`, `model-benchmark`, `model-quota`, `notice`, `plan-writer`, `prompt-patterns`, `refactor`, `refine`, `review`, `search`, `search-fleet`, `skill-dev`, `todo`, `web`, `wiki`, `wiki-crawl4ai` |
 | `firecrawl` | 17 | `design`, `firecrawl-agent`, `firecrawl-cli`, `firecrawl-crawl`, `firecrawl-download`, `firecrawl-interact`, `firecrawl-map`, `firecrawl-monitor`, `firecrawl-parse`, `firecrawl-scrape`, `firecrawl-search`, `model-quota`, `search-fleet`, `tp`, `web`, `wiki-crawl4ai`, `www` |
-| `gh` | 29 | `aar`, `agy`, `codex`, `design`, `dream`, `go`, `grok-discovery`, `grok-parallel`, `grok-safe-git`, `grok-verify`, `handoff`, `imagine`, `maintain`, `mmx`, `model-benchmark`, `notice`, `plan-writer`, `prompt-patterns`, `refactor`, `refine`, `review`, `search-fleet`, `skill-dev`, `tasks`, `todo`, `wargame`, `wiki`, `wiki-crawl4ai`, `www` |
+| `gh` | 28 | `aar`, `agy`, `codex`, `design`, `dream`, `go`, `grok-discovery`, `grok-parallel`, `grok-safe-git`, `grok-verify`, `handoff`, `imagine`, `maintain`, `mmx`, `model-benchmark`, `notice`, `plan-writer`, `prompt-patterns`, `refactor`, `refine`, `review`, `search-fleet`, `skill-dev`, `todo`, `wargame`, `wiki`, `wiki-crawl4ai`, `www` |
 | `github-issues` | 1 | `www` |
 | `hn-algolia` | 2 | `web`, `www` |
-| `mechanical-model-pool` | 4 | `handoff`, `harvest`, `refine`, `www` |
+| `mechanical-model-pool` | 3 | `handoff`, `refine`, `www` |
 | `minimax-search` | 1 | `design` |
 | `mmx` | 11 | `design`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `minimax-music-playlist`, `mmx`, `model-benchmark`, `model-quota`, `search-fleet`, `web`, `wiki-yt`, `www` |
-| `nlm` | 6 | `aar`, `gitingest`, `go`, `nlm`, `nlm-to-wiki`, `refactor` |
-| `notebooklm` | 5 | `nlm`, `todo`, `web`, `wiki-yt`, `yt-nlm` |
-| `pending-suggestions` | 1 | `harvest` |
+| `nlm` | 6 | `aar`, `go`, `nlm`, `nlm-to-wiki`, `refactor`, `wiki-yt` |
+| `notebooklm` | 5 | `nlm`, `todo`, `wiki-yt`, `wowerpoint`, `yt-nlm` |
 | `perplexity` | 3 | `model-web`, `search-fleet`, `web` |
 | `pwm` | 2 | `perplexity-web-mcp`, `search-fleet` |
 | `reasoning-model-pool` | 3 | `aar`, `tp`, `why` |
 | `reddit` | 4 | `search-fleet`, `todo`, `web`, `www` |
 | `ruff` | 1 | `doc-check` |
 | `search-research` | 4 | `prospect`, `search-fleet`, `web`, `why` |
-| `serper` | 1 | `web` |
-| `spawn-subagent` | 2 | `tp`, `why` |
+| `spawn-subagent` | 4 | `close-py`, `ship-py`, `tp`, `why` |
 | `stackexchange` | 1 | `web` |
-| `tavily` | 3 | `model-quota`, `search-fleet`, `web` |
+| `tavily` | 10 | `academic-scientific-research`, `investment-research-briefs`, `model-quota`, `product-competitor-intelligence`, `sales-account-intelligence`, `search-fleet`, `tavily-web`, `threat-intelligence-enrichment`, `vendor-risk-kyc-screening`, `web` |
 
 ## Delegation targets (who calls this skill)
 
@@ -76,57 +74,64 @@ When a skill changes its interface or behavior, these callers are affected:
 
 | Target skill | Caller count | Called by |
 |-------------|-------------|-----------|
-| `aar` | 16 | `capture`, `close`, `dream`, `friction`, `handoff`, `harvest`, `model-web`, `notice`, `packet`, `recap-grok`, `red-team`, `skill-dev`, `slc`, `tp`, `wargame`, `why` |
+| `aar` | 15 | `ask`, `close-py`, `dream`, `handoff`, `insight`, `model-web`, `notice`, `packet`, `recap-grok`, `skill-dev`, `slc`, `todo`, `tp`, `wargame`, `why` |
 | `agy` | 7 | `check`, `codex`, `mmx`, `model-web`, `search-fleet`, `tp`, `why` |
-| `capture` | 1 | `close` |
-| `check` | 18 | `aar`, `ask`, `close`, `doc-check`, `doc-compiler`, `dream`, `go`, `grok-verify`, `model-benchmark`, `refactor`, `refine`, `review`, `ship`, `skill-dev`, `skill-to-page`, `todo`, `tp`, `www` |
-| `chrome-devtools-mcp` | 1 | `model-web` |
-| `close` | 15 | `aar`, `ask`, `capture`, `check`, `dream`, `handoff`, `harvest`, `maintain`, `recap-grok`, `review`, `ship`, `skill-dev`, `todo`, `tp`, `wiki` |
-| `codex` | 4 | `mmx`, `model-web`, `tp`, `why` |
+| `check` | 19 | `aar`, `ask`, `close-py`, `doc-check`, `doc-compiler`, `dream`, `go`, `grok-verify`, `model-benchmark`, `refactor`, `refine`, `review`, `ship-py`, `skill-dev`, `skill-to-page`, `todo`, `tp`, `triage`, `www` |
+| `chrome-devtools` | 1 | `model-web` |
+| `close` | 14 | `aar`, `ask`, `check`, `close-py`, `dream`, `handoff`, `insight`, `maintain`, `recap-grok`, `review`, `skill-dev`, `todo`, `tp`, `wiki` |
+| `codex` | 5 | `codex-result-handling`, `mmx`, `model-web`, `tp`, `why` |
+| `config-audit` | 1 | `maintain` |
 | `crawl4ai` | 1 | `wiki-crawl4ai` |
 | `create-skill` | 1 | `skill-dev` |
-| `debrief` | 21 | `aar`, `agy`, `behave`, `claude-audit`, `close`, `codex`, `dream`, `export-session`, `friction`, `handoff`, `harvest`, `improve`, `lmc`, `mlc`, `recap`, `recap-grok`, `red-team`, `retro`, `skill-audit`, `top-problems`, `tp` |
-| `design` | 24 | `ask`, `behave`, `close`, `code`, `discover`, `domain-terms`, `dream`, `evolve`, `execute-plan`, `go`, `grill-me`, `handoff`, `plan-writer`, `planning`, `prompt_refiner`, `recap`, `refine`, `s`, `specify`, `tp`, `wargame`, `web`, `why`, `www` |
+| `debrief` | 16 | `aar`, `behave`, `claude-audit`, `codex`, `dream`, `friction`, `handoff`, `improve`, `lmc`, `mlc`, `recap`, `recap-grok`, `retro`, `skill-audit`, `top-problems`, `tp` |
+| `design` | 22 | `ask`, `behave`, `code`, `domain-terms`, `dream`, `evolve`, `execute-plan`, `go`, `grill-me`, `handoff`, `plan-writer`, `planning`, `prompt_refiner`, `recap`, `refine`, `s`, `specify`, `tp`, `wargame`, `web`, `why`, `www` |
 | `diagnosing-bugs` | 1 | `ask-matt` |
+| `doc-check` | 1 | `ship-py` |
 | `domain-terms` | 1 | `grill-me` |
 | `fmea` | 1 | `skill-dev` |
-| `friction` | 1 | `capture` |
-| `go` | 25 | `aar`, `ask`, `check`, `close`, `code`, `design`, `doc-check`, `grill-me`, `grok-go`, `grok-parallel`, `grok-sdlc`, `handoff`, `model-benchmark`, `notice`, `plan-writer`, `refactor`, `refine`, `research`, `review`, `rns`, `todo`, `tp`, `wargame`, `why`, `www` |
+| `go` | 28 | `aar`, `ask`, `check`, `code`, `design`, `doc-check`, `grill-me`, `grok-go`, `grok-parallel`, `grok-sdlc`, `handoff`, `logfire-instrumentation`, `maintain`, `model-benchmark`, `notice`, `plan-writer`, `refactor`, `refine`, `req-check`, `review`, `rns`, `skill-dev`, `todo`, `tp`, `triage`, `wargame`, `why`, `www` |
 | `grill-me` | 2 | `ask-matt`, `domain-terms` |
 | `grok-discovery` | 2 | `go`, `grok-parallel` |
 | `grok-parallel` | 2 | `go`, `notice` |
 | `grok-route` | 3 | `go`, `grok-parallel`, `grok-verify` |
-| `grok-safe-git` | 4 | `go`, `grok-parallel`, `grok-verify`, `ship` |
-| `grok-verify` | 5 | `go`, `grok-parallel`, `ship`, `skill-dev`, `tp` |
-| `handoff` | 28 | `aar`, `ask`, `ask-matt`, `behave`, `capture`, `close`, `design`, `dream`, `friction`, `go`, `harvest`, `maintain`, `model-web`, `notice`, `packet`, `plan-writer`, `prompt-patterns`, `recap`, `recap-grok`, `red-team`, `refactor`, `refine`, `ship`, `skill-dev`, `tp`, `why`, `wiki`, `www` |
+| `grok-safe-git` | 4 | `go`, `grok-parallel`, `grok-verify`, `ship-py` |
+| `grok-verify` | 3 | `go`, `grok-parallel`, `skill-dev` |
+| `handoff` | 29 | `aar`, `ask`, `ask-matt`, `behave`, `close-py`, `design`, `dream`, `go`, `insight`, `maintain`, `model-web`, `notice`, `packet`, `plan-writer`, `prompt-patterns`, `rca`, `recap`, `recap-grok`, `refactor`, `refine`, `review-relay`, `risk`, `ship-py`, `skill-dev`, `tp`, `triage`, `why`, `wiki`, `www` |
+| `help` | 1 | `command-development` |
 | `improve-codebase-architecture` | 3 | `ask-matt`, `check`, `diagnosing-bugs` |
-| `maintain` | 2 | `model-quota`, `skill-dev` |
+| `insight` | 1 | `todo` |
+| `maintain` | 5 | `insight`, `maintain-ifile`, `model-quota`, `skill-dev`, `todo` |
+| `maintain-ifile` | 1 | `maintain` |
 | `mmx` | 8 | `minimax-multimodal-toolkit`, `minimax-music-gen`, `model-quota`, `model-web`, `tp`, `web`, `why`, `wiki-yt` |
 | `model-benchmark` | 1 | `model-discover` |
-| `notice` | 4 | `close`, `skill-dev`, `slc`, `tp` |
+| `notice` | 2 | `skill-dev`, `slc` |
 | `packet` | 1 | `tp` |
 | `plan-writer` | 5 | `design`, `domain-terms`, `go`, `grill-me`, `refine` |
-| `preflight` | 2 | `design`, `tp` |
+| `preflight` | 3 | `design`, `maintain-ifile`, `tp` |
 | `recover` | 5 | `config-audit`, `main`, `maintain`, `skill-prune`, `workspace-health` |
-| `red-team` | 20 | `aar`, `behave`, `claude-audit`, `close`, `debrief`, `dream`, `fmea`, `improve`, `model-web`, `notice`, `pre-mortem`, `preflight`, `retro`, `review`, `risk`, `risks`, `skill-audit`, `tp`, `why`, `www` |
+| `red-team` | 13 | `claude-audit`, `debrief`, `fmea`, `improve`, `pre-mortem`, `preflight`, `redteam`, `retro`, `review`, `risk`, `risks`, `skill-audit`, `www` |
+| `refactor` | 1 | `ship-py` |
 | `refine` | 9 | `aar`, `design`, `domain-terms`, `dream`, `go`, `grill-me`, `handoff`, `plan-writer`, `refactor` |
-| `review` | 27 | `aar`, `ask`, `behave`, `check`, `claude-audit`, `close`, `debrief`, `doc-check`, `domain-terms`, `dream`, `go`, `improve`, `learn`, `marketplace-bridge`, `model-benchmark`, `red-team`, `refactor`, `refine`, `review-pr`, `risks`, `ship`, `skill-audit`, `skill-dev`, `sqd`, `todo`, `tp`, `uci` |
-| `skill-dev` | 5 | `close`, `create-skill`, `red-team`, `tp`, `www` |
-| `skill-prune` | 6 | `config-audit`, `create-skill`, `maintain`, `skill-dev`, `wiki`, `workspace-health` |
-| `tasks` | 1 | `capture` |
+| `review` | 32 | `aar`, `ask`, `behave`, `check`, `claude-audit`, `command-development`, `debrief`, `design-is`, `doc-check`, `domain-terms`, `dream`, `go`, `improve`, `insight`, `learn`, `maintain`, `marketplace-bridge`, `model-benchmark`, `plugin-structure`, `refactor`, `refine`, `review-pr`, `review-relay`, `risks`, `ship-py`, `skill-audit`, `skill-dev`, `sqd`, `todo`, `tp`, `triage`, `uci` |
+| `risk` | 2 | `req-check`, `ship-py` |
+| `skill-dev` | 8 | `create-skill`, `insight`, `maintain`, `maintain-ifile`, `ship-py`, `todo`, `tp`, `www` |
+| `skill-prune` | 9 | `config-audit`, `create-skill`, `insight`, `maintain`, `maintain-ifile`, `skill-dev`, `todo`, `wiki`, `workspace-health` |
 | `tdd` | 9 | `ask-matt`, `evolve`, `go`, `implement`, `planning`, `ralph`, `skill-similarity`, `subagent-driven-development`, `t` |
 | `teach` | 1 | `ask-matt` |
+| `test-driven-development` | 1 | `go` |
 | `to-spec` | 1 | `ask-matt` |
 | `to-tickets` | 1 | `ask-matt` |
-| `todo` | 12 | `ask`, `capture`, `close`, `design`, `email-skill`, `harvest`, `model-quota`, `recap-grok`, `ship`, `tp`, `wiki`, `www` |
-| `tp` | 27 | `aar`, `ask`, `behave`, `capture`, `close`, `design`, `domain-terms`, `dream`, `fmea`, `go`, `handoff`, `harvest`, `model-benchmark`, `model-web`, `notice`, `plan-writer`, `recap-grok`, `red-team`, `refactor`, `refine`, `review`, `risk`, `skill-dev`, `slc`, `todo`, `why`, `www` |
+| `todo` | 14 | `aar`, `ask`, `design`, `email-skill`, `insight`, `model-quota`, `recap-grok`, `refactor`, `review`, `risk`, `skill-dev`, `tp`, `wiki`, `www` |
+| `tp` | 27 | `aar`, `ask`, `behave`, `design`, `domain-terms`, `dream`, `fmea`, `go`, `handoff`, `insight`, `maintain`, `model-benchmark`, `model-web`, `notice`, `plan-writer`, `recap-grok`, `refactor`, `refine`, `req-check`, `review`, `risk`, `skill-dev`, `slc`, `todo`, `triage`, `why`, `www` |
 | `triage` | 2 | `ask-matt`, `setup-matt-pocock-skills` |
-| `wargame` | 3 | `plan-writer`, `red-team`, `risk` |
+| `using-git-worktrees` | 1 | `go` |
+| `wargame` | 3 | `plan-writer`, `req-check`, `risk` |
 | `wayfinder` | 1 | `ask-matt` |
-| `web` | 7 | `find`, `keep`, `note`, `tp`, `why`, `wiki-crawl4ai`, `www` |
-| `why` | 16 | `aar`, `ask`, `behave`, `dream`, `harvest`, `model-benchmark`, `model-web`, `notice`, `red-team`, `review`, `risk`, `skill-dev`, `todo`, `tp`, `wargame`, `www` |
-| `wiki` | 37 | `aar`, `capture`, `claude-audit`, `close`, `crawl`, `create-skill`, `debrief`, `design`, `domain-terms`, `dream`, `go`, `grok-safe-git`, `handoff`, `improve`, `main`, `maintain`, `model-benchmark`, `nlm-to-wiki`, `notice`, `plan-writer`, `prompt-patterns`, `recap-grok`, `refactor`, `refine`, `review`, `risk`, `ship`, `skill-dev`, `todo`, `tp`, `ux`, `wargame`, `web`, `why`, `wiki-crawl4ai`, `wiki-yt`, `www` |
+| `web` | 5 | `scraper-builder`, `tp`, `why`, `wiki-crawl4ai`, `www` |
+| `why` | 17 | `aar`, `ask`, `behave`, `design`, `dream`, `model-benchmark`, `model-web`, `notice`, `rca`, `review`, `risk`, `skill-dev`, `todo`, `tp`, `triage`, `wargame`, `www` |
+| `wiki` | 39 | `aar`, `claude-audit`, `close-py`, `create-skill`, `debrief`, `design`, `domain-terms`, `dream`, `go`, `grok-safe-git`, `handoff`, `improve`, `insight`, `main`, `maintain`, `maintain-ifile`, `model-benchmark`, `nlm-to-wiki`, `notice`, `plan-writer`, `prompt-patterns`, `rca`, `recap-grok`, `refactor`, `refine`, `req-check`, `review`, `risk`, `ship-py`, `skill-dev`, `todo`, `tp`, `ux`, `wargame`, `web`, `why`, `wiki-crawl4ai`, `wiki-yt`, `www` |
 | `wiki-crawl4ai` | 1 | `www` |
+| `wizard` | 1 | `ask-matt` |
 | `writing-great-skills` | 1 | `ask-matt` |
 
 ## Capability registry (what functions the fleet provides)
@@ -135,13 +140,16 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 
 | Capability | Provided by |
 |------------|-------------|
+| `adversarial-review` | `risk` |
 | `after-action-review` | `aar` |
+| `anti-fabrication-close` | `close-py` |
 | `behavioral-reset` | `slc` |
 | `broken-link-detection` | `doc-check` |
 | `browser-llm-bridge` | `model-web` |
 | `capability-routed-search` | `search-fleet` |
-| `capture-coverage-check` | `capture` |
+| `capture-coverage-check` | `insight` |
 | `changelog-validation` | `doc-check` |
+| `close-verdict` | `close-py` |
 | `code-fence-validation` | `doc-check` |
 | `code-review` | `review` |
 | `completion-gate` | `grok-verify` |
@@ -151,42 +159,45 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `cost-tracking` | `model-benchmark` |
 | `critical-friend-critique` | `tp` |
 | `cross-model-second-opinion` | `agy`, `codex`, `mmx` |
-| `cross-session-pattern-detection` | `harvest` |
 | `decision-tree-elicitation` | `grill-me` |
 | `design-doc-production` | `design` |
 | `discovery-dispatch` | `go` |
 | `documentation-readiness-check` | `doc-check` |
 | `domain-term-extraction` | `domain-terms` |
 | `engineering-orchestration` | `go` |
+| `evidence-anchored-review` | `triage` |
 | `evidence-backed-inventory` | `preflight` |
 | `failure-modes-analysis` | `fmea` |
 | `feedback-to-wiki` | `why` |
 | `file-pack` | `packet` |
 | `file-recovery` | `recover` |
+| `finding-lifecycle` | `triage` |
 | `fleet-maintenance` | `maintain` |
-| `friction-detection` | `friction` |
+| `friction-detection` | `insight` |
 | `fusion-portal-orchestration` | `model-web` |
-| `gate-resolution` | `close` |
 | `gemini-reasoning` | `agy` |
 | `git-safety-preflight` | `grok-safe-git` |
 | `grok-documentation-help` | `help` |
 | `handoff-auto-update` | `handoff` |
 | `handoff-write` | `handoff` |
 | `image-generation-guidance` | `imagine` |
-| `improvement-opportunity-scan` | `capture` |
+| `improvement-opportunity-scan` | `insight` |
 | `knowledge-hygiene` | `skill-prune` |
 | `latency-benchmark` | `model-benchmark` |
 | `logic-error-detection` | `trace` |
 | `manual-trace-verification` | `trace` |
 | `marketplace-skill-discovery` | `marketplace-bridge` |
 | `mid-conversation-observation-surfacing` | `notice` |
+| `minimax-image-generation` | `mmx` |
+| `minimax-music-generation` | `mmx` |
+| `minimax-speech-synthesis` | `mmx` |
+| `minimax-video-generation` | `mmx` |
 | `minimax-vision` | `mmx` |
 | `minimax-web-search` | `mmx` |
 | `model-discovery` | `model-discover` |
 | `model-web-advisory` | `model-web` |
 | `multi-backend-search` | `web` |
 | `multi-model-ensemble` | `model-web` |
-| `obligation-lifecycle` | `harvest` |
 | `offline-memory-consolidation` | `dream` |
 | `openai-reasoning` | `codex` |
 | `opportunity-landscape` | `aar` |
@@ -194,10 +205,10 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `parallel-fan-out` | `grok-parallel` |
 | `parallel-implement-dispatch` | `go` |
 | `pattern-library-query` | `why` |
-| `persistent-task-store` | `tasks` |
 | `plan-writing` | `plan-writer` |
-| `proactive-knowledge-capture` | `capture` |
+| `proactive-knowledge-capture` | `insight` |
 | `prompting-techniques-reference` | `prompt-patterns` |
+| `public-readiness-gate` | `ship-py` |
 | `quality-scoring` | `model-benchmark` |
 | `quota-dashboard` | `model-quota` |
 | `readme-staleness-detection` | `doc-check` |
@@ -207,18 +218,23 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `risk-escalation` | `risk` |
 | `risk-priority-scoring` | `fmea` |
 | `risk-scan` | `risk` |
-| `root-cause-analysis` | `why` |
+| `root-cause-analysis` | `rca`, `why` |
 | `rrf-aggregation` | `search-fleet` |
 | `rrf-merge` | `web` |
 | `safe-git-preflight-dispatch` | `go` |
+| `scan-code-quality` | `check`, `grok-verify`, `review`, `trace` |
+| `scan-risk` | `risk`, `tp` |
+| `scan-session-transcript` | `aar`, `insight`, `todo`, `triage` |
+| `scan-workspace-state` | `maintain`, `skill-prune`, `todo` |
 | `session-chain-walk` | `recap-grok` |
-| `session-close-accounting` | `close` |
+| `session-close-pipeline` | `close-py` |
 | `session-export` | `packet` |
+| `session-finding-triage` | `triage` |
 | `session-opportunity-review` | `tp` |
 | `session-recap-grok` | `recap-grok` |
 | `session-retrospective` | `aar` |
 | `session-verification` | `check` |
-| `ship-pipeline` | `ship` |
+| `ship-pipeline` | `ship-py` |
 | `skill-frontmatter-validation` | `doc-check` |
 | `skill-improvement` | `skill-dev` |
 | `skill-measurement` | `skill-dev` |
@@ -233,16 +249,15 @@ Every capability the skill fleet declares via `provides:` frontmatter:
 | `task-refinement` | `refine` |
 | `thought-partner-realignment` | `slc` |
 | `value-accounting` | `aar` |
-| `value-tracking` | `harvest` |
 | `verified-findings-on-disk` | `review` |
-| `verify-and-publish` | `ship` |
+| `verify-and-publish` | `ship-py` |
 | `verify-dispatch` | `go` |
 | `web-ingestion` | `wiki-crawl4ai` |
 | `wiki-query` | `wiki` |
 | `wiki-web-wiki-research` | `www` |
 | `wiki-write` | `wiki` |
 | `wikilink-resolution` | `doc-check` |
-| `workflow-automation-analysis` | `friction` |
+| `workflow-automation-analysis` | `insight` |
 | `workspace-prioritized-action-list` | `todo` |
 
 ## Shared services (used by 3+ skills)
@@ -253,16 +268,20 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | Service | Type | Consumer count | Skills |
 |---------|------|---------------|--------|
 | `cross-model-second-opinion` | capability | 3 | `agy`, `codex`, `mmx` |
+| `scan-code-quality` | capability | 4 | `check`, `grok-verify`, `review`, `trace` |
+| `scan-session-transcript` | capability | 4 | `aar`, `insight`, `todo`, `triage` |
+| `scan-workspace-state` | capability | 3 | `maintain`, `skill-prune`, `todo` |
 | `subagent-dispatch` | capability | 5 | `check`, `grok-parallel`, `review`, `tp`, `www` |
-| `agy` | tool | 8 | `agy`, `ai-cli`, `codex`, `mmx`, `model-benchmark`, `search-fleet`, `tasks`, `tp` |
-| `codex` | tool | 8 | `codex`, `mmx`, `model-benchmark`, `resume-codex`, `review`, `tasks`, `tp`, `wargame` |
+| `agy` | tool | 7 | `agy`, `ai-cli`, `codex`, `mmx`, `model-benchmark`, `search-fleet`, `tp` |
+| `codex` | tool | 11 | `codex`, `codex-cli-runtime`, `executing-plans`, `mmx`, `model-benchmark`, `resume-codex`, `review`, `review-relay`... |
 | `ddg` | tool | 5 | `go`, `search-fleet`, `tp`, `web`, `www` |
-| `exa` | tool | 27 | `aar`, `agy`, `codex`, `create-skill`, `design`, `dream`, `go`, `grok-parallel`... |
+| `exa` | tool | 29 | `aar`, `agy`, `codex`, `create-skill`, `design`, `dream`, `exa-agent`, `exa-search`... |
 | `firecrawl` | tool | 17 | `design`, `firecrawl-agent`, `firecrawl-cli`, `firecrawl-crawl`, `firecrawl-download`, `firecrawl-interact`, `firecrawl-map`, `firecrawl-monitor`... |
-| `gh` | tool | 29 | `aar`, `agy`, `codex`, `design`, `dream`, `go`, `grok-discovery`, `grok-parallel`... |
+| `gh` | tool | 28 | `aar`, `agy`, `codex`, `design`, `dream`, `go`, `grok-discovery`, `grok-parallel`... |
 | `mmx` | tool | 11 | `design`, `minimax-multimodal-toolkit`, `minimax-music-gen`, `minimax-music-playlist`, `mmx`, `model-benchmark`, `model-quota`, `search-fleet`... |
-| `nlm` | tool | 6 | `aar`, `gitingest`, `go`, `nlm`, `nlm-to-wiki`, `refactor` |
-| `notebooklm` | tool | 5 | `nlm`, `todo`, `web`, `wiki-yt`, `yt-nlm` |
+| `nlm` | tool | 6 | `aar`, `go`, `nlm`, `nlm-to-wiki`, `refactor`, `wiki-yt` |
+| `notebooklm` | tool | 5 | `nlm`, `todo`, `wiki-yt`, `wowerpoint`, `yt-nlm` |
+| `tavily` | tool | 10 | `academic-scientific-research`, `investment-research-briefs`, `model-quota`, `product-competitor-intelligence`, `sales-account-intelligence`, `search-fleet`, `tavily-web`, `threat-intelligence-enrichment`... |
 
 ## Capabilities by domain
 
@@ -296,6 +315,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 |------------|--------|
 | `cross-model-second-opinion` | `agy`, `codex`, `mmx` |
 | `gemini-reasoning` | `agy` |
+| `minimax-image-generation` | `mmx` |
+| `minimax-music-generation` | `mmx` |
+| `minimax-speech-synthesis` | `mmx` |
+| `minimax-video-generation` | `mmx` |
 | `minimax-vision` | `mmx` |
 | `minimax-web-search` | `mmx` |
 | `openai-reasoning` | `codex` |
@@ -312,12 +335,15 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | Capability | Skills |
 |------------|--------|
 | `capability-routed-search` | `search-fleet` |
+| `evidence-anchored-review` | `triage` |
 | `evidence-backed-inventory` | `preflight` |
+| `finding-lifecycle` | `triage` |
 | `marketplace-skill-discovery` | `marketplace-bridge` |
 | `model-discovery` | `model-discover` |
 | `multi-backend-search` | `web` |
 | `rrf-aggregation` | `search-fleet` |
 | `rrf-merge` | `web` |
+| `session-finding-triage` | `triage` |
 | `skill-routing` | `ask` |
 | `source-authority-discovery` | `grok-discovery` |
 | `task-refinement` | `refine` |
@@ -332,8 +358,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `file-recovery` | `recover` |
 | `grok-documentation-help` | `help` |
 | `latency-benchmark` | `model-benchmark` |
-| `persistent-task-store` | `tasks` |
 | `quality-scoring` | `model-benchmark` |
+| `scan-workspace-state` | `maintain`, `skill-prune`, `todo` |
 | `workspace-prioritized-action-list` | `todo` |
 
 ### implementation
@@ -366,28 +392,30 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | Capability | Skills |
 |------------|--------|
 | `after-action-review` | `aar` |
+| `anti-fabrication-close` | `close-py` |
 | `behavioral-reset` | `slc` |
-| `capture-coverage-check` | `capture` |
+| `capture-coverage-check` | `insight` |
+| `close-verdict` | `close-py` |
 | `file-pack` | `packet` |
-| `friction-detection` | `friction` |
-| `gate-resolution` | `close` |
+| `friction-detection` | `insight` |
 | `handoff-auto-update` | `handoff` |
 | `handoff-write` | `handoff` |
-| `improvement-opportunity-scan` | `capture` |
+| `improvement-opportunity-scan` | `insight` |
 | `logic-error-detection` | `trace` |
 | `manual-trace-verification` | `trace` |
 | `mid-conversation-observation-surfacing` | `notice` |
 | `opportunity-landscape` | `aar` |
-| `proactive-knowledge-capture` | `capture` |
-| `root-cause-analysis` | `why` |
+| `proactive-knowledge-capture` | `insight` |
+| `root-cause-analysis` | `rca`, `why` |
+| `scan-session-transcript` | `aar`, `insight`, `todo`, `triage` |
 | `session-chain-walk` | `recap-grok` |
-| `session-close-accounting` | `close` |
+| `session-close-pipeline` | `close-py` |
 | `session-export` | `packet` |
 | `session-recap-grok` | `recap-grok` |
 | `session-retrospective` | `aar` |
 | `thought-partner-realignment` | `slc` |
 | `value-accounting` | `aar` |
-| `workflow-automation-analysis` | `friction` |
+| `workflow-automation-analysis` | `insight` |
 
 ### monitoring
 
@@ -404,15 +432,17 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `git-safety-preflight` | `grok-safe-git` |
 | `package-routing` | `grok-route` |
 | `parallel-implement-dispatch` | `go` |
+| `public-readiness-gate` | `ship-py` |
 | `safe-git-preflight-dispatch` | `go` |
-| `ship-pipeline` | `ship` |
-| `verify-and-publish` | `ship` |
+| `ship-pipeline` | `ship-py` |
+| `verify-and-publish` | `ship-py` |
 | `verify-dispatch` | `go` |
 
 ### review
 
 | Capability | Skills |
 |------------|--------|
+| `adversarial-review` | `risk` |
 | `code-review` | `review` |
 | `content-discipline-for-plans` | `wargame` |
 | `critical-friend-critique` | `tp` |
@@ -421,6 +451,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `risk-escalation` | `risk` |
 | `risk-priority-scoring` | `fmea` |
 | `risk-scan` | `risk` |
+| `scan-code-quality` | `check`, `grok-verify`, `review`, `trace` |
+| `scan-risk` | `risk`, `tp` |
 | `session-opportunity-review` | `tp` |
 | `system-exploration` | `tp` |
 | `verified-findings-on-disk` | `review` |
@@ -429,15 +461,12 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 
 | Capability | Skills |
 |------------|--------|
-| `cross-session-pattern-detection` | `harvest` |
 | `fleet-maintenance` | `maintain` |
 | `knowledge-hygiene` | `skill-prune` |
-| `obligation-lifecycle` | `harvest` |
 | `offline-memory-consolidation` | `dream` |
 | `skill-improvement` | `skill-dev` |
 | `skill-measurement` | `skill-dev` |
 | `skill-scaffolding` | `create-skill` |
-| `value-tracking` | `harvest` |
 
 ### testing
 
@@ -471,9 +500,17 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | Skill | Delegates to | Consumes provider | Provides |
 |-------|-------------|------------------|
 | `a11y-debugging` | — | — | — |
-| `aar` | `check`, `close`, `debrief`, `go`, `handoff`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `critic-model-pool`, `exa`, `gh`, `nlm`, `reasoning-model-pool` | `after-action-review`, `opportunity-landscape`, `session-retrospective`, `value-accounting` |
+| `aar` | `check`, `close`, `debrief`, `go`, `handoff`, `refine`, `review`, `todo`, `tp`, `why`, `wiki` | `critic-model-pool`, `exa`, `gh`, `nlm`, `reasoning-model-pool` | `after-action-review`, `opportunity-landscape`, `scan-session-transcript`, `session-retrospective`, `value-accounting` |
+| `academic-scientific-research` | — | `tavily` | — |
+| `access` | — | — | — |
+| `access` | — | — | — |
+| `add-app-to-server` | — | — | — |
+| `adhd` | — | — | — |
 | `adr` | — | — | — |
-| `agy` | `debrief` | `agy`, `exa`, `gh` | `cross-model-second-opinion`, `gemini-reasoning` |
+| `agent` | — | — | — |
+| `agent-development` | — | — | — |
+| `agent-onboarding` | — | — | — |
+| `agy` | — | `agy`, `exa`, `gh` | `cross-model-second-opinion`, `gemini-reasoning` |
 | `agy` | — | — | — |
 | `ai-api` | — | — | — |
 | `ai-cli` | — | `agy` | — |
@@ -482,107 +519,168 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `ai-probe-nim` | — | — | — |
 | `ai-probe-openrouter` | — | — | — |
 | `ai-probe-router` | — | — | — |
-| `aid` | — | — | — |
-| `all` | — | — | — |
-| `ask` | `check`, `close`, `go`, `handoff`, `review`, `todo`, `tp`, `why` | — | `skill-routing` |
+| `ask` | `aar`, `check`, `close`, `go`, `handoff`, `review`, `todo`, `tp`, `why` | — | `skill-routing` |
 | `ask` | `design` | — | — |
+| `ask-matt` | `diagnosing-bugs`, `grill-me`, `handoff`, `improve-codebase-architecture`, `tdd`, `teach`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `wizard` | — | — |
 | `ask-matt` | `diagnosing-bugs`, `grill-me`, `handoff`, `improve-codebase-architecture`, `tdd`, `teach`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `writing-great-skills` | — | — |
+| `autofix` | — | — | — |
 | `av` | — | — | — |
 | `avant-garde-ui` | — | — | — |
+| `babysit` | — | — | — |
 | `batch-grill-me` | — | — | — |
-| `behave` | `debrief`, `design`, `handoff`, `red-team`, `review`, `tp`, `why` | — | — |
+| `behave` | `debrief`, `design`, `handoff`, `review`, `tp`, `why` | — | — |
 | `behave` | `debrief` | — | — |
 | `bf` | — | — | — |
 | `bifrost` | — | — | — |
+| `brain` | — | — | — |
 | `brainstorming` | — | — | — |
 | `brainstorming` | — | — | — |
+| `brand-listening` | — | — | — |
+| `brd-browser-debug` | — | — | — |
+| `bright-data-best-practices` | — | `duckduckgo` | — |
+| `bright-data-mcp` | — | — | — |
+| `brightdata-cli` | — | — | — |
+| `browser-use` | — | — | — |
+| `browser-use` | — | — | — |
 | `browsing` | — | — | — |
 | `build` | — | — | — |
+| `build-mcp-app` | — | — | — |
+| `build-mcp-server` | — | — | — |
+| `build-mcpb` | — | — | — |
 | `build-with-ai` | — | — | — |
-| `capture` | `aar`, `close`, `friction`, `handoff`, `tasks`, `todo`, `tp`, `wiki` | — | `capture-coverage-check`, `improvement-opportunity-scan`, `proactive-knowledge-capture` |
+| `building-pydantic-ai-agents` | — | — | — |
+| `building-pydantic-ai-agents` | — | — | — |
+| `captions-overlay` | — | — | — |
+| `captions-overlay` | — | — | — |
 | `capture` | — | — | — |
 | `case-feedback-skill` | — | — | — |
 | `cc-model-router` | — | — | — |
 | `changelog` | — | — | — |
-| `check` | `agy`, `close`, `go`, `review` | — | `session-verification`, `subagent-dispatch` |
+| `changelog-video` | — | — | — |
+| `changelog-video` | — | — | — |
+| `check` | `agy`, `close`, `go`, `review` | — | `scan-code-quality`, `session-verification`, `subagent-dispatch` |
 | `check` | `go`, `improve-codebase-architecture` | — | — |
 | `chrome-devtools` | — | — | — |
 | `chrome-devtools-cli` | — | `chrome-devtools` | — |
-| `chs` | — | — | — |
-| `chs-eval` | — | — | — |
+| `chrome-extensions` | — | — | — |
 | `cks` | — | — | — |
 | `claude-audit` | `debrief`, `red-team`, `review`, `wiki` | — | — |
+| `claude-automation-recommender` | — | `context7` | — |
 | `claude-handoff` | — | — | — |
-| `close` | `aar`, `capture`, `check`, `debrief`, `design`, `go`, `handoff`, `notice`, `red-team`, `review`, `skill-dev`, `todo`, `tp`, `wiki` | — | `gate-resolution`, `session-close-accounting` |
+| `claude-handoff` | — | — | — |
+| `claude-md-improver` | — | — | — |
+| `claude-security` | — | — | — |
+| `claudit` | — | — | — |
+| `close-py` | `aar`, `check`, `close`, `handoff`, `wiki` | `spawn-subagent` | `anti-fabrication-close`, `close-verdict`, `session-close-pipeline` |
+| `cloud-sync` | — | — | — |
 | `code` | `design`, `go` | — | — |
 | `code-flow-visualizer` | — | — | — |
 | `code-review` | — | — | — |
 | `code-review` | — | — | — |
 | `code-review` | — | — | — |
+| `code-review` | — | — | — |
+| `code-review` | — | — | — |
+| `codebase-design` | — | — | — |
 | `codebase-design` | — | — | — |
 | `codebase-to-course` | — | — | — |
 | `codex` | `agy`, `debrief` | `agy`, `codex`, `exa`, `gh` | `cross-model-second-opinion`, `openai-reasoning` |
 | `codex` | — | `codex` | — |
+| `codex-cli-runtime` | — | `codex` | — |
+| `codex-result-handling` | `codex` | — | — |
+| `codspeed-optimize` | — | — | — |
+| `codspeed-setup-harness` | — | — | — |
+| `command-development` | `help`, `review` | — | — |
+| `competitive-intel` | — | — | — |
 | `concept-mapper` | — | — | — |
 | `config-audit` | `recover`, `skill-prune` | — | — |
+| `configure` | — | — | — |
+| `configure` | — | — | — |
 | `constitutional-patterns` | — | — | — |
 | `constraints` | — | — | — |
-| `context7` | — | `context7` | — |
 | `contract-status` | — | — | — |
-| `crawl` | `wiki` | — | — |
+| `convert-web-app` | — | — | — |
+| `create-mcp-app` | — | — | — |
 | `create-skill` | `skill-dev`, `skill-prune`, `wiki` | `exa` | `skill-scaffolding` |
 | `create-skill` | — | — | — |
 | `create-workflow` | — | — | — |
 | `csf-nip-integration` | — | — | — |
+| `cut-the-curve` | — | — | — |
+| `cut-the-curve` | — | — | — |
+| `data-feeds` | — | — | — |
 | `debrief` | `red-team`, `review`, `wiki` | — | — |
 | `debt` | — | — | — |
 | `debug-optimize-lcp` | — | — | — |
 | `decision-tree` | — | — | — |
-| `design` | `go`, `handoff`, `plan-writer`, `preflight`, `refine`, `todo`, `tp`, `wiki` | `exa`, `firecrawl`, `gh`, `mmx` | `design-doc-production` |
+| `deepeval` | — | — | — |
+| `deepeval-otel` | — | — | — |
+| `deepeval-tracing` | — | — | — |
+| `design` | `go`, `handoff`, `plan-writer`, `preflight`, `refine`, `todo`, `tp`, `why`, `wiki` | `exa`, `firecrawl`, `gh`, `mmx` | `design-doc-production` |
 | `design` | `preflight` | `minimax-search` | — |
 | `design` | `go` | — | — |
 | `design-an-interface` | — | — | — |
 | `design-codebase` | — | — | — |
+| `design-doc-mermaid` | — | — | — |
 | `design-frontend` | — | — | — |
+| `design-is` | `review` | — | — |
+| `design-mirror` | — | — | — |
+| `developing-claude-code-plugins` | — | — | — |
 | `diagnose` | — | — | — |
 | `diagnosing-bugs` | `improve-codebase-architecture` | — | `systematic-debugging` |
 | `diagnosing-bugs` | `improve-codebase-architecture` | — | — |
-| `discover` | `design` | — | — |
+| `diagnosing-bugs` | `improve-codebase-architecture` | — | — |
+| `discover-api` | — | — | — |
 | `dispatching-parallel-agents` | — | — | — |
 | `dispatching-parallel-agents` | — | — | — |
+| `do` | — | — | — |
 | `doc-check` | `check`, `go`, `review` | `ruff` | `broken-link-detection`, `changelog-validation`, `code-fence-validation`, `documentation-readiness-check`, `readme-staleness-detection`, `repo-file-completeness`, `skill-frontmatter-validation`, `wikilink-resolution` |
 | `doc-compiler` | `check` | — | — |
 | `docs` | — | — | — |
 | `docx` | — | — | — |
 | `domain-modeling` | — | — | — |
+| `domain-modeling` | — | — | — |
 | `domain-terms` | `design`, `grill-me`, `plan-writer`, `refine`, `review`, `tp`, `wiki` | — | `domain-term-extraction` |
-| `dream` | `aar`, `check`, `close`, `debrief`, `design`, `handoff`, `red-team`, `refine`, `review`, `tp`, `why`, `wiki` | `episodic-memory`, `exa`, `gh` | `offline-memory-consolidation` |
+| `dream` | `aar`, `check`, `close`, `debrief`, `design`, `handoff`, `refine`, `review`, `tp`, `why`, `wiki` | `episodic-memory`, `exa`, `gh` | `offline-memory-consolidation` |
 | `dream` | — | — | — |
 | `edit-article` | — | — | — |
 | `email-skill` | `todo` | — | — |
+| `embedded-captions` | — | — | — |
 | `epistemic-check` | — | — | — |
 | `evidence-driven-experiment-loop` | — | — | — |
 | `evolve` | `design`, `tdd` | — | — |
+| `exa-agent` | — | `exa` | — |
+| `exa-search` | — | `exa` | — |
 | `execute-plan` | `design` | — | — |
+| `executing-plans` | — | `codex` | — |
 | `executing-plans` | — | — | — |
 | `execution-clarity` | — | — | — |
-| `export-session` | `debrief` | — | — |
-| `find` | `web` | — | — |
+| `faceless-explainer` | — | — | — |
+| `fetch` | — | — | — |
+| `figma` | — | — | — |
 | `finishing-a-development-branch` | — | — | — |
 | `finishing-a-development-branch` | — | — | — |
+| `firecrawl-agent` | — | — | — |
 | `firecrawl-agent` | — | `firecrawl` | — |
 | `firecrawl-cli` | — | `firecrawl` | — |
+| `firecrawl-cli` | — | `firecrawl` | — |
+| `firecrawl-crawl` | — | — | — |
 | `firecrawl-crawl` | — | `firecrawl` | — |
+| `firecrawl-download` | — | — | — |
 | `firecrawl-download` | — | `firecrawl` | — |
+| `firecrawl-interact` | — | — | — |
 | `firecrawl-interact` | — | `firecrawl` | — |
+| `firecrawl-map` | — | — | — |
 | `firecrawl-map` | — | `firecrawl` | — |
+| `firecrawl-monitor` | — | — | — |
 | `firecrawl-monitor` | — | `firecrawl` | — |
+| `firecrawl-parse` | — | — | — |
 | `firecrawl-parse` | — | `firecrawl` | — |
+| `firecrawl-scrape` | — | — | — |
 | `firecrawl-scrape` | — | `firecrawl` | — |
 | `firecrawl-search` | — | `firecrawl` | — |
+| `firecrawl-search` | — | `firecrawl` | — |
 | `fmea` | `red-team`, `tp` | — | `failure-modes-analysis`, `risk-priority-scoring` |
-| `friction` | `aar`, `debrief`, `handoff` | — | `friction-detection`, `workflow-automation-analysis` |
 | `friction` | `debrief` | — | — |
+| `frontend-design` | — | — | — |
 | `frontend-dev` | — | — | — |
 | `fullstack-dev` | — | — | — |
 | `game-animation-frames` | — | — | — |
@@ -591,18 +689,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `game-tilesets` | — | — | — |
 | `game-ui-icons` | — | — | — |
 | `garden` | — | — | — |
+| `general-video` | — | — | — |
 | `genius` | — | — | — |
 | `git` | — | — | — |
 | `git-guardrails-claude-code` | — | — | — |
-| `gitingest` | — | `nlm` | — |
-| `gitpack` | — | — | — |
+| `git-guardrails-claude-code` | — | — | — |
 | `gitready` | — | — | — |
-| `go` | `check`, `design`, `grok-discovery`, `grok-parallel`, `grok-route`, `grok-safe-git`, `grok-verify`, `handoff`, `plan-writer`, `refine`, `review`, `tp`, `wiki` | `brave`, `coding-model-pool`, `ddg`, `exa`, `gh`, `nlm` | `discovery-dispatch`, `engineering-orchestration`, `parallel-implement-dispatch`, `safe-git-preflight-dispatch`, `verify-dispatch` |
+| `go` | `check`, `design`, `grok-discovery`, `grok-parallel`, `grok-route`, `grok-safe-git`, `grok-verify`, `handoff`, `plan-writer`, `refine`, `review`, `test-driven-development`, `tp`, `using-git-worktrees`, `wiki` | `brave`, `coding-model-pool`, `ddg`, `exa`, `gh`, `nlm` | `discovery-dispatch`, `engineering-orchestration`, `parallel-implement-dispatch`, `safe-git-preflight-dispatch`, `verify-dispatch` |
 | `go` | `design`, `tdd` | — | — |
 | `google-ai-usage-monitor` | — | — | — |
+| `gpt-5-4-prompting` | — | — | — |
 | `grill-me` | `design`, `domain-terms`, `go`, `plan-writer`, `refine` | — | `decision-tree-elicitation`, `requirements-elicitation` |
 | `grill-me` | — | — | — |
+| `grill-me` | — | — | — |
 | `grill-with-docs` | — | — | — |
+| `grill-with-docs` | — | — | — |
+| `grilling` | — | — | — |
 | `grilling` | — | — | — |
 | `grok-discovery` | — | `gh` | `source-authority-discovery` |
 | `grok-go` | `go` | — | — |
@@ -610,78 +712,165 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `grok-route` | — | — | `package-routing` |
 | `grok-safe-git` | `wiki` | `gh` | `git-safety-preflight` |
 | `grok-sdlc` | `go` | — | — |
-| `grok-verify` | `check`, `grok-route`, `grok-safe-git` | `exa`, `gh` | `completion-gate` |
+| `grok-verify` | `check`, `grok-route`, `grok-safe-git` | `exa`, `gh` | `completion-gate`, `scan-code-quality` |
 | `handoff` | `aar`, `close`, `debrief`, `design`, `go`, `refine`, `tp`, `wiki` | `exa`, `gh`, `mechanical-model-pool` | `handoff-auto-update`, `handoff-write` |
 | `handoff` | — | — | — |
-| `harvest` | `aar`, `close`, `debrief`, `handoff`, `todo`, `tp`, `why` | `mechanical-model-pool`, `pending-suggestions` | `cross-session-pattern-detection`, `obligation-lifecycle`, `value-tracking` |
+| `handoff` | — | — | — |
 | `help` | — | — | `grok-documentation-help` |
+| `hf-cli` | — | — | — |
+| `hf-cloud-aws-context-discovery` | — | — | — |
+| `hf-cloud-python-env-setup` | — | — | — |
+| `hf-cloud-sagemaker-deployment-planner` | — | — | — |
+| `hf-cloud-sagemaker-iam-preflight` | — | — | — |
+| `hf-cloud-sagemaker-production-defaults` | — | — | — |
+| `hf-cloud-serving-image-selection` | — | — | — |
+| `hf-mcp` | — | — | — |
+| `hf-mem` | — | — | — |
+| `hook-development` | — | — | — |
+| `how-it-works` | — | — | — |
+| `huggingface-best` | — | — | — |
+| `huggingface-community-evals` | — | — | — |
+| `huggingface-datasets` | — | — | — |
+| `huggingface-gradio` | — | — | — |
+| `huggingface-llm-trainer` | — | — | — |
+| `huggingface-local-models` | — | — | — |
+| `huggingface-lora-space-builder` | — | — | — |
+| `huggingface-paper-publisher` | — | — | — |
+| `huggingface-papers` | — | — | — |
+| `huggingface-spaces` | — | — | — |
+| `huggingface-tool-builder` | — | — | — |
+| `huggingface-trackio` | — | — | — |
+| `huggingface-vision-trainer` | — | — | — |
+| `huggingface-zerogpu` | — | — | — |
+| `hyperframes` | — | — | — |
+| `hyperframes-animation` | — | — | — |
+| `hyperframes-cli` | — | — | — |
+| `hyperframes-core` | — | — | — |
+| `hyperframes-creative` | — | — | — |
+| `hyperframes-keyframes` | — | — | — |
+| `hyperframes-registry` | — | — | — |
 | `id` | — | — | — |
 | `imagine` | — | `exa`, `gh` | `image-generation-guidance` |
 | `imagine` | — | — | — |
 | `implement` | — | — | — |
 | `implement` | `tdd` | — | — |
+| `implement` | `tdd` | — | — |
 | `improve` | `debrief`, `red-team`, `review`, `wiki` | — | — |
+| `improve-codebase-architecture` | — | — | — |
 | `improve-codebase-architecture` | — | — | — |
 | `improve-codebase-architecture` | — | — | — |
 | `improve-codebase-architecture` | — | — | — |
 | `index` | — | — | — |
 | `init` | — | — | — |
+| `insight` | `aar`, `close`, `handoff`, `maintain`, `review`, `skill-dev`, `skill-prune`, `todo`, `tp`, `wiki` | — | `capture-coverage-check`, `friction-detection`, `improvement-opportunity-scan`, `proactive-knowledge-capture`, `scan-session-transcript`, `workflow-automation-analysis` |
 | `intelligence-stream-analyze` | — | — | — |
 | `intelligence-stream-ingest` | — | — | — |
-| `keep` | `web` | — | — |
+| `investment-research-briefs` | — | `tavily` | — |
+| `js-sdk-best-practices` | — | — | — |
+| `knowledge` | — | — | — |
+| `knowledge-agent` | — | — | — |
+| `langfuse` | — | — | — |
 | `learn` | `review` | — | — |
+| `learn-codebase` | — | — | — |
+| `live-research` | — | — | — |
 | `lmc` | `debrief` | — | — |
+| `logfire-instrumentation` | `go` | — | — |
+| `logfire-instrumentation` | `go` | — | — |
+| `logfire-query` | — | — | — |
+| `logfire-query` | — | — | — |
+| `logfire-ui` | — | — | — |
+| `logfire-ui` | — | — | — |
+| `loop-me` | — | — | — |
 | `loop-me` | — | — | — |
 | `main` | `recover`, `wiki` | — | — |
 | `main-review` | — | — | — |
-| `maintain` | `close`, `handoff`, `recover`, `skill-prune`, `wiki` | `gh` | `fleet-maintenance` |
+| `maintain` | `close`, `config-audit`, `go`, `handoff`, `maintain-ifile`, `recover`, `review`, `skill-dev`, `skill-prune`, `tp`, `wiki` | `gh` | `fleet-maintenance`, `scan-workspace-state` |
+| `maintain-ifile` | `maintain`, `preflight`, `skill-dev`, `skill-prune`, `wiki` | — | — |
+| `make-plan` | — | — | — |
 | `marketplace-bridge` | `review` | — | `marketplace-skill-discovery` |
+| `mcp-integration` | — | — | — |
+| `media-use` | — | — | — |
+| `mem-search` | — | — | — |
 | `memory-leak-debugging` | — | — | — |
 | `mermaid-c4` | — | — | — |
+| `migrate-oai-app` | — | — | — |
+| `migrate-to-shoehorn` | — | — | — |
 | `migrate-to-shoehorn` | — | — | — |
 | `minimax-multimodal-toolkit` | `mmx` | `mmx` | — |
 | `minimax-music-gen` | `mmx` | `mmx` | — |
 | `minimax-music-playlist` | — | `mmx` | — |
 | `mlc` | `debrief` | — | — |
 | `mm-quota` | — | — | — |
-| `mmx` | `agy`, `codex` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cross-model-second-opinion`, `minimax-vision`, `minimax-web-search` |
+| `mmx` | `agy`, `codex` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cross-model-second-opinion`, `minimax-image-generation`, `minimax-music-generation`, `minimax-speech-synthesis`, `minimax-video-generation`, `minimax-vision`, `minimax-web-search` |
+| `mode-creator` | — | — | — |
 | `model-benchmark` | `check`, `go`, `review`, `tp`, `why`, `wiki` | `agy`, `codex`, `exa`, `gh`, `mmx` | `cost-tracking`, `latency-benchmark`, `quality-scoring` |
 | `model-discover` | `model-benchmark` | — | `model-discovery` |
 | `model-quota` | `maintain`, `mmx`, `todo` | `exa`, `firecrawl`, `mmx`, `tavily` | `quota-dashboard` |
-| `model-web` | `aar`, `agy`, `chrome-devtools-mcp`, `codex`, `handoff`, `mmx`, `red-team`, `tp`, `why` | `chrome-devtools`, `chrome-devtools-mcp-tools`, `perplexity` | `browser-llm-bridge`, `conversation-selection`, `fusion-portal-orchestration`, `model-web-advisory`, `multi-model-ensemble`, `sse-response-capture` |
+| `model-web` | `aar`, `agy`, `chrome-devtools`, `codex`, `handoff`, `mmx`, `tp`, `why` | `chrome-devtools`, `chrome-devtools-mcp-tools`, `perplexity` | `browser-llm-bridge`, `conversation-selection`, `fusion-portal-orchestration`, `model-web-advisory`, `multi-model-ensemble`, `sse-response-capture` |
+| `modern-web-guidance` | — | — | — |
+| `motion-doctrine` | — | — | — |
+| `motion-doctrine` | — | — | — |
+| `motion-graphics` | — | — | — |
+| `music-to-video` | — | — | — |
 | `nlm` | — | `nlm`, `notebooklm` | — |
 | `nlm-bulk-ingest` | — | — | — |
 | `nlm-to-wiki` | `wiki` | `nlm` | — |
-| `note` | `web` | — | — |
 | `notebooklm` | — | — | — |
-| `notice` | `aar`, `go`, `grok-parallel`, `handoff`, `red-team`, `tp`, `why`, `wiki` | `exa`, `gh` | `mid-conversation-observation-surfacing` |
+| `notice` | `aar`, `go`, `grok-parallel`, `handoff`, `tp`, `why`, `wiki` | `exa`, `gh` | `mid-conversation-observation-surfacing` |
 | `obsidian-vault` | — | — | — |
+| `oh-my-issues` | — | — | — |
+| `oversized-cursor` | — | — | — |
+| `oversized-cursor` | — | — | — |
 | `pace` | — | — | — |
 | `packet` | `aar`, `handoff` | — | `file-pack`, `session-export` |
+| `pathfinder` | — | — | — |
 | `pdf` | — | — | — |
 | `perf` | — | — | — |
 | `performance-profiler` | — | — | — |
 | `perplexity-web-mcp` | — | `pwm` | — |
+| `pi-cli-runtime` | — | — | — |
+| `pi-cross-verify` | — | — | — |
+| `pi-result-handling` | — | — | — |
+| `pi-routing` | — | — | — |
 | `plan-writer` | `design`, `go`, `handoff`, `refine`, `tp`, `wargame`, `wiki` | `exa`, `gh` | `plan-writing` |
 | `planning` | `design`, `tdd` | — | — |
+| `playground` | — | — | — |
 | `plugin-installer` | — | — | — |
+| `plugin-settings` | — | — | — |
+| `plugin-structure` | `review` | — | — |
 | `pptx` | — | — | — |
 | `pr-babysit` | — | — | — |
+| `pr-to-video` | — | — | — |
 | `pre-mortem` | `red-team` | — | — |
 | `preflight` | `red-team` | — | `evidence-backed-inventory` |
 | `preflight` | — | — | — |
+| `price-comparison` | — | — | — |
 | `prime` | — | — | — |
 | `probe` | — | — | — |
+| `product-competitor-intelligence` | — | `tavily` | — |
+| `product-launch-video` | — | — | — |
+| `professional-greeting` | — | — | — |
 | `profile` | — | — | — |
+| `project-artifact` | — | — | — |
 | `prompt-enhancer` | — | — | — |
 | `prompt-patterns` | `handoff`, `wiki` | `exa`, `gh` | `prompting-techniques-reference` |
 | `prompt_refiner` | `design` | — | — |
 | `prospect` | — | `search-research` | — |
 | `prototype` | — | — | — |
+| `prototype` | — | — | — |
+| `proxy` | — | — | — |
+| `pydantic` | — | — | — |
+| `pydantic` | — | — | — |
+| `pydantic-ai-harness` | — | — | — |
+| `pydantic-ai-harness` | — | — | — |
+| `python-sdk-best-practices` | — | — | — |
+| `qa` | — | — | — |
 | `qa` | — | — | — |
 | `qmd-wiki` | — | — | — |
 | `quota` | — | — | — |
+| `rag-pipeline` | — | — | — |
 | `ralph` | `tdd` | — | — |
+| `rca` | `handoff`, `why`, `wiki` | — | `root-cause-analysis` |
 | `rca` | — | — | — |
 | `reason` | — | — | — |
 | `recap` | `debrief`, `design`, `handoff` | — | — |
@@ -689,90 +878,136 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `receiving-code-review` | — | — | — |
 | `recover` | — | — | `file-recovery` |
 | `recover` | — | — | — |
-| `red-team` | `aar`, `debrief`, `handoff`, `review`, `skill-dev`, `tp`, `wargame`, `why` | — | — |
-| `refactor` | `check`, `go`, `handoff`, `refine`, `review`, `tp`, `wiki` | `exa`, `gh`, `nlm` | `structural-refactor` |
+| `redteam` | `red-team` | — | — |
+| `refactor` | `check`, `go`, `handoff`, `refine`, `review`, `todo`, `tp`, `wiki` | `context7`, `exa`, `gh`, `nlm` | `structural-refactor` |
 | `refactor` | — | — | — |
 | `refine` | `check`, `design`, `go`, `handoff`, `plan-writer`, `review`, `tp`, `wiki` | `exa`, `gh`, `mechanical-model-pool` | `task-refinement` |
 | `reflect` | — | — | — |
+| `refresh` | — | — | — |
 | `remembering-conversations` | — | `episodic-memory` | — |
-| `repomix` | — | — | — |
+| `remotion-to-hyperframes` | — | — | — |
+| `req-check` | `go`, `risk`, `tp`, `wargame`, `wiki` | — | — |
 | `request-refactor-plan` | — | — | — |
 | `requesting-code-review` | — | — | — |
 | `research` | — | — | — |
 | `research` | — | — | — |
-| `research` | `go` | — | — |
+| `research` | — | — | — |
+| `resolving-merge-conflicts` | — | — | — |
 | `resolving-merge-conflicts` | — | — | — |
 | `response-atomicity` | — | — | — |
 | `resume-claude` | — | — | — |
 | `resume-codex` | — | `codex` | — |
 | `resume-cursor` | — | — | — |
 | `retro` | `debrief`, `red-team` | — | — |
-| `review` | `check`, `close`, `go`, `red-team`, `tp`, `why`, `wiki` | `codex`, `coding-model-pool`, `critic-model-pool`, `exa`, `gh` | `code-review`, `subagent-dispatch`, `verified-findings-on-disk` |
+| `review` | `check`, `close`, `go`, `red-team`, `todo`, `tp`, `why`, `wiki` | `codex`, `coding-model-pool`, `critic-model-pool`, `exa`, `gh` | `code-review`, `scan-code-quality`, `subagent-dispatch`, `verified-findings-on-disk` |
 | `review` | — | — | — |
 | `review` | `red-team` | — | — |
 | `review-pr` | `review` | — | — |
+| `review-relay` | `handoff`, `review` | `codex` | — |
 | `review_bundle` | — | — | — |
-| `risk` | `red-team`, `tp`, `wargame`, `why`, `wiki` | — | `risk-assessment`, `risk-escalation`, `risk-scan` |
+| `risk` | `handoff`, `red-team`, `todo`, `tp`, `wargame`, `why`, `wiki` | — | `adversarial-review`, `risk-assessment`, `risk-escalation`, `risk-scan`, `scan-risk` |
 | `risks` | `red-team`, `review` | — | — |
 | `rns` | `go` | — | — |
 | `s` | `design` | — | — |
+| `sales-account-intelligence` | — | `tavily` | — |
 | `scaffold-exercises` | — | — | — |
+| `scaffold-exercises` | — | — | — |
+| `scrape` | — | — | — |
+| `scraper-builder` | `web` | — | — |
+| `scraper-studio` | — | — | — |
+| `seam-craft` | — | — | — |
+| `seam-craft` | — | — | — |
+| `search` | — | `exa` | — |
+| `search` | — | — | — |
+| `search` | — | — | — |
 | `search-fleet` | `agy` | `agy`, `ddg`, `exa`, `firecrawl`, `gh`, `mmx`, `perplexity`, `pwm`, `reddit`, `search-research`, `tavily` | `capability-routed-search`, `rrf-aggregation` |
+| `searching-sourcegraph` | — | — | — |
+| `seo-audit` | — | — | — |
 | `sequential-thinking` | — | — | — |
 | `setup-matt-pocock-skills` | `triage` | — | — |
+| `setup-matt-pocock-skills` | `triage` | — | — |
+| `setup-pre-commit` | — | — | — |
 | `setup-pre-commit` | — | — | — |
 | `setup-ts-deep-modules` | — | — | — |
-| `ship` | `check`, `close`, `grok-safe-git`, `grok-verify`, `handoff`, `review`, `todo`, `wiki` | — | `ship-pipeline`, `verify-and-publish` |
+| `setup-ts-deep-modules` | — | — | — |
 | `ship` | — | — | — |
+| `ship-py` | `check`, `doc-check`, `grok-safe-git`, `handoff`, `refactor`, `review`, `risk`, `skill-dev`, `wiki` | `spawn-subagent` | `public-readiness-gate`, `ship-pipeline`, `verify-and-publish` |
 | `simplify-enhanced` | — | — | — |
 | `skeptic` | — | — | — |
 | `skill-audit` | `debrief`, `red-team`, `review` | — | — |
-| `skill-dev` | `aar`, `check`, `close`, `create-skill`, `fmea`, `grok-verify`, `handoff`, `maintain`, `notice`, `review`, `skill-prune`, `tp`, `why`, `wiki` | `exa`, `gh` | `skill-improvement`, `skill-measurement` |
+| `skill-creator` | — | — | — |
+| `skill-creator` | — | — | — |
+| `skill-design-principles` | — | — | — |
+| `skill-dev` | `aar`, `check`, `close`, `create-skill`, `fmea`, `go`, `grok-verify`, `handoff`, `maintain`, `notice`, `review`, `skill-prune`, `todo`, `tp`, `why`, `wiki` | `exa`, `gh` | `skill-improvement`, `skill-measurement` |
+| `skill-development` | — | — | — |
 | `skill-from-docs` | — | — | — |
-| `skill-prune` | `recover` | — | `knowledge-hygiene` |
+| `skill-prune` | `recover` | — | `knowledge-hygiene`, `scan-workspace-state` |
 | `skill-similarity` | `tdd` | — | — |
 | `skill-to-page` | `check` | — | — |
 | `skill-write` | — | — | — |
 | `slc` | `aar`, `notice`, `tp` | — | `behavioral-reset`, `thought-partner-realignment` |
 | `slc` | — | — | — |
+| `slideshow` | — | — | — |
+| `smart-explore` | — | — | — |
 | `snapshot` | — | — | — |
 | `solo-dev-authority` | — | — | — |
 | `specify` | `design` | — | — |
 | `sqa` | — | — | — |
 | `sqd` | `review` | — | — |
 | `stale` | — | — | — |
+| `standup` | — | — | — |
+| `status` | — | — | — |
 | `subagent-driven-development` | — | — | — |
 | `subagent-driven-development` | `tdd` | — | — |
 | `systematic-debugging` | — | — | — |
 | `t` | `tdd` | — | — |
+| `talking-head-recut` | — | `codex` | — |
 | `task` | — | — | — |
-| `tasks` | — | `agy`, `codex`, `exa`, `gh` | `persistent-task-store` |
+| `tasks` | — | — | — |
+| `tavily-best-practices` | — | — | — |
+| `tavily-web` | — | `tavily` | — |
 | `tdd` | — | — | — |
 | `tdd` | — | — | — |
 | `tdd` | — | — | — |
+| `tdd` | — | — | — |
+| `teach` | — | — | — |
 | `teach` | — | — | — |
 | `teach` | — | — | — |
 | `team` | — | — | — |
 | `test-driven-development` | — | — | — |
+| `threat-intelligence-enrichment` | — | `tavily` | — |
 | `tilldone` | — | — | — |
+| `timeline-report` | — | — | — |
+| `tinyfish-authenticated` | — | — | — |
+| `tinyfish-automation` | — | — | — |
+| `tinyfish-browser` | — | — | — |
+| `tinyfish-research` | — | — | — |
+| `tinyfish-web` | — | — | — |
 | `tldr-code` | — | — | — |
 | `tldr-deep` | — | — | — |
 | `tldr-overview` | — | — | — |
 | `tldr-router` | — | — | — |
 | `tldr-stats` | — | — | — |
 | `to-questionnaire` | — | — | — |
+| `to-questionnaire` | — | — | — |
+| `to-spec` | — | — | — |
 | `to-spec` | — | — | — |
 | `to-spec` | — | — | — |
 | `to-tickets` | — | — | — |
 | `to-tickets` | — | — | — |
-| `todo` | `check`, `close`, `go`, `review`, `tp`, `why`, `wiki` | `exa`, `gh`, `notebooklm`, `reddit` | `workspace-prioritized-action-list` |
+| `to-tickets` | — | — | — |
+| `todo` | `aar`, `check`, `close`, `go`, `insight`, `maintain`, `review`, `skill-dev`, `skill-prune`, `tp`, `why`, `wiki` | `exa`, `gh`, `notebooklm`, `reddit` | `scan-session-transcript`, `scan-workspace-state`, `workspace-prioritized-action-list` |
 | `top-problems` | `debrief` | — | — |
 | `tot` | — | — | — |
-| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `grok-verify`, `handoff`, `mmx`, `notice`, `packet`, `preflight`, `red-team`, `review`, `skill-dev`, `todo`, `web`, `why`, `wiki` | `agy`, `codex`, `critic-model-pool`, `ddg`, `firecrawl`, `reasoning-model-pool`, `spawn-subagent` | `critical-friend-critique`, `session-opportunity-review`, `subagent-dispatch`, `system-exploration` |
-| `trace` | — | — | `logic-error-detection`, `manual-trace-verification` |
+| `tp` | `aar`, `agy`, `check`, `close`, `codex`, `debrief`, `design`, `go`, `handoff`, `mmx`, `packet`, `preflight`, `review`, `skill-dev`, `todo`, `web`, `why`, `wiki` | `agy`, `codex`, `critic-model-pool`, `ddg`, `firecrawl`, `reasoning-model-pool`, `spawn-subagent` | `critical-friend-critique`, `scan-risk`, `session-opportunity-review`, `subagent-dispatch`, `system-exploration` |
+| `trace` | — | — | `logic-error-detection`, `manual-trace-verification`, `scan-code-quality` |
 | `trace` | — | — | — |
+| `train-sentence-transformers` | — | — | — |
+| `transformers-js` | — | — | — |
+| `triage` | `check`, `go`, `handoff`, `review`, `tp`, `why` | — | `evidence-anchored-review`, `finding-lifecycle`, `scan-session-transcript`, `session-finding-triage` |
 | `triage` | — | — | — |
 | `triage` | — | — | — |
+| `trl-training` | — | — | — |
 | `troubleshooting` | — | — | — |
 | `truth` | — | — | — |
 | `ubiquitous-language` | — | — | — |
@@ -786,30 +1021,46 @@ high consumer counts. Changes to these have fleet-wide blast radius.
 | `usm` | — | — | — |
 | `ut` | — | — | — |
 | `ux` | `wiki` | — | — |
+| `vendor-risk-kyc-screening` | — | `tavily` | — |
 | `verification-before-completion` | — | — | — |
 | `verification-before-completion` | — | — | — |
+| `version-bump` | — | — | — |
 | `video-vision` | — | — | — |
 | `vision-analysis` | — | — | — |
+| `wait-what` | — | — | — |
 | `wargame` | `aar`, `design`, `go`, `why`, `wiki` | `codex`, `gh` | `content-discipline-for-plans` |
 | `wayfinder` | — | — | — |
 | `wayfinder` | — | — | — |
+| `wayfinder` | — | — | — |
 | `web` | `design`, `mmx`, `wiki` | `brave`, `ddg`, `duckduckgo`, `exa`, `firecrawl`, `hn-algolia`, `mmx`, `perplexity`, `reddit`, `search-research`, `stackexchange`, `tavily` | `multi-backend-search`, `rrf-merge` |
-| `web` | — | `notebooklm`, `serper` | — |
-| `why` | `aar`, `agy`, `codex`, `design`, `go`, `handoff`, `mmx`, `red-team`, `tp`, `web`, `wiki` | `reasoning-model-pool`, `spawn-subagent` | `feedback-to-wiki`, `pattern-library-query`, `root-cause-analysis` |
+| `weekly-digests` | — | — | — |
+| `what-the` | — | — | — |
+| `why` | `aar`, `agy`, `codex`, `design`, `go`, `handoff`, `mmx`, `tp`, `web`, `wiki` | `reasoning-model-pool`, `spawn-subagent` | `feedback-to-wiki`, `pattern-library-query`, `root-cause-analysis` |
 | `why` | — | `search-research` | — |
 | `wiki` | `close`, `handoff`, `skill-prune`, `todo` | `exa`, `gh` | `wiki-query`, `wiki-write` |
 | `wiki` | — | — | — |
 | `wiki-crawl4ai` | `crawl4ai`, `web`, `wiki` | `exa`, `firecrawl`, `gh` | `web-ingestion` |
-| `wiki-yt` | `mmx`, `wiki` | `mmx`, `notebooklm` | — |
+| `wiki-yt` | `mmx`, `wiki` | `mmx`, `nlm`, `notebooklm` | — |
 | `wizard` | — | — | — |
 | `wizard` | — | — | — |
+| `wizard` | — | — | — |
+| `workflow` | — | — | — |
+| `working-with-claude-code` | — | — | — |
 | `workspace-health` | `recover`, `skill-prune` | — | — |
+| `wowerpoint` | — | `notebooklm` | — |
 | `write` | — | — | `content-production` |
 | `writing-beats` | — | — | — |
+| `writing-beats` | — | — | — |
+| `writing-clearly-and-concisely` | — | — | — |
+| `writing-for-agents` | — | — | — |
+| `writing-fragments` | — | — | — |
 | `writing-fragments` | — | — | — |
 | `writing-great-skills` | — | — | — |
 | `writing-great-skills` | — | — | — |
 | `writing-plans` | — | — | — |
+| `writing-plans` | — | — | — |
+| `writing-rules` | — | — | — |
+| `writing-shape` | — | — | — |
 | `writing-shape` | — | — | — |
 | `writing-skills` | — | — | — |
 | `writing-skills` | — | — | — |
@@ -834,9 +1085,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "debrief",
         "go",
         "handoff",
-        "red-team",
         "refine",
         "review",
+        "todo",
         "tp",
         "why",
         "wiki"
@@ -857,18 +1108,27 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "provides": [
         "after-action-review",
         "opportunity-landscape",
+        "scan-session-transcript",
         "session-retrospective",
         "value-accounting"
       ],
       "domain": "lifecycle"
     },
     {
+      "name": "adhd",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\adhd\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "agy",
       "path": "C:\\Users\\brsth\\.grok\\skills\\agy\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "debrief"
-      ],
+      "delegates_to": [],
       "consumes_provider": [
         "agy",
         "exa",
@@ -886,6 +1146,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "path": "C:\\Users\\brsth\\.grok\\skills\\ask\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
+        "aar",
         "check",
         "close",
         "go",
@@ -914,7 +1175,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "debrief",
         "design",
         "handoff",
-        "red-team",
         "review",
         "tp",
         "why"
@@ -927,60 +1187,37 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": "lifecycle"
     },
     {
-      "name": "capture",
-      "path": "C:\\Users\\brsth\\.grok\\skills\\capture\\SKILL.md",
+      "name": "brain",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\brain\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [
-        "aar",
-        "close",
-        "friction",
-        "handoff",
-        "tasks",
-        "todo",
-        "tp",
-        "wiki"
-      ],
+      "delegates_to": [],
       "consumes_provider": [],
-      "references_wiki": [
-        "plausible-narratives-substitute-for-verification",
-        "proactive-improvement-opportunity-scanner"
-      ],
-      "provides": [
-        "capture-coverage-check",
-        "improvement-opportunity-scan",
-        "proactive-knowledge-capture"
-      ],
-      "domain": "lifecycle"
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
     },
     {
-      "name": "close",
-      "path": "C:\\Users\\brsth\\.grok\\skills\\close\\SKILL.md",
+      "name": "close-py",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\close-py\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
         "aar",
-        "capture",
         "check",
-        "debrief",
-        "design",
-        "go",
+        "close",
         "handoff",
-        "notice",
-        "red-team",
-        "review",
-        "skill-dev",
-        "todo",
-        "tp",
         "wiki"
       ],
-      "consumes_provider": [],
+      "consumes_provider": [
+        "spawn-subagent"
+      ],
       "references_wiki": [
-        "agentic-sdlc-skill-lifecycle-architecture",
-        "prompting-patterns-for-ai-agent-control",
-        "signal-based-intent-expansion"
+        "pipeline-detect-phase-state-reset-sequential-contamination",
+        "skill-pipeline-integration-testing"
       ],
       "provides": [
-        "gate-resolution",
-        "session-close-accounting"
+        "anti-fabrication-close",
+        "close-verdict",
+        "session-close-pipeline"
       ],
       "domain": "lifecycle"
     },
@@ -1035,6 +1272,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "refine",
         "todo",
         "tp",
+        "why",
         "wiki"
       ],
       "consumes_provider": [
@@ -1046,10 +1284,13 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "references_wiki": [
         "adr-0009-extend-unverified-stance",
         "agentic-sdlc-skill-lifecycle-architecture",
-        "concept-slug",
         "consistency-drift-as-waste-source-in-iterative-refinement",
+        "design-choice-audit-challenge-every-decision-against-first-principles",
+        "design-doc-conformance-check-procedure",
         "exemption-logic-as-conflict-signal",
+        "invariants-beat-environment-comfort",
         "llm-synthesis-quality-and-speed-techniques",
+        "multi-model-ensemble-design-patterns-for-agent-skills",
         "raising-coding-best-practices-in-ai-agents",
         "tool-fallbacks"
       ],
@@ -1061,6 +1302,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
     {
       "name": "design-codebase",
       "path": "C:\\Users\\brsth\\.grok\\skills\\design-codebase\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "design-doc-mermaid",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\design-doc-mermaid\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [],
       "consumes_provider": [],
@@ -1105,9 +1356,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "ruff"
       ],
       "references_wiki": [
-        "page",
-        "slug",
-        "some-concept"
+        "page"
       ],
       "provides": [
         "broken-link-detection",
@@ -1152,7 +1401,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "debrief",
         "design",
         "handoff",
-        "red-team",
         "refine",
         "review",
         "tp",
@@ -1175,23 +1423,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": "self-improvement"
     },
     {
-      "name": "friction",
-      "path": "C:\\Users\\brsth\\.grok\\skills\\friction\\SKILL.md",
-      "scope": "grok-user",
-      "delegates_to": [
-        "aar",
-        "debrief",
-        "handoff"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [
-        "friction-detection",
-        "workflow-automation-analysis"
-      ],
-      "domain": "lifecycle"
-    },
-    {
       "name": "go",
       "path": "C:\\Users\\brsth\\.grok\\skills\\go\\SKILL.md",
       "scope": "grok-user",
@@ -1207,7 +1438,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "plan-writer",
         "refine",
         "review",
+        "test-driven-development",
         "tp",
+        "using-git-worktrees",
         "wiki"
       ],
       "consumes_provider": [
@@ -1219,9 +1452,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "nlm"
       ],
       "references_wiki": [
-        "coding-model-pool-tier-1-tier-2",
+        "design-choice-audit-challenge-every-decision-against-first-principles",
         "framing-check-pattern",
         "prompting-patterns-for-ai-agent-control",
+        "scatter-gather-for-single-artifact-parallel-analysis",
+        "solution-unit-validation-before-build",
         "subagent-shell-quoting-durable-fix"
       ],
       "provides": [
@@ -1357,7 +1592,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "references_wiki": [],
       "provides": [
-        "completion-gate"
+        "completion-gate",
+        "scan-code-quality"
       ],
       "domain": "testing"
     },
@@ -1389,31 +1625,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "handoff-write"
       ],
       "domain": "lifecycle"
-    },
-    {
-      "name": "harvest",
-      "path": "C:\\Users\\brsth\\.grok\\skills\\harvest\\SKILL.md",
-      "scope": "grok-user",
-      "delegates_to": [
-        "aar",
-        "close",
-        "debrief",
-        "handoff",
-        "todo",
-        "tp",
-        "why"
-      ],
-      "consumes_provider": [
-        "mechanical-model-pool",
-        "pending-suggestions"
-      ],
-      "references_wiki": [],
-      "provides": [
-        "cross-session-pattern-detection",
-        "obligation-lifecycle",
-        "value-tracking"
-      ],
-      "domain": "self-improvement"
     },
     {
       "name": "help",
@@ -1453,14 +1664,51 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
+      "name": "insight",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\insight\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [
+        "aar",
+        "close",
+        "handoff",
+        "maintain",
+        "review",
+        "skill-dev",
+        "skill-prune",
+        "todo",
+        "tp",
+        "wiki"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [
+        "insight-skill-consolidates-capture-friction-harvest",
+        "signal-prioritization-for-improvement-detection"
+      ],
+      "provides": [
+        "capture-coverage-check",
+        "friction-detection",
+        "improvement-opportunity-scan",
+        "proactive-knowledge-capture",
+        "scan-session-transcript",
+        "workflow-automation-analysis"
+      ],
+      "domain": "lifecycle"
+    },
+    {
       "name": "maintain",
       "path": "C:\\Users\\brsth\\.grok\\skills\\maintain\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
         "close",
+        "config-audit",
+        "go",
         "handoff",
+        "maintain-ifile",
         "recover",
+        "review",
+        "skill-dev",
         "skill-prune",
+        "tp",
         "wiki"
       ],
       "consumes_provider": [
@@ -1471,8 +1719,30 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "scheduled-checks-in-maintain"
       ],
       "provides": [
-        "fleet-maintenance"
+        "fleet-maintenance",
+        "scan-workspace-state"
       ],
+      "domain": "self-improvement"
+    },
+    {
+      "name": "maintain-ifile",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\maintain-ifile\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [
+        "maintain",
+        "preflight",
+        "skill-dev",
+        "skill-prune",
+        "wiki"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [
+        "agents-md-construction-best-practices",
+        "agents-md-optimization-tools-landscape-2026",
+        "enforcement-hierarchy-and-compaction-strategy",
+        "llm-instruction-non-compliance-activation-gap-2026"
+      ],
+      "provides": [],
       "domain": "self-improvement"
     },
     {
@@ -1507,6 +1777,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "references_wiki": [],
       "provides": [
         "cross-model-second-opinion",
+        "minimax-image-generation",
+        "minimax-music-generation",
+        "minimax-speech-synthesis",
+        "minimax-video-generation",
         "minimax-vision",
         "minimax-web-search"
       ],
@@ -1532,6 +1806,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "mmx"
       ],
       "references_wiki": [
+        "model-benchmark-testing-quirks",
         "model-fleet-provider-pools",
         "model-pool-not-chain",
         "tool-fallbacks"
@@ -1585,11 +1860,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "delegates_to": [
         "aar",
         "agy",
-        "chrome-devtools-mcp",
+        "chrome-devtools",
         "codex",
         "handoff",
         "mmx",
-        "red-team",
         "tp",
         "why"
       ],
@@ -1600,6 +1874,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "references_wiki": [
         "cdp-network-interception-and-sse-capture-for-llm-chat",
+        "chrome-job-object-escape-via-task-scheduler",
         "chromium-cdp-websocket-origin-restriction",
         "multi-llm-aggregator-landscape"
       ],
@@ -1622,7 +1897,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "go",
         "grok-parallel",
         "handoff",
-        "red-team",
         "tp",
         "why",
         "wiki"
@@ -1632,6 +1906,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "gh"
       ],
       "references_wiki": [
+        "compaction-inherited-recommendation-decoupling",
         "intent-mode-gated-auto-composition",
         "mechanisms-for-thought-partner-behavior",
         "proactive-ai-volunteering-mechanisms",
@@ -1678,6 +1953,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture",
+        "design-choice-audit-challenge-every-decision-against-first-principles",
         "maker-checker-required-for-enforcement-work"
       ],
       "provides": [
@@ -1706,6 +1982,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": "knowledge"
     },
     {
+      "name": "rca",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\rca\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [
+        "handoff",
+        "why",
+        "wiki"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [
+        "root-cause-analysis"
+      ],
+      "domain": "lifecycle"
+    },
+    {
       "name": "recap-grok",
       "path": "C:\\Users\\brsth\\.grok\\skills\\recap-grok\\SKILL.md",
       "scope": "grok-user",
@@ -1727,6 +2019,18 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": "lifecycle"
     },
     {
+      "name": "redteam",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\redteam\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [
+        "red-team"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "refactor",
       "path": "C:\\Users\\brsth\\.grok\\skills\\refactor\\SKILL.md",
       "scope": "grok-user",
@@ -1736,16 +2040,19 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "handoff",
         "refine",
         "review",
+        "todo",
         "tp",
         "wiki"
       ],
       "consumes_provider": [
+        "context7",
         "exa",
         "gh",
         "nlm"
       ],
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture",
+        "design-choice-audit-challenge-every-decision-against-first-principles",
         "verification-before-completion-principle"
       ],
       "provides": [
@@ -1785,6 +2092,25 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": "discovery"
     },
     {
+      "name": "req-check",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\req-check\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [
+        "go",
+        "risk",
+        "tp",
+        "wargame",
+        "wiki"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [
+        "great-adversarial-review-skill-design-patterns",
+        "x"
+      ],
+      "provides": [],
+      "domain": "review"
+    },
+    {
       "name": "research",
       "path": "C:\\Users\\brsth\\.grok\\skills\\research\\SKILL.md",
       "scope": "grok-user",
@@ -1803,6 +2129,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "close",
         "go",
         "red-team",
+        "todo",
         "tp",
         "why",
         "wiki"
@@ -1816,21 +2143,41 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "references_wiki": [
         "agentic-sdlc-skill-lifecycle-architecture",
-        "fix-introduces-regression-by-trading-properties"
+        "fix-introduces-regression-by-trading-properties",
+        "multi-model-ensemble-design-patterns-for-agent-skills",
+        "scatter-gather-for-single-artifact-parallel-analysis"
       ],
       "provides": [
         "code-review",
+        "scan-code-quality",
         "subagent-dispatch",
         "verified-findings-on-disk"
       ],
       "domain": "review"
     },
     {
+      "name": "review-relay",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\review-relay\\SKILL.md",
+      "scope": "grok-user",
+      "delegates_to": [
+        "handoff",
+        "review"
+      ],
+      "consumes_provider": [
+        "codex"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "risk",
       "path": "C:\\Users\\brsth\\.grok\\skills\\risk\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
+        "handoff",
         "red-team",
+        "todo",
         "tp",
         "wargame",
         "why",
@@ -1841,12 +2188,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "adaptive-expansion-evidence-triggered-conditional-steps",
         "blind-spot-detection-methods",
         "concurrent-cdp-auth-contention",
+        "design-doc-conformance-check-procedure",
+        "great-adversarial-review-skill-design-patterns",
         "invariants-beat-environment-comfort"
       ],
       "provides": [
+        "adversarial-review",
         "risk-assessment",
         "risk-escalation",
-        "risk-scan"
+        "risk-scan",
+        "scan-risk"
       ],
       "domain": "review"
     },
@@ -1878,22 +2229,29 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": "discovery"
     },
     {
-      "name": "ship",
-      "path": "C:\\Users\\brsth\\.grok\\skills\\ship\\SKILL.md",
+      "name": "ship-py",
+      "path": "C:\\Users\\brsth\\.grok\\skills\\ship-py\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
         "check",
-        "close",
+        "doc-check",
         "grok-safe-git",
-        "grok-verify",
         "handoff",
+        "refactor",
         "review",
-        "todo",
+        "risk",
+        "skill-dev",
         "wiki"
       ],
-      "consumes_provider": [],
-      "references_wiki": [],
+      "consumes_provider": [
+        "spawn-subagent"
+      ],
+      "references_wiki": [
+        "skill-pipeline-integration-testing",
+        "specification-gaming-in-llm-agent-pipelines"
+      ],
       "provides": [
+        "public-readiness-gate",
         "ship-pipeline",
         "verify-and-publish"
       ],
@@ -1909,12 +2267,14 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "close",
         "create-skill",
         "fmea",
+        "go",
         "grok-verify",
         "handoff",
         "maintain",
         "notice",
         "review",
         "skill-prune",
+        "todo",
         "tp",
         "why",
         "wiki"
@@ -1924,13 +2284,18 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "gh"
       ],
       "references_wiki": [
+        "blind-spot-detection-methods",
+        "claude-side-skill-improvement-tooling-2026",
         "code-output-passthrough-narration-over-script-output",
         "cross-invocation-skills-proactively-suggest-complementary-skills",
         "execution-receipts-for-executable-artifacts",
         "mechanical-enforcement-of-llm-skill-steps-2026",
+        "self-reflective-gap-discovery-indirect-hunting-prompts",
         "skill-catalog",
         "skill-development-portfolio",
+        "skill-effectiveness-measurement-gaps-trigger-accuracy-token-efficiency",
         "skill-management-in-agentic-systems-research-survey",
+        "skill-pipeline-integration-testing",
         "skill-techniques-index"
       ],
       "provides": [
@@ -1963,17 +2328,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "path": "C:\\Users\\brsth\\.grok\\skills\\tasks\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [],
-      "consumes_provider": [
-        "agy",
-        "codex",
-        "exa",
-        "gh"
-      ],
+      "consumes_provider": [],
       "references_wiki": [],
-      "provides": [
-        "persistent-task-store"
-      ],
-      "domain": "fleet-ops"
+      "provides": [],
+      "domain": ""
     },
     {
       "name": "tdd",
@@ -2020,10 +2378,15 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "path": "C:\\Users\\brsth\\.grok\\skills\\todo\\SKILL.md",
       "scope": "grok-user",
       "delegates_to": [
+        "aar",
         "check",
         "close",
         "go",
+        "insight",
+        "maintain",
         "review",
+        "skill-dev",
+        "skill-prune",
         "tp",
         "why",
         "wiki"
@@ -2035,9 +2398,15 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "reddit"
       ],
       "references_wiki": [
+        "evidence-first-default-and-needless-confirmation",
+        "externalized-verification-over-intrinsic-self-correction",
+        "llm-judgment-hooks",
+        "no-question-theater",
         "signal-based-intent-expansion"
       ],
       "provides": [
+        "scan-session-transcript",
+        "scan-workspace-state",
         "workspace-prioritized-action-list"
       ],
       "domain": "fleet-ops"
@@ -2055,13 +2424,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "debrief",
         "design",
         "go",
-        "grok-verify",
         "handoff",
         "mmx",
-        "notice",
         "packet",
         "preflight",
-        "red-team",
         "review",
         "skill-dev",
         "todo",
@@ -2082,18 +2448,23 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "analyst-exhibits-pattern-being-analyzed",
         "code-orchestrates-model-judges-skill-scale",
         "cross-invocation-skills-proactively-suggest-complementary-skills",
+        "design-choice-audit-challenge-every-decision-against-first-principles",
+        "design-doc-conformance-check-procedure",
         "inter-skill-output-bridges-and-temporal-surfacing-layers",
         "markdown-mermaid-rendering-agentic-clis-windows-11",
+        "mechanical-as-input-not-mechanical-as-frame",
         "model-fit-and-post-hoc-behavioral-detection",
         "model-pool-not-chain",
         "model-pool-selection-policy-speed-quota-diversity",
         "model-tool-calling-capability-matrix",
+        "research-quality-principle-efficiency-not-censorship",
         "signal-based-intent-expansion",
         "skill-catalog",
         "tool-fallbacks"
       ],
       "provides": [
         "critical-friend-critique",
+        "scan-risk",
         "session-opportunity-review",
         "subagent-dispatch",
         "system-exploration"
@@ -2109,7 +2480,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "references_wiki": [],
       "provides": [
         "logic-error-detection",
-        "manual-trace-verification"
+        "manual-trace-verification",
+        "scan-code-quality"
       ],
       "domain": "lifecycle"
     },
@@ -2117,11 +2489,23 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "name": "triage",
       "path": "C:\\Users\\brsth\\.grok\\skills\\triage\\SKILL.md",
       "scope": "grok-user",
-      "delegates_to": [],
+      "delegates_to": [
+        "check",
+        "go",
+        "handoff",
+        "review",
+        "tp",
+        "why"
+      ],
       "consumes_provider": [],
       "references_wiki": [],
-      "provides": [],
-      "domain": ""
+      "provides": [
+        "evidence-anchored-review",
+        "finding-lifecycle",
+        "scan-session-transcript",
+        "session-finding-triage"
+      ],
+      "domain": "discovery"
     },
     {
       "name": "wargame",
@@ -2179,6 +2563,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "references_wiki": [
         "optimal-multi-backend-search-strategy",
+        "reading-chatgpt-shared-links-js-spa",
         "search-tool-landscape-2026",
         "subagent-shell-quoting-durable-fix",
         "web-research-state-2026",
@@ -2202,7 +2587,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "go",
         "handoff",
         "mmx",
-        "red-team",
         "tp",
         "web",
         "wiki"
@@ -2346,24 +2730,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "assumption-auditing-and-unknown-unknown-discovery",
         "blind-spot-detection-methods",
         "compound-skill-improvement-patterns",
-        "concept-1",
-        "concept-2",
         "concurrent-cdp-auth-contention",
+        "decision-integrity-in-research-blocking-unknowns-and-decision-red-teaming",
         "intent-mode-gated-auto-composition",
         "invariants-beat-environment-comfort",
         "notebooklm-cli-operational-gotchas",
         "parallel-subagent-wait-all-gate",
         "plausible-narratives-substitute-for-verification",
-        "prior-concept",
+        "reading-chatgpt-shared-links-js-spa",
         "research-applicability-checking-dont-cite-without-verifying-assumptions",
         "research-quality-principle-efficiency-not-censorship",
+        "research-vs-design-vs-architect-skills-and-www-self-assessment",
+        "self-reflection-in-llms-fails-without-external-evidence",
+        "self-reflective-gap-discovery-indirect-hunting-prompts",
         "skill-catalog",
-        "subagent-shell-quoting-durable-fix",
         "two-component-research-winnowing-pattern",
-        "wikilink",
-        "wikilinks",
-        "x",
-        "y"
+        "wikilinks"
       ],
       "provides": [
         "subagent-dispatch",
@@ -2593,6 +2975,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
+      "name": "skill-design-principles",
+      "path": "C:\\Users\\brsth\\.grok\\bundled\\skills\\skill-design-principles\\SKILL.md",
+      "scope": "grok-bundled",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "check",
       "path": "P:\\.grok\\skills\\check\\SKILL.md",
       "scope": "grok-project",
@@ -2608,31 +3000,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "model-pool-selection-policy-speed-quota-diversity"
       ],
       "provides": [
+        "scan-code-quality",
         "session-verification",
         "subagent-dispatch"
       ],
       "domain": "testing"
-    },
-    {
-      "name": "red-team",
-      "path": "P:\\.grok\\skills\\red-team\\SKILL.md",
-      "scope": "grok-project",
-      "delegates_to": [
-        "aar",
-        "debrief",
-        "handoff",
-        "review",
-        "skill-dev",
-        "tp",
-        "wargame",
-        "why"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [
-        "parallel-subagent-wait-all-gate"
-      ],
-      "provides": [],
-      "domain": "review"
     },
     {
       "name": "avant-garde-ui",
@@ -2767,7 +3139,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wikilinks"
       ],
       "provides": [
-        "knowledge-hygiene"
+        "knowledge-hygiene",
+        "scan-workspace-state"
       ],
       "domain": "self-improvement"
     },
@@ -2781,11 +3154,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "consumes_provider": [
         "mmx",
+        "nlm",
         "notebooklm"
       ],
       "references_wiki": [
-        "concurrent-cdp-auth-contention",
-        "nlm-bulk-ingest",
         "nlm-to-wiki-optimization-opportunities",
         "notebooklm-cli-operational-gotchas",
         "notebooklm-source-limits-free-vs-paid",
@@ -2809,6 +3181,471 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": "monitoring"
     },
     {
+      "name": "building-pydantic-ai-agents",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\plugins\\ai\\skills\\building-pydantic-ai-agents\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "logfire-instrumentation",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\plugins\\logfire\\skills\\logfire-instrumentation\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "go"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "logfire-query",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\plugins\\logfire\\skills\\logfire-query\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "logfire-ui",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\plugins\\logfire\\skills\\logfire-ui\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pydantic",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\plugins\\pydantic\\skills\\pydantic\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pydantic-ai-harness",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\plugins\\pydantic-ai-harness\\skills\\pydantic-ai-harness\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "building-pydantic-ai-agents",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\skills\\building-pydantic-ai-agents\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "logfire-instrumentation",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\skills\\logfire-instrumentation\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "go"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "logfire-query",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\skills\\logfire-query\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "logfire-ui",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\skills\\logfire-ui\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pydantic",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\skills\\pydantic\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pydantic-ai-harness",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\ai-8ac48a59\\skills\\pydantic-ai-harness\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "codex-cli-runtime",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-0471180b5259112a-plugins-codex-4df10c6d\\skills\\codex-cli-runtime\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "codex"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "codex-result-handling",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-0471180b5259112a-plugins-codex-4df10c6d\\skills\\codex-result-handling\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "codex"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "gpt-5-4-prompting",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-0471180b5259112a-plugins-codex-4df10c6d\\skills\\gpt-5-4-prompting\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "claudit",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-0f3a28b3c40cb2f0-plugins-claudit-d3842d10\\skills\\claudit\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "knowledge",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-0f3a28b3c40cb2f0-plugins-claudit-d3842d10\\skills\\knowledge\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "refresh",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-0f3a28b3c40cb2f0-plugins-claudit-d3842d10\\skills\\refresh\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "status",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-0f3a28b3c40cb2f0-plugins-claudit-d3842d10\\skills\\status\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pi-cli-runtime",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-660785464e056e9b-plugins-pi-fd0db27a\\skills\\pi-cli-runtime\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pi-cross-verify",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-660785464e056e9b-plugins-pi-fd0db27a\\skills\\pi-cross-verify\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pi-result-handling",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-660785464e056e9b-plugins-pi-fd0db27a\\skills\\pi-result-handling\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pi-routing",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-660785464e056e9b-plugins-pi-fd0db27a\\skills\\pi-routing\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "access",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-external-plugins-discord-a640bd71\\skills\\access\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "configure",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-external-plugins-discord-a640bd71\\skills\\configure\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "access",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-external-plugins-telegram-d2d1098b\\skills\\access\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "configure",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-external-plugins-telegram-d2d1098b\\skills\\configure\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "claude-automation-recommender",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-claude-code-setup-75a5e861\\skills\\claude-automation-recommender\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "context7"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "claude-md-improver",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-claude-md-management-6514e215\\skills\\claude-md-improver\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "claude-security",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-claude-security-49aa74db\\skills\\claude-security\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "frontend-design",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-frontend-design-c0d56842\\skills\\frontend-design\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "writing-rules",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-hookify-117687a6\\skills\\writing-rules\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "build-mcp-app",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-mcp-server-dev-bcbb8c4e\\skills\\build-mcp-app\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "build-mcp-server",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-mcp-server-dev-bcbb8c4e\\skills\\build-mcp-server\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "build-mcpb",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-mcp-server-dev-bcbb8c4e\\skills\\build-mcpb\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "playground",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-playground-73d74b09\\skills\\playground\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "agent-development",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-plugin-dev-5a8bc1e1\\skills\\agent-development\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "command-development",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-plugin-dev-5a8bc1e1\\skills\\command-development\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "help",
+        "review"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hook-development",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-plugin-dev-5a8bc1e1\\skills\\hook-development\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "mcp-integration",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-plugin-dev-5a8bc1e1\\skills\\mcp-integration\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "plugin-settings",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-plugin-dev-5a8bc1e1\\skills\\plugin-settings\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "plugin-structure",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-plugin-dev-5a8bc1e1\\skills\\plugin-structure\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "review"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "skill-development",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-plugin-dev-5a8bc1e1\\skills\\skill-development\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "project-artifact",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-project-artifact-898e5c66\\skills\\project-artifact\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "skill-creator",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-783232b622f8182e-plugins-skill-creator-abe0b552\\skills\\skill-creator\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "case-feedback-skill",
       "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-834f3fcdc68d4e7e-plugins-glm-plan-bug-4165180d\\skills\\case-feedback-skill\\SKILL.md",
       "scope": "grok-installed-plugins",
@@ -2824,6 +3661,200 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "scope": "grok-installed-plugins",
       "delegates_to": [],
       "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "babysit",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\babysit\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "cloud-sync",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\cloud-sync\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "design-is",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\design-is\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "review"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "do",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\do\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "how-it-works",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\how-it-works\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "knowledge-agent",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\knowledge-agent\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "learn-codebase",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\learn-codebase\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "make-plan",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\make-plan\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "mem-search",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\mem-search\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "mode-creator",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\mode-creator\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "oh-my-issues",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\oh-my-issues\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pathfinder",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\pathfinder\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "smart-explore",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\smart-explore\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "standup",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\standup\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "timeline-report",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\timeline-report\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "version-bump",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\version-bump\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "weekly-digests",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\weekly-digests\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "what-the",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\what-the\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "wowerpoint",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\c--users-brsth--grok-marketplace-cache-b975999a270027c6-plugin-e849000c\\skills\\wowerpoint\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "notebooklm"
+      ],
       "references_wiki": [],
       "provides": [],
       "domain": ""
@@ -2891,12 +3922,206 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
+      "name": "codspeed-optimize",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\codspeed-3ec8881c\\skills\\codspeed-optimize\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [
+        "bench"
+      ],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "codspeed-setup-harness",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\codspeed-3ec8881c\\skills\\codspeed-setup-harness\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [
+        "bench"
+      ],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "deepeval",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\deepeval-b59be9dc\\skills\\deepeval\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "deepeval-otel",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\deepeval-b59be9dc\\skills\\deepeval-otel\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "deepeval-tracing",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\deepeval-b59be9dc\\skills\\deepeval-tracing\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "remembering-conversations",
       "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\episodic-memory-479fd403\\skills\\remembering-conversations\\SKILL.md",
       "scope": "grok-installed-plugins",
       "delegates_to": [],
       "consumes_provider": [
         "episodic-memory"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "exa-search",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\exa-grok-plugin-f73327c3\\skills\\exa-search\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "exa"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "exa-agent",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\exa-mcp-server-b74e6899\\skills\\exa-agent\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "exa"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "search",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\exa-mcp-server-b74e6899\\skills\\search\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "exa"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-agent",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-agent\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-cli",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-cli\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "firecrawl"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-crawl",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-crawl\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-download",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-download\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-interact",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-interact\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-map",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-map\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-monitor",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-monitor\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-parse",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-parse\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-scrape",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-scrape\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "firecrawl-search",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\firecrawl-claude-plugin-0d35612a\\skills\\firecrawl-search\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "firecrawl"
       ],
       "references_wiki": [],
       "provides": [],
@@ -3018,6 +4243,1076 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "consumes_provider": [
         "firecrawl"
       ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "captions-overlay",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.agents\\skills\\captions-overlay\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "changelog-video",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.agents\\skills\\changelog-video\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "cut-the-curve",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.agents\\skills\\cut-the-curve\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "motion-doctrine",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.agents\\skills\\motion-doctrine\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "oversized-cursor",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.agents\\skills\\oversized-cursor\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "seam-craft",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.agents\\skills\\seam-craft\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "captions-overlay",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.claude\\skills\\captions-overlay\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "changelog-video",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.claude\\skills\\changelog-video\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "cut-the-curve",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.claude\\skills\\cut-the-curve\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "motion-doctrine",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.claude\\skills\\motion-doctrine\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "oversized-cursor",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.claude\\skills\\oversized-cursor\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "seam-craft",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\.claude\\skills\\seam-craft\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "embedded-captions",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\embedded-captions\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "faceless-explainer",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\faceless-explainer\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "figma",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\figma\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "general-video",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\general-video\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hyperframes",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\hyperframes\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hyperframes-animation",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\hyperframes-animation\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hyperframes-cli",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\hyperframes-cli\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hyperframes-core",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\hyperframes-core\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hyperframes-creative",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\hyperframes-creative\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hyperframes-keyframes",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\hyperframes-keyframes\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hyperframes-registry",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\hyperframes-registry\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "media-use",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\media-use\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "motion-graphics",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\motion-graphics\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "music-to-video",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\music-to-video\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "pr-to-video",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\pr-to-video\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "product-launch-video",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\product-launch-video\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "remotion-to-hyperframes",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\remotion-to-hyperframes\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "slideshow",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\slideshow\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "talking-head-recut",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\hyperframes-13cee189\\skills\\talking-head-recut\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "codex"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "add-app-to-server",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\mcp-apps-ca51757f\\plugins\\mcp-apps\\skills\\add-app-to-server\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "convert-web-app",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\mcp-apps-ca51757f\\plugins\\mcp-apps\\skills\\convert-web-app\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "create-mcp-app",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\mcp-apps-ca51757f\\plugins\\mcp-apps\\skills\\create-mcp-app\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "migrate-oai-app",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\mcp-apps-ca51757f\\plugins\\mcp-apps\\skills\\migrate-oai-app\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "chrome-extensions",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\modern-web-guidance-47b15e3d\\skills\\chrome-extensions\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "modern-web-guidance",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\modern-web-guidance-47b15e3d\\skills\\modern-web-guidance\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "browser-use",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\plugins-git-browser-use-dbe52796\\.kimi-plugin\\skills\\browser-use\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "browser-use",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\plugins-git-browser-use-dbe52796\\cursor\\skills\\browser-use\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "qa",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\plugins-git-browser-use-dbe52796\\qa\\skills\\qa\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "ask-matt",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\ask-matt\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "diagnosing-bugs",
+        "grill-me",
+        "handoff",
+        "improve-codebase-architecture",
+        "tdd",
+        "teach",
+        "to-spec",
+        "to-tickets",
+        "triage",
+        "wayfinder",
+        "wizard"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "code-review",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\code-review\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "codebase-design",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\codebase-design\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "diagnosing-bugs",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\diagnosing-bugs\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "improve-codebase-architecture"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "domain-modeling",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\domain-modeling\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "grill-with-docs",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\grill-with-docs\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "implement",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\implement\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "tdd"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\improve-codebase-architecture\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "prototype",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\prototype\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "research",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\research\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "resolving-merge-conflicts",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\resolving-merge-conflicts\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "setup-matt-pocock-skills",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\setup-matt-pocock-skills\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "triage"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tdd",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\tdd\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "to-spec",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\to-spec\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "to-tickets",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\to-tickets\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "triage",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\triage\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "wayfinder",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\wayfinder\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "wizard",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\engineering\\wizard\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "claude-handoff",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\in-progress\\claude-handoff\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "loop-me",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\in-progress\\loop-me\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "setup-ts-deep-modules",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\in-progress\\setup-ts-deep-modules\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "writing-beats",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\in-progress\\writing-beats\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "writing-fragments",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\in-progress\\writing-fragments\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "writing-shape",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\in-progress\\writing-shape\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "git-guardrails-claude-code",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\misc\\git-guardrails-claude-code\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "migrate-to-shoehorn",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\misc\\migrate-to-shoehorn\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "scaffold-exercises",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\misc\\scaffold-exercises\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "setup-pre-commit",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\misc\\setup-pre-commit\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "grill-me",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\productivity\\grill-me\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "grilling",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\productivity\\grilling\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "handoff",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\productivity\\handoff\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "teach",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\productivity\\teach\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "to-questionnaire",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\productivity\\to-questionnaire\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "wait-what",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\productivity\\wait-what\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "writing-for-agents",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-15663f80\\skills\\productivity\\writing-for-agents\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-mcp",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\hf-mcp\\skills\\hf-mcp\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-cli",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-cli\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-cloud-aws-context-discovery",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-cloud-aws-context-discovery\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-cloud-python-env-setup",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-cloud-python-env-setup\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-cloud-sagemaker-deployment-planner",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-cloud-sagemaker-deployment-planner\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-cloud-sagemaker-iam-preflight",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-cloud-sagemaker-iam-preflight\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-cloud-sagemaker-production-defaults",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-cloud-sagemaker-production-defaults\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-cloud-serving-image-selection",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-cloud-serving-image-selection\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "hf-mem",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\hf-mem\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-best",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-best\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-community-evals",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-community-evals\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-datasets",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-datasets\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-gradio",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-gradio\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-llm-trainer",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-llm-trainer\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-local-models",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-local-models\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-lora-space-builder",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-lora-space-builder\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-paper-publisher",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-paper-publisher\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-papers",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-papers\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-spaces",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-spaces\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-tool-builder",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-tool-builder\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-trackio",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-trackio\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-vision-trainer",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-vision-trainer\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "huggingface-zerogpu",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\huggingface-zerogpu\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "train-sentence-transformers",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\train-sentence-transformers\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "transformers-js",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\transformers-js\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "trl-training",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-88ddea95\\skills\\trl-training\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "skill-creator",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-92326433\\.cursor\\skills\\skill-creator\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "langfuse",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-92326433\\skills\\langfuse\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": "langfuse.com)"
+    },
+    {
+      "name": "autofix",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-9d89b0e5\\skills\\autofix\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "code-review",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-9d89b0e5\\skills\\code-review\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
       "references_wiki": [],
       "provides": [],
       "domain": ""
@@ -3453,6 +5748,230 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
+      "name": "agent-onboarding",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\agent-onboarding\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "brand-listening",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\brand-listening\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "brd-browser-debug",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\brd-browser-debug\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "bright-data-best-practices",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\bright-data-best-practices\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "duckduckgo"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "bright-data-mcp",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\bright-data-mcp\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "brightdata-cli",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\brightdata-cli\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "competitive-intel",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\competitive-intel\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "data-feeds",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\data-feeds\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "design-mirror",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\design-mirror\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "discover-api",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\discover-api\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "js-sdk-best-practices",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\js-sdk-best-practices\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "live-research",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\live-research\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "price-comparison",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\price-comparison\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "proxy",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\proxy\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "python-sdk-best-practices",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\python-sdk-best-practices\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "rag-pipeline",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\rag-pipeline\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "scrape",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\scrape\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "scraper-builder",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\scraper-builder\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [
+        "web"
+      ],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "scraper-studio",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\scraper-studio\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "search",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\search\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "seo-audit",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\skills-f432838a\\skills\\seo-audit\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "searching-sourcegraph",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\sourcegraph-claudecode-plugin-5366c715\\skills\\searching-sourcegraph\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "brainstorming",
       "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-21e2a56d\\skills\\brainstorming\\SKILL.md",
       "scope": "grok-installed-plugins",
@@ -3468,6 +5987,18 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "scope": "grok-installed-plugins",
       "delegates_to": [],
       "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "executing-plans",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-21e2a56d\\skills\\executing-plans\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "codex"
+      ],
       "references_wiki": [],
       "provides": [],
       "domain": ""
@@ -3563,6 +6094,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
+      "name": "writing-plans",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-21e2a56d\\skills\\writing-plans\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
       "name": "writing-skills",
       "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-21e2a56d\\skills\\writing-skills\\SKILL.md",
       "scope": "grok-installed-plugins",
@@ -3575,6 +6116,230 @@ high consumer counts. Changes to these have fleet-wide blast radius.
     {
       "name": "browsing",
       "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-chrome-b518017c\\skills\\browsing\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "workflow",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-developing-for-claude-code-54cb1fcc\\examples\\full-featured-plugin\\skills\\workflow\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "professional-greeting",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-developing-for-claude-code-54cb1fcc\\examples\\simple-greeter-plugin\\skills\\professional-greeting\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "developing-claude-code-plugins",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-developing-for-claude-code-54cb1fcc\\skills\\developing-claude-code-plugins\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "working-with-claude-code",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\superpowers-developing-for-claude-code-54cb1fcc\\skills\\working-with-claude-code\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "academic-scientific-research",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\academic-scientific-research\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "tavily"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "investment-research-briefs",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\investment-research-briefs\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "tavily"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "product-competitor-intelligence",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\product-competitor-intelligence\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "tavily"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "sales-account-intelligence",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\sales-account-intelligence\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "tavily"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tavily-best-practices",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\tavily-best-practices\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tavily-web",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\tavily-web\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "tavily"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "threat-intelligence-enrichment",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\threat-intelligence-enrichment\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "tavily"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "vendor-risk-kyc-screening",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tavily-grok-plugin-05ff8f77\\skills\\vendor-risk-kyc-screening\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [
+        "tavily"
+      ],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "writing-clearly-and-concisely",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\the-elements-of-style-8c8b0dd2\\skills\\writing-clearly-and-concisely\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "agent",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\claude\\skills\\agent\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "fetch",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\claude\\skills\\fetch\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "search",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\claude\\skills\\search\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tinyfish-authenticated",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\grok\\skills\\tinyfish-authenticated\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tinyfish-automation",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\grok\\skills\\tinyfish-automation\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tinyfish-browser",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\grok\\skills\\tinyfish-browser\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tinyfish-research",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\grok\\skills\\tinyfish-research\\SKILL.md",
+      "scope": "grok-installed-plugins",
+      "delegates_to": [],
+      "consumes_provider": [],
+      "references_wiki": [],
+      "provides": [],
+      "domain": ""
+    },
+    {
+      "name": "tinyfish-web",
+      "path": "C:\\Users\\brsth\\.grok\\installed-plugins\\tinyfish-web-agent-integrations-git-grok-7db223a5\\grok\\skills\\tinyfish-web\\SKILL.md",
       "scope": "grok-installed-plugins",
       "delegates_to": [],
       "consumes_provider": [],
@@ -5230,190 +7995,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "domain": ""
     },
     {
-      "name": "aid",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\aid\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "all",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\all\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "chs",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\chs\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "chs-eval",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\chs-eval\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "context7",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\context7\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [
-        "context7"
-      ],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "crawl",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\crawl\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [
-        "wiki"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [
-        "page",
-        "wikilinks"
-      ],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "discover",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\discover\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [
-        "design"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "export-session",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\export-session\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [
-        "debrief"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "find",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\find\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [
-        "web"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "gitingest",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\gitingest\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [
-        "nlm"
-      ],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "gitpack",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\gitpack\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "keep",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\keep\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [
-        "web"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "note",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\note\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [
-        "web"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "repomix",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\repomix\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "research",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\research\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [
-        "go"
-      ],
-      "consumes_provider": [],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
-      "name": "web",
-      "path": "P:\\packages\\.claude-marketplace\\plugins\\search-research\\skills\\web\\SKILL.md",
-      "scope": "marketplace",
-      "delegates_to": [],
-      "consumes_provider": [
-        "notebooklm",
-        "serper"
-      ],
-      "references_wiki": [],
-      "provides": [],
-      "domain": ""
-    },
-    {
       "name": "id",
       "path": "P:\\packages\\.claude-marketplace\\plugins\\snapshot\\skills\\id\\SKILL.md",
       "scope": "marketplace",
@@ -5470,7 +8051,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "review",
         "search-fleet",
         "skill-dev",
-        "tasks",
         "todo",
         "wargame",
         "wiki",
@@ -5484,6 +8064,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "create-skill",
         "design",
         "dream",
+        "exa-agent",
+        "exa-search",
         "go",
         "grok-parallel",
         "grok-verify",
@@ -5498,9 +8080,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "refactor",
         "refine",
         "review",
+        "search",
         "search-fleet",
         "skill-dev",
-        "tasks",
         "todo",
         "web",
         "wiki",
@@ -5508,11 +8090,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "nlm": [
         "aar",
-        "gitingest",
         "go",
         "nlm",
         "nlm-to-wiki",
-        "refactor"
+        "refactor",
+        "wiki-yt"
       ],
       "agy": [
         "agy",
@@ -5521,18 +8103,39 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "mmx",
         "model-benchmark",
         "search-fleet",
-        "tasks",
         "tp"
+      ],
+      "spawn-subagent": [
+        "close-py",
+        "ship-py",
+        "tp",
+        "why"
       ],
       "codex": [
         "codex",
+        "codex-cli-runtime",
+        "executing-plans",
         "mmx",
         "model-benchmark",
         "resume-codex",
         "review",
-        "tasks",
+        "review-relay",
+        "talking-head-recut",
         "tp",
         "wargame"
+      ],
+      "mmx": [
+        "design",
+        "minimax-multimodal-toolkit",
+        "minimax-music-gen",
+        "minimax-music-playlist",
+        "mmx",
+        "model-benchmark",
+        "model-quota",
+        "search-fleet",
+        "web",
+        "wiki-yt",
+        "www"
       ],
       "firecrawl": [
         "design",
@@ -5551,19 +8154,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "tp",
         "web",
         "wiki-crawl4ai",
-        "www"
-      ],
-      "mmx": [
-        "design",
-        "minimax-multimodal-toolkit",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mmx",
-        "model-benchmark",
-        "model-quota",
-        "search-fleet",
-        "web",
-        "wiki-yt",
         "www"
       ],
       "ruff": [
@@ -5590,19 +8180,23 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "mechanical-model-pool": [
         "handoff",
-        "harvest",
         "refine",
         "www"
       ],
-      "pending-suggestions": [
-        "harvest"
-      ],
       "tavily": [
+        "academic-scientific-research",
+        "investment-research-briefs",
         "model-quota",
+        "product-competitor-intelligence",
+        "sales-account-intelligence",
         "search-fleet",
+        "tavily-web",
+        "threat-intelligence-enrichment",
+        "vendor-risk-kyc-screening",
         "web"
       ],
-      "chrome-devtools-mcp-tools": [
+      "chrome-devtools": [
+        "chrome-devtools-cli",
         "model-web"
       ],
       "perplexity": [
@@ -5610,19 +8204,22 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "search-fleet",
         "web"
       ],
-      "chrome-devtools": [
-        "chrome-devtools-cli",
+      "chrome-devtools-mcp-tools": [
         "model-web"
       ],
-      "pwm": [
-        "perplexity-web-mcp",
-        "search-fleet"
+      "context7": [
+        "claude-automation-recommender",
+        "refactor"
       ],
       "search-research": [
         "prospect",
         "search-fleet",
         "web",
         "why"
+      ],
+      "pwm": [
+        "perplexity-web-mcp",
+        "search-fleet"
       ],
       "reddit": [
         "search-fleet",
@@ -5633,192 +8230,46 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "notebooklm": [
         "nlm",
         "todo",
-        "web",
         "wiki-yt",
+        "wowerpoint",
         "yt-nlm"
       ],
-      "spawn-subagent": [
-        "tp",
-        "why"
-      ],
-      "hn-algolia": [
-        "web",
-        "www"
-      ],
       "duckduckgo": [
+        "bright-data-best-practices",
         "web"
       ],
       "stackexchange": [
         "web"
+      ],
+      "hn-algolia": [
+        "web",
+        "www"
       ],
       "github-issues": [
         "www"
       ],
       "minimax-search": [
         "design"
-      ],
-      "context7": [
-        "context7"
-      ],
-      "serper": [
-        "web"
       ]
     },
     "skill_callers": {
-      "check": [
-        "aar",
-        "ask",
-        "close",
-        "doc-check",
-        "doc-compiler",
-        "dream",
-        "go",
-        "grok-verify",
-        "model-benchmark",
-        "refactor",
-        "refine",
-        "review",
-        "ship",
-        "skill-dev",
-        "skill-to-page",
-        "todo",
-        "tp",
-        "www"
-      ],
       "debrief": [
         "aar",
-        "agy",
         "behave",
         "claude-audit",
-        "close",
         "codex",
         "dream",
-        "export-session",
         "friction",
         "handoff",
-        "harvest",
         "improve",
         "lmc",
         "mlc",
         "recap",
         "recap-grok",
-        "red-team",
         "retro",
         "skill-audit",
         "top-problems",
         "tp"
-      ],
-      "go": [
-        "aar",
-        "ask",
-        "check",
-        "close",
-        "code",
-        "design",
-        "doc-check",
-        "grill-me",
-        "grok-go",
-        "grok-parallel",
-        "grok-sdlc",
-        "handoff",
-        "model-benchmark",
-        "notice",
-        "plan-writer",
-        "refactor",
-        "refine",
-        "research",
-        "review",
-        "rns",
-        "todo",
-        "tp",
-        "wargame",
-        "why",
-        "www"
-      ],
-      "tp": [
-        "aar",
-        "ask",
-        "behave",
-        "capture",
-        "close",
-        "design",
-        "domain-terms",
-        "dream",
-        "fmea",
-        "go",
-        "handoff",
-        "harvest",
-        "model-benchmark",
-        "model-web",
-        "notice",
-        "plan-writer",
-        "recap-grok",
-        "red-team",
-        "refactor",
-        "refine",
-        "review",
-        "risk",
-        "skill-dev",
-        "slc",
-        "todo",
-        "why",
-        "www"
-      ],
-      "close": [
-        "aar",
-        "ask",
-        "capture",
-        "check",
-        "dream",
-        "handoff",
-        "harvest",
-        "maintain",
-        "recap-grok",
-        "review",
-        "ship",
-        "skill-dev",
-        "todo",
-        "tp",
-        "wiki"
-      ],
-      "wiki": [
-        "aar",
-        "capture",
-        "claude-audit",
-        "close",
-        "crawl",
-        "create-skill",
-        "debrief",
-        "design",
-        "domain-terms",
-        "dream",
-        "go",
-        "grok-safe-git",
-        "handoff",
-        "improve",
-        "main",
-        "maintain",
-        "model-benchmark",
-        "nlm-to-wiki",
-        "notice",
-        "plan-writer",
-        "prompt-patterns",
-        "recap-grok",
-        "refactor",
-        "refine",
-        "review",
-        "risk",
-        "ship",
-        "skill-dev",
-        "todo",
-        "tp",
-        "ux",
-        "wargame",
-        "web",
-        "why",
-        "wiki-crawl4ai",
-        "wiki-yt",
-        "www"
       ],
       "refine": [
         "aar",
@@ -5831,125 +8282,264 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "plan-writer",
         "refactor"
       ],
-      "review": [
-        "aar",
-        "ask",
-        "behave",
-        "check",
-        "claude-audit",
-        "close",
-        "debrief",
-        "doc-check",
-        "domain-terms",
-        "dream",
-        "go",
-        "improve",
-        "learn",
-        "marketplace-bridge",
-        "model-benchmark",
-        "red-team",
-        "refactor",
-        "refine",
-        "review-pr",
-        "risks",
-        "ship",
-        "skill-audit",
-        "skill-dev",
-        "sqd",
-        "todo",
-        "tp",
-        "uci"
-      ],
-      "why": [
-        "aar",
-        "ask",
-        "behave",
-        "dream",
-        "harvest",
-        "model-benchmark",
-        "model-web",
-        "notice",
-        "red-team",
-        "review",
-        "risk",
-        "skill-dev",
-        "todo",
-        "tp",
-        "wargame",
-        "www"
-      ],
       "handoff": [
         "aar",
         "ask",
         "ask-matt",
         "behave",
-        "capture",
-        "close",
+        "close-py",
         "design",
         "dream",
-        "friction",
         "go",
-        "harvest",
+        "insight",
         "maintain",
         "model-web",
         "notice",
         "packet",
         "plan-writer",
         "prompt-patterns",
+        "rca",
         "recap",
         "recap-grok",
-        "red-team",
         "refactor",
         "refine",
-        "ship",
+        "review-relay",
+        "risk",
+        "ship-py",
         "skill-dev",
         "tp",
+        "triage",
         "why",
         "wiki",
         "www"
       ],
-      "red-team": [
+      "tp": [
         "aar",
+        "ask",
         "behave",
-        "claude-audit",
-        "close",
-        "debrief",
+        "design",
+        "domain-terms",
         "dream",
         "fmea",
-        "improve",
+        "go",
+        "handoff",
+        "insight",
+        "maintain",
+        "model-benchmark",
         "model-web",
         "notice",
-        "pre-mortem",
-        "preflight",
-        "retro",
+        "plan-writer",
+        "recap-grok",
+        "refactor",
+        "refine",
+        "req-check",
         "review",
         "risk",
-        "risks",
-        "skill-audit",
-        "tp",
+        "skill-dev",
+        "slc",
+        "todo",
+        "triage",
         "why",
+        "www"
+      ],
+      "why": [
+        "aar",
+        "ask",
+        "behave",
+        "design",
+        "dream",
+        "model-benchmark",
+        "model-web",
+        "notice",
+        "rca",
+        "review",
+        "risk",
+        "skill-dev",
+        "todo",
+        "tp",
+        "triage",
+        "wargame",
+        "www"
+      ],
+      "review": [
+        "aar",
+        "ask",
+        "behave",
+        "check",
+        "claude-audit",
+        "command-development",
+        "debrief",
+        "design-is",
+        "doc-check",
+        "domain-terms",
+        "dream",
+        "go",
+        "improve",
+        "insight",
+        "learn",
+        "maintain",
+        "marketplace-bridge",
+        "model-benchmark",
+        "plugin-structure",
+        "refactor",
+        "refine",
+        "review-pr",
+        "review-relay",
+        "risks",
+        "ship-py",
+        "skill-audit",
+        "skill-dev",
+        "sqd",
+        "todo",
+        "tp",
+        "triage",
+        "uci"
+      ],
+      "go": [
+        "aar",
+        "ask",
+        "check",
+        "code",
+        "design",
+        "doc-check",
+        "grill-me",
+        "grok-go",
+        "grok-parallel",
+        "grok-sdlc",
+        "handoff",
+        "logfire-instrumentation",
+        "maintain",
+        "model-benchmark",
+        "notice",
+        "plan-writer",
+        "refactor",
+        "refine",
+        "req-check",
+        "review",
+        "rns",
+        "skill-dev",
+        "todo",
+        "tp",
+        "triage",
+        "wargame",
+        "why",
+        "www"
+      ],
+      "check": [
+        "aar",
+        "ask",
+        "close-py",
+        "doc-check",
+        "doc-compiler",
+        "dream",
+        "go",
+        "grok-verify",
+        "model-benchmark",
+        "refactor",
+        "refine",
+        "review",
+        "ship-py",
+        "skill-dev",
+        "skill-to-page",
+        "todo",
+        "tp",
+        "triage",
+        "www"
+      ],
+      "close": [
+        "aar",
+        "ask",
+        "check",
+        "close-py",
+        "dream",
+        "handoff",
+        "insight",
+        "maintain",
+        "recap-grok",
+        "review",
+        "skill-dev",
+        "todo",
+        "tp",
+        "wiki"
+      ],
+      "wiki": [
+        "aar",
+        "claude-audit",
+        "close-py",
+        "create-skill",
+        "debrief",
+        "design",
+        "domain-terms",
+        "dream",
+        "go",
+        "grok-safe-git",
+        "handoff",
+        "improve",
+        "insight",
+        "main",
+        "maintain",
+        "maintain-ifile",
+        "model-benchmark",
+        "nlm-to-wiki",
+        "notice",
+        "plan-writer",
+        "prompt-patterns",
+        "rca",
+        "recap-grok",
+        "refactor",
+        "refine",
+        "req-check",
+        "review",
+        "risk",
+        "ship-py",
+        "skill-dev",
+        "todo",
+        "tp",
+        "ux",
+        "wargame",
+        "web",
+        "why",
+        "wiki-crawl4ai",
+        "wiki-yt",
         "www"
       ],
       "todo": [
+        "aar",
         "ask",
-        "capture",
-        "close",
         "design",
         "email-skill",
-        "harvest",
+        "insight",
         "model-quota",
         "recap-grok",
-        "ship",
+        "refactor",
+        "review",
+        "risk",
+        "skill-dev",
         "tp",
         "wiki",
         "www"
+      ],
+      "aar": [
+        "ask",
+        "close-py",
+        "dream",
+        "handoff",
+        "insight",
+        "model-web",
+        "notice",
+        "packet",
+        "recap-grok",
+        "skill-dev",
+        "slc",
+        "todo",
+        "tp",
+        "wargame",
+        "why"
       ],
       "design": [
         "ask",
         "behave",
-        "close",
         "code",
-        "discover",
         "domain-terms",
         "dream",
         "evolve",
@@ -5970,46 +8560,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "why",
         "www"
       ],
-      "aar": [
-        "capture",
-        "close",
-        "dream",
-        "friction",
-        "handoff",
-        "harvest",
-        "model-web",
-        "notice",
-        "packet",
-        "recap-grok",
-        "red-team",
-        "skill-dev",
-        "slc",
-        "tp",
-        "wargame",
-        "why"
-      ],
-      "friction": [
-        "capture"
-      ],
-      "tasks": [
-        "capture"
-      ],
-      "skill-dev": [
-        "close",
-        "create-skill",
-        "red-team",
-        "tp",
-        "www"
-      ],
-      "notice": [
-        "close",
-        "skill-dev",
-        "slc",
-        "tp"
-      ],
-      "capture": [
-        "close"
-      ],
       "agy": [
         "check",
         "codex",
@@ -6022,14 +8572,23 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-prune": [
         "config-audit",
         "create-skill",
+        "insight",
         "maintain",
+        "maintain-ifile",
         "skill-dev",
+        "todo",
         "wiki",
         "workspace-health"
       ],
-      "preflight": [
-        "design",
-        "tp"
+      "skill-dev": [
+        "create-skill",
+        "insight",
+        "maintain",
+        "maintain-ifile",
+        "ship-py",
+        "todo",
+        "tp",
+        "www"
       ],
       "plan-writer": [
         "design",
@@ -6037,6 +8596,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "go",
         "grill-me",
         "refine"
+      ],
+      "preflight": [
+        "design",
+        "maintain-ifile",
+        "tp"
       ],
       "improve-codebase-architecture": [
         "ask-matt",
@@ -6047,34 +8611,51 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "ask-matt",
         "domain-terms"
       ],
-      "grok-verify": [
-        "go",
-        "grok-parallel",
-        "ship",
-        "skill-dev",
-        "tp"
-      ],
       "grok-safe-git": [
         "go",
         "grok-parallel",
         "grok-verify",
-        "ship"
+        "ship-py"
+      ],
+      "grok-discovery": [
+        "go",
+        "grok-parallel"
       ],
       "grok-route": [
         "go",
         "grok-parallel",
         "grok-verify"
       ],
-      "grok-discovery": [
-        "go",
-        "grok-parallel"
+      "test-driven-development": [
+        "go"
       ],
       "grok-parallel": [
         "go",
         "notice"
       ],
+      "using-git-worktrees": [
+        "go"
+      ],
+      "grok-verify": [
+        "go",
+        "grok-parallel",
+        "skill-dev"
+      ],
       "domain-terms": [
         "grill-me"
+      ],
+      "maintain": [
+        "insight",
+        "maintain-ifile",
+        "model-quota",
+        "skill-dev",
+        "todo"
+      ],
+      "maintain-ifile": [
+        "maintain"
+      ],
+      "config-audit": [
+        "maintain"
       ],
       "recover": [
         "config-audit",
@@ -6084,6 +8665,7 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "workspace-health"
       ],
       "codex": [
+        "codex-result-handling",
         "mmx",
         "model-web",
         "tp",
@@ -6102,17 +8684,42 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "why",
         "wiki-yt"
       ],
-      "maintain": [
-        "model-quota",
-        "skill-dev"
-      ],
-      "chrome-devtools-mcp": [
+      "chrome-devtools": [
         "model-web"
       ],
       "wargame": [
         "plan-writer",
-        "red-team",
+        "req-check",
         "risk"
+      ],
+      "red-team": [
+        "claude-audit",
+        "debrief",
+        "fmea",
+        "improve",
+        "pre-mortem",
+        "preflight",
+        "redteam",
+        "retro",
+        "review",
+        "risk",
+        "risks",
+        "skill-audit",
+        "www"
+      ],
+      "risk": [
+        "req-check",
+        "ship-py"
+      ],
+      "refactor": [
+        "ship-py"
+      ],
+      "doc-check": [
+        "ship-py"
+      ],
+      "notice": [
+        "skill-dev",
+        "slc"
       ],
       "fmea": [
         "skill-dev"
@@ -6120,10 +8727,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "create-skill": [
         "skill-dev"
       ],
+      "insight": [
+        "todo"
+      ],
       "web": [
-        "find",
-        "keep",
-        "note",
+        "scraper-builder",
         "tp",
         "why",
         "wiki-crawl4ai",
@@ -6138,23 +8746,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "wiki-crawl4ai": [
         "www"
       ],
-      "wayfinder": [
-        "ask-matt"
+      "help": [
+        "command-development"
       ],
       "diagnosing-bugs": [
-        "ask-matt"
-      ],
-      "teach": [
-        "ask-matt"
-      ],
-      "to-tickets": [
-        "ask-matt"
-      ],
-      "triage": [
-        "ask-matt",
-        "setup-matt-pocock-skills"
-      ],
-      "writing-great-skills": [
         "ask-matt"
       ],
       "tdd": [
@@ -6168,28 +8763,46 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "subagent-driven-development",
         "t"
       ],
+      "teach": [
+        "ask-matt"
+      ],
+      "triage": [
+        "ask-matt",
+        "setup-matt-pocock-skills"
+      ],
+      "to-tickets": [
+        "ask-matt"
+      ],
       "to-spec": [
+        "ask-matt"
+      ],
+      "wayfinder": [
+        "ask-matt"
+      ],
+      "wizard": [
+        "ask-matt"
+      ],
+      "writing-great-skills": [
         "ask-matt"
       ]
     },
     "wiki_referencers": {
-      "friction-detection-operator-pushback-as-trigger": [
-        "aar"
-      ],
       "user-modeling-for-agentic-clis": [
         "aar",
         "notice"
-      ],
-      "parallel-subagent-wait-all-gate": [
-        "aar",
-        "red-team",
-        "www"
       ],
       "tool-fallbacks": [
         "aar",
         "design",
         "model-benchmark",
         "tp"
+      ],
+      "parallel-subagent-wait-all-gate": [
+        "aar",
+        "www"
+      ],
+      "friction-detection-operator-pushback-as-trigger": [
+        "aar"
       ],
       "skill-catalog": [
         "ask",
@@ -6198,42 +8811,63 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki",
         "www"
       ],
+      "skill-graph": [
+        "ask"
+      ],
       "signal-based-intent-expansion": [
         "ask",
-        "close",
         "handoff",
         "todo",
         "tp"
       ],
-      "skill-graph": [
-        "ask"
-      ],
       "governance-pattern-library": [
         "behave"
       ],
-      "plausible-narratives-substitute-for-verification": [
-        "capture",
-        "www"
+      "skill-pipeline-integration-testing": [
+        "close-py",
+        "ship-py",
+        "skill-dev"
       ],
-      "proactive-improvement-opportunity-scanner": [
-        "capture"
+      "pipeline-detect-phase-state-reset-sequential-contamination": [
+        "close-py"
+      ],
+      "adr-0009-extend-unverified-stance": [
+        "design"
+      ],
+      "llm-synthesis-quality-and-speed-techniques": [
+        "design"
+      ],
+      "design-choice-audit-challenge-every-decision-against-first-principles": [
+        "design",
+        "go",
+        "plan-writer",
+        "refactor",
+        "tp"
+      ],
+      "multi-model-ensemble-design-patterns-for-agent-skills": [
+        "design",
+        "review"
+      ],
+      "exemption-logic-as-conflict-signal": [
+        "design"
+      ],
+      "invariants-beat-environment-comfort": [
+        "design",
+        "risk",
+        "www"
       ],
       "agentic-sdlc-skill-lifecycle-architecture": [
         "check",
-        "close",
         "design",
         "plan-writer",
         "refactor",
         "refine",
         "review"
       ],
-      "prompting-patterns-for-ai-agent-control": [
-        "close",
-        "go",
-        "prompt-patterns"
-      ],
-      "adr-0009-extend-unverified-stance": [
-        "design"
+      "design-doc-conformance-check-procedure": [
+        "design",
+        "risk",
+        "tp"
       ],
       "consistency-drift-as-waste-source-in-iterative-refinement": [
         "design"
@@ -6241,25 +8875,12 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "raising-coding-best-practices-in-ai-agents": [
         "design"
       ],
-      "concept-slug": [
-        "design"
-      ],
-      "llm-synthesis-quality-and-speed-techniques": [
-        "design"
-      ],
-      "exemption-logic-as-conflict-signal": [
-        "design"
-      ],
-      "slug": [
-        "doc-check"
-      ],
       "page": [
-        "crawl",
         "doc-check",
         "wiki-crawl4ai"
       ],
-      "some-concept": [
-        "doc-check"
+      "llm-dreaming-memory-consolidation": [
+        "dream"
       ],
       "operator-collaboration-style-and-leverage": [
         "dream"
@@ -6267,19 +8888,23 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "self-improving-agent-systems-techniques-and-workspace-gaps": [
         "dream"
       ],
-      "llm-dreaming-memory-consolidation": [
-        "dream"
+      "scatter-gather-for-single-artifact-parallel-analysis": [
+        "go",
+        "review"
       ],
       "framing-check-pattern": [
         "go"
       ],
+      "solution-unit-validation-before-build": [
+        "go"
+      ],
+      "prompting-patterns-for-ai-agent-control": [
+        "go",
+        "prompt-patterns"
+      ],
       "subagent-shell-quoting-durable-fix": [
         "go",
-        "web",
-        "www"
-      ],
-      "coding-model-pool-tier-1-tier-2": [
-        "go"
+        "web"
       ],
       "multi-terminal-git-coordination-primitives": [
         "grok-safe-git"
@@ -6287,26 +8912,52 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-usability-audit-cold-read-critique": [
         "handoff"
       ],
+      "insight-skill-consolidates-capture-friction-harvest": [
+        "insight"
+      ],
+      "signal-prioritization-for-improvement-detection": [
+        "insight"
+      ],
       "fleet-maintenance-skill-design": [
         "maintain"
       ],
       "scheduled-checks-in-maintain": [
         "maintain"
       ],
+      "llm-instruction-non-compliance-activation-gap-2026": [
+        "config-audit",
+        "maintain-ifile",
+        "skill-prune"
+      ],
+      "agents-md-construction-best-practices": [
+        "maintain-ifile"
+      ],
+      "agents-md-optimization-tools-landscape-2026": [
+        "maintain-ifile"
+      ],
+      "enforcement-hierarchy-and-compaction-strategy": [
+        "maintain-ifile"
+      ],
       "model-pool-not-chain": [
         "model-benchmark",
         "tp"
       ],
+      "model-benchmark-testing-quirks": [
+        "model-benchmark"
+      ],
       "model-fleet-provider-pools": [
         "model-benchmark"
       ],
-      "cdp-network-interception-and-sse-capture-for-llm-chat": [
+      "chrome-job-object-escape-via-task-scheduler": [
+        "model-web"
+      ],
+      "chromium-cdp-websocket-origin-restriction": [
         "model-web"
       ],
       "multi-llm-aggregator-landscape": [
         "model-web"
       ],
-      "chromium-cdp-websocket-origin-restriction": [
+      "cdp-network-interception-and-sse-capture-for-llm-chat": [
         "model-web"
       ],
       "proactive-ai-volunteering-mechanisms": [
@@ -6315,12 +8966,15 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "mechanisms-for-thought-partner-behavior": [
         "notice"
       ],
-      "wiki-concept": [
+      "compaction-inherited-recommendation-decoupling": [
         "notice"
       ],
       "intent-mode-gated-auto-composition": [
         "notice",
         "www"
+      ],
+      "wiki-concept": [
+        "notice"
       ],
       "maker-checker-required-for-enforcement-work": [
         "plan-writer"
@@ -6328,17 +8982,25 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "verification-before-completion-principle": [
         "refactor"
       ],
-      "trust-escalation-ladder-autonomous-agent-work": [
+      "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
         "refine"
       ],
       "workflow-definition-over-agent-capability": [
         "refine"
       ],
-      "designing-harnesses-that-make-good-behavior-the-path-of-least-resistance": [
+      "trust-escalation-ladder-autonomous-agent-work": [
         "refine"
       ],
       "task-refinement-interview-detection-template-patterns": [
         "refine"
+      ],
+      "x": [
+        "req-check",
+        "wiki"
+      ],
+      "great-adversarial-review-skill-design-patterns": [
+        "req-check",
+        "risk"
       ],
       "fix-introduces-regression-by-trading-properties": [
         "review"
@@ -6346,24 +9008,20 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "concurrent-cdp-auth-contention": [
         "email-skill",
         "risk",
-        "wiki-yt",
         "www"
       ],
-      "invariants-beat-environment-comfort": [
+      "blind-spot-detection-methods": [
         "risk",
+        "skill-dev",
         "www"
       ],
       "adaptive-expansion-evidence-triggered-conditional-steps": [
         "risk"
       ],
-      "blind-spot-detection-methods": [
-        "risk",
-        "www"
+      "specification-gaming-in-llm-agent-pipelines": [
+        "ship-py"
       ],
-      "skill-management-in-agentic-systems-research-survey": [
-        "skill-dev"
-      ],
-      "skill-development-portfolio": [
+      "claude-side-skill-improvement-tooling-2026": [
         "skill-dev"
       ],
       "cross-invocation-skills-proactively-suggest-complementary-skills": [
@@ -6373,23 +9031,52 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-techniques-index": [
         "skill-dev"
       ],
-      "code-output-passthrough-narration-over-script-output": [
+      "execution-receipts-for-executable-artifacts": [
         "skill-dev"
       ],
-      "execution-receipts-for-executable-artifacts": [
+      "skill-effectiveness-measurement-gaps-trigger-accuracy-token-efficiency": [
+        "skill-dev"
+      ],
+      "skill-development-portfolio": [
+        "skill-dev"
+      ],
+      "code-output-passthrough-narration-over-script-output": [
         "skill-dev"
       ],
       "mechanical-enforcement-of-llm-skill-steps-2026": [
         "skill-dev"
       ],
+      "skill-management-in-agentic-systems-research-survey": [
+        "skill-dev"
+      ],
+      "self-reflective-gap-discovery-indirect-hunting-prompts": [
+        "skill-dev",
+        "www"
+      ],
       "thought-partner-standard": [
         "slc"
       ],
-      "model-pool-selection-policy-speed-quota-diversity": [
-        "check",
+      "llm-judgment-hooks": [
+        "todo"
+      ],
+      "no-question-theater": [
+        "todo"
+      ],
+      "evidence-first-default-and-needless-confirmation": [
+        "todo"
+      ],
+      "externalized-verification-over-intrinsic-self-correction": [
+        "todo"
+      ],
+      "analyst-exhibits-pattern-being-analyzed": [
         "tp"
       ],
-      "markdown-mermaid-rendering-agentic-clis-windows-11": [
+      "research-quality-principle-efficiency-not-censorship": [
+        "tp",
+        "www"
+      ],
+      "model-pool-selection-policy-speed-quota-diversity": [
+        "check",
         "tp"
       ],
       "model-fit-and-post-hoc-behavioral-detection": [
@@ -6398,14 +9085,24 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "inter-skill-output-bridges-and-temporal-surfacing-layers": [
         "tp"
       ],
+      "markdown-mermaid-rendering-agentic-clis-windows-11": [
+        "tp"
+      ],
       "code-orchestrates-model-judges-skill-scale": [
+        "tp"
+      ],
+      "mechanical-as-input-not-mechanical-as-frame": [
         "tp"
       ],
       "model-tool-calling-capability-matrix": [
         "tp"
       ],
-      "analyst-exhibits-pattern-being-analyzed": [
-        "tp"
+      "reading-chatgpt-shared-links-js-spa": [
+        "web",
+        "www"
+      ],
+      "optimal-multi-backend-search-strategy": [
+        "web"
       ],
       "search-tool-landscape-2026": [
         "web"
@@ -6416,33 +9113,35 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "web-research-state-2026": [
         "web"
       ],
-      "optimal-multi-backend-search-strategy": [
-        "web"
-      ],
       "multidimensional-root-cause-analysis-ai-agent-failures": [
-        "why"
-      ],
-      "problem-first-systems-decomposition": [
         "why"
       ],
       "reactive-pattern-matching-and-closure-pressure": [
         "why"
       ],
+      "self-reflection-in-llms-fails-without-external-evidence": [
+        "why",
+        "www"
+      ],
       "compaction-inherited-diagnosis-unverified-propagation": [
         "why"
       ],
-      "self-reflection-in-llms-fails-without-external-evidence": [
+      "problem-first-systems-decomposition": [
         "why"
+      ],
+      "concept": [
+        "wiki"
       ],
       "couple-triggers-to-events-that-actually-fire": [
         "wiki"
       ],
-      "x": [
-        "wiki",
-        "www"
+      "inline-conditional-over-dispatch-for-skill-design": [
+        "wiki"
+      ],
+      "existing-concept": [
+        "wiki"
       ],
       "wikilinks": [
-        "crawl",
         "nlm-to-wiki",
         "obsidian-vault",
         "skill-prune",
@@ -6451,28 +9150,28 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki-yt",
         "www"
       ],
-      "inline-conditional-over-dispatch-for-skill-design": [
+      "synchronous-review-direct-write-pattern": [
         "wiki"
       ],
       "knowledge-capture-cant-afford-to-lose": [
         "wiki"
       ],
-      "concept": [
-        "wiki"
-      ],
-      "existing-concept": [
-        "wiki"
-      ],
-      "synchronous-review-direct-write-pattern": [
-        "wiki"
-      ],
-      "concept-2": [
+      "ai-thought-partner-landscape-and-tp-improvements-2026": [
         "www"
       ],
-      "y": [
+      "compound-skill-improvement-patterns": [
+        "www"
+      ],
+      "decision-integrity-in-research-blocking-unknowns-and-decision-red-teaming": [
         "www"
       ],
       "adaptive-orchestration-task-shape-classification": [
+        "www"
+      ],
+      "two-component-research-winnowing-pattern": [
+        "www"
+      ],
+      "assumption-auditing-and-unknown-unknown-discovery": [
         "www"
       ],
       "notebooklm-cli-operational-gotchas": [
@@ -6481,64 +9180,43 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki-yt",
         "www"
       ],
-      "wikilink": [
+      "plausible-narratives-substitute-for-verification": [
         "www"
       ],
-      "ai-thought-partner-landscape-and-tp-improvements-2026": [
-        "www"
-      ],
-      "research-quality-principle-efficiency-not-censorship": [
-        "www"
-      ],
-      "adaptive-research-depth-preventing-incomplete-www-coverage": [
-        "www"
-      ],
-      "compound-skill-improvement-patterns": [
+      "research-vs-design-vs-architect-skills-and-www-self-assessment": [
         "www"
       ],
       "research-applicability-checking-dont-cite-without-verifying-assumptions": [
         "www"
       ],
-      "assumption-auditing-and-unknown-unknown-discovery": [
+      "adaptive-research-depth-preventing-incomplete-www-coverage": [
         "www"
-      ],
-      "prior-concept": [
-        "www"
-      ],
-      "two-component-research-winnowing-pattern": [
-        "www"
-      ],
-      "concept-1": [
-        "www"
-      ],
-      "llm-instruction-non-compliance-activation-gap-2026": [
-        "config-audit",
-        "skill-prune"
       ],
       "structural-enforcement-for-skipped-rules-grok-build-2026": [
         "config-audit"
       ],
+      "adhd-friendly-unified-todo-workspace-email-scanning": [
+        "email-skill"
+      ],
       "stateless-cli-vs-mcp-for-cross-agent-email-access": [
         "email-skill"
       ],
-      "adhd-friendly-unified-todo-workspace-email-scanning": [
-        "email-skill"
+      "semantic-clustering-bounded-size": [
+        "nlm-bulk-ingest"
       ],
       "notebooklm-source-limits-free-vs-paid": [
         "nlm-bulk-ingest",
         "wiki-yt"
       ],
-      "semantic-clustering-bounded-size": [
-        "nlm-bulk-ingest"
+      "nlm-to-wiki-optimization-opportunities": [
+        "wiki-yt"
       ],
       "video-to-wiki-pipeline-transcript-extraction-multimodal": [
         "wiki-yt"
       ],
-      "nlm-bulk-ingest": [
-        "wiki-yt"
-      ],
-      "nlm-to-wiki-optimization-opportunities": [
-        "wiki-yt"
+      "bench": [
+        "codspeed-optimize",
+        "codspeed-setup-harness"
       ],
       "nlm-abc12345-concept-two": [
         "nlm-to-wiki"
@@ -6548,6 +9226,15 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ]
     },
     "capability_providers": {
+      "scan-session-transcript": [
+        "aar",
+        "insight",
+        "todo",
+        "triage"
+      ],
+      "after-action-review": [
+        "aar"
+      ],
       "opportunity-landscape": [
         "aar"
       ],
@@ -6557,34 +9244,25 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "session-retrospective": [
         "aar"
       ],
-      "after-action-review": [
-        "aar"
+      "gemini-reasoning": [
+        "agy"
       ],
       "cross-model-second-opinion": [
         "agy",
         "codex",
         "mmx"
       ],
-      "gemini-reasoning": [
-        "agy"
-      ],
       "skill-routing": [
         "ask"
       ],
-      "capture-coverage-check": [
-        "capture"
+      "anti-fabrication-close": [
+        "close-py"
       ],
-      "proactive-knowledge-capture": [
-        "capture"
+      "session-close-pipeline": [
+        "close-py"
       ],
-      "improvement-opportunity-scan": [
-        "capture"
-      ],
-      "session-close-accounting": [
-        "close"
-      ],
-      "gate-resolution": [
-        "close"
+      "close-verdict": [
+        "close-py"
       ],
       "openai-reasoning": [
         "codex"
@@ -6598,7 +9276,13 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "systematic-debugging": [
         "diagnosing-bugs"
       ],
-      "changelog-validation": [
+      "readme-staleness-detection": [
+        "doc-check"
+      ],
+      "skill-frontmatter-validation": [
+        "doc-check"
+      ],
+      "broken-link-detection": [
         "doc-check"
       ],
       "repo-file-completeness": [
@@ -6607,19 +9291,13 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "documentation-readiness-check": [
         "doc-check"
       ],
-      "broken-link-detection": [
-        "doc-check"
-      ],
-      "code-fence-validation": [
-        "doc-check"
-      ],
-      "skill-frontmatter-validation": [
-        "doc-check"
-      ],
       "wikilink-resolution": [
         "doc-check"
       ],
-      "readme-staleness-detection": [
+      "changelog-validation": [
+        "doc-check"
+      ],
+      "code-fence-validation": [
         "doc-check"
       ],
       "domain-term-extraction": [
@@ -6628,31 +9306,25 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "offline-memory-consolidation": [
         "dream"
       ],
-      "workflow-automation-analysis": [
-        "friction"
-      ],
-      "friction-detection": [
-        "friction"
-      ],
-      "safe-git-preflight-dispatch": [
-        "go"
-      ],
-      "parallel-implement-dispatch": [
-        "go"
-      ],
       "discovery-dispatch": [
         "go"
       ],
       "engineering-orchestration": [
         "go"
       ],
+      "parallel-implement-dispatch": [
+        "go"
+      ],
       "verify-dispatch": [
         "go"
       ],
-      "requirements-elicitation": [
-        "grill-me"
+      "safe-git-preflight-dispatch": [
+        "go"
       ],
       "decision-tree-elicitation": [
+        "grill-me"
+      ],
+      "requirements-elicitation": [
         "grill-me"
       ],
       "source-authority-discovery": [
@@ -6677,20 +9349,17 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "completion-gate": [
         "grok-verify"
       ],
-      "handoff-write": [
-        "handoff"
+      "scan-code-quality": [
+        "check",
+        "grok-verify",
+        "review",
+        "trace"
       ],
       "handoff-auto-update": [
         "handoff"
       ],
-      "obligation-lifecycle": [
-        "harvest"
-      ],
-      "value-tracking": [
-        "harvest"
-      ],
-      "cross-session-pattern-detection": [
-        "harvest"
+      "handoff-write": [
+        "handoff"
       ],
       "grok-documentation-help": [
         "help"
@@ -6698,25 +9367,57 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "image-generation-guidance": [
         "imagine"
       ],
+      "capture-coverage-check": [
+        "insight"
+      ],
+      "workflow-automation-analysis": [
+        "insight"
+      ],
+      "proactive-knowledge-capture": [
+        "insight"
+      ],
+      "friction-detection": [
+        "insight"
+      ],
+      "improvement-opportunity-scan": [
+        "insight"
+      ],
       "fleet-maintenance": [
         "maintain"
+      ],
+      "scan-workspace-state": [
+        "maintain",
+        "skill-prune",
+        "todo"
       ],
       "marketplace-skill-discovery": [
         "marketplace-bridge"
       ],
+      "minimax-music-generation": [
+        "mmx"
+      ],
       "minimax-vision": [
+        "mmx"
+      ],
+      "minimax-speech-synthesis": [
+        "mmx"
+      ],
+      "minimax-image-generation": [
+        "mmx"
+      ],
+      "minimax-video-generation": [
         "mmx"
       ],
       "minimax-web-search": [
         "mmx"
       ],
-      "cost-tracking": [
+      "latency-benchmark": [
         "model-benchmark"
       ],
       "quality-scoring": [
         "model-benchmark"
       ],
-      "latency-benchmark": [
+      "cost-tracking": [
         "model-benchmark"
       ],
       "model-discovery": [
@@ -6725,16 +9426,13 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "quota-dashboard": [
         "model-quota"
       ],
-      "browser-llm-bridge": [
-        "model-web"
-      ],
-      "sse-response-capture": [
+      "conversation-selection": [
         "model-web"
       ],
       "fusion-portal-orchestration": [
         "model-web"
       ],
-      "conversation-selection": [
+      "sse-response-capture": [
         "model-web"
       ],
       "model-web-advisory": [
@@ -6743,13 +9441,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "multi-model-ensemble": [
         "model-web"
       ],
+      "browser-llm-bridge": [
+        "model-web"
+      ],
       "mid-conversation-observation-surfacing": [
         "notice"
       ],
-      "session-export": [
+      "file-pack": [
         "packet"
       ],
-      "file-pack": [
+      "session-export": [
         "packet"
       ],
       "plan-writing": [
@@ -6757,6 +9458,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "prompting-techniques-reference": [
         "prompt-patterns"
+      ],
+      "root-cause-analysis": [
+        "rca",
+        "why"
       ],
       "session-chain-walk": [
         "recap-grok"
@@ -6776,14 +9481,21 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "verified-findings-on-disk": [
         "review"
       ],
-      "risk-scan": [
-        "risk"
-      ],
       "risk-assessment": [
         "risk"
       ],
       "risk-escalation": [
         "risk"
+      ],
+      "adversarial-review": [
+        "risk"
+      ],
+      "risk-scan": [
+        "risk"
+      ],
+      "scan-risk": [
+        "risk",
+        "tp"
       ],
       "capability-routed-search": [
         "search-fleet"
@@ -6791,11 +9503,14 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "rrf-aggregation": [
         "search-fleet"
       ],
-      "verify-and-publish": [
-        "ship"
-      ],
       "ship-pipeline": [
-        "ship"
+        "ship-py"
+      ],
+      "verify-and-publish": [
+        "ship-py"
+      ],
+      "public-readiness-gate": [
+        "ship-py"
       ],
       "skill-improvement": [
         "skill-dev"
@@ -6803,14 +9518,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "skill-measurement": [
         "skill-dev"
       ],
-      "thought-partner-realignment": [
-        "slc"
-      ],
       "behavioral-reset": [
         "slc"
       ],
-      "persistent-task-store": [
-        "tasks"
+      "thought-partner-realignment": [
+        "slc"
       ],
       "workspace-prioritized-action-list": [
         "todo"
@@ -6818,10 +9530,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "session-opportunity-review": [
         "tp"
       ],
-      "system-exploration": [
+      "critical-friend-critique": [
         "tp"
       ],
-      "critical-friend-critique": [
+      "system-exploration": [
         "tp"
       ],
       "manual-trace-verification": [
@@ -6829,6 +9541,15 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "logic-error-detection": [
         "trace"
+      ],
+      "session-finding-triage": [
+        "triage"
+      ],
+      "finding-lifecycle": [
+        "triage"
+      ],
+      "evidence-anchored-review": [
+        "triage"
       ],
       "content-discipline-for-plans": [
         "wargame"
@@ -6839,19 +9560,16 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "multi-backend-search": [
         "web"
       ],
-      "feedback-to-wiki": [
-        "why"
-      ],
-      "root-cause-analysis": [
-        "why"
-      ],
       "pattern-library-query": [
         "why"
       ],
-      "wiki-write": [
-        "wiki"
+      "feedback-to-wiki": [
+        "why"
       ],
       "wiki-query": [
+        "wiki"
+      ],
+      "wiki-write": [
         "wiki"
       ],
       "web-ingestion": [
@@ -6866,10 +9584,10 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "session-verification": [
         "check"
       ],
-      "risk-priority-scoring": [
+      "failure-modes-analysis": [
         "fmea"
       ],
-      "failure-modes-analysis": [
+      "risk-priority-scoring": [
         "fmea"
       ],
       "evidence-backed-inventory": [
@@ -6917,7 +9635,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "review",
         "search-fleet",
         "skill-dev",
-        "tasks",
         "todo",
         "wargame",
         "wiki",
@@ -6931,6 +9648,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "create-skill",
         "design",
         "dream",
+        "exa-agent",
+        "exa-search",
         "go",
         "grok-parallel",
         "grok-verify",
@@ -6945,9 +9664,9 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "refactor",
         "refine",
         "review",
+        "search",
         "search-fleet",
         "skill-dev",
-        "tasks",
         "todo",
         "web",
         "wiki",
@@ -6955,11 +9674,11 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "nlm": [
         "aar",
-        "gitingest",
         "go",
         "nlm",
         "nlm-to-wiki",
-        "refactor"
+        "refactor",
+        "wiki-yt"
       ],
       "agy": [
         "agy",
@@ -6968,18 +9687,39 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "mmx",
         "model-benchmark",
         "search-fleet",
-        "tasks",
         "tp"
+      ],
+      "spawn-subagent": [
+        "close-py",
+        "ship-py",
+        "tp",
+        "why"
       ],
       "codex": [
         "codex",
+        "codex-cli-runtime",
+        "executing-plans",
         "mmx",
         "model-benchmark",
         "resume-codex",
         "review",
-        "tasks",
+        "review-relay",
+        "talking-head-recut",
         "tp",
         "wargame"
+      ],
+      "mmx": [
+        "design",
+        "minimax-multimodal-toolkit",
+        "minimax-music-gen",
+        "minimax-music-playlist",
+        "mmx",
+        "model-benchmark",
+        "model-quota",
+        "search-fleet",
+        "web",
+        "wiki-yt",
+        "www"
       ],
       "firecrawl": [
         "design",
@@ -7000,19 +9740,6 @@ high consumer counts. Changes to these have fleet-wide blast radius.
         "wiki-crawl4ai",
         "www"
       ],
-      "mmx": [
-        "design",
-        "minimax-multimodal-toolkit",
-        "minimax-music-gen",
-        "minimax-music-playlist",
-        "mmx",
-        "model-benchmark",
-        "model-quota",
-        "search-fleet",
-        "web",
-        "wiki-yt",
-        "www"
-      ],
       "ddg": [
         "go",
         "search-fleet",
@@ -7022,13 +9749,19 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       ],
       "mechanical-model-pool": [
         "handoff",
-        "harvest",
         "refine",
         "www"
       ],
       "tavily": [
+        "academic-scientific-research",
+        "investment-research-briefs",
         "model-quota",
+        "product-competitor-intelligence",
+        "sales-account-intelligence",
         "search-fleet",
+        "tavily-web",
+        "threat-intelligence-enrichment",
+        "vendor-risk-kyc-screening",
         "web"
       ],
       "perplexity": [
@@ -7051,8 +9784,8 @@ high consumer counts. Changes to these have fleet-wide blast radius.
       "notebooklm": [
         "nlm",
         "todo",
-        "web",
         "wiki-yt",
+        "wowerpoint",
         "yt-nlm"
       ]
     }

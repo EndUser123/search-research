@@ -7,7 +7,7 @@ description: >
   Adapted from Claude-side "garden" for Grok Build (index_skills.py as the
   inventory layer instead of CKS; grep-based wiki search instead of qmd).
 host: both
-provides: [knowledge-hygiene]
+provides: [knowledge-hygiene, scan-workspace-state]
 domain: self-improvement
 ---
 

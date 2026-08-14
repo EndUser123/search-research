@@ -2,7 +2,7 @@
 name: check
 description: "Multi-concern session verification with PASS/FAIL verdict"
 effort: high
-provides: [session-verification, subagent-dispatch]
+provides: [session-verification, subagent-dispatch, scan-code-quality]
 domain: testing
 quality_gates:
   - evidence: "P:/.artifacts/**/check-run.json"
