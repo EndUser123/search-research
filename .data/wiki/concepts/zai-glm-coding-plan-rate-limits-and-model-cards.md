@@ -179,6 +179,28 @@ list was not fetched. On Max the stakes are account-level, not per-call.
    don't matter, `thinking: disabled` or `reasoning_effort: none` cuts
    output-credit burn ~24x on the reasoning share.
 
+## Peak-window picker analysis (2026-08-14)
+
+[FACT] Peak = Mon–Fri 14:00–18:00 SGT (devpack/overview) = **Mon–Fri
+midnight–4:00 AM Mountain** (host tz receipt: `tzutil /g`). Measured
+exposure: 10 of 1,068 z.ai/GLM calls (0.9%) fell in the peak window, and
+all 10 were failures (the glm-5 1311 batch) — **0 output tokens ever
+billed at peak rate**. Credits non-binding at Max even at 2×.
+
+**Picker conclusion:** no time-aware gate justified (grep: no peak/hour
+modeling exists in model-quota scripts; adding it for 0.9% exposure is
+over-engineering — if ever needed, `threshold_policy` table in the
+fleet-database migration is the home). The live concurrency ceiling is 4
+(measured by concurrency_probe 2026-08-10, first failure at 5 — the
+SKILL.md table's "ZAI: 7" is stale). Strategy inputs:
+
+- Off-peak = raised concurrency → ZAI is MORE available during the
+  operator's daytime and all weekends.
+- Overnight weekday sessions crossing local midnight–4AM pay 2× credits
+  and get tighter concurrency → run ZAI-heavy parallel benchmark waves in
+  local daytime or weekends; route overnight waves to other providers.
+- Interactive work needs no change at any hour.
+
 ## Falsifier
 
 - A 413/TPM-style rejection appearing in telemetry for z.ai calls would
