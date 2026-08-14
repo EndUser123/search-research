@@ -1,6 +1,6 @@
 ---
 thread_id: 9b7e3a4f-2c1d-4e6a-8d5b-7a9c0f1e8b2c
-parent_handoff_path: P:/docs/handoffs/model-benchmark-dispatch-019fc95d/HANDOFF.md
+parent_handoff_path: none
 current_session_id: 019ffd06-0d7f-7f21-98fc-6117652ba7e3
 parent_session: none
 current_terminal_id: console_019ffd06
@@ -424,3 +424,4 @@ This handoff duplicates WS-3's scope (`model-telemetry-integration` supersedes i
 | Date | Session | Action |
 |------|---------|--------|
 | 2026-08-13T23:30 | 019ffd06-0d7f-7f21-98fc-6117652ba7e3 | created — consolidates 4 active + 3 older model-benchmark workstreams into single umbrella; 22 task packets |
+| 2026-08-14T00:00 | 019ffd06-0d7f-7f21-98fc-6117652ba7e3 | updated — closed 5 superseded handoffs (deleted: `model-benchmark-dispatch-019fc95d`, `dispatch-paths-fallback-not-spawn-block-20260805`, `review-findings-fix-019fc95d-20260806`, `model-telemetry-integration`, `telemetry-integration-20260724`); their work is fully captured in MBE-01..10. `parent_handoff_path` reset to `none` since parent is closed. Preserved `model-benchmark-20260728` and `model-benchmark-pool-contracts-bridge-20260729` (have unique reference content beyond umbrella). |
