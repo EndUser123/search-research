@@ -602,7 +602,9 @@ backups/
 !.data/wiki/
 .data/wiki/**
 !.data/wiki/concepts/
-!.data/wiki/concepts/**
+!.data/wiki/concepts/
+!.data/wiki/capabilities/
+!.data/wiki/capabilities/**
 !.data/wiki/entities/
 !.data/wiki/entities/**
 !.data/wiki/sources/
