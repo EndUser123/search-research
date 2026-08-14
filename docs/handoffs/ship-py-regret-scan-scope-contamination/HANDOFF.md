@@ -1,7 +1,7 @@
 # Handoff: ship-py regret-scan scope contamination
 
 ## Status
-OPEN — not started
+CLOSED — subsumed by ship-close-py-session-scope-isolation-20260813
 
 ## Problem
 
